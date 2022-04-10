@@ -5,8 +5,7 @@ open Farmer
 open Farmer.Builders
 open Farmer.ContainerApp
 open Farmer.ContainerAppValidation
-open Farmer.Arm.Web
-open Farmer.Arm.Web.ContainerApp
+open Farmer.Arm.App
 
 type ContainerConfig =
     { ContainerName : string

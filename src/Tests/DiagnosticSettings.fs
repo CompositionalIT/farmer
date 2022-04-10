@@ -101,7 +101,7 @@ let tests = testList "Diagnostic Settings" [
             Expect.throws (fun _ -> MetricSetting.Create("", days) |> ignore) (sprintf "Should have thrown for %d" days)
     }
 
-    ftest "Supports segmented names such as SQL databases" {
+    test "Supports segmented names such as SQL databases" {
         let config =
             let storageAccount = storageAccount { name "foo" }
             diagnosticSettings {

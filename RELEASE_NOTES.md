@@ -1,7 +1,8 @@
 Release Notes
 =============
-## vNext
+## 1.6.33
 * DiagnosticSettings now supports resources that contain multiple segments e.g. SQL Databases.
+* ContainerApps now use the updated resource name (Microsoft.App instead of Microsoft.Web).
 
 ## 1.6.32
 
