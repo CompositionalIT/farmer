@@ -16,8 +16,8 @@ let siteExtensions = ResourceType ("Microsoft.Web/sites/siteextensions", "2020-0
 let slots = ResourceType ("Microsoft.Web/sites/slots", "2020-09-01")
 let certificates = ResourceType ("Microsoft.Web/certificates", "2019-08-01")
 let hostNameBindings = ResourceType ("Microsoft.Web/sites/hostNameBindings", "2020-12-01")
-let containerApps = ResourceType ("Microsoft.Web/containerApps", "2021-03-01")
-let kubeEnvironments = ResourceType ("Microsoft.Web/kubeEnvironments", "2021-02-01")
+let containerApps = ResourceType ("Microsoft.App/containerApps", "2022-01-01-preview")
+let managedEnvironments = ResourceType ("Microsoft.App/managedEnvironments", "2022-01-01-preview")
 let virtualNetworkConnections = ResourceType ("Microsoft.Web/sites/virtualNetworkConnections", "2021-03-01")
 let slotsVirtualNetworkConnections = ResourceType ("Microsoft.Web/sites/slots/virtualNetworkConnections", "2021-03-01")
 
@@ -164,7 +164,7 @@ type SiteType =
         match this with
         | Slot _ -> slots
         | Site _ -> sites
-        
+
 [<RequireQualifiedAccess>]
 type FTPState =
     | AllAllowed
@@ -202,7 +202,7 @@ type Site =
       AutoSwapSlotName: string option
       ZipDeployPath : (string * ZipDeploy.ZipDeployTarget * ZipDeploy.ZipDeploySlot) option
       HealthCheckPath : string option
-      IpSecurityRestrictions : IpSecurityRestriction list 
+      IpSecurityRestrictions : IpSecurityRestriction list
       LinkToSubnet : SubnetReference option }
     /// Shorthand for SiteType.ResourceType
     member this.ResourceType = this.SiteType.ResourceType
@@ -255,7 +255,7 @@ type Site =
                        httpsOnly = this.HTTPSOnly
                        clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
                        keyVaultReferenceIdentity = keyvaultId
-                       virtualNetworkSubnetId = 
+                       virtualNetworkSubnetId =
                             match this.LinkToSubnet with
                             | None -> null
                             | Some id -> id.ResourceId.ArmExpression.Eval()
@@ -281,7 +281,7 @@ type Site =
                            javaContainer = this.JavaContainer |> Option.toObj
                            javaContainerVersion = this.JavaContainerVersion |> Option.toObj
                            phpVersion = this.PhpVersion |> Option.toObj
-                           ipSecurityRestrictions = 
+                           ipSecurityRestrictions =
                                 match this.IpSecurityRestrictions with
                                 | [] -> null
                                 | restrictions ->
@@ -341,13 +341,13 @@ type VirtualNetworkConnection =
     member this.SiteId = this.Site.ResourceType.resourceId this.Site.Name
     interface IArmResource with
         member this.ResourceId = virtualNetworkConnections.resourceId this.Name
-        member this.JsonModel = 
-            let resourceType = 
+        member this.JsonModel =
+            let resourceType =
                 match this.Site.SiteType with
                 | Site _ -> virtualNetworkConnections
                 | Slot _ -> slotsVirtualNetworkConnections
             {| resourceType.Create (this.Name, dependsOn=[this.SiteId; yield! this.Dependencies]) with
-                properties = 
+                properties =
                 {| vnetResourceId = this.Subnet.ArmExpression.Eval()
                    isSwift = true
                 |}
@@ -422,13 +422,13 @@ type Certificate =
         interface IArmResource with
             member this.ResourceId = certificates.resourceId this.ResourceName
             member this.JsonModel =
-                let dependencies = 
-                  match this.SiteId with 
+                let dependencies =
+                  match this.SiteId with
                   | Managed r -> [ r ; {hostNameBindings.resourceId(r.Name,ResourceName this.DomainName) with ResourceGroup = r.ResourceGroup }]
                   | _ -> []
                 {| certificates.Create(
                         this.ResourceName,
-                        this.Location, 
+                        this.Location,
                         dependencies ) with
                     properties =
                         {| serverFarmId = this.ServicePlanId.ResourceId.Eval()
@@ -488,7 +488,7 @@ module ContainerApp =
                        kind = "containerapp"
                        properties =
                            {|
-                               kubeEnvironmentId = this.Environment.Eval()
+                               managedEnvironmentId = this.Environment.Eval()
                                configuration =
                                    {|
                                        secrets = [|
@@ -659,7 +659,7 @@ module ContainerApp =
                        |}
                 |}
 
-    type KubeEnvironment =
+    type ManagedEnvironment =
         { Name : ResourceName
           Location : Location
           InternalLoadBalancerState : FeatureFlag
@@ -667,9 +667,9 @@ module ContainerApp =
           Dependencies: Set<ResourceId>
           Tags: Map<string,string> }
         interface IArmResource with
-            member this.ResourceId = kubeEnvironments.resourceId this.Name
+            member this.ResourceId = managedEnvironments.resourceId this.Name
             member this.JsonModel =
-                {| kubeEnvironments.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+                {| managedEnvironments.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                     kind = "containerenvironment"
                     properties =
                         {| ``type`` = "managed"
