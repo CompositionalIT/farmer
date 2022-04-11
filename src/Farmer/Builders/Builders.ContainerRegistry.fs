@@ -43,7 +43,10 @@ type ContainerRegistryBuilder() =
 
     [<CustomOperation "name">]
     /// Sets the name of the Azure Container Registry instance.
-    member _.Name (state:ContainerRegistryConfig, name) = { state with Name = ResourceName name }
+    member _.Name (state:ContainerRegistryConfig, name:ResourceName) =
+        { state with Name = ContainerRegistryValidation.ContainerRegistryName.Create(name).OkValue.ResourceName }
+    member this.Name(state:ContainerRegistryConfig, name:string) = this.Name(state, ResourceName name)
+
 
     [<CustomOperation "sku">]
     /// Sets the name of the SKU/Tier for the Container Registry instance.

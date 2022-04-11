@@ -46,13 +46,13 @@ let shouldHaveAdminUserDisabled (r : RegistryJson) =
 let tests = testList "Container Registry" [
     test "Basic resource settings are written to template resource" {
         containerRegistry {
-            name "test"
+            name "validContainerRegistryName"
             sku Premium
         }
         |> whenWritten
         |> shouldHaveType "Microsoft.ContainerRegistry/registries"
         |> shouldHaveApiVersion "2019-05-01"
-        |> shouldHaveName "test"
+        |> shouldHaveName "validContainerRegistryName"
         |> shouldHaveSku Premium
         |> shouldHaveALocation
         |> shouldHaveAdminUserDisabled
@@ -61,11 +61,34 @@ let tests = testList "Container Registry" [
 
     test "When enable_admin_user is set it is written to resource properties" {
         containerRegistry {
-            name "test"
+            name "validContainerRegistryName"
             enable_admin_user
         }
         |> whenWritten
         |> shouldHaveAdminUserEnabled
         |> ignore
     }
+
+    testList "Container Registry Name Validation tests" [
+        let invalidNameCases = [
+            "Empty Account", "", "cannot be empty", "Name too short"
+            "Min Length", "abc", "min length is 5, but here is 3. The invalid value is 'abc'", "Name too short"
+            "Max Length", "abcdefghij1234567890abcde12345678901234567890abcdef", "max length is 50, but here is 51. The invalid value is 'abcdefghij1234567890abcde12345678901234567890abcdef'", "Name too long"
+            "Non alphanumeric", "abcde!", "can only contain alphanumeric characters. The invalid value is 'abcde!'", "Value contains non-alphanumeric characters"
+        ]
+
+        for testName, containerRegisterName, error, why in invalidNameCases ->
+            test testName {
+                Expect.equal (ContainerRegistryValidation.ContainerRegistryName.Create containerRegisterName) (Error ("Container Registry Name " + error)) why
+            }
+
+        let validNameCases = [
+            "Valid Name 1", "abcde", "Should have created a valid Container Registry name"
+            "Valid Name 2", "abc123", "Should have created a valid Container Registry name"
+        ]
+        for testName, containerRegisterName, why in validNameCases ->
+            test testName {
+                Expect.equal (ContainerRegistryValidation.ContainerRegistryName.Create(containerRegisterName).OkValue.ResourceName) (ResourceName containerRegisterName) why
+            }
+    ]
 ]
