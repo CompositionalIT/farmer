@@ -1,11 +1,8 @@
 Release Notes
 =============
-## 1.6.33
+## 1.6.32
 * DiagnosticSettings now supports resources that contain multiple segments e.g. SQL Databases.
 * ContainerApps now use the updated resource name (Microsoft.App instead of Microsoft.Web).
-
-## 1.6.32
-
 * Updated documentation on main page from `Writer.quickDeploy` to `Writer.quickWrite`
 
 ## 1.6.31
