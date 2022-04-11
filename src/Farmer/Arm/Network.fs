@@ -499,12 +499,14 @@ type PrivateEndpointDnsZoneGroup =
       ]
       {| privateEndpointsDnsZoneGroup.Create(this.Name, this.Location, dependencies) with
            properties = {|
-             privateDnsZoneConfigs = {|
-               name = this.Name.Value
-               properties = {|
-                 privateDnsZoneId = this.PrivateDnsZone.ResourceId.Eval()
-               |}
-             |}
+             privateDnsZoneConfigs = [
+                 {|
+                   name = this.Name.Value
+                   properties = {|
+                     privateDnsZoneId = this.PrivateDnsZone.ResourceId.Eval()
+                   |}
+                 |}
+             ]
            |}
       |}
 
