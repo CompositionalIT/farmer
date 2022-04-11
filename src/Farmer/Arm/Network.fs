@@ -501,7 +501,7 @@ type PrivateEndpointDnsZoneGroup =
            properties = {|
              privateDnsZoneConfigs = [
                  {|
-                   name = this.Name.Value
+                   name = "dnszone" //this.Name.Value
                    properties = {|
                      privateDnsZoneId = this.PrivateDnsZone.ResourceId.Eval()
                    |}
