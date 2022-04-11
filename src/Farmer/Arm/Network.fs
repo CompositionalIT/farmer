@@ -494,7 +494,7 @@ type PrivateEndpointDnsZoneGroup =
     member this.ResourceId = privateEndpointsDnsZoneGroup.resourceId this.Name
     member this.JsonModel = 
       let dependencies = [
-        this.PrivateDnsZone.ResourceId
+        //this.PrivateDnsZone.ResourceId
         this.PrivateEndpoint.ResourceId
       ]
       {| privateEndpointsDnsZoneGroup.Create(this.Name, this.Location, dependencies) with
