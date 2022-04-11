@@ -77,7 +77,7 @@ let tests = testList "Container Registry" [
             "Non alphanumeric", "abcde!", "can only contain alphanumeric characters. The invalid value is 'abcde!'", "Value contains non-alphanumeric characters"
         ]
 
-        for testName, containerRegisterName, error, why in invalidNameCases ->
+        for testName, containerRegisterName, error, why in invalidNameCases do
             test testName {
                 Expect.equal (ContainerRegistryValidation.ContainerRegistryName.Create containerRegisterName) (Error ("Container Registry Name " + error)) why
             }
@@ -86,7 +86,8 @@ let tests = testList "Container Registry" [
             "Valid Name 1", "abcde", "Should have created a valid Container Registry name"
             "Valid Name 2", "abc123", "Should have created a valid Container Registry name"
         ]
-        for testName, containerRegisterName, why in validNameCases ->
+
+        for testName, containerRegisterName, why in validNameCases do
             test testName {
                 Expect.equal (ContainerRegistryValidation.ContainerRegistryName.Create(containerRegisterName).OkValue.ResourceName) (ResourceName containerRegisterName) why
             }
