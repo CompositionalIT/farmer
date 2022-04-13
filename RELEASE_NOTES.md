@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* WebApp/Functions: Support for deployment slot settings with `slot_setting` and `slot_settings`
 
 ## 1.6.33
 * PostgreSQL: Added possibility to set vnet rules for PostgreSQL.

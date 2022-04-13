@@ -337,6 +337,13 @@ type FunctionsConfig =
                 { site with AppSettings = None; ConnectionStrings = None }
                 for (_, slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToSite site
+                    
+            match this.CommonWebConfig.SlotSettingNames with 
+            | x when Set.empty <> x ->
+                { SiteName = this.Name.ResourceName
+                  SlotSettingNames = this.CommonWebConfig.SlotSettingNames }
+            | _ ->
+                ()
         ]
 
 type FunctionsBuilder() =
@@ -362,7 +369,8 @@ type FunctionsBuilder() =
               HealthCheckPath = None 
               IpSecurityRestrictions = []
               IntegratedSubnet = None
-              PrivateEndpoints = Set.empty}
+              PrivateEndpoints = Set.empty
+              SlotSettingNames = Set.empty }
           StorageAccount = derived (fun config ->
             let storage = config.Name.ResourceName.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
             storageAccounts.resourceId storage)
