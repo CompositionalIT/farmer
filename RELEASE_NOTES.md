@@ -2,6 +2,7 @@ Release Notes
 =============
 
 ## 1.6.33
+* DNS: Add support for private DNS zones and records
 * PostgreSQL: Added possibility to set vnet rules for PostgreSQL.
 
 ## 1.6.32
