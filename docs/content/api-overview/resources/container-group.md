@@ -30,6 +30,9 @@ The Container Group builder (`containerGroup`) defines a Container Group.
 | add_tcp_port | Adds a TCP port to be externally accessible. |
 | add_udp_port | Adds a UDP port to be externally accessible. |
 | add_volumes | Adds volumes to a container group so they are accessible to containers. |
+| dns_nameservers | Specify DNS nameservers for the containers in a vnet-attached container group. |
+| dns_options | Specify DNS options (e.g. 'ndots:2') for the containers in a vnet-attached container group. |
+| dns_search_domains | Specify DNS search domains for the containers in a vnet-attached container group. |
 | depends_on | Specifies the resource or resource ID of resources that must exist before the container group is created. |
 
 #### Container Instance Builder

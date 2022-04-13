@@ -424,7 +424,7 @@
       "type": "Microsoft.Cdn/profiles/endpoints"
     },
     {
-      "apiVersion": "2019-12-01",
+      "apiVersion": "2021-03-01",
       "dependsOn": [],
       "identity": {
         "type": "None"

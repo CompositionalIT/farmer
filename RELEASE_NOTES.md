@@ -2,6 +2,7 @@ Release Notes
 =============
 
 ## 1.6.33
+* Container Groups: Specify DNS nameservers and search domains.
 * Container Registry: Adds name validation
 * DNS: Add support for private DNS zones and records
 * PostgreSQL: Added possibility to set vnet rules for PostgreSQL.
