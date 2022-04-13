@@ -1,11 +1,13 @@
 Release Notes
 =============
 
-## vNext
+## 1.6.33
 * DNS: Add support for private DNS zones and records
+* PostgreSQL: Added possibility to set vnet rules for PostgreSQL.
 
 ## 1.6.32
-
+* DiagnosticSettings now supports resources that contain multiple segments e.g. SQL Databases.
+* ContainerApps now use the updated resource name (Microsoft.App instead of Microsoft.Web).
 * Updated documentation on main page from `Writer.quickDeploy` to `Writer.quickWrite`
 
 ## 1.6.31

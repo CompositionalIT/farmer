@@ -80,9 +80,9 @@ let tests = testList "Container Apps" [
         Expect.isNotNull (jobj.SelectToken("parameters.servicebusconnectionkey")) "Missing 'servicebusconnectionkey' parameter"
         Expect.isNotNull (jobj.SelectToken("parameters['myregistry.azurecr.io-password']")) "Missing 'myregistry.azurecr.io-password' parameter"
     }
-    test "Full container environment kubeEnvironment" {
+    test "Full container managed environments" {
         let kubeEnv = jobj.SelectToken("resources[?(@.name=='kubecontainerenv')]")
-        Expect.equal (kubeEnv.["type"] |> string) "Microsoft.Web/kubeEnvironments" "Incorrect type for kuberenetes environment"
+        Expect.equal (kubeEnv.["type"] |> string) "Microsoft.App/managedEnvironments" "Incorrect type for kuberenetes environment"
         Expect.equal (kubeEnv.["kind"] |> string) "containerenvironment" "Incorrect kind for kuberenetes environment"
         let kubeEnvAppLogConfig = jobj.SelectToken("resources[?(@.name=='kubecontainerenv')].properties.appLogsConfiguration")
         Expect.equal (kubeEnvAppLogConfig.["destination"] |> string) "log-analytics" "Incorrect type for app log config"
@@ -91,7 +91,7 @@ let tests = testList "Container Apps" [
     }
     test "Full container environment containerApp" {
         let httpContainerApp = jobj.SelectToken("resources[?(@.name=='http')]")
-        Expect.equal (httpContainerApp.["type"] |> string) "Microsoft.Web/containerApps" "Incorrect type for containerApps"
+        Expect.equal (httpContainerApp.["type"] |> string) "Microsoft.App/containerApps" "Incorrect type for containerApps"
         Expect.equal (httpContainerApp.["kind"] |> string) "containerapp" "Incorrect kind for containerApps"
         let ingress = httpContainerApp.SelectToken("properties.configuration.ingress")
         Expect.isTrue (ingress.SelectToken("external") |> string |> bool.Parse) "Incorrect external ingress"
@@ -108,7 +108,7 @@ let tests = testList "Container Apps" [
         Expect.hasLength secrets 2 "Expecting 2 secrets"
         Expect.equal (secrets.[0].["name"] |> string) "myregistry" "Incorrect name for registry password secret"
         Expect.equal (secrets.[0].["value"] |> string) "[parameters('myregistry.azurecr.io-password')]" "Incorrect password parameter for registry password secret"
-        Expect.equal (httpContainerApp.SelectToken("properties.kubeEnvironmentId") |> string) "[resourceId('Microsoft.Web/kubeEnvironments', 'kubecontainerenv')]" "Incorrect kube environment Id"
+        Expect.equal (httpContainerApp.SelectToken("properties.managedEnvironmentId") |> string) "[resourceId('Microsoft.App/managedEnvironments', 'kubecontainerenv')]" "Incorrect kube environment Id"
 
         let containers = httpContainerApp.SelectToken("properties.template.containers")
         Expect.hasLength containers 1 "Expected 1 http container"
