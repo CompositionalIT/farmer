@@ -28,6 +28,7 @@ type PostgreSQLConfig =
       Tier : Sku
       Databases : PostgreSQLDbConfig list
       FirewallRules : {| Name : ResourceName; Start : IPAddress; End : IPAddress |} list
+      VirtualNetworkRules : {| Name : ResourceName; VirtualNetworkSubnetId : ResourceId |} list
       Tags: Map<string,string>  }
 
     interface IBuilder with
@@ -57,6 +58,12 @@ type PostgreSQLConfig =
                 { Name = rule.Name
                   Start = rule.Start
                   End = rule.End
+                  Server = this.Name
+                  Location = location }
+
+            for rule in this.VirtualNetworkRules do
+                { Name = rule.Name
+                  VirtualNetworkSubnetId = rule.VirtualNetworkSubnetId
                   Server = this.Name
                   Location = location }
         ]
@@ -175,6 +182,7 @@ type PostgreSQLBuilder() =
           Tier = Basic
           Databases = []
           FirewallRules = []
+          VirtualNetworkRules = []
           Tags = Map.empty  }
 
     member _.Run state : PostgreSQLConfig =
@@ -293,5 +301,23 @@ type PostgreSQLBuilder() =
     member this.EnableAzureFirewall(state:PostgreSQLConfig) =
         this.AddFirewallWall(state, "allow-azure-services", "0.0.0.0", "0.0.0.0")
     interface ITaggable<PostgreSQLConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+
+    /// Adds a custom vnet rule given a name and a virtualNetworkSubnetId.
+    [<CustomOperation "add_vnet_rule">]
+    member _.AddVnetRule(state:PostgreSQLConfig, name, virtualNetworkSubnetId:ResourceId) =
+        { state with
+            VirtualNetworkRules =
+                {| Name = ResourceName name
+                   VirtualNetworkSubnetId = virtualNetworkSubnetId |}
+                :: state.VirtualNetworkRules }
+
+    /// Adds a custom firewall rules given a name and a virtualNetworkSubnetId.
+    [<CustomOperation "add_vnet_rules">]
+    member _.AddVnetRules(state:PostgreSQLConfig, listOfRules:(string*ResourceId) list) =
+        let newRules =
+            listOfRules |> List.map(fun (name, virtualNetworkSubnetId) ->
+                {| Name = ResourceName name
+                   VirtualNetworkSubnetId = virtualNetworkSubnetId |})
+        { state with VirtualNetworkRules = newRules @ state.VirtualNetworkRules }
 
 let postgreSQL = PostgreSQLBuilder()

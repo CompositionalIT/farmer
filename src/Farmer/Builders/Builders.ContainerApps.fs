@@ -5,8 +5,7 @@ open Farmer
 open Farmer.Builders
 open Farmer.ContainerApp
 open Farmer.ContainerAppValidation
-open Farmer.Arm.Web
-open Farmer.Arm.Web.ContainerApp
+open Farmer.Arm.App
 
 type ContainerConfig =
     { ContainerName : string
@@ -68,7 +67,7 @@ type ContainerEnvironmentConfig =
 
             for containerApp in this.ContainerApps do
                 { Name = containerApp.Name
-                  Environment = kubeEnvironments.resourceId this.Name
+                  Environment = managedEnvironments.resourceId this.Name
                   ActiveRevisionsMode = containerApp.ActiveRevisionsMode
                   IngressMode = containerApp.IngressMode
                   ScaleRules = containerApp.ScaleRules

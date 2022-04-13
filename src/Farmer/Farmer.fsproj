@@ -96,6 +96,7 @@
     <Compile Include="Arm/Search.fs" />
     <Compile Include="Arm/ServiceBus.fs" />
     <Compile Include="Arm/Sql.fs" />
+    <Compile Include="Arm/App.fs" />
     <Compile Include="Arm/Web.fs" />
     <Compile Include="Arm/Maps.fs" />
     <Compile Include="Arm/SignalR.fs" />
