@@ -1,7 +1,9 @@
 Release Notes
 =============
+
 ## 1.6.33
 * Container Registry name validation
+* PostgreSQL: Added possibility to set vnet rules for PostgreSQL.
 
 ## 1.6.32
 * DiagnosticSettings now supports resources that contain multiple segments e.g. SQL Databases.
