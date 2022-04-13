@@ -31,6 +31,9 @@ The Container Group builder (`containerGroup`) defines a Container Group.
 | add_udp_port | Adds a UDP port to be externally accessible. |
 | add_volumes | Adds volumes to a container group so they are accessible to containers. |
 | availability_zone | Deploys a container group to a specific availability zone. |
+| diagnostics_workspace | Sends logs to a diagnostics workspace included in the same deployment. |
+| diagnostics_workspace_key | Sends logs to a diagnostics workspace by workspace ID and key. |
+| link_to_diagnostics_workspace | Sends logs to an existing diagnostics workspace referenced by resource ID. |
 | depends_on | Specifies the resource or resource ID of resources that must exist before the container group is created. |
 
 #### Container Instance Builder
@@ -141,9 +144,12 @@ let containerGroupUser = userAssignedIdentity {
     name "aciUser"
 }
 
+let containerGroupLoggingWorkspace = logAnalytics { name "webapplogs" }
+
 let group = containerGroup {
     name "webApp"
     operating_system Linux
+    diagnostics_workspace LogType.ContainerInstanceLogs containerGroupLoggingWorkspace
     restart_policy AlwaysRestart
     add_identity containerGroupUser
     add_udp_port 123us

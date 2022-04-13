@@ -4,6 +4,7 @@ Release Notes
 ## 1.6.33
 * Container Registry: Adds name validation
 * Container Groups: Deploy container groups to a specific zone.
+* Container Groups: Diagnostics support to send logs to a Log Analytics workspace.
 * DNS: Add support for private DNS zones and records
 * PostgreSQL: Added possibility to set vnet rules for PostgreSQL.
 

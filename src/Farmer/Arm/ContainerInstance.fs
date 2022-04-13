@@ -2,6 +2,7 @@
 module Farmer.Arm.ContainerInstance
 
 open Farmer
+open Farmer.Arm
 open Farmer.ContainerGroup
 open Farmer.Identity
 open System
@@ -17,11 +18,13 @@ type ContainerGroupIpAddress =
 type ContainerInstanceGpu =
     { Count: int
       Sku: Gpu.Sku }
-    member internal this.JsonModel =
-        {|
-            count = this.Count
-            sku = string this.Sku
-        |}
+    static member internal JsonModel = function
+        | None -> null
+        | Some gpu ->
+            {|
+                count = gpu.Count
+                sku = string gpu.Sku
+            |} :> obj
 
 /// Defines a command or HTTP request to get the status of a container.
 type ContainerProbe =
@@ -37,23 +40,50 @@ type ContainerProbe =
       SuccessThreshold : int option
       /// Number of seconds for the probe to run - default is 1 second.
       TimeoutSeconds : int option }
-    member internal this.JsonModel =
-        {|
-            exec =
-                if this.Exec.Length > 0 then
-                    {| command = this.Exec |} |> box
-                else
-                    null
-            httpGet =
-                this.HttpGet
-                |> Option.map (fun (uri:Uri) -> {| path=uri.AbsolutePath; port=uri.Port; scheme=uri.Scheme |} |> box)
-                |> Option.defaultValue null
-            initialDelaySeconds = this.InitialDelaySeconds |> Option.map box |> Option.defaultValue null
-            periodSeconds = this.PeriodSeconds |> Option.map box |> Option.defaultValue null
-            failureThreshold = this.FailureThreshold |> Option.map box |> Option.defaultValue null
-            successThreshold = this.SuccessThreshold |> Option.map box |> Option.defaultValue null
-            timeoutSeconds = this.TimeoutSeconds |> Option.map box |> Option.defaultValue null
-        |}
+    static member internal JsonModel = function
+        | None -> null
+        | Some probe ->
+            {|
+                exec =
+                    if probe.Exec.Length > 0 then
+                        {| command = probe.Exec |} |> box
+                    else
+                        null
+                httpGet =
+                    probe.HttpGet
+                    |> Option.map (fun (uri:Uri) -> {| path=uri.AbsolutePath; port=uri.Port; scheme=uri.Scheme |} |> box)
+                    |> Option.defaultValue null
+                initialDelaySeconds = probe.InitialDelaySeconds |> Option.map box |> Option.defaultValue null
+                periodSeconds = probe.PeriodSeconds |> Option.map box |> Option.defaultValue null
+                failureThreshold = probe.FailureThreshold |> Option.map box |> Option.defaultValue null
+                successThreshold = probe.SuccessThreshold |> Option.map box |> Option.defaultValue null
+                timeoutSeconds = probe.TimeoutSeconds |> Option.map box |> Option.defaultValue null
+            |} :> obj
+
+type ContainerGroupDiagnostics =
+    { LogType : LogType
+      Workspace : LogAnalyticsWorkspace
+    }
+    static member internal JsonModel = function
+        | None -> null
+        | Some diag ->
+            let logAnalyticsId, logAnalyticsKey =
+                match diag.Workspace with
+                | LogAnalyticsWorkspace.WorkspaceKey(workspaceId, workspaceKey) ->
+                    workspaceId, workspaceKey
+                | LogAnalyticsWorkspace.WorkspaceResourceId resourceRef ->
+                    (LogAnalytics.LogAnalytics.getCustomerId resourceRef.ResourceId).Eval(),
+                    (LogAnalytics.LogAnalytics.getPrimarySharedKey resourceRef.ResourceId).Eval()
+
+            {| logAnalytics =
+                {| logType =
+                    match diag.LogType with
+                    | ContainerInsights -> "ContainerInsights"
+                    | ContainerInstanceLogs -> "ContainerInstanceLogs"
+                   workspaceId = logAnalyticsId
+                   workspaceKey = logAnalyticsKey
+                |}
+            |} :> obj
 
 type ContainerGroup =
     { Name : ResourceName
@@ -72,6 +102,7 @@ type ContainerGroup =
            LivenessProbe : ContainerProbe option
            ReadinessProbe : ContainerProbe option
         |} list
+      Diagnostics : ContainerGroupDiagnostics option
       OperatingSystem : OS
       RestartPolicy : RestartPolicy
       Identity : ManagedIdentity
@@ -101,6 +132,9 @@ type ContainerGroup =
             | _ ->
                 ()
 
+        match this.Diagnostics with
+        | Some { Workspace=LogAnalyticsWorkspace.WorkspaceResourceId(LinkedResource.Managed(resId)) } -> resId
+        | _ -> ()
         // If the identity is set, include any dependent identity's resource ID
         yield! this.Identity.Dependencies
         yield! this.Dependencies
@@ -159,13 +193,13 @@ type ContainerGroup =
                                               | SecureEnvExpression armExpression -> {| name = key; value = null; secureValue = armExpression.Eval() |}
                                               | SecureEnvValue value -> {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
                                       ]
-                                      livenessProbe = container.LivenessProbe |> Option.map (fun p -> p.JsonModel |> box) |> Option.defaultValue null
-                                      readinessProbe = container.ReadinessProbe |> Option.map (fun p -> p.JsonModel |> box) |> Option.defaultValue null
+                                      livenessProbe = ContainerProbe.JsonModel container.LivenessProbe
+                                      readinessProbe = ContainerProbe.JsonModel container.ReadinessProbe
                                       resources =
                                        {| requests =
                                            {| cpu = container.Cpu
                                               memoryInGB = container.Memory
-                                              gpu = container.Gpu |> Option.map (fun g -> g.JsonModel |> box) |> Option.defaultValue null
+                                              gpu = ContainerInstanceGpu.JsonModel container.Gpu
                                            |}
                                        |}
                                       volumeMounts =
@@ -173,6 +207,7 @@ type ContainerGroup =
                                           |> Seq.map (fun kvp -> {| name=kvp.Key; mountPath=kvp.Value |}) |> List.ofSeq
                                    |}
                                |})
+                          diagnostics = ContainerGroupDiagnostics.JsonModel this.Diagnostics
                           initContainers =
                            this.InitContainers
                            |> List.map (fun container ->

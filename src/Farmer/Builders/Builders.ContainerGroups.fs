@@ -75,6 +75,8 @@ type ContainerGroupConfig =
       Name : ResourceName
       /// Availability zone where the container group should be deployed.
       AvailabilityZone : string option
+      /// Diagnostics and logging for the container group
+      Diagnostics : ContainerGroupDiagnostics option
       /// Container group OS.
       OperatingSystem : OS
       /// Restart policy for the container group.
@@ -122,6 +124,7 @@ type ContainerGroupConfig =
                            ReadinessProbe = instance.ReadinessProbe
                            VolumeMounts = instance.VolumeMounts |}
               ]
+              Diagnostics = this.Diagnostics
               OperatingSystem = this.OperatingSystem
               RestartPolicy = this.RestartPolicy
               Identity = this.Identity
@@ -194,6 +197,7 @@ type ContainerGroupBuilder() =
 
     member _.Yield _ =
         { Name = ResourceName.Empty
+          Diagnostics = None
           OperatingSystem = Linux
           RestartPolicy = AlwaysRestart
           Identity = ManagedIdentity.Empty
@@ -267,6 +271,41 @@ type ContainerGroupBuilder() =
     [<CustomOperation "availability_zone">]
     member _.AvailabilityZones(state:ContainerGroupConfig, zone:string) =
         { state with AvailabilityZone = Some zone }
+    [<CustomOperation "diagnostics_workspace">]
+    member _.EnableDiagnostics(state:ContainerGroupConfig, logType:LogType, workspaceBuilder:WorkspaceConfig) =
+        { state with
+            Diagnostics =
+                {
+                    LogType = logType
+                    Workspace = LogAnalyticsWorkspace.WorkspaceResourceId(Managed((workspaceBuilder :> IBuilder).ResourceId))
+                } |> Some
+        }
+    member _.EnableDiagnostics(state:ContainerGroupConfig, logType:LogType, workspaceResourceId:ResourceId) =
+        { state with
+            Diagnostics =
+                {
+                    LogType = logType
+                    Workspace = LogAnalyticsWorkspace.WorkspaceResourceId(Managed(workspaceResourceId))
+                } |> Some
+        }
+    [<CustomOperation "diagnostics_workspace_key">]
+    member _.EnableDiagnosticsWorkspace(state:ContainerGroupConfig, logType:LogType, workspaceId:string, workspaceKey:string) =
+        { state with
+            Diagnostics =
+                {
+                    LogType = logType
+                    Workspace = LogAnalyticsWorkspace.WorkspaceKey(workspaceId, workspaceKey)
+                } |> Some
+        }
+    [<CustomOperation "link_to_diagnostics_workspace">]
+    member _.LinkToDiagnosticsWorkspace(state:ContainerGroupConfig, logType:LogType, workspaceResourceId:ResourceId) =
+        { state with
+            Diagnostics =
+                {
+                    LogType = logType
+                    Workspace = LogAnalyticsWorkspace.WorkspaceResourceId(Unmanaged(workspaceResourceId))
+                } |> Some
+        }
 
     interface IIdentity<ContainerGroupConfig> with member _.Add state updater = { state with Identity = updater state.Identity }
     interface ITaggable<ContainerGroupConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
