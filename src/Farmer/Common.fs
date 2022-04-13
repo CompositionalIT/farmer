@@ -810,6 +810,20 @@ module ContainerRegistry =
         | Standard
         | Premium
 
+module ContainerRegistryValidation =
+    open Validation
+    type ContainerRegistryName =
+        private | ContainerRegistryName of ResourceName
+        static member Create name =
+            [ containsOnly lettersOrNumbers
+              nonEmptyLengthBetween 5 50              
+            ]
+            |> validate "Container Registry Name" name
+            |> Result.map (ResourceName >> ContainerRegistryName)
+
+        static member Create (ResourceName name) = ContainerRegistryName.Create name
+        member this.ResourceName = match this with ContainerRegistryName name -> name
+
 module Search =
     type HostingMode = Default | HighDensity
     /// The SKU of the search service you want to create. E.g. free or standard.
