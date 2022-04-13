@@ -6,7 +6,7 @@ open Farmer.ContainerGroup
 open Farmer.Identity
 open System
 
-let containerGroups = ResourceType ("Microsoft.ContainerInstance/containerGroups", "2019-12-01")
+let containerGroups = ResourceType ("Microsoft.ContainerInstance/containerGroups", "2021-03-01")
 
 type ContainerGroupIpAddress =
     { Type : IpAddressType
@@ -55,6 +55,22 @@ type ContainerProbe =
             timeoutSeconds = this.TimeoutSeconds |> Option.map box |> Option.defaultValue null
         |}
 
+type ContainerGroupDnsConfiguration =
+    { NameServers: string list
+      SearchDomains: string list
+      Options: string list }
+    static member internal JsonModel = function
+        | None -> null
+        | Some dnsConfig ->
+            {| nameServers = dnsConfig.NameServers
+               options =
+                   if dnsConfig.Options.IsEmpty then null
+                   else dnsConfig.Options |> String.concat " "
+               searchDomains =
+                   if dnsConfig.SearchDomains.IsEmpty then null
+                   else dnsConfig.SearchDomains |> String.concat " "
+            |} :> obj
+
 type ContainerGroup =
     { Name : ResourceName
       Location : Location
@@ -71,6 +87,7 @@ type ContainerGroup =
            LivenessProbe : ContainerProbe option
            ReadinessProbe : ContainerProbe option
         |} list
+      DnsConfig : ContainerGroupDnsConfiguration option
       OperatingSystem : OS
       RestartPolicy : RestartPolicy
       Identity : ManagedIdentity
@@ -172,6 +189,7 @@ type ContainerGroup =
                                           |> Seq.map (fun kvp -> {| name=kvp.Key; mountPath=kvp.Value |}) |> List.ofSeq
                                    |}
                                |})
+                          dnsConfig = ContainerGroupDnsConfiguration.JsonModel this.DnsConfig
                           initContainers =
                            this.InitContainers
                            |> List.map (fun container ->
