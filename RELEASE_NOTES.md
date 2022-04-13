@@ -1,8 +1,13 @@
 Release Notes
 =============
 
-## 1.6.32
+## 1.6.33
+* PostgreSQL: Added possibility to set vnet rules for PostgreSQL.
 * WebApps: Support virtual applications with `add_virtual_application`/`add_virtual_application_preloaded`
+
+## 1.6.32
+* DiagnosticSettings now supports resources that contain multiple segments e.g. SQL Databases.
+* ContainerApps now use the updated resource name (Microsoft.App instead of Microsoft.Web).
 * Updated documentation on main page from `Writer.quickDeploy` to `Writer.quickWrite`
 
 ## 1.6.31
