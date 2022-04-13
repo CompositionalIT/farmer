@@ -6,7 +6,7 @@ open Farmer.ContainerGroup
 open Farmer.Identity
 open System
 
-let containerGroups = ResourceType ("Microsoft.ContainerInstance/containerGroups", "2019-12-01")
+let containerGroups = ResourceType ("Microsoft.ContainerInstance/containerGroups", "2021-10-01")
 
 type ContainerGroupIpAddress =
     { Type : IpAddressType
@@ -58,6 +58,7 @@ type ContainerProbe =
 type ContainerGroup =
     { Name : ResourceName
       Location : Location
+      AvailabilityZone : string option
       ContainerInstances :
         {| Name : ResourceName
            Image : Containers.DockerImage
@@ -274,4 +275,5 @@ type ContainerGroup =
                                     |}
                           ]
                        |}
+                   zones = this.AvailabilityZone |> Option.map Array.singleton |> Option.defaultValue null
             |}

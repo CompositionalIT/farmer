@@ -2,6 +2,7 @@
 module Farmer.Builders.ContainerGroups
 
 open Farmer
+open Farmer.Builders
 open Farmer.ContainerGroup
 open Farmer.Identity
 open Farmer.Arm.ContainerInstance
@@ -72,6 +73,8 @@ type InitContainerConfig =
 type ContainerGroupConfig =
     { /// The name of the container group.
       Name : ResourceName
+      /// Availability zone where the container group should be deployed.
+      AvailabilityZone : string option
       /// Container group OS.
       OperatingSystem : OS
       /// Restart policy for the container group.
@@ -101,6 +104,7 @@ type ContainerGroupConfig =
         member this.BuildResources location = [
             { Location = location
               Name = this.Name
+              AvailabilityZone = this.AvailabilityZone
               ContainerInstances = [
                 for instance in this.Instances do
                     match instance.Image with
@@ -199,6 +203,7 @@ type ContainerGroupBuilder() =
           NetworkProfile = None
           Instances = []
           Volumes = Map.empty
+          AvailabilityZone = None
           Tags = Map.empty
           Dependencies = Set.empty }
     member this.Run (state:ContainerGroupConfig) =
@@ -209,8 +214,8 @@ type ContainerGroupBuilder() =
 
     member this.AddTcpPort(state:ContainerGroupConfig, port) = this.AddPort (state, TCP, port)
 
-    [<CustomOperation "name">]
     /// Sets the name of the container group.
+    [<CustomOperation "name">]
     member _.Name(state:ContainerGroupConfig, name) = { state with Name = name }
     member this.Name(state:ContainerGroupConfig, name) = this.Name(state, ResourceName name)
     /// Sets the OS type (default Linux)
@@ -252,12 +257,16 @@ type ContainerGroupBuilder() =
     /// Adds a collection of container instances to this group
     [<CustomOperation "add_instances">]
     member _.AddInstances(state:ContainerGroupConfig, instances) = { state with Instances = state.Instances @ (Seq.toList instances) }
-    [<CustomOperation "add_volumes">]
     /// Adds volumes to the container group so they can be mounted on containers.
+    [<CustomOperation "add_volumes">]
     member _.AddVolumes(state:ContainerGroupConfig, volumes) =
         let newVolumes = volumes |> Map.ofSeq
         let updatedVolumes = state.Volumes |> Map.fold (fun current key vol -> Map.add key vol current) newVolumes
         { state with Volumes = updatedVolumes }
+    /// Specify the availability zone for the container group.
+    [<CustomOperation "availability_zone">]
+    member _.AvailabilityZones(state:ContainerGroupConfig, zone:string) =
+        { state with AvailabilityZone = Some zone }
 
     interface IIdentity<ContainerGroupConfig> with member _.Add state updater = { state with Identity = updater state.Identity }
     interface ITaggable<ContainerGroupConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }

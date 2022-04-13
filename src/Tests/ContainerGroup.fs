@@ -605,4 +605,26 @@ async {
         Expect.equal gpu.Sku "V100" "Wrong SKU"
         Expect.equal container.Image "myrepo/gpucontainers:latest" "Incorrect image tag"
     }
+
+    test "Container group created in a specific zone" {
+        let deployment =
+            arm {
+                add_resources [
+                    containerGroup {
+                        name "zonal-container-group"
+                        add_instances [
+                            containerInstance {
+                                name "httpserver"
+                                image "nginx"
+                            }
+                        ]
+                        availability_zone "2"
+                    }
+                ]
+            }
+        let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+        let zones = jobj.SelectToken "resources[?(@.name=='zonal-container-group')].zones"
+        Expect.hasLength zones 1 "Incorrect number of zones"
+        Expect.sequenceEqual zones [JValue "2"] "Incorrect value for zone"
+    }
 ]

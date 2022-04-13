@@ -30,6 +30,7 @@ The Container Group builder (`containerGroup`) defines a Container Group.
 | add_tcp_port | Adds a TCP port to be externally accessible. |
 | add_udp_port | Adds a UDP port to be externally accessible. |
 | add_volumes | Adds volumes to a container group so they are accessible to containers. |
+| availability_zone | Deploys a container group to a specific availability zone. |
 | depends_on | Specifies the resource or resource ID of resources that must exist before the container group is created. |
 
 #### Container Instance Builder
