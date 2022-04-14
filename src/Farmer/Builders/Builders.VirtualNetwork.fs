@@ -430,7 +430,7 @@ type PrivateEndpointConfig =
                 { Name = this.Name
                   Subnet = match this.Subnet with | Some sn -> sn | None -> raiseFarmer "Must have linked subnet"
                   Location = location
-                  Resource = serviceConn.Resource // we probably want to change the ARM to accept a private link service connection.
+                  Resource = serviceConn.Resource
                   GroupIds = serviceConn.GroupIds }
 
             [
@@ -458,6 +458,7 @@ type PrivateEndpointBuilder() =
 
     [<CustomOperation "subnet">]
     member _.Subnet(state:PrivateEndpointConfig, subnet:SubnetReference) = { state with Subnet = Some subnet }
+    member _.Subnet(state:PrivateEndpointConfig, subnet:SubnetConfig) = { state with Subnet = Some (SubnetReference.Direct (Managed (subnet :> IBuilder).ResourceId)) }
 
     [<CustomOperation "link_to_resource">]
     member _.PrivateLinkConnection(state:PrivateEndpointConfig, resource:LinkedResource) = 
