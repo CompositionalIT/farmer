@@ -6,6 +6,7 @@ open Farmer.Builders
 open Farmer.ContainerApp
 open Farmer.ContainerAppValidation
 open Farmer.Arm.App
+open Farmer.Identity
 
 type ContainerConfig =
     { ContainerName : string
@@ -24,6 +25,7 @@ type ContainerAppConfig =
       ActiveRevisionsMode : ActiveRevisionsMode
       IngressMode : IngressMode option
       ScaleRules : Map<string, ScaleRule>
+      Identity: ManagedIdentity
       Replicas : {| Min : int; Max : int |} option
       DaprConfig : {| AppId : string |} option
       Secrets : Map<ContainerAppSettingKey, SecretValue>
@@ -69,6 +71,7 @@ type ContainerEnvironmentConfig =
                 { Name = containerApp.Name
                   Environment = managedEnvironments.resourceId this.Name
                   ActiveRevisionsMode = containerApp.ActiveRevisionsMode
+                  Identity = containerApp.Identity
                   IngressMode = containerApp.IngressMode
                   ScaleRules = containerApp.ScaleRules
                   Replicas = containerApp.Replicas
@@ -142,10 +145,10 @@ type ContainerAppBuilder () =
           ScaleRules = Map.empty
           Secrets = Map.empty
           IngressMode = None
+          Identity = ManagedIdentity.Empty
           EnvironmentVariables = Map.empty
           DaprConfig = None
           Dependencies = Set.empty }
-
 
     member _.Run (state:ContainerAppConfig) =
         let resourceTotals =
@@ -180,6 +183,9 @@ type ContainerAppBuilder () =
         { state with ScaleRules = state.ScaleRules.Add (name, ScaleRule.CPU (Utilisation rule)) }
     member _.AddCpuScaleRule (state:ContainerAppConfig, name, rule) =
         { state with ScaleRules = state.ScaleRules.Add (name, ScaleRule.CPU (AverageValue rule)) }
+    [<CustomOperation "system_identity">]
+    member __.SystemIdentity (state: ContainerAppConfig) =
+        { state with Identity = {state.Identity with SystemAssigned = Enabled } }
     [<CustomOperation "add_memory_scale_rule">]
     member _.AddMemScaleRule (state:ContainerAppConfig, name, rule) =
         { state with ScaleRules = state.ScaleRules.Add (name, ScaleRule.Memory (Utilisation rule)) }
