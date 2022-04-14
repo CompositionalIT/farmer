@@ -459,7 +459,7 @@ type PrivateEndpoint =
     GroupIds: string list}
   static member create location (resourceId:ResourceId) groupIds =
     Set.toSeq >> Seq.map
-      (fun (subnet: SubnetReference, epName:string option, _:LinkedResource option) ->
+      (fun (subnet: SubnetReference, epName:string option) ->
         { Name = epName |> Option.defaultValue $"{resourceId.Name.Value}-ep-{subnet.ResourceId.Name.Value}" |> ResourceName
           Location = location
           Subnet = subnet

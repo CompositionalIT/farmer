@@ -210,7 +210,7 @@ type CommonWebConfig =
       SlotSettingNames: string Set
       IpSecurityRestrictions: IpSecurityRestriction list 
       IntegratedSubnet : SubnetReference option
-      PrivateEndpoints: (SubnetReference * string option * LinkedResource option) Set }
+      PrivateEndpoints: (SubnetReference * string option) Set }
       member this.Validate () =
           match this with
           | { ServicePlan = LinkedResource _ } -> () // can't validate as validation dependent on linked resource
@@ -246,7 +246,7 @@ type WebAppConfig =
       DockerAcrCredentials : {| RegistryName : string; Password : SecureParameter |} option
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
-      PrivateEndpoints: (LinkedResource * string option * LinkedResource option) Set
+      PrivateEndpoints: (LinkedResource * string option) Set
       CustomDomains : Map<string,DomainConfig>
       DockerPort: int option
       ZoneRedundant : FeatureFlag option }
@@ -627,23 +627,7 @@ type WebAppConfig =
                   Subnet = subnetRef.ResourceId
                   Dependencies = subnetRef.Dependency |> Option.toList }
 
-            // todo: cleanup, this is awful
-            for endpoint in this.CommonWebConfig.PrivateEndpoints do
-                let privateEndpoint = PrivateEndpoint.create location this.ResourceId ["sites"] Set.ofList[endpoint] |> Seq.exactlyOne
-                yield! [privateEndpoint]
-
-                //match endpoint with
-                //| (_, name, dns) -> {
-                //    Name =
-                //        match name with 
-                //        | None -> (ResourceName "")
-                //        | Some n -> (ResourceName n)
-                //    Location = location
-                //    PrivateEndpoint = (Managed privateEndpoint.ResourceId)
-                //    DnsZone =
-                //        match dns with 
-                //        | None -> raiseFarmer "No linked dns zone"
-                //        | Some value -> value } :> IArmResource
+            yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.CommonWebConfig.PrivateEndpoints)
         ]
 
 type WebAppBuilder() =

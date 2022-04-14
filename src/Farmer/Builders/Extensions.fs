@@ -9,7 +9,7 @@ type ITaggable<'TConfig> =
 type IDependable<'TConfig> =
     abstract member Add : 'TConfig -> ResourceId Set -> 'TConfig
 type IPrivateEndpoints<'TConfig> =
-    abstract member Add : 'TConfig -> (SubnetReference * String option * LinkedResource option) Set -> 'TConfig // todo: create privateDnsZoneReference
+    abstract member Add : 'TConfig -> (SubnetReference * String option) Set -> 'TConfig
 
 [<AutoOpen>]
 module Extensions =
@@ -40,10 +40,9 @@ module Extensions =
 
     type IPrivateEndpoints<'TConfig> with
         [<CustomOperation "add_private_endpoint">]
-        member this.AddPrivateEndpoint(state, (subnet, name) ) = this.Add state (Set.singleton (subnet, Some name, None))
-        member this.AddPrivateEndpoint(state, subnet) = this.Add state (Set.singleton (subnet, None, None))
-        member this.AddPrivateEndpoint(state, (subnet, name, privateDnsZone)) = this.Add state (Set.singleton (subnet, name, privateDnsZone))
+        member this.AddPrivateEndpoint(state, (subnet, name) ) = this.Add state (Set.singleton (subnet, Some name))
+        member this.AddPrivateEndpoint(state, subnet) = this.Add state (Set.singleton (subnet, None))
         [<CustomOperation "add_private_endpoints">]
-        member this.AddPrivateEndpoints(state, subnets) = this.Add state (subnets |> Set.map (fun (sn,ep) -> (sn, Some ep, None)))
-        member this.AddPrivateEndpoints(state, subnets) = this.Add state (subnets |> Set.map (fun sn -> (sn, None, None)))
+        member this.AddPrivateEndpoints(state, subnets) = this.Add state (subnets |> Set.map (fun (sn,ep) -> (sn, Some ep)))
+        member this.AddPrivateEndpoints(state, subnets) = this.Add state (subnets |> Set.map (fun sn -> (sn, None)))
         member this.AddPrivateEndpoints(state, subnets) = this.Add state subnets
