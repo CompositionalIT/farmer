@@ -2,11 +2,13 @@ Release Notes
 =============
 
 ## 1.6.33
+* Container Groups: Specify DNS nameservers and search domains.
 * Container Registry: Adds name validation
 * Container Groups: Deploy container groups to a specific zone.
 * Container Groups: Diagnostics support to send logs to a Log Analytics workspace.
 * DNS: Add support for private DNS zones and records
 * PostgreSQL: Added possibility to set vnet rules for PostgreSQL.
+* WebApps: Support virtual applications with `add_virtual_application`/`add_virtual_application_preloaded`
 
 ## 1.6.32
 * DiagnosticSettings now supports resources that contain multiple segments e.g. SQL Databases.

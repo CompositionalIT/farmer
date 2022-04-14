@@ -34,6 +34,9 @@ The Container Group builder (`containerGroup`) defines a Container Group.
 | diagnostics_workspace | Sends logs to a diagnostics workspace included in the same deployment. |
 | diagnostics_workspace_key | Sends logs to a diagnostics workspace by workspace ID and key. |
 | link_to_diagnostics_workspace | Sends logs to an existing diagnostics workspace referenced by resource ID. |
+| dns_nameservers | Specify DNS nameservers for the containers in a vnet-attached container group. |
+| dns_options | Specify DNS options (e.g. 'ndots:2') for the containers in a vnet-attached container group. |
+| dns_search_domains | Specify DNS search domains for the containers in a vnet-attached container group. |
 | depends_on | Specifies the resource or resource ID of resources that must exist before the container group is created. |
 
 #### Container Instance Builder

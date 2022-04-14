@@ -77,6 +77,8 @@ type ContainerGroupConfig =
       AvailabilityZone : string option
       /// Diagnostics and logging for the container group
       Diagnostics : ContainerGroupDiagnostics option
+      /// DNS configuration for the container group
+      DnsConfig : ContainerGroupDnsConfiguration option
       /// Container group OS.
       OperatingSystem : OS
       /// Restart policy for the container group.
@@ -125,6 +127,10 @@ type ContainerGroupConfig =
                            VolumeMounts = instance.VolumeMounts |}
               ]
               Diagnostics = this.Diagnostics
+              DnsConfig =
+                  if this.DnsConfig.IsSome && this.NetworkProfile.IsNone then
+                    raiseFarmer "DNS configuration can only be set when attached to a virtual network."
+                  else this.DnsConfig
               OperatingSystem = this.OperatingSystem
               RestartPolicy = this.RestartPolicy
               Identity = this.Identity
@@ -198,6 +204,7 @@ type ContainerGroupBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
           Diagnostics = None
+          DnsConfig = None
           OperatingSystem = Linux
           RestartPolicy = AlwaysRestart
           Identity = ManagedIdentity.Empty
@@ -306,6 +313,42 @@ type ContainerGroupBuilder() =
                     Workspace = LogAnalyticsWorkspace.WorkspaceResourceId(Unmanaged(workspaceResourceId))
                 } |> Some
         }
+    /// Specify DNS nameservers for the containers in the container group.
+    [<CustomOperation "dns_nameservers">]
+    member _.DnsNameServers(state:ContainerGroupConfig, nameServers:string list) =
+        let dns =
+            match state.DnsConfig with
+            | None ->
+                { NameServers = nameServers
+                  Options = []
+                  SearchDomains = [] }
+            | Some dnsConfig ->
+                { dnsConfig with NameServers = nameServers }
+        { state with DnsConfig = Some dns }
+    /// Specify DNS options (e.g. 'ndots:2') for the containers in the container group.
+    [<CustomOperation "dns_options">]
+    member _.DnsOptions(state:ContainerGroupConfig, options:string list) =
+        let dns =
+            match state.DnsConfig with
+            | None ->
+                { NameServers = []
+                  Options = options
+                  SearchDomains = [] }
+            | Some dnsConfig ->
+                { dnsConfig with Options = options }
+        { state with DnsConfig = Some dns }
+    /// Specify DNS search domains for the containers in the container group.
+    [<CustomOperation "dns_search_domains">]
+    member _.DnsSearchDomains(state:ContainerGroupConfig, searchDomains:string list) =
+        let dns =
+            match state.DnsConfig with
+            | None ->
+                { NameServers = []
+                  Options = []
+                  SearchDomains = searchDomains }
+            | Some dnsConfig ->
+                { dnsConfig with SearchDomains = searchDomains }
+        { state with DnsConfig = Some dns }
 
     interface IIdentity<ContainerGroupConfig> with member _.Add state updater = { state with Identity = updater state.Identity }
     interface ITaggable<ContainerGroupConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }

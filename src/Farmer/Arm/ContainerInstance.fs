@@ -85,6 +85,22 @@ type ContainerGroupDiagnostics =
                 |}
             |} :> obj
 
+type ContainerGroupDnsConfiguration =
+    { NameServers: string list
+      SearchDomains: string list
+      Options: string list }
+    static member internal JsonModel = function
+        | None -> null
+        | Some dnsConfig ->
+            {| nameServers = dnsConfig.NameServers
+               options =
+                   if dnsConfig.Options.IsEmpty then null
+                   else dnsConfig.Options |> String.concat " "
+               searchDomains =
+                   if dnsConfig.SearchDomains.IsEmpty then null
+                   else dnsConfig.SearchDomains |> String.concat " "
+            |} :> obj
+
 type ContainerGroup =
     { Name : ResourceName
       Location : Location
@@ -103,6 +119,7 @@ type ContainerGroup =
            ReadinessProbe : ContainerProbe option
         |} list
       Diagnostics : ContainerGroupDiagnostics option
+      DnsConfig : ContainerGroupDnsConfiguration option
       OperatingSystem : OS
       RestartPolicy : RestartPolicy
       Identity : ManagedIdentity
@@ -208,6 +225,7 @@ type ContainerGroup =
                                    |}
                                |})
                           diagnostics = ContainerGroupDiagnostics.JsonModel this.Diagnostics
+                          dnsConfig = ContainerGroupDnsConfiguration.JsonModel this.DnsConfig
                           initContainers =
                            this.InitContainers
                            |> List.map (fun container ->

@@ -715,4 +715,42 @@ async {
         let cgDependencies = jobj.SelectToken "resources[?(@.name=='container-group-with-insights')].dependsOn"
         Expect.isEmpty cgDependencies "Should have no dependencies when linking to a workspace."
     }
+
+    test "Specify DNS nameservers and search domains" {
+        let deployment =
+            arm {
+                add_resources [
+                    vnet {
+                        name "mynetwork"
+                        add_address_spaces [
+                            "10.30.32.0/20"
+                        ]
+                        add_subnets [
+                            subnet {
+                                name "containers"
+                                prefix "10.30.41.0/24"
+                                add_delegations [ SubnetDelegationService.ContainerGroups ]
+                            }
+                        ]
+                    }
+                    networkProfile {
+                        name "netprofile"
+                        vnet "mynetwork"
+                        subnet "containers"
+                    }
+                    containerGroup {
+                        name "container-group-with-custom-dns"
+                        dns_nameservers [ "8.8.8.8"; "1.1.1.1" ]
+                        dns_search_domains [ "example.com"; "example.local" ]
+                        network_profile "netprofile"
+                        }
+                ]
+            }
+        let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+        let dnsConfig = jobj.SelectToken "resources[?(@.name=='container-group-with-custom-dns')].properties.dnsConfig"
+        let nameservers = dnsConfig.SelectToken "nameServers"
+        let searchDomains = dnsConfig.SelectToken "searchDomains"
+        Expect.sequenceEqual nameservers [JValue "8.8.8.8"; JValue "1.1.1.1"] "Incorrect nameservers."
+        Expect.equal searchDomains (JValue "example.com example.local") "Incorrect search domains."
+    }
 ]
