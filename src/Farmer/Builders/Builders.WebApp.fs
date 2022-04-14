@@ -626,7 +626,6 @@ type WebAppConfig =
                 { Site = site
                   Subnet = subnetRef.ResourceId
                   Dependencies = subnetRef.Dependency |> Option.toList }
-
             yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.CommonWebConfig.PrivateEndpoints)
         ]
 
