@@ -470,6 +470,9 @@ type PrivateEndpointBuilder() =
         { state with PrivateLinkServiceConnection = Some { Resource = resource; GroupIds = [groupIds] } }
 
     [<CustomOperation "link_to_private_dns_zone">]
+    member _.LinkToDnsZone(state:PrivateEndpointConfig, zone:DnsZoneConfig) = { state with PrivateDnsZone = Some (Managed (zone:> IBuilder).ResourceId) }
+
+    [<CustomOperation "link_to_unmanaged_private_dns_zone">]
     member _.LinkToDnsZone(state:PrivateEndpointConfig, zone:LinkedResource) = { state with PrivateDnsZone = Some zone }
 
 let privateEndpoint = PrivateEndpointBuilder ()
