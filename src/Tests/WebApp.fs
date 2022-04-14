@@ -945,7 +945,7 @@ let tests = testList "Web App Tests" [
                     privateEndpoint { 
                         name "webapp-ep"
                         subnet (Direct (Unmanaged someSubnet))
-                        link_to_app_service (Managed app.ResourceId)
+                        link_to_resource (Unmanaged app.ResourceId)
                         link_to_private_dns_zone (Unmanaged dnsZone)
                     }
                 ]

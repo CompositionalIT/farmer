@@ -459,8 +459,14 @@ type PrivateEndpointBuilder() =
     [<CustomOperation "subnet">]
     member _.Subnet(state:PrivateEndpointConfig, subnet:SubnetReference) = { state with Subnet = Some subnet }
 
-    [<CustomOperation "link_to_app_service">]
-    member _.PrivateLinkConnection(state:PrivateEndpointConfig, site:LinkedResource) = { state with PrivateLinkServiceConnection = Some { Resource = site; GroupIds = ["sites"]} }
+    [<CustomOperation "link_to_resource">]
+    member _.PrivateLinkConnection(state:PrivateEndpointConfig, resource:LinkedResource) = 
+        let groupIds =
+            match resource.ResourceId.Type.Type with
+            | "Microsoft.Web/sites" -> "sites"
+            | _ -> raiseFarmer $"Invalid resource type. Cannot link private endpoint to type {resource.ResourceId.Type.Type}"
+
+        { state with PrivateLinkServiceConnection = Some { Resource = resource; GroupIds = [groupIds] } }
 
     [<CustomOperation "link_to_private_dns_zone">]
     member _.LinkToDnsZone(state:PrivateEndpointConfig, zone:LinkedResource) = { state with PrivateDnsZone = Some zone }
