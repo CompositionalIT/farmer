@@ -2,6 +2,7 @@ Release Notes
 =============
 
 ## 1.6.33
+* CLI: Include `--overwrite true` option when executing `az storage blob upload-batch` with Azure CLI 2.34.0 and above.
 * Container Groups: Specify DNS nameservers and search domains.
 * Container Registry: Adds name validation
 * DNS: Add support for private DNS zones and records
