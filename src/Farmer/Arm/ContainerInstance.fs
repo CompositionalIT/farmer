@@ -133,6 +133,7 @@ type ContainerGroup =
         |} list
       IpAddress : ContainerGroupIpAddress option
       NetworkProfile : ResourceName option
+      SubnetIds : LinkedResource list
       Volumes : Map<string, Volume>
       Tags: Map<string,string>
       Dependencies: Set<ResourceId> }
@@ -141,6 +142,10 @@ type ContainerGroup =
         |> Option.map networkProfiles.resourceId
     member private this.dependencies = [
         yield! Option.toList this.NetworkProfilePath
+        for id in this.SubnetIds do
+            match id with
+            | Managed subnetId -> { subnetId with Type=virtualNetworks; Segments = [] } // should be vnet ID
+            | Unmanaged _ -> ()
 
         for _, volume in this.Volumes |> Map.toSeq do
             match volume with
@@ -189,10 +194,20 @@ type ContainerGroup =
                 | Volume.GitRepo _ ->
                     ()
         ]
+    /// Creates a version depending on whether this needs the legacy API features.
+    member private this.resourceCommonProps =
+        match this.NetworkProfile with
+        | Some _ -> // Using network profiles, need to use older container groups API
+            /// This older API version supports network profiles.
+            let legacyContainerGroups = ResourceType ("Microsoft.ContainerInstance/containerGroups", "2021-03-01")
+            legacyContainerGroups.Create(this.Name, this.Location, this.dependencies, this.Tags)
+        | None -> // Not using network profiles, use current API version
+            containerGroups.Create(this.Name, this.Location, this.dependencies, this.Tags)
+
     interface IArmResource with
         member this.ResourceId = containerGroups.resourceId this.Name
         member this.JsonModel =
-            {| containerGroups.Create(this.Name, this.Location, this.dependencies, this.Tags) with
+            {| this.resourceCommonProps with
                    identity = this.Identity.ToArmJson
                    properties =
                        {| containers =
@@ -286,6 +301,9 @@ type ContainerGroup =
                             this.NetworkProfilePath
                             |> Option.map(fun path -> box {| id = path.Eval() |})
                             |> Option.toObj
+                          subnetIds =
+                            if this.SubnetIds.IsEmpty then null
+                            else this.SubnetIds |> List.map(fun subnetId -> {| id = subnetId.ResourceId.Eval() |}) |> box
                           volumes = [
                             for key, value in Map.toSeq this.Volumes do
                                 match key, value with

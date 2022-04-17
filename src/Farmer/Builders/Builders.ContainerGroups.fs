@@ -87,12 +87,16 @@ type ContainerGroupConfig =
       ImageRegistryCredentials : ImageRegistryAuthentication list
       /// IP address for the container group.
       IpAddress : ContainerGroupIpAddress option
-      /// Name of the network profile for this container's group.
-      NetworkProfile : ResourceName option
       /// The init containers in this container group.
       InitContainers : InitContainerConfig list
       /// The instances in this container group.
       Instances : ContainerInstanceConfig list
+      /// Name of the network profile for this container's group - not supported when specifying the availability zone.
+      NetworkProfile : ResourceName option
+      /// Resource ID of the virtual network where this container group should be attached.
+      VirtualNetwork : LinkedResource option
+      /// Name of the subnet where this container group should be attached.
+      SubnetName : ResourceName option
       /// Volumes to mount on the container group.
       Volumes : Map<string, Volume>
       /// Managed identity for the container group.
@@ -108,7 +112,11 @@ type ContainerGroupConfig =
         member this.BuildResources location = [
             { Location = location
               Name = this.Name
-              AvailabilityZone = this.AvailabilityZone
+              AvailabilityZone =
+                  if this.AvailabilityZone.IsSome && this.NetworkProfile.IsSome then
+                      raiseFarmer $"Cannot specify availability zone when using network profiles."
+                  else
+                    this.AvailabilityZone
               ContainerInstances = [
                 for instance in this.Instances do
                     match instance.Image with
@@ -147,7 +155,19 @@ type ContainerGroupConfig =
                            VolumeMounts = initContainer.VolumeMounts |}
               ]
               IpAddress = this.IpAddress
-              NetworkProfile = this.NetworkProfile
+              NetworkProfile =
+                  if this.NetworkProfile.IsSome && (this.VirtualNetwork.IsSome || this.SubnetName.IsSome) then
+                      raiseFarmer $"Should not set network profile on container group '{this.Name.Value}' when using vnet and subnet."
+                  else this.NetworkProfile
+              SubnetIds =
+                  match this.VirtualNetwork, this.SubnetName with
+                  | None, None -> []
+                  | Some (Managed vnetId), Some subnet ->
+                      { vnetId with Type = subnets; Segments = [ subnet ] } |> Managed |> List.singleton
+                  | Some (Unmanaged vnetId), Some subnet ->
+                      { vnetId with Type = subnets; Segments = [ subnet ] } |> Unmanaged |> List.singleton
+                  | Some vnetId, None -> raiseFarmer $"Missing subnet for attaching container group '{this.Name.Value}' to vnet '{vnetId.Name.Value}'."
+                  | None, subnetName -> raiseFarmer $"Missing vnet for attaching container group '{this.Name.Value}' to subnet '{subnetName.Value}'."
               Volumes = this.Volumes
               Tags = this.Tags
               Dependencies = this.Dependencies }
@@ -212,6 +232,8 @@ type ContainerGroupBuilder() =
           InitContainers = []
           IpAddress = None
           NetworkProfile = None
+          SubnetName = None
+          VirtualNetwork = None
           Instances = []
           Volumes = Map.empty
           AvailabilityZone = None
@@ -251,6 +273,19 @@ type ContainerGroupBuilder() =
     [<CustomOperation "network_profile">]
     member _.NetworkProfile(state:ContainerGroupConfig, networkProfileName:string) = { state with NetworkProfile = Some (ResourceName networkProfileName) }
     member _.NetworkProfile(state:ContainerGroupConfig, networkProfile:NetworkProfileConfig) = { state with NetworkProfile = Some networkProfile.Name }
+    /// Sets the name of a virtual network where this container group should be attached.
+    [<CustomOperation "vnet">]
+    member _.VNetId(state:ContainerGroupConfig, vnetId:ResourceId) = { state with VirtualNetwork = Some (Managed vnetId) }
+    member _.VNetId(state:ContainerGroupConfig, vnetName:string) = { state with VirtualNetwork = Some (Managed (virtualNetworks.resourceId (ResourceName vnetName))) }
+    member _.VNetId(state:ContainerGroupConfig, vnetName:ResourceName) = { state with VirtualNetwork = Some (Managed (virtualNetworks.resourceId vnetName)) }
+    /// Sets the name of a virtual network where this container group should be attached.
+    [<CustomOperation "link_to_vnet">]
+    member _.LinkToVNetId(state:ContainerGroupConfig, vnetId:ResourceId) = { state with VirtualNetwork = Some (Unmanaged vnetId) }
+    member _.LinkToVNetId(state:ContainerGroupConfig, vnetName:string) = { state with VirtualNetwork = Some (Unmanaged (virtualNetworks.resourceId (ResourceName vnetName))) }
+    member _.LinkToVNetId(state:ContainerGroupConfig, vnetName:ResourceName) = { state with VirtualNetwork = Some (Unmanaged (virtualNetworks.resourceId vnetName)) }
+    [<CustomOperation "subnet">]
+    member _.Subnet(state:ContainerGroupConfig, subnetName:string) = { state with SubnetName = Some (ResourceName subnetName) }
+    member _.Subnet(state:ContainerGroupConfig, subnetName:ResourceName) = { state with SubnetName = Some subnetName }
     /// Adds a UDP port to be externally accessible
     [<CustomOperation "add_udp_port">]
     member this.AddUdpPort(state:ContainerGroupConfig, port) = this.AddPort (state, UDP, port)

@@ -22,7 +22,10 @@ The Container Group builder (`containerGroup`) defines a Container Group.
 | restart_policy | Sets the restart policy (default Always) |
 | public_dns | Sets the DNS host label when using a public IP. |
 | private_ip | Indicates the container should use a system-assigned private IP address for use in a virtual network. |
-| network_profile | Name of a network profile resource for the subnet in a virtual network where the container group will attach. |
+| network_profile (deprecated) | Name of a network profile resource for the subnet in a virtual network where the container group will attach. |
+| vnet | Resource ID of a virtual network where the container group will attach. |
+| link_to_vnet | Resource ID of an existing virtual network where the container group will attach. |
+| subnet | Name of the subnet in a virtual network where the container group will attach. |
 | add_identity | Adds a managed identity to the the container group. |
 | system_identity | Activates the system identity of the container group. |
 | add_registry_credentials | Adds a container image registry credential with a secure parameter for the password. |

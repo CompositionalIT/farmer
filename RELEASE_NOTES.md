@@ -6,6 +6,7 @@ Release Notes
 * Container Registry: Adds name validation
 * Container Groups: Deploy container groups to a specific zone.
 * Container Groups: Diagnostics support to send logs to a Log Analytics workspace.
+* Container Groups: Support for attaching to subnets directly without requiring a network profile.
 * DNS: Add support for private DNS zones and records
 * PostgreSQL: Added possibility to set vnet rules for PostgreSQL.
 * WebApps: Support virtual applications with `add_virtual_application`/`add_virtual_application_preloaded`
