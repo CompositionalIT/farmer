@@ -199,8 +199,9 @@ type Site =
       AutoSwapSlotName: string option
       ZipDeployPath : (string * ZipDeploy.ZipDeployTarget * ZipDeploy.ZipDeploySlot) option
       HealthCheckPath : string option
-      IpSecurityRestrictions : IpSecurityRestriction list
-      LinkToSubnet : SubnetReference option }
+      IpSecurityRestrictions : IpSecurityRestriction list 
+      LinkToSubnet : SubnetReference option
+      VirtualApplications : Map<string, VirtualApplication> }
     /// Shorthand for SiteType.ResourceType
     member this.ResourceType = this.SiteType.ResourceType
     /// Shorthand for SiteType.ResourceName
@@ -308,6 +309,16 @@ type Site =
                            autoSwapSlotName = this.AutoSwapSlotName |> Option.toObj
                            vnetName = this.LinkToSubnet |> Option.map (fun x -> x.ResourceId.Segments[0].Value) |> Option.toObj
                            vnetRouteAllEnabled = this.LinkToSubnet |> function | Some _ -> Nullable true | None -> Nullable()
+                           virtualApplications = 
+                                if this.VirtualApplications.IsEmpty then
+                                    null
+                                else
+                                    this.VirtualApplications
+                                    |> Seq.map (fun virtualAppKvp ->
+                                        {| virtualPath = virtualAppKvp.Key
+                                           physicalPath = virtualAppKvp.Value.PhysicalPath
+                                           preloadEnabled = virtualAppKvp.Value.PreloadEnabled |> Option.toNullable |})
+                                    |> box
                         |}
                     |}
             |}

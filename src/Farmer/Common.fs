@@ -738,6 +738,9 @@ module WebApp =
             { Name = name
               IpAddressCidr = cidr
               Action = action }
+    type VirtualApplication =
+        { PhysicalPath: string 
+          PreloadEnabled: bool option }
     module Extensions =
         /// The Microsoft.AspNetCore.AzureAppServices logging extension.
         let Logging = ExtensionName "Microsoft.AspNetCore.AzureAppServices.SiteExtension"
@@ -809,6 +812,20 @@ module ContainerRegistry =
         | Basic
         | Standard
         | Premium
+
+module ContainerRegistryValidation =
+    open Validation
+    type ContainerRegistryName =
+        private | ContainerRegistryName of ResourceName
+        static member Create name =
+            [ containsOnly lettersOrNumbers
+              nonEmptyLengthBetween 5 50              
+            ]
+            |> validate "Container Registry Name" name
+            |> Result.map (ResourceName >> ContainerRegistryName)
+
+        static member Create (ResourceName name) = ContainerRegistryName.Create name
+        member this.ResourceName = match this with ContainerRegistryName name -> name
 
 module Search =
     type HostingMode = Default | HighDensity

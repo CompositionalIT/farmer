@@ -3,7 +3,11 @@ Release Notes
 
 ## 1.6.33
 * CLI: Include `--overwrite true` option when executing `az storage blob upload-batch` with Azure CLI 2.34.0 and above.
+* Container Groups: Specify DNS nameservers and search domains.
+* Container Registry: Adds name validation
+* DNS: Add support for private DNS zones and records
 * PostgreSQL: Added possibility to set vnet rules for PostgreSQL.
+* WebApps: Support virtual applications with `add_virtual_application`/`add_virtual_application_preloaded`
 
 ## 1.6.32
 * DiagnosticSettings now supports resources that contain multiple segments e.g. SQL Databases.
