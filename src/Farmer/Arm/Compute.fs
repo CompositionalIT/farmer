@@ -68,7 +68,7 @@ type AadSshLoginExtension =
 type VirtualMachine =
     { Name : ResourceName
       Location : Location
-      Zone: int option
+      AvailabilityZone : string option
       StorageAccount : ResourceName option
       Size : VMSize
       Priority : Priority
@@ -172,8 +172,5 @@ type VirtualMachine =
                             evictionPolicy = evictionPolicy.ArmValue
                             billingProfile = {| maxPrice = maxPrice |}
                         |}
-                zones =
-                    match this.Zone with
-                    | Some zone -> [ string<int> zone ]
-                    | None -> Unchecked.defaultof<_>
+                zones = this.AvailabilityZone |> Option.map Array.singleton |> Option.defaultValue null
             |}

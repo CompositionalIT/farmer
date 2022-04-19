@@ -55,7 +55,7 @@ let tests = testList "Virtual Machine" [
         let deployment =
             arm {
                 add_resources
-                    [ vm { name "isaacsVM"; username "foo"; zone 3 }]
+                    [ vm { name "isaacsVM"; username "foo"; availability_zone "3" }]
             }
         let json = deployment.Template |> Writer.toJson
         let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)

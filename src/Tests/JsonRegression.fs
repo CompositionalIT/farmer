@@ -109,7 +109,7 @@ let tests =
                 add_ssd_disk 128
                 add_slow_disk 512
                 diagnostics_support
-                zone 3
+                availability_zone "3"
             }
 
             compareResourcesToJson [ myVm ] "vm.json"
