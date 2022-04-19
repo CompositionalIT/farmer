@@ -2,6 +2,7 @@ module ContainerGroup
 
 open Expecto
 open Farmer
+open Farmer.Arm
 open Farmer.Identity
 open Farmer.ContainerGroup
 open Farmer.Arm.ContainerInstance
@@ -445,6 +446,107 @@ async {
         Expect.equal readinessProbe.InitialDelaySeconds.Value 30 "Incorrect initial delay threshold on readiness probe"
         Expect.equal readinessProbe.FailureThreshold.Value 5 "Incorrect failure threshold on readiness probe"
     }
+    test "Container group with vnet and subnet has subnetIds and expected dependsOn" {
+        let template =
+            arm {
+                add_resources [
+                    vnet {
+                        name "containernet"
+                        add_address_spaces [
+                            "10.30.32.0/20"
+                        ]
+                        add_subnets [
+                            subnet {
+                                name "ContainerSubnet"
+                                prefix "10.30.41.0/24"
+                                add_delegations [ SubnetDelegationService.ContainerGroups ]
+                            }
+                        ]
+                    }
+                    containerGroup {
+                        name "appWithHttpFrontend"
+                        operating_system Linux
+                        restart_policy AlwaysRestart
+                        add_instances [ nginx ]
+                        vnet "containernet"
+                        subnet "ContainerSubnet"
+                    }
+                ]
+            }
+        let json = template.Template |> Writer.toJson
+        let jobj = JObject.Parse json
+        let containerGroupJson = jobj.SelectToken("resources[?(@.name=='appWithHttpFrontend')]")
+        let apiVersion = containerGroupJson.["apiVersion"] |> string
+        let apiDate = DateOnly.Parse apiVersion
+        Expect.isGreaterThanOrEqual apiDate (DateOnly.Parse "2021-07-01") "Expecting minimum version of 2021-07-01 for 'subnetIds' support"
+        let subnetIds = containerGroupJson.SelectToken("properties.subnetIds") :?> JArray
+        Expect.hasLength subnetIds 1 "Incorrect number of subnetIds"
+        let expectedSubnetId = "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'containernet', 'ContainerSubnet')]"
+        let firstSubnetId = string subnetIds.First.["id"]
+        Expect.equal firstSubnetId expectedSubnetId "Subnet ID not in 'subnetIds'"
+        let dependsOn = containerGroupJson.SelectToken("dependsOn") :?> JArray
+        let expectedContainerNetDeps = "[resourceId('Microsoft.Network/virtualNetworks', 'containernet')]"
+        Expect.hasLength dependsOn 1 "containerGroup has wrong number of dependencies"
+        let actualContainerNetDeps = string dependsOn.First
+        Expect.equal actualContainerNetDeps expectedContainerNetDeps "Dependencies didn't match"
+    }
+    test "Container groups with subnetIds and netprofile uses correct API versions" {
+        let template =
+            arm {
+                add_resources [
+                    vnet {
+                        name "containernet"
+                        add_address_spaces [
+                            "10.30.32.0/20"
+                        ]
+                        add_subnets [
+                            subnet {
+                                name "ContainerSubnet"
+                                prefix "10.30.41.0/24"
+                                add_delegations [ SubnetDelegationService.ContainerGroups ]
+                            }
+                        ]
+                    }
+                    networkProfile {
+                        name "netprofile"
+                        vnet "containernet"
+                        subnet "ContainerSubnet"
+                    }
+                    containerGroup {
+                        name "appWithNetProfile"
+                        operating_system Linux
+                        restart_policy AlwaysRestart
+                        add_instances [
+                            containerInstance {
+                                name "nginx"
+                                image "nginx:1.21.6-alpine"
+                            }
+                        ]
+                        network_profile "netprofile"
+                    }
+                    containerGroup {
+                        name "appWithSubnetIds"
+                        operating_system Linux
+                        restart_policy AlwaysRestart
+                        add_instances [
+                            containerInstance {
+                                name "nginx"
+                                image "nginx:1.21.6-alpine"
+                            }
+                        ]
+                        vnet "containernet"
+                        subnet "ContainerSubnet"
+                    }
+                ]
+            }
+        let jobj = template.Template |> Writer.toJson |> JObject.Parse
+        let containerGroupNetProfile = jobj.SelectToken("resources[?(@.name=='appWithNetProfile')]")
+        let netProfileApiVersion = containerGroupNetProfile.["apiVersion"] |> string |> DateOnly.Parse
+        Expect.isLessThanOrEqual netProfileApiVersion (DateOnly.Parse "2021-03-01") "Expecting maximum version of 2021-03-01 for 'networkProfile' support"
+        let containerGroupSubnetIds = jobj.SelectToken("resources[?(@.name=='appWithSubnetIds')]")
+        let subnetIdsApiVersion = containerGroupSubnetIds.["apiVersion"] |> string |> DateOnly.Parse
+        Expect.isGreaterThanOrEqual subnetIdsApiVersion (DateOnly.Parse "2021-07-01") "Expecting minimum version of 2021-07-01 for 'subnetIds' support"
+    }
     test "Container network profile with vnet has expected dependsOn" {
         let template =
             arm {
@@ -452,12 +554,12 @@ async {
                     vnet {
                         name "containernet"
                         add_address_spaces [
-                            "10.30.40.0/20"
+                            "10.30.32.0/20"
                         ]
                         add_subnets [
                             subnet {
                                 name "ContainerSubnet"
-                                prefix "10.40.41.0/24"
+                                prefix "10.30.41.0/24"
                                 add_delegations [ SubnetDelegationService.ContainerGroups ]
                             }
                         ]
@@ -476,8 +578,11 @@ async {
                     }
                 ]
             }
-        let json = template.Template |> Writer.toJson
-        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let jobj = template.Template |> Writer.toJson |> JObject.Parse
+        let containerGroupJson = jobj.SelectToken("resources[?(@.name=='appWithHttpFrontend')]")
+        let apiVersion = containerGroupJson.["apiVersion"] |> string
+        let apiDate = DateOnly.Parse apiVersion
+        Expect.isLessThanOrEqual apiDate (DateOnly.Parse "2021-03-01") "Expecting maximum version of 2021-03-01 for 'networkProfile' support"
         let expectedContainerNetDeps = "[resourceId('Microsoft.Network/virtualNetworks', 'containernet')]"
         let dependsOn = jobj.SelectToken("resources[?(@.name=='netprofile')].dependsOn")
         Expect.hasLength dependsOn 1 "netprofile has wrong number of dependencies"
@@ -532,12 +637,12 @@ async {
                     vnet {
                         name "containernet"
                         add_address_spaces [
-                            "10.30.40.0/20"
+                            "10.30.32.0/20"
                         ]
                         add_subnets [
                             subnet {
                                 name "ContainerSubnet"
-                                prefix "10.40.41.0/24"
+                                prefix "10.30.41.0/24"
                                 add_delegations [ SubnetDelegationService.ContainerGroups ]
                             }
                         ]
@@ -606,6 +711,119 @@ async {
         Expect.equal container.Image "myrepo/gpucontainers:latest" "Incorrect image tag"
     }
 
+    test "Container group created in a specific zone" {
+        let deployment =
+            arm {
+                add_resources [
+                    containerGroup {
+                        name "zonal-container-group"
+                        add_instances [
+                            containerInstance {
+                                name "httpserver"
+                                image "nginx"
+                            }
+                        ]
+                        availability_zone "2"
+                    }
+                ]
+            }
+        let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+        let containerGroupJson = jobj.SelectToken("resources[?(@.name=='zonal-container-group')]")
+        let zones = containerGroupJson.SelectToken "zones"
+        let apiVersion = containerGroupJson.["apiVersion"] |> string
+        let apiDate = DateOnly.Parse apiVersion
+        Expect.isGreaterThanOrEqual apiDate (DateOnly.Parse "2021-09-01") "Expecting minimum version of 2021-09-01 for 'zones' support"
+        Expect.hasLength zones 1 "Incorrect number of zones"
+        Expect.sequenceEqual zones [JValue "2"] "Incorrect value for zone"
+    }
+
+    test "Enable container logging workspace" {
+        let deployment =
+            let workspace = logAnalytics { name "containergrouplogs1234" }
+            arm {
+                add_resources [
+                    workspace
+                    containerGroup {
+                        name "container-group-with-insights"
+                        add_instances [
+                            containerInstance {
+                                name "httpserver"
+                                image "nginx"
+                            }
+                        ]
+                        diagnostics_workspace LogType.ContainerInstanceLogs workspace
+                    }
+                ]
+            }
+        let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+        let logAnalytics = jobj.SelectToken "resources[?(@.name=='container-group-with-insights')].properties.diagnostics.logAnalytics"
+        let workspaceId = logAnalytics.SelectToken "workspaceId"
+        let workspaceKey = logAnalytics.SelectToken "workspaceKey"
+        let logType = logAnalytics.SelectToken "logType"
+        Expect.equal (string workspaceId) "[reference(resourceId('Microsoft.OperationalInsights/workspaces', 'containergrouplogs1234'), '2020-03-01-preview').customerId]" "Incorrect value for workspaceId"
+        Expect.equal (string workspaceKey) "[listkeys(resourceId('Microsoft.OperationalInsights/workspaces', 'containergrouplogs1234'), '2020-03-01-preview').primarySharedKey]" "Incorrect value for workspaceKey"
+        Expect.equal (string logType) "ContainerInstanceLogs" "Incorrect value for workspaceId"
+        let cgDependencies = jobj.SelectToken "resources[?(@.name=='container-group-with-insights')].dependsOn"
+        Expect.hasLength cgDependencies 1 "Incorrect number of dependencies for diagnostics workspace"
+    }
+
+    test "Enable linking to container logging workspace" {
+        let deployment =
+            let workspaceId = LogAnalytics.workspaces.resourceId "my-log-analytics-workspace"
+            arm {
+                add_resources [
+                    containerGroup {
+                        name "container-group-with-insights"
+                        add_instances [
+                            containerInstance {
+                                name "httpserver"
+                                image "nginx"
+                            }
+                        ]
+                        link_to_diagnostics_workspace LogType.ContainerInstanceLogs workspaceId
+                    }
+                ]
+            }
+        let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+        let logAnalytics = jobj.SelectToken "resources[?(@.name=='container-group-with-insights')].properties.diagnostics.logAnalytics"
+        let workspaceId = logAnalytics.SelectToken "workspaceId"
+        let workspaceKey = logAnalytics.SelectToken "workspaceKey"
+        let logType = logAnalytics.SelectToken "logType"
+        Expect.equal (string workspaceId) "[reference(resourceId('Microsoft.OperationalInsights/workspaces', 'my-log-analytics-workspace'), '2020-03-01-preview').customerId]" "Incorrect value for workspaceId"
+        Expect.equal (string workspaceKey) "[listkeys(resourceId('Microsoft.OperationalInsights/workspaces', 'my-log-analytics-workspace'), '2020-03-01-preview').primarySharedKey]" "Incorrect value for workspaceKey"
+        Expect.equal (string logType) "ContainerInstanceLogs" "Incorrect value for workspaceId"
+        let cgDependencies = jobj.SelectToken "resources[?(@.name=='container-group-with-insights')].dependsOn"
+        Expect.isEmpty cgDependencies "Should have no dependencies when linking to a workspace."
+    }
+
+    test "Enable passing key to container logging workspace" {
+        let fakeWorkspaceId = Guid.NewGuid() |> string
+        let fakeWorkspaceKey = Guid.NewGuid() |> string
+        let deployment =
+            arm {
+                add_resources [
+                    containerGroup {
+                        name "container-group-with-insights"
+                        add_instances [
+                            containerInstance {
+                                name "httpserver"
+                                image "nginx"
+                            }
+                        ]
+                        diagnostics_workspace_key LogType.ContainerInstanceLogs fakeWorkspaceId fakeWorkspaceKey
+                    }
+                ]
+            }
+        let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+        let logAnalytics = jobj.SelectToken "resources[?(@.name=='container-group-with-insights')].properties.diagnostics.logAnalytics"
+        let workspaceId = logAnalytics.SelectToken "workspaceId"
+        let workspaceKey = logAnalytics.SelectToken "workspaceKey"
+        Expect.equal (string workspaceId) fakeWorkspaceId "Incorrect value for workspaceId"
+        Expect.equal (string workspaceKey) fakeWorkspaceKey "Incorrect value for workspaceKey"
+        let cgDependencies = jobj.SelectToken "resources[?(@.name=='container-group-with-insights')].dependsOn"
+        Expect.isEmpty cgDependencies "Should have no dependencies when linking to a workspace."
+    }
+
     test "Specify DNS nameservers and search domains" {
         let deployment =
             arm {
@@ -632,13 +850,13 @@ async {
                         name "container-group-with-custom-dns"
                         dns_nameservers [ "8.8.8.8"; "1.1.1.1" ]
                         dns_search_domains [ "example.com"; "example.local" ]
-                        network_profile "netprofile"
                         add_instances [
                             containerInstance {
                                 name "httpserver"
-                                image "nginx"
+                                image "nginx:1.17.6-alpine"
                             }
                         ]
+                        network_profile "netprofile"
                     }
                 ]
             }

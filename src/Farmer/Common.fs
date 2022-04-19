@@ -1106,10 +1106,15 @@ type ImageRegistryCredential =
 
 [<RequireQualifiedAccess>]
 type ImageRegistryAuthentication =
-/// Credentials for the container registry are included with the password as a template parameter.
-| Credential of ImageRegistryCredential
-/// Credentials for the container registry will be listed by ARM expression.
-| ListCredentials of ResourceId
+    /// Credentials for the container registry are included with the password as a template parameter.
+    | Credential of ImageRegistryCredential
+    /// Credentials for the container registry will be listed by ARM expression.
+    | ListCredentials of ResourceId
+
+[<RequireQualifiedAccess>]
+type LogAnalyticsWorkspace =
+    | WorkspaceResourceId of LinkedResource
+    | WorkspaceKey of WorkspaceId:string * WorkspaceKey:string
 
 module ContainerGroup =
     type PortAccess = PublicPort | InternalPort
@@ -1118,6 +1123,9 @@ module ContainerGroup =
         | PublicAddress
         | PublicAddressWithDns of DnsName:string
         | PrivateAddress
+    type LogType =
+        | ContainerInstanceLogs
+        | ContainerInsights
     /// A secret file that will be attached to a container group.
     type SecretFile =
         /// A secret file which will be encoded as base64 data.
