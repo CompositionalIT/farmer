@@ -22,7 +22,10 @@ The Container Group builder (`containerGroup`) defines a Container Group.
 | restart_policy | Sets the restart policy (default Always) |
 | public_dns | Sets the DNS host label when using a public IP. |
 | private_ip | Indicates the container should use a system-assigned private IP address for use in a virtual network. |
-| network_profile | Name of a network profile resource for the subnet in a virtual network where the container group will attach. |
+| network_profile (deprecated) | Name of a network profile resource for the subnet in a virtual network where the container group will attach. |
+| vnet | Resource ID of a virtual network where the container group will attach. |
+| link_to_vnet | Resource ID of an existing virtual network where the container group will attach. |
+| subnet | Name of the subnet in a virtual network where the container group will attach. |
 | add_identity | Adds a managed identity to the the container group. |
 | system_identity | Activates the system identity of the container group. |
 | add_registry_credentials | Adds a container image registry credential with a secure parameter for the password. |
@@ -30,6 +33,13 @@ The Container Group builder (`containerGroup`) defines a Container Group.
 | add_tcp_port | Adds a TCP port to be externally accessible. |
 | add_udp_port | Adds a UDP port to be externally accessible. |
 | add_volumes | Adds volumes to a container group so they are accessible to containers. |
+| availability_zone | Deploys a container group to a specific availability zone. |
+| diagnostics_workspace | Sends logs to a diagnostics workspace included in the same deployment. |
+| diagnostics_workspace_key | Sends logs to a diagnostics workspace by workspace ID and key. |
+| link_to_diagnostics_workspace | Sends logs to an existing diagnostics workspace referenced by resource ID. |
+| dns_nameservers | Specify DNS nameservers for the containers in a vnet-attached container group. |
+| dns_options | Specify DNS options (e.g. 'ndots:2') for the containers in a vnet-attached container group. |
+| dns_search_domains | Specify DNS search domains for the containers in a vnet-attached container group. |
 | depends_on | Specifies the resource or resource ID of resources that must exist before the container group is created. |
 
 #### Container Instance Builder
@@ -43,6 +53,7 @@ The Container Instance builder (`containerInstance`) is used to define one or mo
 | add_ports | Sets the ports the container exposes. |
 | cpu_cores | Sets the maximum CPU cores the container may use. |
 | memory | Sets the maximum gigabytes of memory the container may use. |
+| gpu | Adds one or more GPUs to the container. |
 | env_vars | Sets a list of environment variables for the container. |
 | add_volume_mount | Adds a volume mount on a container from a volume in the container group. |
 | probes | Adds liveliness and readiness probes to a container. |
@@ -69,6 +80,12 @@ The Network Profile builder (`networkProfile`) is used to define a network profi
 | subnet | Name of the subnet in the virtual network where the container group should attach. |
 | ip_config | Name of the IP configuration and subnet in the virtual network where the container group should attach. |
 | add_ip_configs | Adds multiple IP configurations to connect the container group to multiple subnets. |
+
+#### GPU Builder
+| Keyword | Purpose |
+|-|-|
+| count | the amount of GPUs attached to the container |
+| sku | SKU for the GPU |
 
 #### Liveness Probe Builder
 The Liveness Probe builder (`liveness`) is used to define a liveness probe for a container instance to determine if it is healthy.
@@ -133,9 +150,12 @@ let containerGroupUser = userAssignedIdentity {
     name "aciUser"
 }
 
+let containerGroupLoggingWorkspace = logAnalytics { name "webapplogs" }
+
 let group = containerGroup {
     name "webApp"
     operating_system Linux
+    diagnostics_workspace LogType.ContainerInstanceLogs containerGroupLoggingWorkspace
     restart_policy AlwaysRestart
     add_identity containerGroupUser
     add_udp_port 123us

@@ -12,6 +12,7 @@ let allTests =
     testSequencedGroup "" <|
         testList "All Tests" [
             testList "Builders" [
+                AppGateway.tests
                 AppInsights.tests
                 AppInsightsAvailability.tests
                 if notEnv "BUILD_REASON" "PullRequest" then
@@ -22,6 +23,7 @@ let allTests =
                 Cdn.tests
                 CognitiveServices.tests
                 CommunicationServices.tests
+                ContainerApps.tests
                 ContainerGroup.tests
                 ContainerRegistry.tests
                 ContainerService.tests
@@ -58,6 +60,7 @@ let allTests =
                 WebApp.tests
                 Dashboards.tests
                 Alerts.tests
+                ServicePlan.tests
             ]
             testList "Control" [
                 if (hasEnv "TF_BUILD" "True" && notEnv "BUILD_REASON" "PullRequest") || hasEnv "FARMER_E2E" "True" then

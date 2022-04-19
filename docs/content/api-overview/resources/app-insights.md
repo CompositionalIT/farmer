@@ -10,6 +10,8 @@ The App Insights builder is used to create Application Insights accounts. Use th
 
 * Application Insights (`Microsoft.Insights/components`)
 
+> This builder supports both "Classic" (standalone) and "Workspace Enabled" (Log Analytics-backed) instances of App Insights. See the `log_analytics_workspace` keyword to see how to create the latter type of instance.
+
 #### Builder Keywords
 
 | Keyword | Purpose |
@@ -17,6 +19,7 @@ The App Insights builder is used to create Application Insights accounts. Use th
 | name | Sets the name of the App Insights instance. |
 | disable_ip_masking | Disable IP masking. |
 | sampling_percentage | Define sampling percentage (0-100) |
+| log_analytics_workspace | Use a Log Analytics workspace as the backing store for this AI instance. You can supply either a Farmer-generate Log Analytics`WorkspaceConfig` instance that exists in the same resource group, or a fully-qualified Resource ID path to that instance. This will also switch the AI instance over to creating a "workspace enabled" AI instance. |
 
 #### Configuration Members
 
@@ -32,5 +35,6 @@ open Farmer.Builders
 
 let ai = appInsights {
     name "myAI"
+    log_analytics_workspace myWorkspace // use to activate workspace-enabled AI instances.
 }
 ```

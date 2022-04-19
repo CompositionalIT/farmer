@@ -1,14 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="ServicePlan.fs" />
     <Content Include="test-data\*.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="Helpers.fs" />
+    <Compile Include="AppGateway.fs" />
     <Compile Include="AppInsights.fs" />
     <Compile Include="Alerts.fs" />
     <Compile Include="AvailabilityTests.fs" />
@@ -21,6 +23,7 @@
     <Compile Include="CommunicationServices.fs" />
     <Compile Include="BingSearch.fs" />
     <Compile Include="Cdn.fs" />
+    <Compile Include="ContainerApps.fs" />
     <Compile Include="ContainerGroup.fs" />
     <Compile Include="ContainerService.fs" />
     <Compile Include="CognitiveServices.fs" />
@@ -82,7 +85,10 @@
     <PackageReference Include="Microsoft.Azure.Management.TrafficManager" Version="2.5.3" />
     <PackageReference Include="Microsoft.Azure.Management.WebSites" Version="3.1.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
-    <PackageReference Include="coverlet.collector" Version="1.2.0" />
+    <PackageReference Include="coverlet.collector" Version="3.1.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.9.1" />
     <PackageReference Update="FSharp.Core" Version="5.0.0" />
   </ItemGroup>

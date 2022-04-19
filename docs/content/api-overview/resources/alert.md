@@ -6,6 +6,7 @@ chapter: false
 ---
 
 #### Overview
+
 Azure Application Insights allows you to monitor your application and send you alerts when it is either unavailable, experiencing failures, or suffering from performance issues.
 
 * Application Insights Metric Alerts (`Microsoft.Insights/metricAlerts`)
@@ -22,6 +23,7 @@ Azure Application Insights allows you to monitor your application and send you a
 | add_linked_resource | Add target resource on which the alert is created/updated.  |
 | add_linked_resources | Add the target resources on which the alert is created/updated. |
 | single_resource_multiple_metric_criteria | The rule criteria that defines the conditions of the alert rule. |
+| single_resource_multiple_custom_metric_criteria | The rule criteria that defines the conditions of the alert rule based on Application Insights custom metric or metric with custom namespace. Metric validation is disabled for such criteria, so it is possible to create an alert that watches metrics not yet emitted. More details are available [here](https://docs.microsoft.com/azure/azure-monitor/platform/alerts-troubleshoot-metric#define-an-alert-rule-on-a-custom-metric-that-isnt-emitted-yet). |
 | multiple_resource_multiple_metric_criteria | The rule criterias that defines the conditions of the alert rule. |
 | webtest_location_availability_criteria | The rule criteria that defines the conditions of the alert rule. AppInsightsId * WebTestId * FailedLocationCount |
 | add_action | Add an action that are performed when the alert rule becomes active. |
@@ -37,8 +39,8 @@ let vm = vm { name "foo"; username "foo" }
 let vmAlert = alert { 
     name "myVmAlert2"
     description "Alert if VM CPU goes over 80% for 15 minutes"
-    frequency (System.TimeSpan(0,5,0) |> IsoDateTime.OfTimeSpan)
-    window (System.TimeSpan(0,15,0) |> IsoDateTime.OfTimeSpan)
+    frequency (System.TimeSpan.FromMinutes(5.0) |> IsoDateTime.OfTimeSpan)
+    window (System.TimeSpan.FromMinutes(15.0) |> IsoDateTime.OfTimeSpan)
     add_linked_resource vm
     severity AlertSeverity.Warning
     single_resource_multiple_metric_criteria [
@@ -60,8 +62,8 @@ Database alert:
 let myAlert = alert { 
         name "myDbAlert"
         description "Alert if DB DTU goes over 85% for 5 minutes"
-        frequency (System.TimeSpan(0,5,0) |> IsoDateTime.OfTimeSpan)
-        window (System.TimeSpan(0,15,0) |> IsoDateTime.OfTimeSpan)
+        frequency (System.TimeSpan.FromMinutes(1.0) |> IsoDateTime.OfTimeSpan)
+        window (System.TimeSpan.FromMinutes(5.0) |> IsoDateTime.OfTimeSpan)
         add_linked_resource resId
         severity AlertSeverity.Error
         single_resource_multiple_metric_criteria [
@@ -84,10 +86,58 @@ let aiId, webId = (ai :> IBuilder).ResourceId |> Managed,
 let webAlert = alert { 
     name "myWebAlert"
     description "Alert if website is failing 5 mins on 3 locations"
-    frequency (System.TimeSpan(0,1,0) |> IsoDateTime.OfTimeSpan)
-    window (System.TimeSpan(0,5,0) |> IsoDateTime.OfTimeSpan)
+    frequency (System.TimeSpan.FromMinutes(1.0) |> IsoDateTime.OfTimeSpan)
+    window (System.TimeSpan.FromMinutes(5.0) |> IsoDateTime.OfTimeSpan)
     add_linked_resources [aiId; webId]
     severity AlertSeverity.Warning
     webtest_location_availability_criteria (aiId.ResourceId, webId.ResourceId, 3)
+}
+```
+
+Custom metric alert based on Azure Application Insights:
+
+```fsharp
+let ai = appInsights { name "ai" }
+
+let customMetricAlert = alert {
+    name "customMetricAlert"
+    description "My Custom Metric Alert Description"
+    frequency (System.TimeSpan.FromMinutes(1.0) |> IsoDateTime.OfTimeSpan)
+    window (System.TimeSpan.FromMinutes(5.0) |> IsoDateTime.OfTimeSpan)
+    add_linked_resource ai
+    severity AlertSeverity.Error
+    single_resource_multiple_custom_metric_criteria [
+        {
+            MetricNamespace = None
+            MetricName = Insights.MetricsName "MyCustomMetric"
+            Threshold = 0
+            Comparison = GreaterThan
+            Aggregation = Maximum
+        }
+    ]
+}
+```
+
+Custom metric alert with custom metric namespace:
+
+```fsharp
+let ai = appInsights { name "ai" }
+
+let customMetricAlert = alert {
+    name "customMetricAlert"
+    description "My Custom Metric Alert Description"
+    frequency (System.TimeSpan.FromMinutes(1.0) |> IsoDateTime.OfTimeSpan)
+    window (System.TimeSpan.FromMinutes(5.0) |> IsoDateTime.OfTimeSpan)
+    add_linked_resource ai
+    severity AlertSeverity.Error
+    single_resource_multiple_custom_metric_criteria [
+        {
+            MetricNamespace = Some (ResourceType("MyCustomNamespace", ""))
+            MetricName = Insights.MetricsName "MyCustomMetric"
+            Threshold = 0
+            Comparison = GreaterThan
+            Aggregation = Maximum
+        }
+    ]
 }
 ```

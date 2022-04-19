@@ -7,14 +7,6 @@ open Farmer.NetworkSecurity
 let networkSecurityGroups = ResourceType ("Microsoft.Network/networkSecurityGroups", "2020-04-01")
 let securityRules = ResourceType ("Microsoft.Network/networkSecurityGroups/securityRules", "2020-04-01")
 
-type NetworkSecurityGroup =
-    { Name : ResourceName
-      Location : Location
-      Tags: Map<string,string>  }
-    interface IArmResource with
-        member this.ResourceId = networkSecurityGroups.resourceId this.Name
-        member this.JsonModel = networkSecurityGroups.Create(this.Name, this.Location, tags = this.Tags) :> _
-
 let (|SingleEndpoint|ManyEndpoints|) endpoints =
     // Use a wildcard if there is one
     if endpoints |> Seq.contains AnyEndpoint then SingleEndpoint AnyEndpoint
@@ -50,7 +42,7 @@ module private EndpointWriter =
 type SecurityRule =
     { Name : ResourceName
       Description : string option
-      SecurityGroup : NetworkSecurityGroup
+      SecurityGroup : ResourceName
       Protocol : NetworkProtocol
       SourcePorts : Port Set
       DestinationPorts : Port Set
@@ -59,24 +51,45 @@ type SecurityRule =
       Access : Operation
       Direction : TrafficDirection
       Priority : int }
+    member this.PropertiesModel =
+        {| description = this.Description |> Option.toObj
+           protocol = this.Protocol.ArmValue
+           sourcePortRange = this.SourcePorts |> EndpointWriter.toRange
+           sourcePortRanges = this.SourcePorts |> EndpointWriter.toRanges
+           destinationPortRange = this.DestinationPorts |> EndpointWriter.toRange
+           destinationPortRanges = this.DestinationPorts |> EndpointWriter.toRanges
+           sourceAddressPrefix = this.SourceAddresses |> EndpointWriter.toPrefix
+           sourceAddressPrefixes = this.SourceAddresses |> EndpointWriter.toPrefixes
+           destinationAddressPrefix = this.DestinationAddresses |> EndpointWriter.toPrefix
+           destinationAddressPrefixes = this.DestinationAddresses |> EndpointWriter.toPrefixes
+           access = this.Access.ArmValue
+           priority = this.Priority
+           direction = this.Direction.ArmValue
+        |}
     interface IArmResource with
-        member this.ResourceId = securityRules.resourceId (this.SecurityGroup.Name/this.Name)
+        member this.ResourceId = securityRules.resourceId (this.SecurityGroup/this.Name)
+
         member this.JsonModel =
-            let dependsOn = [ networkSecurityGroups.resourceId this.SecurityGroup.Name ]
-            {| securityRules.Create(this.SecurityGroup.Name/this.Name, dependsOn = dependsOn) with
+            let dependsOn = [ networkSecurityGroups.resourceId this.SecurityGroup ]
+            {| securityRules.Create(this.SecurityGroup/this.Name, dependsOn = dependsOn) with
+                properties = this.PropertiesModel
+            |}
+
+type NetworkSecurityGroup =
+    { Name : ResourceName
+      Location : Location
+      SecurityRules : SecurityRule list
+      Tags: Map<string,string>  }
+    interface IArmResource with
+        member this.ResourceId = networkSecurityGroups.resourceId this.Name
+        member this.JsonModel =
+            {| networkSecurityGroups.Create(this.Name, this.Location, tags = this.Tags) with
                 properties =
-                 {| description = this.Description |> Option.toObj
-                    protocol = this.Protocol.ArmValue
-                    sourcePortRange = this.SourcePorts |> EndpointWriter.toRange
-                    sourcePortRanges = this.SourcePorts |> EndpointWriter.toRanges
-                    destinationPortRange = this.DestinationPorts |> EndpointWriter.toRange
-                    destinationPortRanges = this.DestinationPorts |> EndpointWriter.toRanges
-                    sourceAddressPrefix = this.SourceAddresses |> EndpointWriter.toPrefix
-                    sourceAddressPrefixes = this.SourceAddresses |> EndpointWriter.toPrefixes
-                    destinationAddressPrefix = this.DestinationAddresses |> EndpointWriter.toPrefix
-                    destinationAddressPrefixes = this.DestinationAddresses |> EndpointWriter.toPrefixes
-                    access = this.Access.ArmValue
-                    priority = this.Priority
-                    direction = this.Direction.ArmValue
-                 |}
-            |} :> _
+                    {| securityRules =
+                        this.SecurityRules |> List.map (fun rule ->
+                            {| name = rule.Name.Value
+                               ``type`` = securityRules.Type
+                               properties = rule.PropertiesModel
+                            |} )
+                    |}
+            |}

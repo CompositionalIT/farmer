@@ -25,7 +25,7 @@ let tests = testList "Functions tests" [
         let storage = resources.[1] :?> Storage.StorageAccount
 
         Expect.contains site.Dependencies (storageAccounts.resourceId "foo") "Storage account has not been added a dependency"
-        Expect.equal f.StorageAccountName.ResourceName.Value "foo" "Incorrect storage account name on site"
+        Expect.equal f.StorageAccountId.Name.Value "foo" "Incorrect storage account name on site"
         Expect.equal storage.Name.ResourceName.Value "foo" "Incorrect storage account name"
     }
     test "Implicitly sets dependency on connection string" {
@@ -108,13 +108,30 @@ let tests = testList "Functions tests" [
         Expect.equal secrets.[1].Value (ExpressionSecret sa.Key) "Incorrect secret value"
         Expect.sequenceEqual secrets.[1].Dependencies [ vaults.resourceId "testfuncvault"; storageAccounts.resourceId "teststorage" ] "Incorrect secret dependencies"
     }
-
+    
     test "Supports dotnet-isolated runtime" {
-        let f = functions { name "func"; use_runtime (FunctionsRuntime.DotNetIsolated) }
+        let f = functions { name "func"; use_runtime (FunctionsRuntime.DotNetIsolated); }
         let resources = (f :> IBuilder).BuildResources Location.WestEurope
         let site = resources.[3] :?> Web.Site
         let settings = Expect.wantSome site.AppSettings "AppSettings should be set"
         Expect.equal settings.["FUNCTIONS_WORKER_RUNTIME"] (LiteralSetting "dotnet-isolated") "Should use dotnet-isolated functions runtime"
+    }
+    
+    test "Sets LinuxFxVersion correctly for dotnet runtimes" {
+        let getLinuxFxVersion f = 
+          let resources = (f :> IBuilder).BuildResources Location.WestEurope
+          let site = resources.[3] :?> Web.Site
+          site.LinuxFxVersion
+          
+        let f = functions { name "func"; use_runtime (FunctionsRuntime.DotNet50Isolated); operating_system Linux }
+        Expect.equal (getLinuxFxVersion f) (Some "DOTNET-ISOLATED|5.0") "Should set linux fx runtime"
+          
+        let f = functions { name "func"; use_runtime (FunctionsRuntime.DotNet60Isolated); operating_system Linux }
+        Expect.equal (getLinuxFxVersion f) (Some "DOTNET-ISOLATED|6.0") "Should set linux fx runtime"
+          
+        let f = functions { name "func"; use_runtime (FunctionsRuntime.DotNetCore31); operating_system Linux }
+        Expect.equal (getLinuxFxVersion f) (Some "DOTNETCORE|3.1") "Should set linux fx runtime"
+
     }
 
     test "FunctionsApp supports adding slots" {
@@ -301,5 +318,126 @@ let tests = testList "Functions tests" [
 
     test "Not setting the functions name causes an error" {
         Expect.throws (fun () -> functions { storage_account_name "foo" } |> ignore) "Not setting functions name should throw"
+    }
+
+    test "Sets ftp state correctly in builder" {
+        let f = functions { name "test"; ftp_state FTPState.Disabled } :> IBuilder
+        let site = f.BuildResources Location.NorthEurope |> List.item 3 :?> Web.Site
+        Expect.equal site.FTPState (Some FTPState.Disabled) "Incorrect FTP state set"
+    }
+
+    test "Sets ftp state correctly to 'disabled'" {
+        let f = functions { name "test"; ftp_state FTPState.Disabled } :> IBuilder
+        let deployment = arm { add_resource f }
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse (deployment.Template |> Writer.toJson)
+        let ftpsStateValue = jobj.SelectToken "resources[?(@.name=='test')].properties.siteConfig.ftpsState" |> string
+        Expect.equal ftpsStateValue "Disabled" $"Incorrect value ('{ftpsStateValue}') set for ftpsState in generated template"
+    }
+    
+    test "Correctly supports unmanaged storage account" {
+        let functionsApp = functions{
+            name "func"
+            link_to_unmanaged_storage_account (ResourceId.create (Farmer.Arm.Storage.storageAccounts, ResourceName "accountName", group="shared-group"))
+        } 
+        let template = arm{ add_resource functionsApp}
+        let jsn = template.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+        let appSettings = 
+            jobj.SelectTokens "$..resources[?(@type=='Microsoft.Web/sites')].properties.siteConfig.appSettings.[*]"
+            |> Seq.map (fun x-> x.ToObject<{|name:string;value:string|}> ())
+        Expect.contains appSettings {|name="AzureWebJobsDashboard"; value="[concat('DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=', listKeys(resourceId('shared-group', 'Microsoft.Storage/storageAccounts', 'accountName'), '2017-10-01').keys[0].value)]"|} "Invalid value for AzureWebJobsDashboard"
+        
+    }
+
+    test "Correctly supports unmanaged App Insights" {
+        let functionsApp = functions{
+            name "func"
+            link_to_unmanaged_app_insights (ResourceId.create (Farmer.Arm.Insights.components, ResourceName "theName", group="shared-group"))
+        } 
+        let template = arm{ add_resource functionsApp}
+        let jsn = template.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+        let appSettings = 
+            jobj.SelectTokens "$..resources[?(@type=='Microsoft.Web/sites')].properties.siteConfig.appSettings.[*]"
+            |> Seq.map (fun x-> x.ToObject<{|name:string;value:string|}> ())
+        Expect.contains appSettings {|name="APPINSIGHTS_INSTRUMENTATIONKEY"; value="[reference(resourceId('shared-group', 'Microsoft.Insights/components', 'theName'), '2014-04-01').InstrumentationKey]"|} "Invalid value for APPINSIGHTS_INSTRUMENTATIONKEY"
+    }
+
+    test "Function app correctly adds connection strings" {
+        let sa = storageAccount { name "foo" }
+        let wa =
+            let resources = functions { name "test"; connection_string "a"; connection_string ("b", sa.Key) } |> getResources
+            resources |> getResource<Web.Site> |> List.head
+
+        let expected = [
+            "a", (ParameterSetting(SecureParameter "a"), Custom)
+            "b", (ExpressionSetting sa.Key, Custom)
+        ]
+        let parameters = wa :> IParameters
+
+        Expect.equal wa.ConnectionStrings (Map expected |> Some) "Missing connections"
+        Expect.equal parameters.SecureParameters [ SecureParameter "a" ] "Missing parameter"
+    }
+
+    test "Supports adding ip restriction" {
+        let ip = IPAddressCidr.parse "1.2.3.4/32"
+        let resources = functions { name "test"; add_allowed_ip_restriction "test-rule" ip } |> getResources
+        let site = resources |> getResource<Web.Site> |> List.head
+
+        let expectedRestriction = IpSecurityRestriction.Create "test-rule" ip Allow
+        Expect.equal site.IpSecurityRestrictions [ expectedRestriction ] "Should add expected ip security restriction"
+    }
+    test "Supports adding ip restriction for denied ip" {
+        let ip = IPAddressCidr.parse "1.2.3.4/32"
+        let resources = functions { name "test"; add_denied_ip_restriction "test-rule" ip } |> getResources
+        let site = resources |> getResource<Web.Site> |> List.head
+
+        let expectedRestriction = IpSecurityRestriction.Create "test-rule" ip Deny
+        Expect.equal site.IpSecurityRestrictions [ expectedRestriction ] "Should add denied ip security restriction"
+    }
+    test "Supports adding different ip restrictions to site and slot" {
+        let siteIp = IPAddressCidr.parse "1.2.3.4/32"
+        let slotIp = IPAddressCidr.parse "4.3.2.1/32"
+        let warmupSlot = appSlot { name "warm-up"; add_allowed_ip_restriction "slot-rule" slotIp }
+        let resources = functions { name "test"; add_slot warmupSlot; add_allowed_ip_restriction "site-rule" siteIp } |> getResources
+        let slot =
+            resources
+            |> getResource<Arm.Web.Site>
+            |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
+            |> List.head
+        let site = resources |> getResource<Web.Site> |> List.head
+
+        let expectedSlotRestriction = IpSecurityRestriction.Create "slot-rule" slotIp Allow
+        let expectedSiteRestriction = IpSecurityRestriction.Create "site-rule" siteIp Allow
+        Expect.equal slot.IpSecurityRestrictions [ expectedSlotRestriction ] "Slot should have correct allowed ip security restriction"
+        Expect.equal site.IpSecurityRestrictions [ expectedSiteRestriction ] "Site should have correct allowed ip security restriction"
+    }
+    test "Can integrate unmanaged vnet" {
+        let subnetId = Arm.Network.subnets.resourceId (ResourceName "my-vnet", ResourceName "my-subnet") 
+        let asp = serverFarms.resourceId "my-asp"
+        let wa = functions { name "testApp"; link_to_unmanaged_service_plan asp; link_to_unmanaged_vnet subnetId }
+        
+        let resources = wa |> getResources
+        let site = resources |> getResource<Web.Site> |> List.head
+        let vnet = Expect.wantSome site.LinkToSubnet "LinkToSubnet was not set"
+        Expect.equal vnet (Direct (Unmanaged subnetId)) "LinkToSubnet was incorrect"
+
+        let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection> 
+        Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
+    }    
+    test "Can integrate managed vnet" {
+        let vnetConfig = vnet { name "my-vnet" } 
+        let asp = serverFarms.resourceId "my-asp"
+        let wa = functions { name "testApp"; link_to_unmanaged_service_plan asp;  link_to_vnet (vnetConfig, ResourceName "my-subnet") }
+            
+        let resources = wa |> getResources
+        let site = resources |> getResource<Web.Site> |> List.head
+        let vnet = Expect.wantSome site.LinkToSubnet "LinkToSubnet was not set"
+        Expect.equal vnet (ViaManagedVNet ( (Arm.Network.virtualNetworks.resourceId "my-vnet"), ResourceName "my-subnet" )) "LinkToSubnet was incorrect"
+        
+        let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection> 
+        Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
     }
 ]

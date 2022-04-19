@@ -24,6 +24,7 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | link_to_storage_account | Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance but within this Farmer template. |
 | link_to_unmanaged_storage_account | Do not create an automatic storage account; instead, link to an existing storage account that was created external to Farmer. |
 | https_only | Disables http for this functions app so that only HTTPS is used. |
+| ftp_state | Allows to enable or disable FTP and FTPS. |
 | app_insights_name | Sets the name of the automatically-created app insights instance. |
 | app_insights_off | Removes any automatic app insights creation, configuration and settings for this webapp. |
 | link_to_app_insights | Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing yourself. |
@@ -34,6 +35,8 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | setting | Sets an app setting of the web app in the form "key" "value". |
 | secret_setting | Sets a "secret" app setting of the function. You must supply the "key", whilst the value will be supplied as a secure parameter or an ARM expression. |
 | settings | Sets a list of app setting of the web app as tuples in the form of ("key", "value"). |
+| connection_string | Creates a connection string whose value is supplied as secret parameter, or as an ARM expression in the tupled form of ("key", expr). |
+| connection_strings | Creates a set of connection strings whose values will be supplied as secret parameters. |
 | depends_on | [Sets dependencies for the web app.](../../dependencies/) |
 | enable_cors | Enables CORS support for the app. Either specify AllOrigins or a list of valid URIs. |
 | enable_cors_credentials | Allows CORS requests with credentials. |
@@ -45,7 +48,10 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | add_slot | Adds a deployment slot to the app |
 | add_slots | Adds multiple deployment slots to the app |
 | health_check_path | Sets the path to your functions health check endpoint, which Azure load balancers will ping to determine which instances are healthy.|
-
+| add_allowed_ip_restriction | Adds an 'allow' rule for an ip |
+| add_denied_ip_restriction | Adds an 'deny' rule for an ip |
+| link_to_vnet | Enable the VNET integration feature in azure where all outbound traffic from the function with be sent via the specified subnet. Use this operator when the given VNET is in the same deployment |
+| link_to_unmanaged_vnet | Enable the VNET integration feature in azure where all outbound traffic from the function with be sent via the specified subnet. Use this operator when the given VNET is *not* in the same deployment |
 #### Post-deployment Builder Keywords
 The Functions builder contains special commands that are executed *after* the ARM deployment is completed.
 

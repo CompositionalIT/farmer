@@ -1,4 +1,4 @@
-﻿module Farmer.Deploy
+module Farmer.Deploy
 
 open System
 open System.Collections.Generic
@@ -45,7 +45,7 @@ module Az =
                 let azProcess =
                     ProcessStartInfo(
                         FileName = azCliPath.Value,
-                        Arguments = $"%s{arguments} --output json",
+                        Arguments = $"%s{arguments} --output json --only-show-errors",
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true)
@@ -79,7 +79,30 @@ module Az =
     let login() = az "login" |> Result.ignore
     /// Logs you into the Az CLI using the supplied service principal credentials.
     let loginWithCredentials appId secret tenantId = az $"login --service-principal --username %s{appId} --password %s{secret} --tenant %s{tenantId}"
+    /// Gets the version of Az CLI
     let version() = az "--version"
+    /// Checks that the version of the Azure CLI meets minimum version.
+    let checkVersion minimum = result {
+        let! versionOutput = version()
+        let! version =
+            versionOutput.Replace("\r\n","\n").Replace("\r","\n").Split([| "\n" |], StringSplitOptions.RemoveEmptyEntries)
+            |> Array.tryHead
+            |> Option.bind(fun text ->
+                match text.Split([| ' ' |], StringSplitOptions.RemoveEmptyEntries) with
+                | [| _; version |]
+                | [| _; version; _ |] ->
+                    Some version
+                | _ ->
+                    None)
+            |> Option.bind(fun versionText ->
+                try Some(Version versionText)
+                with _ -> None)
+            |> Result.ofOption $"Unable to determine Azure CLI version. You need to have at least {minimum} installed. Output was: %s{versionOutput}"
+        return!
+            if version < minimum then Error $"You have {version} of the Azure CLI installed, but the minimum version is {minimum}. Please upgrade."
+            else Ok version
+    }
+    
     /// Lists all subscriptions
     let listSubscriptions() = az "account list --all"
     let setSubscription subscriptionId = az $"account set --subscription %s{subscriptionId}"
@@ -132,8 +155,14 @@ module Az =
           yield! errorDoc |> Option.mapList (sprintf "--404-document %s") ]
         |> String.concat " "
         |> az
+    /// The overwrite parameter was introduced in Azure CLI v2.34.0 with a breaking change to the default behaviour
+    let private cliVersionWithOverwriteParameter = Version "2.34.0"
     let batchUploadStaticWebsite name path =
-        az $"storage blob upload-batch --account-name %s{name} --destination $web --source %s{path}"
+        let additionalParameters =
+            match checkVersion cliVersionWithOverwriteParameter with
+            | Ok _ -> "--overwrite true"
+            | _ -> ""
+        az $"storage blob upload-batch --account-name %s{name} --destination $web --source %s{path} {additionalParameters}"
 
     type AzureErrorCode = { Code : string; Message : string }
     type AzureError = { Error : AzureErrorCode }
@@ -146,7 +175,6 @@ module Az =
             | _ ->
                 error
         with _ ->
-            printfn "BAD"
             error
 
 /// Represents an Azure subscription
@@ -162,29 +190,6 @@ let authenticate appId secret tenantId =
 let listSubscriptions() = result {
     let! response = Az.listSubscriptions()
     return response |> Serialization.ofJson<Subscription array>
-}
-
-
-/// Checks that the version of the Azure CLI meets minimum version.
-let checkVersion minimum = result {
-    let! versionOutput = Az.version()
-    let! version =
-        versionOutput.Replace("\r\n","\n").Replace("\r","\n").Split([| "\n" |], StringSplitOptions.RemoveEmptyEntries)
-        |> Array.tryHead
-        |> Option.bind(fun text ->
-            match text.Split([| ' ' |], StringSplitOptions.RemoveEmptyEntries) with
-            | [| _; version |]
-            | [| _; version; _ |] ->
-                Some version
-            | _ ->
-                None)
-        |> Option.bind(fun versionText ->
-            try Some(Version versionText)
-            with _ -> None)
-        |> Result.ofOption $"Unable to determine Azure CLI version. You need to have at least {minimum} installed. Output was: %s{versionOutput}"
-    return!
-        if version < minimum then Error $"You have {version} of the Azure CLI installed, but the minimum version is {minimum}. Please upgrade."
-        else Ok version
 }
 
 /// Sets the currently active (default) subscription.
@@ -207,7 +212,7 @@ let NoParameters : (string * string) list = []
 let private prepareForDeployment parameters resourceGroupName (deployment:IDeploymentSource) = result {
     do! deployment |> validateParameters parameters
 
-    let! version = checkVersion Az.MinimumVersion
+    let! version = Az.checkVersion Az.MinimumVersion
     printfn "Compatible version of Azure CLI %O detected" version
 
     prepareDeploymentFolder()
@@ -229,6 +234,8 @@ let private prepareForDeployment parameters resourceGroupName (deployment:IDeplo
     let resourceGroups =
         (resourceGroupName::deployment.Deployment.RequiredResourceGroups)
         |> List.distinct
+        // Filter out any resource groups that are an ARM expression calculated at deploy-time
+        |> List.filter (fun resGroupName -> not(resGroupName.StartsWith("[")))
         |> List.mapi (fun i x -> i,x)
     for (i,rg) in resourceGroups do
         printfn $"Creating resource group {rg} ({i+1}/{resourceGroups.Length})..."

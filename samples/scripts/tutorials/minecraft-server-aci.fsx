@@ -123,7 +123,7 @@ let serverContainer = containerGroup {
     add_instances [
         containerInstance {
             name "minecraftserver"
-            image "mcr.microsoft.com/java/jre-headless:8-zulu-alpine"
+            image "mcr.microsoft.com/java/jre-headless:17-zulu-alpine"
             // The command line needs to change to the directory for the file share and then start the server
             // It needs a little more memory than the defaults, -Xmx3G gives it 3 GiB of memory.
             command_line [

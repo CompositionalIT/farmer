@@ -2,6 +2,7 @@
 module Farmer.Builders.ContainerGroups
 
 open Farmer
+open Farmer.Builders
 open Farmer.ContainerGroup
 open Farmer.Identity
 open Farmer.Arm.ContainerInstance
@@ -36,7 +37,7 @@ type ContainerInstanceConfig =
     { /// The name of the container instance
       Name : ResourceName
       /// The container instance image
-      Image : string
+      Image : Containers.DockerImage option
       /// The commands to execute within the container instance in exec form
       Command : string list
       /// List of ports the container instance listens on
@@ -45,6 +46,8 @@ type ContainerInstanceConfig =
       Cpu : float
       /// Max gigabytes of memory the container instance may use
       Memory : float<Gb>
+      // Container instances gpu
+      Gpu : ContainerInstanceGpu option
       /// Environment variables for the container
       EnvironmentVariables : Map<string, EnvVar>
       /// Liveness probe for checking the container's health.
@@ -59,7 +62,7 @@ type InitContainerConfig =
     { /// The name of the container instance
       Name : ResourceName
       /// The container instance image
-      Image : string
+      Image : Containers.DockerImage option
       /// The commands to execute within the container instance in exec form
       Command : string list
       /// Environment variables for the container
@@ -70,6 +73,12 @@ type InitContainerConfig =
 type ContainerGroupConfig =
     { /// The name of the container group.
       Name : ResourceName
+      /// Availability zone where the container group should be deployed.
+      AvailabilityZone : string option
+      /// Diagnostics and logging for the container group
+      Diagnostics : ContainerGroupDiagnostics option
+      /// DNS configuration for the container group
+      DnsConfig : ContainerGroupDnsConfiguration option
       /// Container group OS.
       OperatingSystem : OS
       /// Restart policy for the container group.
@@ -78,12 +87,16 @@ type ContainerGroupConfig =
       ImageRegistryCredentials : ImageRegistryAuthentication list
       /// IP address for the container group.
       IpAddress : ContainerGroupIpAddress option
-      /// Name of the network profile for this container's group.
-      NetworkProfile : ResourceName option
       /// The init containers in this container group.
       InitContainers : InitContainerConfig list
       /// The instances in this container group.
       Instances : ContainerInstanceConfig list
+      /// Name of the network profile for this container's group - not supported when specifying the availability zone.
+      NetworkProfile : ResourceName option
+      /// Resource ID of the virtual network where this container group should be attached.
+      VirtualNetwork : LinkedResource option
+      /// Name of the subnet where this container group should be attached.
+      SubnetName : ResourceName option
       /// Volumes to mount on the container group.
       Volumes : Map<string, Volume>
       /// Managed identity for the container group.
@@ -99,37 +112,70 @@ type ContainerGroupConfig =
         member this.BuildResources location = [
             { Location = location
               Name = this.Name
+              AvailabilityZone =
+                  if this.AvailabilityZone.IsSome && this.NetworkProfile.IsSome then
+                      raiseFarmer $"Cannot specify availability zone when using network profiles."
+                  else
+                    this.AvailabilityZone
               ContainerInstances = [
                 for instance in this.Instances do
-                    {| Name = instance.Name
-                       Image = instance.Image
-                       Command = instance.Command
-                       Ports = instance.Ports |> Map.toSeq |> Seq.map fst |> Set
-                       Cpu = instance.Cpu
-                       Memory = instance.Memory
-                       EnvironmentVariables = instance.EnvironmentVariables
-                       LivenessProbe = instance.LivenessProbe
-                       ReadinessProbe = instance.ReadinessProbe
-                       VolumeMounts = instance.VolumeMounts |}
+                    match instance.Image with
+                    | None -> raiseFarmer $"Missing image tag for container named '{instance.Name}'."
+                    | Some image ->
+                        {| Name = instance.Name
+                           Image = image
+                           Command = instance.Command
+                           Ports = instance.Ports |> Map.toSeq |> Seq.map fst |> Set
+                           Cpu = instance.Cpu
+                           Memory = instance.Memory
+                           Gpu = instance.Gpu
+                           EnvironmentVariables = instance.EnvironmentVariables
+                           LivenessProbe = instance.LivenessProbe
+                           ReadinessProbe = instance.ReadinessProbe
+                           VolumeMounts = instance.VolumeMounts |}
               ]
+              Diagnostics = this.Diagnostics
+              DnsConfig =
+                  if this.DnsConfig.IsSome && this.NetworkProfile.IsNone then
+                    raiseFarmer "DNS configuration can only be set when attached to a virtual network."
+                  else this.DnsConfig
               OperatingSystem = this.OperatingSystem
               RestartPolicy = this.RestartPolicy
               Identity = this.Identity
               ImageRegistryCredentials = this.ImageRegistryCredentials
               InitContainers = [
                   for initContainer in this.InitContainers do
-                      {| Name = initContainer.Name
-                         Image = initContainer.Image
-                         Command = initContainer.Command
-                         EnvironmentVariables = initContainer.EnvironmentVariables
-                         VolumeMounts = initContainer.VolumeMounts |}
+                    match initContainer.Image with
+                    | None -> raiseFarmer $"Missing image tag for initContainer named '{initContainer.Name}'."
+                    | Some image ->
+                        {| Name = initContainer.Name
+                           Image = image
+                           Command = initContainer.Command
+                           EnvironmentVariables = initContainer.EnvironmentVariables
+                           VolumeMounts = initContainer.VolumeMounts |}
               ]
               IpAddress = this.IpAddress
-              NetworkProfile = this.NetworkProfile
+              NetworkProfile =
+                  if this.NetworkProfile.IsSome && (this.VirtualNetwork.IsSome || this.SubnetName.IsSome) then
+                      raiseFarmer $"Should not set network profile on container group '{this.Name.Value}' when using vnet and subnet."
+                  else this.NetworkProfile
+              SubnetIds =
+                  match this.VirtualNetwork, this.SubnetName with
+                  | None, None -> []
+                  | Some (Managed vnetId), Some subnet ->
+                      { vnetId with Type = subnets; Segments = [ subnet ] } |> Managed |> List.singleton
+                  | Some (Unmanaged vnetId), Some subnet ->
+                      { vnetId with Type = subnets; Segments = [ subnet ] } |> Unmanaged |> List.singleton
+                  | Some vnetId, None -> raiseFarmer $"Missing subnet for attaching container group '{this.Name.Value}' to vnet '{vnetId.Name.Value}'."
+                  | None, subnetName -> raiseFarmer $"Missing vnet for attaching container group '{this.Name.Value}' to subnet '{subnetName.Value}'."
               Volumes = this.Volumes
               Tags = this.Tags
               Dependencies = this.Dependencies }
         ]
+
+type ContainerGpuConfig = 
+    { Count: int
+      Sku: Gpu.Sku }
 
 type ContainerProbeType = LivenessProbe | ReadinessProbe
 type ContainerProbeConfig =
@@ -177,6 +223,8 @@ type ContainerGroupBuilder() =
 
     member _.Yield _ =
         { Name = ResourceName.Empty
+          Diagnostics = None
+          DnsConfig = None
           OperatingSystem = Linux
           RestartPolicy = AlwaysRestart
           Identity = ManagedIdentity.Empty
@@ -184,8 +232,11 @@ type ContainerGroupBuilder() =
           InitContainers = []
           IpAddress = None
           NetworkProfile = None
+          SubnetName = None
+          VirtualNetwork = None
           Instances = []
           Volumes = Map.empty
+          AvailabilityZone = None
           Tags = Map.empty
           Dependencies = Set.empty }
     member this.Run (state:ContainerGroupConfig) =
@@ -196,8 +247,8 @@ type ContainerGroupBuilder() =
 
     member this.AddTcpPort(state:ContainerGroupConfig, port) = this.AddPort (state, TCP, port)
 
-    [<CustomOperation "name">]
     /// Sets the name of the container group.
+    [<CustomOperation "name">]
     member _.Name(state:ContainerGroupConfig, name) = { state with Name = name }
     member this.Name(state:ContainerGroupConfig, name) = this.Name(state, ResourceName name)
     /// Sets the OS type (default Linux)
@@ -222,6 +273,19 @@ type ContainerGroupBuilder() =
     [<CustomOperation "network_profile">]
     member _.NetworkProfile(state:ContainerGroupConfig, networkProfileName:string) = { state with NetworkProfile = Some (ResourceName networkProfileName) }
     member _.NetworkProfile(state:ContainerGroupConfig, networkProfile:NetworkProfileConfig) = { state with NetworkProfile = Some networkProfile.Name }
+    /// Sets the name of a virtual network where this container group should be attached.
+    [<CustomOperation "vnet">]
+    member _.VNetId(state:ContainerGroupConfig, vnetId:ResourceId) = { state with VirtualNetwork = Some (Managed vnetId) }
+    member _.VNetId(state:ContainerGroupConfig, vnetName:string) = { state with VirtualNetwork = Some (Managed (virtualNetworks.resourceId (ResourceName vnetName))) }
+    member _.VNetId(state:ContainerGroupConfig, vnetName:ResourceName) = { state with VirtualNetwork = Some (Managed (virtualNetworks.resourceId vnetName)) }
+    /// Sets the name of a virtual network where this container group should be attached.
+    [<CustomOperation "link_to_vnet">]
+    member _.LinkToVNetId(state:ContainerGroupConfig, vnetId:ResourceId) = { state with VirtualNetwork = Some (Unmanaged vnetId) }
+    member _.LinkToVNetId(state:ContainerGroupConfig, vnetName:string) = { state with VirtualNetwork = Some (Unmanaged (virtualNetworks.resourceId (ResourceName vnetName))) }
+    member _.LinkToVNetId(state:ContainerGroupConfig, vnetName:ResourceName) = { state with VirtualNetwork = Some (Unmanaged (virtualNetworks.resourceId vnetName)) }
+    [<CustomOperation "subnet">]
+    member _.Subnet(state:ContainerGroupConfig, subnetName:string) = { state with SubnetName = Some (ResourceName subnetName) }
+    member _.Subnet(state:ContainerGroupConfig, subnetName:ResourceName) = { state with SubnetName = Some subnetName }
     /// Adds a UDP port to be externally accessible
     [<CustomOperation "add_udp_port">]
     member this.AddUdpPort(state:ContainerGroupConfig, port) = this.AddPort (state, UDP, port)
@@ -239,12 +303,87 @@ type ContainerGroupBuilder() =
     /// Adds a collection of container instances to this group
     [<CustomOperation "add_instances">]
     member _.AddInstances(state:ContainerGroupConfig, instances) = { state with Instances = state.Instances @ (Seq.toList instances) }
-    [<CustomOperation "add_volumes">]
     /// Adds volumes to the container group so they can be mounted on containers.
+    [<CustomOperation "add_volumes">]
     member _.AddVolumes(state:ContainerGroupConfig, volumes) =
         let newVolumes = volumes |> Map.ofSeq
         let updatedVolumes = state.Volumes |> Map.fold (fun current key vol -> Map.add key vol current) newVolumes
         { state with Volumes = updatedVolumes }
+    /// Specify the availability zone for the container group.
+    [<CustomOperation "availability_zone">]
+    member _.AvailabilityZones(state:ContainerGroupConfig, zone:string) =
+        { state with AvailabilityZone = Some zone }
+    [<CustomOperation "diagnostics_workspace">]
+    member _.EnableDiagnostics(state:ContainerGroupConfig, logType:LogType, workspaceBuilder:WorkspaceConfig) =
+        { state with
+            Diagnostics =
+                {
+                    LogType = logType
+                    Workspace = LogAnalyticsWorkspace.WorkspaceResourceId(Managed((workspaceBuilder :> IBuilder).ResourceId))
+                } |> Some
+        }
+    member _.EnableDiagnostics(state:ContainerGroupConfig, logType:LogType, workspaceResourceId:ResourceId) =
+        { state with
+            Diagnostics =
+                {
+                    LogType = logType
+                    Workspace = LogAnalyticsWorkspace.WorkspaceResourceId(Managed(workspaceResourceId))
+                } |> Some
+        }
+    [<CustomOperation "diagnostics_workspace_key">]
+    member _.EnableDiagnosticsWorkspace(state:ContainerGroupConfig, logType:LogType, workspaceId:string, workspaceKey:string) =
+        { state with
+            Diagnostics =
+                {
+                    LogType = logType
+                    Workspace = LogAnalyticsWorkspace.WorkspaceKey(workspaceId, workspaceKey)
+                } |> Some
+        }
+    [<CustomOperation "link_to_diagnostics_workspace">]
+    member _.LinkToDiagnosticsWorkspace(state:ContainerGroupConfig, logType:LogType, workspaceResourceId:ResourceId) =
+        { state with
+            Diagnostics =
+                {
+                    LogType = logType
+                    Workspace = LogAnalyticsWorkspace.WorkspaceResourceId(Unmanaged(workspaceResourceId))
+                } |> Some
+        }
+    /// Specify DNS nameservers for the containers in the container group.
+    [<CustomOperation "dns_nameservers">]
+    member _.DnsNameServers(state:ContainerGroupConfig, nameServers:string list) =
+        let dns =
+            match state.DnsConfig with
+            | None ->
+                { NameServers = nameServers
+                  Options = []
+                  SearchDomains = [] }
+            | Some dnsConfig ->
+                { dnsConfig with NameServers = nameServers }
+        { state with DnsConfig = Some dns }
+    /// Specify DNS options (e.g. 'ndots:2') for the containers in the container group.
+    [<CustomOperation "dns_options">]
+    member _.DnsOptions(state:ContainerGroupConfig, options:string list) =
+        let dns =
+            match state.DnsConfig with
+            | None ->
+                { NameServers = []
+                  Options = options
+                  SearchDomains = [] }
+            | Some dnsConfig ->
+                { dnsConfig with Options = options }
+        { state with DnsConfig = Some dns }
+    /// Specify DNS search domains for the containers in the container group.
+    [<CustomOperation "dns_search_domains">]
+    member _.DnsSearchDomains(state:ContainerGroupConfig, searchDomains:string list) =
+        let dns =
+            match state.DnsConfig with
+            | None ->
+                { NameServers = []
+                  Options = []
+                  SearchDomains = searchDomains }
+            | Some dnsConfig ->
+                { dnsConfig with SearchDomains = searchDomains }
+        { state with DnsConfig = Some dns }
 
     interface IIdentity<ContainerGroupConfig> with member _.Add state updater = { state with Identity = updater state.Identity }
     interface ITaggable<ContainerGroupConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
@@ -259,11 +398,12 @@ let registry (server:string) (username:string) =
 type ContainerInstanceBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          Image = ""
+          Image = None
           Command = List.empty
           Ports = Map.empty
           Cpu = 1.0
           Memory = 1.5<Gb>
+          Gpu = None
           EnvironmentVariables = Map.empty
           LivenessProbe = None
           ReadinessProbe = None
@@ -272,9 +412,18 @@ type ContainerInstanceBuilder() =
     [<CustomOperation "name">]
     member _.Name(state:ContainerInstanceConfig, name) = { state with Name = name }
     member this.Name(state:ContainerInstanceConfig, name) = this.Name(state, ResourceName name)
-    /// Sets the image of the container instance.
+    /// Sets the image of the container instance as a docker image tag.
     [<CustomOperation "image">]
-    member _.Image (state:ContainerInstanceConfig, image) = { state with Image = image }
+    member _.Image (state:ContainerInstanceConfig, image:string) =
+        { state with Image = Some (Containers.DockerImage.Parse image) }
+    /// Sets the image to a private docker image.
+    [<CustomOperation "private_docker_image">]
+    member _.PrivateDockerImage(state:ContainerInstanceConfig, registry:string, containerName:string, version:string) =
+        { state with Image = Containers.DockerImage.PrivateImage (registry, containerName, Some version) |> Some }
+    /// Sets the image to a public docker image.
+    [<CustomOperation "public_docker_image">]
+    member _.PublicDockerImage(state:ContainerInstanceConfig, containerName:string, version:string) =
+        { state with Image = Containers.DockerImage.PublicImage (containerName, Some version) |> Some }
     static member private AddPorts (state:ContainerInstanceConfig, accessibility, ports) =
         { state with
             Ports =
@@ -296,6 +445,10 @@ type ContainerInstanceBuilder() =
     /// Sets the maximum gigabytes of memory the container instance may use
     [<CustomOperationAttribute "memory">]
     member _.Memory (state:ContainerInstanceConfig, memory) = { state with Memory = memory }
+    /// Enables container instances with gpus
+    [<CustomOperationAttribute "gpu">]
+    member _.Gpu (state:ContainerInstanceConfig, (gpu:ContainerGpuConfig)) = { state with Gpu = Some { Count = gpu.Count
+                                                                                                       Sku = gpu.Sku } }
     [<CustomOperation "env_vars">]
     member _.EnvironmentVariables(state:ContainerInstanceConfig, envVars) =
         { state with EnvironmentVariables = Map.ofList envVars }
@@ -373,10 +526,22 @@ let readiness = ProbeBuilder(ReadinessProbe)
 [<System.Obsolete "Compatibility only due to spelling error - please use 'liveness'">]
 let liveliness = ProbeBuilder(LivenessProbe)
 
+type GpuBuilder () =
+    member _.Yield _ =
+        {
+            Count = 1
+            Sku = Gpu.Sku.K80
+        } : ContainerGpuConfig
+    [<CustomOperation "count">]
+    member _.Count(state:ContainerGpuConfig, count) = { state with Count = count }
+    [<CustomOperation "sku">]
+    member _.Sku(state:ContainerGpuConfig, sku) = { state with Sku = sku }
+let containerInstanceGpu = GpuBuilder()
+
 type InitContainerBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          Image = ""
+          Image = None
           Command = List.empty
           EnvironmentVariables = Map.empty
           VolumeMounts = Map.empty }
@@ -386,7 +551,15 @@ type InitContainerBuilder() =
     member this.Name(state:InitContainerConfig, name) = this.Name(state, ResourceName name)
     /// Sets the image of the init container.
     [<CustomOperation "image">]
-    member _.Image (state:InitContainerConfig, image) = { state with Image = image }
+    member _.Image (state:InitContainerConfig, image:string) = { state with Image = Some (Containers.DockerImage.Parse image) }
+    /// Sets the image to a private docker image.
+    [<CustomOperation "private_docker_image">]
+    member _.PrivateDockerImage(state:InitContainerConfig, registry:string, containerName:string, version:string) =
+        { state with Image = Containers.DockerImage.PrivateImage (registry, containerName, Some version) |> Some }
+    /// Sets the image to a public docker image.
+    [<CustomOperation "public_docker_image">]
+    member _.PublicDockerImage(state:InitContainerConfig, containerName:string, version:string) =
+        { state with Image = Containers.DockerImage.PublicImage (containerName, Some version) |> Some }
     /// Sets the environment variables for the init container.
     [<CustomOperation "env_vars">]
     member _.EnvironmentVariables(state:InitContainerConfig, envVars) =

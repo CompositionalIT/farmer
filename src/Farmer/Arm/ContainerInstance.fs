@@ -2,11 +2,12 @@
 module Farmer.Arm.ContainerInstance
 
 open Farmer
+open Farmer.Arm
 open Farmer.ContainerGroup
 open Farmer.Identity
 open System
 
-let containerGroups = ResourceType ("Microsoft.ContainerInstance/containerGroups", "2019-12-01")
+let containerGroups = ResourceType ("Microsoft.ContainerInstance/containerGroups", "2021-10-01")
 
 type ContainerGroupIpAddress =
     { Type : IpAddressType
@@ -14,17 +15,16 @@ type ContainerGroupIpAddress =
         {| Protocol : TransmissionProtocol
            Port : uint16 |} Set }
 
-type ImageRegistryCredential =
-    { Server : string
-      Username : string
-      Password : SecureParameter }
-
-[<RequireQualifiedAccess>]
-type ImageRegistryAuthentication =
-/// Credentials for the container registry are included with the password as a template parameter.
-| Credential of ImageRegistryCredential
-/// Credentials for the container registry will be listed by ARM expression.
-| ListCredentials of ResourceId
+type ContainerInstanceGpu =
+    { Count: int
+      Sku: Gpu.Sku }
+    static member internal JsonModel = function
+        | None -> null
+        | Some gpu ->
+            {|
+                count = gpu.Count
+                sku = string gpu.Sku
+            |} :> obj
 
 /// Defines a command or HTTP request to get the status of a container.
 type ContainerProbe =
@@ -40,52 +40,100 @@ type ContainerProbe =
       SuccessThreshold : int option
       /// Number of seconds for the probe to run - default is 1 second.
       TimeoutSeconds : int option }
-    member internal this.JsonModel =
-        {|
-            exec =
-                if this.Exec.Length > 0 then
-                    {| command = this.Exec |} |> box
-                else
-                    null
-            httpGet =
-                this.HttpGet
-                |> Option.map (fun (uri:Uri) -> {| path=uri.AbsolutePath; port=uri.Port; scheme=uri.Scheme |} |> box)
-                |> Option.defaultValue null
-            initialDelaySeconds = this.InitialDelaySeconds |> Option.map box |> Option.defaultValue null
-            periodSeconds = this.PeriodSeconds |> Option.map box |> Option.defaultValue null
-            failureThreshold = this.FailureThreshold |> Option.map box |> Option.defaultValue null
-            successThreshold = this.SuccessThreshold |> Option.map box |> Option.defaultValue null
-            timeoutSeconds = this.TimeoutSeconds |> Option.map box |> Option.defaultValue null
-        |}
+    static member internal JsonModel = function
+        | None -> null
+        | Some probe ->
+            {|
+                exec =
+                    if probe.Exec.Length > 0 then
+                        {| command = probe.Exec |} |> box
+                    else
+                        null
+                httpGet =
+                    probe.HttpGet
+                    |> Option.map (fun (uri:Uri) -> {| path=uri.AbsolutePath; port=uri.Port; scheme=uri.Scheme |} |> box)
+                    |> Option.defaultValue null
+                initialDelaySeconds = probe.InitialDelaySeconds |> Option.map box |> Option.defaultValue null
+                periodSeconds = probe.PeriodSeconds |> Option.map box |> Option.defaultValue null
+                failureThreshold = probe.FailureThreshold |> Option.map box |> Option.defaultValue null
+                successThreshold = probe.SuccessThreshold |> Option.map box |> Option.defaultValue null
+                timeoutSeconds = probe.TimeoutSeconds |> Option.map box |> Option.defaultValue null
+            |} :> obj
+
+type ContainerGroupDiagnostics =
+    { LogType : LogType
+      Workspace : LogAnalyticsWorkspace
+    }
+    static member internal JsonModel = function
+        | None -> null
+        | Some diag ->
+            let logAnalyticsId, logAnalyticsKey =
+                match diag.Workspace with
+                | LogAnalyticsWorkspace.WorkspaceKey(workspaceId, workspaceKey) ->
+                    workspaceId, workspaceKey
+                | LogAnalyticsWorkspace.WorkspaceResourceId resourceRef ->
+                    (LogAnalytics.LogAnalytics.getCustomerId resourceRef.ResourceId).Eval(),
+                    (LogAnalytics.LogAnalytics.getPrimarySharedKey resourceRef.ResourceId).Eval()
+
+            {| logAnalytics =
+                {| logType =
+                    match diag.LogType with
+                    | ContainerInsights -> "ContainerInsights"
+                    | ContainerInstanceLogs -> "ContainerInstanceLogs"
+                   workspaceId = logAnalyticsId
+                   workspaceKey = logAnalyticsKey
+                |}
+            |} :> obj
+
+type ContainerGroupDnsConfiguration =
+    { NameServers: string list
+      SearchDomains: string list
+      Options: string list }
+    static member internal JsonModel = function
+        | None -> null
+        | Some dnsConfig ->
+            {| nameServers = dnsConfig.NameServers
+               options =
+                   if dnsConfig.Options.IsEmpty then null
+                   else dnsConfig.Options |> String.concat " "
+               searchDomains =
+                   if dnsConfig.SearchDomains.IsEmpty then null
+                   else dnsConfig.SearchDomains |> String.concat " "
+            |} :> obj
 
 type ContainerGroup =
     { Name : ResourceName
       Location : Location
+      AvailabilityZone : string option
       ContainerInstances :
         {| Name : ResourceName
-           Image : string
+           Image : Containers.DockerImage
            Command : string list
            Ports : uint16 Set
            Cpu : float
            Memory : float<Gb>
+           Gpu : ContainerInstanceGpu option
            EnvironmentVariables: Map<string, EnvVar>
            VolumeMounts : Map<string,string>
            LivenessProbe : ContainerProbe option
            ReadinessProbe : ContainerProbe option
         |} list
+      Diagnostics : ContainerGroupDiagnostics option
+      DnsConfig : ContainerGroupDnsConfiguration option
       OperatingSystem : OS
       RestartPolicy : RestartPolicy
       Identity : ManagedIdentity
       ImageRegistryCredentials : ImageRegistryAuthentication list
       InitContainers :
         {| Name : ResourceName
-           Image : string
+           Image : Containers.DockerImage
            Command : string list
            EnvironmentVariables: Map<string, EnvVar>
            VolumeMounts : Map<string,string>
         |} list
       IpAddress : ContainerGroupIpAddress option
       NetworkProfile : ResourceName option
+      SubnetIds : LinkedResource list
       Volumes : Map<string, Volume>
       Tags: Map<string,string>
       Dependencies: Set<ResourceId> }
@@ -94,6 +142,10 @@ type ContainerGroup =
         |> Option.map networkProfiles.resourceId
     member private this.dependencies = [
         yield! Option.toList this.NetworkProfilePath
+        for id in this.SubnetIds do
+            match id with
+            | Managed subnetId -> { subnetId with Type=virtualNetworks; Segments = [] } // should be vnet ID
+            | Unmanaged _ -> ()
 
         for _, volume in this.Volumes |> Map.toSeq do
             match volume with
@@ -102,6 +154,9 @@ type ContainerGroup =
             | _ ->
                 ()
 
+        match this.Diagnostics with
+        | Some { Workspace=LogAnalyticsWorkspace.WorkspaceResourceId(LinkedResource.Managed(resId)) } -> resId
+        | _ -> ()
         // If the identity is set, include any dependent identity's resource ID
         yield! this.Identity.Dependencies
         yield! this.Dependencies
@@ -139,10 +194,20 @@ type ContainerGroup =
                 | Volume.GitRepo _ ->
                     ()
         ]
+    /// Creates a version depending on whether this needs the legacy API features.
+    member private this.resourceCommonProps =
+        match this.NetworkProfile with
+        | Some _ -> // Using network profiles, need to use older container groups API
+            /// This older API version supports network profiles.
+            let legacyContainerGroups = ResourceType ("Microsoft.ContainerInstance/containerGroups", "2021-03-01")
+            legacyContainerGroups.Create(this.Name, this.Location, this.dependencies, this.Tags)
+        | None -> // Not using network profiles, use current API version
+            containerGroups.Create(this.Name, this.Location, this.dependencies, this.Tags)
+
     interface IArmResource with
         member this.ResourceId = containerGroups.resourceId this.Name
         member this.JsonModel =
-            {| containerGroups.Create(this.Name, this.Location, this.dependencies, this.Tags) with
+            {| this.resourceCommonProps with
                    identity = this.Identity.ToArmJson
                    properties =
                        {| containers =
@@ -150,47 +215,45 @@ type ContainerGroup =
                            |> List.map (fun container ->
                                {| name = container.Name.Value.ToLowerInvariant ()
                                   properties =
-                                   {| image = container.Image
+                                   {| image = container.Image.ImageTag
                                       command = container.Command
                                       ports = container.Ports |> Set.map (fun port -> {| port = port |})
                                       environmentVariables = [
                                           for key, value in Map.toSeq container.EnvironmentVariables do
                                               match value with
-                                              | EnvValue value ->
-                                                {| name = key; value = value; secureValue = null |}
-                                              | SecureEnvExpression armExpression ->
-                                                {| name = key; value = null; secureValue = armExpression.Eval() |}
-                                              | SecureEnvValue value ->
-                                                {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
+                                              | EnvValue value -> {| name = key; value = value; secureValue = null |}
+                                              | SecureEnvExpression armExpression -> {| name = key; value = null; secureValue = armExpression.Eval() |}
+                                              | SecureEnvValue value -> {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
                                       ]
-                                      livenessProbe = container.LivenessProbe |> Option.map (fun p -> p.JsonModel |> box) |> Option.defaultValue null
-                                      readinessProbe = container.ReadinessProbe |> Option.map (fun p -> p.JsonModel |> box) |> Option.defaultValue null
+                                      livenessProbe = ContainerProbe.JsonModel container.LivenessProbe
+                                      readinessProbe = ContainerProbe.JsonModel container.ReadinessProbe
                                       resources =
                                        {| requests =
                                            {| cpu = container.Cpu
-                                              memoryInGB = container.Memory |}
+                                              memoryInGB = container.Memory
+                                              gpu = ContainerInstanceGpu.JsonModel container.Gpu
+                                           |}
                                        |}
                                       volumeMounts =
                                           container.VolumeMounts
                                           |> Seq.map (fun kvp -> {| name=kvp.Key; mountPath=kvp.Value |}) |> List.ofSeq
                                    |}
                                |})
+                          diagnostics = ContainerGroupDiagnostics.JsonModel this.Diagnostics
+                          dnsConfig = ContainerGroupDnsConfiguration.JsonModel this.DnsConfig
                           initContainers =
                            this.InitContainers
                            |> List.map (fun container ->
                                {| name = container.Name.Value.ToLowerInvariant ()
                                   properties =
-                                   {| image = container.Image
+                                   {| image = container.Image.ImageTag
                                       command = container.Command
                                       environmentVariables = [
                                           for key, value in Map.toSeq container.EnvironmentVariables do
                                               match value with
-                                              | EnvValue value ->
-                                                {| name = key; value = value; secureValue = null |}
-                                              | SecureEnvExpression armExpression ->
-                                                {| name = key; value = null; secureValue = armExpression.Eval() |}
-                                              | SecureEnvValue value ->
-                                                {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
+                                              | EnvValue value -> {| name = key; value = value; secureValue = null |}
+                                              | SecureEnvExpression armExpression -> {| name = key; value = null; secureValue = armExpression.Eval() |}
+                                              | SecureEnvValue value -> {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
                                       ]
                                       volumeMounts =
                                           container.VolumeMounts
@@ -238,6 +301,9 @@ type ContainerGroup =
                             this.NetworkProfilePath
                             |> Option.map(fun path -> box {| id = path.Eval() |})
                             |> Option.toObj
+                          subnetIds =
+                            if this.SubnetIds.IsEmpty then null
+                            else this.SubnetIds |> List.map(fun subnetId -> {| id = subnetId.ResourceId.Eval() |}) |> box
                           volumes = [
                             for key, value in Map.toSeq this.Volumes do
                                 match key, value with
@@ -280,4 +346,5 @@ type ContainerGroup =
                                     |}
                           ]
                        |}
-            |} :> _
+                   zones = this.AvailabilityZone |> Option.map Array.singleton |> Option.defaultValue null
+            |}

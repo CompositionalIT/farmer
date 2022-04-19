@@ -40,6 +40,7 @@ type AzureFirewall =
       FirewallPolicy : ResourceId option
       VirtualHub : ResourceId option
       HubIPAddresses : HubIPAddresses option
+      AvailabilityZones : string list
       Sku : Sku }
     interface IArmResource with
         member this.ResourceId = azureFirewalls.resourceId this.Name
@@ -50,5 +51,6 @@ type AzureFirewall =
                      virtualHub = this.VirtualHub |>  Option.map (fun resId -> box {| id = resId.ArmExpression.Eval() |}) |> Option.defaultValue null
                      firewallPolicy = this.FirewallPolicy |>  Option.map (fun resId -> box {| id = resId.ArmExpression.Eval() |}) |> Option.defaultValue null
                      hubIPAddresses = this.HubIPAddresses |> Option.map (fun x -> box x.JsonModel) |> Option.defaultValue null |}
-            |} :> _
+                zones = if this.AvailabilityZones.IsEmpty then null else this.AvailabilityZones |> box
+            |}
 

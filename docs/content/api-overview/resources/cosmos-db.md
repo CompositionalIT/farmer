@@ -22,7 +22,7 @@ The CosmosDB builder abstracts the idea of account and database into one. If you
 |-|-|-|
 | Database | name | Sets the name of the database. |
 | Database | link_to_account | Instructs Farmer to link this database to an existing Cosmos DB account rather than creating a new one. |
-| Database | throughput | Sets the throughput of the account. |
+| Database | throughput | Sets the throughput with either "provisioned throughput" or "serverless". |
 | Database | add_containers | Adds a list of containers to the database. |
 | Account | account_name | Sets the name of the CosmosDB account. |
 | Account | api (not yet implemented) | Sets the API and data model to use -- currently defaults to "Core (SQL)". |
@@ -50,7 +50,7 @@ open Farmer.Builders
 let myCosmosDb = cosmosDb {
     name "isaacsappdb"
     account_name "isaacscosmosdb"
-    throughput 400<CosmosDb.RU>
+    throughput 400<RU> // or throughput Serverless
     failover_policy CosmosDb.NoFailover
     consistency_policy (CosmosDb.BoundedStaleness(500, 1000))
     add_containers [

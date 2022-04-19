@@ -4,6 +4,7 @@ module Farmer.Builders.ContainerService
 open System
 open Farmer
 open Farmer.Arm
+open Farmer.Arm.ContainerService.AddonProfiles
 open Farmer.Arm.RoleAssignment
 open Farmer.Identity
 open Farmer.Vm
@@ -46,8 +47,41 @@ type NetworkProfileConfig =
       /// for the cluster or peer vnets. Defaults to 10.244.0.0/16.
       ServiceCidr : IPAddressCidr option }
 
+type AddonConfig =
+    | AciConnectorLinux of FeatureFlag
+    | HttpApplicationRouting of FeatureFlag
+    | IngressApplicationGateway of IngressApplicationGateway
+    | KubeDashboard of FeatureFlag
+    | OmsAgent of OmsAgent
+    with
+        static member BuildConfig (addons:AddonConfig list) : AddonProfileConfig =
+            {
+                // TODO: Clean up with active pattern
+                AciConnectorLinux =
+                    addons
+                    |> List.tryFind(function | AciConnectorLinux _ -> true | _ -> false)
+                    |> function | Some (AciConnectorLinux status) -> Some { AciConnectorLinux.Status = status } | _ -> None
+                HttpApplicationRouting =
+                    addons
+                    |> List.tryFind(function | HttpApplicationRouting _ -> true | _ -> false)
+                    |> function | Some (HttpApplicationRouting status) -> Some { HttpApplicationRouting.Status = status } | _ -> None
+                IngressApplicationGateway =
+                    addons
+                    |> List.tryFind(function | IngressApplicationGateway _ -> true | _ -> false)
+                    |> function | Some (IngressApplicationGateway gw) -> Some gw | _ -> None
+                KubeDashboard =
+                    addons
+                    |> List.tryFind(function | KubeDashboard _ -> true | _ -> false)
+                    |> function | Some (KubeDashboard status) -> Some { KubeDashboard.Status = status } | _ -> None
+                OmsAgent =
+                    addons
+                    |> List.tryFind(function | OmsAgent _ -> true | _ -> false)
+                    |> function | Some (OmsAgent oms) -> Some oms | _ -> None
+            }
+
 type AksConfig =
     { Name : ResourceName
+      AddonProfiles : AddonConfig list
       AgentPools : AgentPoolConfig list
       Dependencies : ResourceId Set
       DependencyExpressions : ArmExpression Set
@@ -67,6 +101,10 @@ type AksConfig =
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
+              AddOnProfiles =
+                  match this.AddonProfiles with
+                  | [] -> None
+                  | addons -> addons |> AddonConfig.BuildConfig |> Some
               Dependencies = this.Dependencies
               DependencyExpressions = this.DependencyExpressions
               DnsPrefix =
@@ -229,6 +267,7 @@ type AksBuilder() =
         { Name = ResourceName.Empty
           Dependencies = Set.empty
           DependencyExpressions = Set.empty
+          AddonProfiles = []
           AgentPools = []
           DnsPrefix = ""
           EnableRBAC = false
@@ -284,6 +323,10 @@ type AksBuilder() =
             | None -> { AuthorizedIPRanges = range; EnablePrivateCluster = None }
             | Some profile -> { profile with AuthorizedIPRanges = profile.AuthorizedIPRanges @ range }
         { state with ApiServerAccessProfile = Some accessProfile }
+    /// Enables any addons.
+    [<CustomOperation "addons">]
+    member _.Addons(state:AksConfig, addons:AddonConfig list) =
+        { state with AddonProfiles = addons }
     /// Sets the kubelet identity for managing access to an Azure Container Registry
     [<CustomOperation "kubelet_identity">]
     member _.KubeletIdentity (state:AksConfig, identity:ResourceId) =

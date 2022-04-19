@@ -25,8 +25,16 @@ type DiagnosticSettings =
     interface IArmResource with
         member this.ResourceId = diagnosticSettingsType(this.MetricsSource.Type).resourceId this.Name
         member this.JsonModel =
+            let resourceName =
+                [
+                    this.MetricsSource.Name
+                    yield! this.MetricsSource.Segments
+                    ResourceName "Microsoft.Insights"
+                    this.Name
+                ]
+                |> List.reduce (/)
             {| diagnosticSettingsType(this.MetricsSource.Type)
-                .Create(this.MetricsSource.Name/"Microsoft.Insights"/this.Name,this.Location, this.Dependencies, this.Tags) with
+                .Create(resourceName, this.Location, this.Dependencies, this.Tags) with
                 properties =
                     {| LogAnalyticsDestinationType =
                         match this.Sinks.LogAnalyticsWorkspace with
@@ -64,4 +72,4 @@ type DiagnosticSettings =
                         this.Sinks.LogAnalyticsWorkspace
                         |> Option.map (fun (resource,_) -> resource.Eval())
                         |> Option.toObj |}
-            |} :> _
+            |}

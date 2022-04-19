@@ -7,7 +7,7 @@ open Farmer.Vm
 open System
 open System.Text
 
-let virtualMachines = ResourceType ("Microsoft.Compute/virtualMachines", "2018-10-01")
+let virtualMachines = ResourceType ("Microsoft.Compute/virtualMachines", "2019-03-01")
 let extensions = ResourceType ("Microsoft.Compute/virtualMachines/extensions", "2019-12-01")
 
 type CustomScriptExtension =
@@ -45,8 +45,25 @@ type CustomScriptExtension =
                                 this.ScriptContents
                                 |> Encoding.UTF8.GetBytes
                                 |> Convert.ToBase64String |}
-                        |} :> _
-            |} :> _
+                        |}
+            |}
+
+type AadSshLoginExtension =
+    { Location : Location
+      VirtualMachine : ResourceName
+      Tags: Map<string,string>  }
+    member this.Name = "AADSSHLoginForLinux"
+    interface IArmResource with
+        member this.ResourceId = extensions.resourceId (this.VirtualMachine/this.Name)
+        member this.JsonModel =
+            {| extensions.Create(this.VirtualMachine/this.Name, this.Location, [ virtualMachines.resourceId this.VirtualMachine ], this.Tags) with
+                properties =
+                    {| publisher = "Microsoft.Azure.ActiveDirectory"
+                       ``type`` = "AADSSHLoginForLinux"
+                       typeHandlerVersion = "1.0"
+                       autoUpgradeMinorVersion = true
+                    |}
+            |}
 
 type VirtualMachine =
     { Name : ResourceName
@@ -54,6 +71,7 @@ type VirtualMachine =
       Zone: int option
       StorageAccount : ResourceName option
       Size : VMSize
+      Priority : Priority
       Credentials : {| Username : string; Password : SecureParameter |}
       CustomData : string option
       DisablePasswordAuthentication: bool option
@@ -77,12 +95,9 @@ type VirtualMachine =
                 networkInterfaces.resourceId this.NetworkInterfaceName
                 yield! this.StorageAccount |> Option.mapList storageAccounts.resourceId
             ]
-            {| virtualMachines.Create(this.Name, this.Location, dependsOn, this.Tags) with
-                identity =
-                    if this.Identity = ManagedIdentity.Empty then Unchecked.defaultof<_>
-                    else this.Identity.ToArmJson
-                properties =
-                 {| hardwareProfile = {| vmSize = this.Size.ArmValue |}
+            let properties =
+                 {| priority = this.Priority.ArmValue
+                    hardwareProfile = {| vmSize = this.Size.ArmValue |}
                     osProfile =
                      {| computerName = this.Name.Value
                         adminUsername = this.Credentials.Username
@@ -145,8 +160,20 @@ type VirtualMachine =
                         | None ->
                             box {| bootDiagnostics = {| enabled = false |} |}
                 |}
+            {| virtualMachines.Create(this.Name, this.Location, dependsOn, this.Tags) with
+                identity =
+                    if this.Identity = ManagedIdentity.Empty then Unchecked.defaultof<_>
+                    else this.Identity.ToArmJson
+                properties =
+                    match this.Priority with
+                    | Low | Regular -> box properties
+                    | Spot (evictionPolicy, maxPrice) ->
+                        {| properties with
+                            evictionPolicy = evictionPolicy.ArmValue
+                            billingProfile = {| maxPrice = maxPrice |}
+                        |}
                 zones =
                     match this.Zone with
                     | Some zone -> [ string<int> zone ]
                     | None -> Unchecked.defaultof<_>
-            |} :> _
+            |}

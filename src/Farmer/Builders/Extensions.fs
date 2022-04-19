@@ -2,13 +2,14 @@ namespace Farmer.Builders
 
 open Farmer
 open System
+open Farmer.Arm
 
 type ITaggable<'TConfig> =
     abstract member Add : 'TConfig -> list<string * string> -> 'TConfig
 type IDependable<'TConfig> =
     abstract member Add : 'TConfig -> ResourceId Set -> 'TConfig
 type IPrivateEndpoints<'TConfig> =
-    abstract member Add : 'TConfig -> (LinkedResource * String option) Set -> 'TConfig
+    abstract member Add : 'TConfig -> (SubnetReference * String option) Set -> 'TConfig
 
 [<AutoOpen>]
 module Extensions =
@@ -34,6 +35,8 @@ module Extensions =
         member this.DependsOn(state:'TConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
         member this.DependsOn (state:'TConfig, resourceId:ResourceId) = this.DependsOn(state, [ resourceId ])
         member this.DependsOn (state:'TConfig, resourceIds:ResourceId list) = this.Add state (Set resourceIds)
+        member this.DependsOn (state:'TConfig, resources:LinkedResource list) = this.Add state (Set (resources |> List.choose (function | Managed r -> Some r | _ -> None)))
+        member this.DependsOn (state:'TConfig, resource:LinkedResource) = this.DependsOn (state , [ resource ])
 
     type IPrivateEndpoints<'TConfig> with
         [<CustomOperation "add_private_endpoint">]

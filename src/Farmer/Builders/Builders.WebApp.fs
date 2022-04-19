@@ -3,6 +3,7 @@ module rec Farmer.Builders.WebApp
 
 open Farmer
 open Farmer.Arm
+open Farmer.Builders
 open Farmer.WebApp
 open Farmer.Arm.KeyVault.Vaults
 open Sites
@@ -51,6 +52,7 @@ type Runtime =
     static member Java8WildFly14 = Java (Java8, WildFly14)
     static member Java8Tomcat90 = Java (Java8, JavaHost.Tomcat90)
     static member Java8Tomcat85 = Java (Java8, JavaHost.Tomcat85)
+    static member DotNet60 = DotNet "6.0"
     static member DotNet50 = DotNet "5.0"
     static member AspNet47 = AspNet "4.0"
     static member AspNet35 = AspNet "2.0"
@@ -61,6 +63,7 @@ type Runtime =
 module AppSettings =
     let WebsiteNodeDefaultVersion version = "WEBSITE_NODE_DEFAULT_VERSION", version
     let RunFromPackage = "WEBSITE_RUN_FROM_PACKAGE", "1"
+    let WebsitesPort (port:int) =  "WEBSITES_PORT", port.ToString()
 
 let publishingPassword (name:ResourceName) =
     let resourceId = config.resourceId (name, ResourceName "publishingCredentials")
@@ -79,7 +82,8 @@ type SlotConfig =
       Identity: ManagedIdentity
       KeyVaultReferenceIdentity: UserAssignedIdentity option
       Tags: Map<string,string>
-      Dependencies: ResourceId Set}
+      Dependencies: ResourceId Set
+      IpSecurityRestrictions: IpSecurityRestriction list }
     member this.ToSite (owner: Arm.Web.Site) =
         { owner with
             SiteType = SiteType.Slot (owner.Name/this.Name)
@@ -88,7 +92,9 @@ type SlotConfig =
             AppSettings = owner.AppSettings |> Option.map (Map.merge ( this.AppSettings |> Map.toList))
             ConnectionStrings = owner.ConnectionStrings |> Option.map (Map.merge (this.ConnectionStrings |> Map.toList))
             Identity = this.Identity + owner.Identity
-            KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity |> Option.orElse owner.KeyVaultReferenceIdentity}
+            KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity |> Option.orElse owner.KeyVaultReferenceIdentity
+            IpSecurityRestrictions = this.IpSecurityRestrictions
+            ZipDeployPath = None }
 
 type SlotBuilder() =
     member this.Yield _ =
@@ -99,7 +105,8 @@ type SlotBuilder() =
           Identity = ManagedIdentity.Empty
           KeyVaultReferenceIdentity =  None
           Tags = Map.empty
-          Dependencies = Set.empty}
+          Dependencies = Set.empty
+          IpSecurityRestrictions = [] }
 
     [<CustomOperation "name">]
     member this.Name (state,name) : SlotConfig = {state with Name = name}
@@ -154,17 +161,65 @@ type SlotBuilder() =
     member this.AddConnectionStrings(state, connectionStrings:string list) :SlotConfig =
         connectionStrings
         |> List.fold (fun state key -> this.AddConnectionString(state, key)) state
+
+    /// Add Allowed ip for ip security restrictions
+    [<CustomOperation "add_allowed_ip_restriction">]
+    member _.AllowIp(state, name, cidr:IPAddressCidr) : SlotConfig =
+        { state with IpSecurityRestrictions = state.IpSecurityRestrictions @ [IpSecurityRestriction.Create name cidr Allow] }
+    member this.AllowIp(state, name, ip:Net.IPAddress) : SlotConfig =
+        let cidr = { Address = ip; Prefix = 32 }
+        this.AllowIp(state, name, cidr)
+    member this.AllowIp(state, name, ip:string) : SlotConfig =
+        let cidr = IPAddressCidr.parse ip
+        this.AllowIp(state, name, cidr)
+    /// Add Denied ip for ip security restrictions
+    [<CustomOperation "add_denied_ip_restriction">]
+    member _.DenyIp(state, name, cidr:IPAddressCidr) : SlotConfig =
+        { state with IpSecurityRestrictions = state.IpSecurityRestrictions @ [IpSecurityRestriction.Create name cidr Deny] }
+    member this.DenyIp(state, name, ip:Net.IPAddress) : SlotConfig =
+        let cidr = { Address = ip; Prefix = 32 }
+        this.DenyIp(state, name, cidr)
+    member this.DenyIp(state, name, ip:string) : SlotConfig =
+        let cidr = IPAddressCidr.parse ip
+        this.DenyIp(state, name, cidr)
     interface ITaggable<SlotConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<SlotConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 let appSlot = SlotBuilder()
+
+type VirtualApplicationConfig =
+    { VirtualPath: string
+      PhysicalPath: string
+      PreloadEnabled: bool option }
+
+type VirtualApplicationBuilder() =
+    member this.Yield _ =
+        { VirtualPath = ""
+          PhysicalPath = ""
+          PreloadEnabled = None }
+    member _.Run (config: VirtualApplicationConfig) =
+        if String.IsNullOrWhiteSpace config.VirtualPath then
+            raiseFarmer "Missing Virtual Path on Virtual Application - specify 'virtual_path' on all virtual applications"
+        if String.IsNullOrWhiteSpace config.PhysicalPath then
+            raiseFarmer "Missing Physical Path on Virtual Application - specify 'physical_path' on all virtual applications"
+        config
+    [<CustomOperation "virtual_path">]
+    member _.VirtualPath (state, virtualPath) : VirtualApplicationConfig = { state with VirtualPath = virtualPath }
+    [<CustomOperation "physical_path">]
+    member _.PhysicalPath (state, physicalPath) : VirtualApplicationConfig = { state with PhysicalPath = physicalPath }
+    [<CustomOperation "preloaded">]
+    member _.Preloaded state : VirtualApplicationConfig = { state with PreloadEnabled = Some true }
+
+let virtualApplication = VirtualApplicationBuilder()
 
 /// Common fields between WebApp and Functions
 type CommonWebConfig =
     { Name : WebAppName
       AlwaysOn : bool
       AppInsights : ResourceRef<ResourceName> option
+      ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
       Cors : Cors option
+      FTPState : FTPState option
       HTTPSOnly : bool
       Identity : Identity.ManagedIdentity
       KeyVaultReferenceIdentity: UserAssignedIdentity Option
@@ -172,20 +227,37 @@ type CommonWebConfig =
       SecretStore : SecretStore
       ServicePlan : ResourceRef<ResourceName>
       Settings : Map<string, Setting>
+      Sku : Sku
       Slots : Map<string,SlotConfig>
       WorkerProcess : Bitness option
       ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option
-      HealthCheckPath: string option }
+      HealthCheckPath: string option
+      IpSecurityRestrictions: IpSecurityRestriction list 
+      IntegratedSubnet : SubnetReference option
+      PrivateEndpoints: (SubnetReference * string option) Set }
+      member this.Validate () =
+          match this with
+          | { ServicePlan = LinkedResource _ } -> () // can't validate as validation dependent on linked resource
+          | { IntegratedSubnet = None } -> () // no VNet to validate
+          | _ ->
+              match this.Sku with
+              | Standard _ -> ()
+              | Premium _ | PremiumV2 _| PremiumV3 _ -> ()
+              | ElasticPremium _ -> ()
+              | Isolated _ -> ()
+              | Shared as other -> raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
+              | Free as other -> raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
+              | Basic _ as other -> raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
+              | Dynamic as other -> raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
+
 
 type WebAppConfig =
     { CommonWebConfig: CommonWebConfig
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
       WebSocketsEnabled: bool option
-      ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
       Dependencies : ResourceId Set
       Tags : Map<string,string>
-      Sku : Sku
       WorkerSize : WorkerSize
       WorkerCount : int
       MaximumElasticWorkerCount : int option
@@ -198,7 +270,11 @@ type WebAppConfig =
       DockerAcrCredentials : {| RegistryName : string; Password : SecureParameter |} option
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
-      PrivateEndpoints: (LinkedResource * string option) Set }
+      PrivateEndpoints: (LinkedResource * string option) Set
+      CustomDomains : Map<string,DomainConfig>
+      DockerPort: int option
+      ZoneRedundant : FeatureFlag option
+      VirtualApplications : Map<string, VirtualApplication> }
     member this.Name = this.CommonWebConfig.Name
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.CommonWebConfig.ServicePlan.resourceId this.Name.ResourceName
@@ -242,7 +318,7 @@ type WebAppConfig =
                                 | ExpressionSetting expr -> SecretConfig.create (setting.Key, expr) |> Some
                             match secret with
                             | Some secret ->
-                                { Secret.Name = vaultName.Name/secret.Key
+                                { Secret.Name = vaultName.Name/secret.SecretName
                                   Value = secret.Value
                                   ContentType = secret.ContentType
                                   Enabled = secret.Enabled
@@ -279,6 +355,8 @@ type WebAppConfig =
                     | Linux, Some _
                     | _ , None ->
                         ()
+
+                    yield! this.DockerPort |> Option.mapList AppSettings.WebsitesPort
 
                     if this.DockerCi then "DOCKER_ENABLE_CI", "true"
                 ]
@@ -317,6 +395,7 @@ type WebAppConfig =
                   Location = location
                   ServicePlan = this.ServicePlanId
                   HTTPSOnly = this.CommonWebConfig.HTTPSOnly
+                  FTPState = this.CommonWebConfig.FTPState
                   HTTP20Enabled = this.HTTP20Enabled
                   ClientAffinityEnabled = this.ClientAffinityEnabled
                   WebSocketsEnabled = this.WebSocketsEnabled
@@ -324,7 +403,7 @@ type WebAppConfig =
                   KeyVaultReferenceIdentity = this.CommonWebConfig.KeyVaultReferenceIdentity
                   Cors = this.CommonWebConfig.Cors
                   Tags = this.Tags
-                  ConnectionStrings = Some this.ConnectionStrings
+                  ConnectionStrings = Some this.CommonWebConfig.ConnectionStrings
                   WorkerProcess = this.CommonWebConfig.WorkerProcess
                   AppSettings = Some siteSettings
                   Kind = [
@@ -367,6 +446,7 @@ type WebAppConfig =
                         | None ->
                             match this.Runtime with
                             | DotNetCore version -> Some $"DOTNETCORE|{version}"
+                            | DotNet version -> Some $"DOTNETCORE|{version}"
                             | Node version -> Some $"NODE|{version}"
                             | Php version -> Some $"PHP|{version}"
                             | Ruby version -> Some $"RUBY|{version}"
@@ -378,7 +458,8 @@ type WebAppConfig =
                   NetFrameworkVersion =
                     match this.Runtime with
                     | AspNet version
-                    | DotNet ("5.0" as version) ->
+                    | DotNet ("5.0" as version)
+                    | DotNet ("6.0" as version) ->
                         Some $"v{version}"
                     | _ ->
                         None
@@ -417,7 +498,9 @@ type WebAppConfig =
                   AutoSwapSlotName = None
                   ZipDeployPath = this.CommonWebConfig.ZipDeployPath |> Option.map (fun (path,slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot )
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath
-                }
+                  IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
+                  LinkToSubnet = this.CommonWebConfig.IntegratedSubnet
+                  VirtualApplications = this.VirtualApplications }
 
             match keyVault with
             | Some keyVault ->
@@ -442,6 +525,8 @@ type WebAppConfig =
                   Location = location
                   DisableIpMasking = false
                   SamplingPercentage = 100
+                  InstanceKind = Classic
+                  Dependencies = Set.empty
                   LinkedWebsite =
                     match this.CommonWebConfig.OperatingSystem with
                     | Windows -> Some this.Name.ResourceName
@@ -455,12 +540,13 @@ type WebAppConfig =
             | DeployableResource this.Name.ResourceName resourceId ->
                 { Name = resourceId.Name
                   Location = location
-                  Sku = this.Sku
+                  Sku = this.CommonWebConfig.Sku
                   WorkerSize = this.WorkerSize
                   WorkerCount = this.WorkerCount
                   MaximumElasticWorkerCount = this.MaximumElasticWorkerCount
                   OperatingSystem = this.CommonWebConfig.OperatingSystem
-                  Tags = this.Tags}
+                  ZoneRedundant = this.ZoneRedundant
+                  Tags = this.Tags }
             | _ ->
                 ()
 
@@ -476,7 +562,91 @@ type WebAppConfig =
                 for (_,slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToSite site
 
-            yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.PrivateEndpoints)
+            // Need to rename `location` binding to prevent conflict with `location` operator in resource group
+            let resourceLocation = location
+
+            // Host Name Bindings must be deployed sequentially to avoid an error, as the site cannot be modified concurrently.
+            // To do so we add a dependency to the previous binding deployment.
+            let mutable previousHostNameCertificateLinkingDeployment = None
+            for customDomain in this.CustomDomains |> Map.toSeq |> Seq.map snd do
+                let hostNameBinding =
+                    { Location = location
+                      SiteId =  Managed (Arm.Web.sites.resourceId this.Name.ResourceName)
+                      DomainName = customDomain.DomainName
+                      SslState = SslDisabled } // Initially create non-secure host name binding, we link the certificate in a nested deployment below
+
+                let dependsOn : ResourceId list = 
+                  match previousHostNameCertificateLinkingDeployment with
+                  | Some previous -> [ previous; this.ResourceId ]
+                  | None -> [ this.ResourceId ]
+
+                let hostNameBindingDeployment = resourceGroup {
+                    name "[resourceGroup().name]"
+                    location resourceLocation
+                    add_resource hostNameBinding
+                    depends_on dependsOn
+                }
+
+                yield! ((hostNameBindingDeployment :> IBuilder).BuildResources location)
+
+                match customDomain with
+                | SecureDomain (customDomain, certOptions) ->
+                    let cert =
+                        { Location = location
+                          SiteId = Managed this.ResourceId
+                          ServicePlanId = Managed this.ServicePlanId
+                          DomainName = customDomain }
+
+                    // Get the resource group which contains the app service plan
+                    let aspRgName =
+                      match this.CommonWebConfig.ServicePlan with
+                      | LinkedResource linked -> linked.ResourceId.ResourceGroup
+                      | _ -> None
+
+                    // Create a nested resource group deployment for the certificate - this isn't strictly necessary when the app & app service plan are in the same resource group
+                    // however, when they are in different resource groups this is required to make the deployment succeed (there is an ARM bug which causes a Not Found / Conflict otherwise)
+                    // To keep the code simple, I opted to always nest the certificate deployment. - TheRSP 2021-12-14
+                    let certificateDeployment = resourceGroup { 
+                        name (aspRgName |> Option.defaultValue "[resourceGroup().name]")
+                        add_resource
+                          { cert with
+                              SiteId = Unmanaged cert.SiteId.ResourceId
+                              ServicePlanId = Unmanaged cert.ServicePlanId.ResourceId }
+                        depends_on cert.SiteId
+                        depends_on hostNameBindingDeployment.ResourceId
+                    }
+
+                    yield! ((certificateDeployment :> IBuilder).BuildResources location)
+
+                    // Deployment to update hostname binding with specified SSL options
+                    let hostNameCertificateLinkingDeployment = resourceGroup { 
+                        name "[resourceGroup().name]"
+                        location resourceLocation
+                        add_resource { hostNameBinding with
+                                        SiteId =
+                                            match hostNameBinding.SiteId with 
+                                            | Managed id -> Unmanaged id
+                                            | x -> x 
+                                        SslState = 
+                                            match certOptions with
+                                            | AppManagedCertificate -> SniBased (cert.GetThumbprintReference aspRgName)
+                                            | CustomCertificate thumbprint -> SniBased thumbprint
+                                      }
+                        depends_on certificateDeployment.ResourceId
+                     }
+
+                    yield! ((hostNameCertificateLinkingDeployment :> IBuilder).BuildResources location)
+
+                    previousHostNameCertificateLinkingDeployment <- Some hostNameCertificateLinkingDeployment.ResourceId
+                | _ -> () 
+
+            match this.CommonWebConfig.IntegratedSubnet with
+            | None -> ()
+            | Some subnetRef ->
+                { Site = site
+                  Subnet = subnetRef.ResourceId
+                  Dependencies = subnetRef.Dependency |> Option.toList }
+            yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.CommonWebConfig.PrivateEndpoints)
         ]
 
 type WebAppBuilder() =
@@ -485,19 +655,24 @@ type WebAppBuilder() =
             { Name = WebAppName.Empty
               AlwaysOn = false
               AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
+              ConnectionStrings = Map.empty
               Cors = None
               HTTPSOnly = false
               Identity = ManagedIdentity.Empty
+              FTPState = None
               KeyVaultReferenceIdentity = None
               OperatingSystem = Windows
               SecretStore = AppService
               ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
               Settings = Map.empty
+              Sku = Sku.F1
               Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None
-              HealthCheckPath = None }
-          Sku = Sku.F1
+              HealthCheckPath = None
+              IpSecurityRestrictions = []
+              IntegratedSubnet = None 
+              PrivateEndpoints = Set.empty }
           WorkerSize = Small
           WorkerCount = 1
           MaximumElasticWorkerCount = None
@@ -506,7 +681,6 @@ type WebAppBuilder() =
           HTTP20Enabled = None
           ClientAffinityEnabled = None
           WebSocketsEnabled = None
-          ConnectionStrings = Map.empty
           Tags = Map.empty
           Dependencies = Set.empty
           Runtime = Runtime.DotNetCoreLts
@@ -516,17 +690,26 @@ type WebAppBuilder() =
           DockerAcrCredentials = None
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
-          PrivateEndpoints = Set.empty}
+          PrivateEndpoints = Set.empty
+          CustomDomains = Map.empty
+          DockerPort = None
+          ZoneRedundant = None
+          VirtualApplications = Map [] }
     member _.Run(state:WebAppConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Web App name has been set."
+        state.CommonWebConfig.Validate()
         { state with
             SiteExtensions =
                 match state with
                 // its important to only add this extension if we're not using Web App for Containers - if we are
                 // then this will generate an error during deployment:
                 // No route registered for '/api/siteextensions/Microsoft.AspNetCore.AzureAppServices.SiteExtension'
-                | { Runtime = Runtime.DotNetCore _; AutomaticLoggingExtension = true ; DockerImage = None } ->
-                    state.SiteExtensions.Add WebApp.Extensions.Logging
+                | { Runtime = DotNetCore _
+                    AutomaticLoggingExtension = true
+                    DockerImage = None
+                    CommonWebConfig = { OperatingSystem = Windows } }
+                    ->
+                    state.SiteExtensions.Add Extensions.Logging
                 | _ ->
                     state.SiteExtensions
             DockerImage =
@@ -540,7 +723,7 @@ type WebAppBuilder() =
         }
 
     [<CustomOperation "sku">]
-    member _.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
+    member _.Sku(state:WebAppConfig, sku) = { state with CommonWebConfig = {state.CommonWebConfig with Sku = sku }}
     /// Sets the size of the service plan worker.
     [<CustomOperation "worker_size">]
     member _.WorkerSize(state:WebAppConfig, workerSize) = { state with WorkerSize = workerSize }
@@ -553,17 +736,6 @@ type WebAppBuilder() =
     /// Sets the node version of the web app.
     [<CustomOperation "website_node_default_version">]
     member _.NodeVersion(state:WebAppConfig, version) = { state with WebsiteNodeDefaultVersion = Some version }
-    /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
-    [<CustomOperation "connection_string">]
-    member _.AddConnectionString(state:WebAppConfig, key) =
-        { state with ConnectionStrings = state.ConnectionStrings.Add(key, (ParameterSetting (SecureParameter key), Custom)) }
-    member _.AddConnectionString(state:WebAppConfig, (key, value:ArmExpression)) =
-        { state with ConnectionStrings = state.ConnectionStrings.Add(key, (ExpressionSetting value, Custom)) }
-    /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
-    [<CustomOperation "connection_strings">]
-    member this.AddConnectionStrings(state:WebAppConfig, connectionStrings) =
-        connectionStrings
-        |> List.fold (fun (state:WebAppConfig) (key:string) -> this.AddConnectionString(state, key)) state
     /// Enables HTTP 2.0 for this webapp.
     [<CustomOperation "enable_http2">]
     member _.Http20Enabled(state:WebAppConfig) = { state with HTTP20Enabled = Some true }
@@ -614,8 +786,35 @@ type WebAppBuilder() =
     /// Automatically add the ASP.NET Core logging extension.
     [<CustomOperation "automatic_logging_extension">]
     member _.DefaultLogging (state:WebAppConfig, setting) = { state with AutomaticLoggingExtension = setting }
+    //Add Custom domain to you web app
+    [<CustomOperation "custom_domain">]
+    member _.AddCustomDomain(state:WebAppConfig, domainConfig:DomainConfig) = { state with CustomDomains = state.CustomDomains |> Map.add domainConfig.DomainName domainConfig }
+    member this.AddCustomDomain(state:WebAppConfig, customDomain) = this.AddCustomDomain (state, SecureDomain (customDomain,AppManagedCertificate))
+    member this.AddCustomDomain(state:WebAppConfig, (customDomain,thumbprint)) = this.AddCustomDomain (state, SecureDomain (customDomain,CustomCertificate thumbprint))
+    [<CustomOperation "custom_domains">]
+    member this.AddCustomDomains(state, customDomains:string list) = customDomains |> List.fold (fun state domain -> this.AddCustomDomain(state, domain)) state
+    member this.AddCustomDomains(state, domainConfigs:DomainConfig list) = domainConfigs |> List.fold (fun state domain -> this.AddCustomDomain(state, domain)) state
+    member this.AddCustomDomains(state, customDomainsWithThumprint:(string * ArmExpression) list) = customDomainsWithThumprint |> List.fold (fun state domain -> this.AddCustomDomain(state, domain)) state
 
-    interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with PrivateEndpoints = state.PrivateEndpoints |> Set.union endpoints}
+    /// Map specified port traffic from your docker container to port 80 for App Service
+    [<CustomOperation "docker_port">]
+    member _.DockerPort(state: WebAppConfig, dockerPort:int) = { state with DockerPort = Some dockerPort }
+    /// Enables the zone redundancy in service plan
+    [<CustomOperation "zone_redundant">]
+    member this.ZoneRedundant(state:WebAppConfig, flag:FeatureFlag) = {state with ZoneRedundant = Some flag}
+
+    [<CustomOperation "add_virtual_applications">] 
+    member this.AddVirtualApplications(state:WebAppConfig, newVirtualApps) =
+        let currentVirtualApps =
+            if state.VirtualApplications.IsEmpty
+                then Map [ ("/", { PhysicalPath = "site\\wwwroot"; PreloadEnabled = None } ) ]
+                else state.VirtualApplications
+        { state with
+            VirtualApplications =
+                (currentVirtualApps, newVirtualApps)
+                ||> List.fold (fun map config -> Map.add config.VirtualPath { PhysicalPath = "site\\" + config.PhysicalPath; PreloadEnabled = config.PreloadEnabled } map) }
+
+    interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with CommonWebConfig = { state.CommonWebConfig with PrivateEndpoints =  state.CommonWebConfig.PrivateEndpoints |> Set.union endpoints } }
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface IServicePlanApp<WebAppConfig> with
@@ -632,7 +831,7 @@ type EndpointBuilder with
 
 /// An interface for shared capabilities between builders that work with Service Plan-style apps.
 /// In other words, Web Apps or Functions.
-type IServicePlanApp<'T> =
+type IServicePlanApp<'T> = 
     abstract member Get : 'T -> CommonWebConfig
     abstract member Wrap : 'T -> CommonWebConfig -> 'T
 
@@ -700,6 +899,27 @@ module Extensions =
             let current = this.Get state
             settings
             |> List.fold (fun (state:CommonWebConfig) (key, value:ArmExpression) -> { state with Settings = state.Settings.Add(key, ExpressionSetting value) }) current
+            |> this.Wrap state
+        /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
+        [<CustomOperation "connection_string">]
+        member this.AddConnectionString(state:'T, key) =
+            let current = this.Get state
+            { current with ConnectionStrings = current.ConnectionStrings.Add(key, (ParameterSetting (SecureParameter key), Custom)) }
+            |> this.Wrap state
+        member this.AddConnectionString(state:'T, (key, value:ArmExpression)) =
+            this.AddConnectionString(state, (key, value, Custom))
+        member this.AddConnectionString(state:'T, (key, value:ArmExpression, kind)) =
+            let current = this.Get state
+            { current with ConnectionStrings = current.ConnectionStrings.Add(key, (ExpressionSetting value, kind)) }
+            |> this.Wrap state
+            
+        /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
+        [<CustomOperation "connection_strings">]
+        member this.AddConnectionStrings(state:'T, connectionStrings) =
+            let current = this.Get state
+            connectionStrings
+            |> List.fold (fun (state:CommonWebConfig) (key, value:ArmExpression) ->
+               { state with ConnectionStrings = state.ConnectionStrings.Add(key, (ExpressionSetting value, Custom)) }) current
             |> this.Wrap state
         /// Sets an app setting of the web app in the form "key" "value".
         [<CustomOperation "add_identity">]
@@ -809,6 +1029,43 @@ module Extensions =
         [<CustomOperation "https_only">]
         member this.HttpsOnly(state:'T) = this.Map state (fun x -> { x with HTTPSOnly = true })
 
+        /// Allows to enable or disable FTP and FTPS
+        [<CustomOperation "ftp_state">]
+        member this.FTPState(state:'T, ftpState:FTPState) = this.Map state (fun x -> { x with FTPState = Some ftpState })
+
         [<CustomOperation "health_check_path">]
         /// Specifies the path Azure load balancers will ping to check for unhealthy instances.
         member this.HealthCheckPath(state:'T, healthCheckPath:string) = this.Map state (fun x -> {x with HealthCheckPath = Some(healthCheckPath)})
+        /// Add Allowed ip for ip security restrictions
+        [<CustomOperation "add_allowed_ip_restriction">]
+        member this.AllowIp(state:'T, name, ip:IPAddressCidr) =
+            this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Allow :: x.IpSecurityRestrictions })
+        member this.AllowIp(state:'T, name, ip:string) =
+            let ip = IPAddressCidr.parse ip
+            this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Allow :: x.IpSecurityRestrictions })
+        /// Add Denied ip for ip security restrictions
+        [<CustomOperation "add_denied_ip_restriction">]
+        member this.DenyIp(state:'T, name, ip) =
+            this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Deny :: x.IpSecurityRestrictions })
+        member this.DenyIp(state:'T, name, ip:string) =
+            let ip = IPAddressCidr.parse ip
+            this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Deny :: x.IpSecurityRestrictions })
+        /// Integrate this app with a virtual network subnet
+        [<CustomOperation "link_to_vnet">]
+        member this.LinkToVNet(state:'T, subnet:SubnetReference option) = 
+            match subnet with
+            | Some subnetId ->
+                if subnetId.ResourceId.Type.Type <> Arm.Network.subnets.Type 
+                    then raiseFarmer $"given resource was not of type '{Arm.Network.subnets.Type}'."
+            | None -> ()
+            this.Map state (fun x -> {x with IntegratedSubnet = subnet})
+        member this.LinkToVNet(state:'T, subnetRef) = this.LinkToVNet (state, Some subnetRef)
+        member this.LinkToVNet(state:'T, subnetId:ResourceId) = this.LinkToVNet (state, SubnetReference.create (Managed subnetId))
+        member this.LinkToVNet(state:'T, (vnetId, subnetName):ResourceId*ResourceName) = this.LinkToVNet (state, SubnetReference.create (Managed vnetId,subnetName))
+        member this.LinkToVNet(state:'T, subnet:SubnetConfig) = this.LinkToVNet (state, SubnetReference.create subnet)
+        member this.LinkToVNet(state:'T, (vnet, subnetName):VirtualNetworkConfig*ResourceName) = this.LinkToVNet (state, SubnetReference.create (vnet,subnetName))
+        [<CustomOperation "link_to_unmanaged_vnet">]
+        member this.LinkToUnmanagedVNet(state:'T, subnetId:ResourceId) = this.LinkToVNet (state, SubnetReference.create (Unmanaged subnetId))
+        member this.LinkToUnmanagedVNet(state:'T, (vnetId, subnetName):ResourceId*ResourceName) = this.LinkToVNet (state, SubnetReference.create (Unmanaged vnetId,subnetName))
+        member this.LinkToUnmanagedVNet(state:'T, subnet:SubnetConfig) = this.LinkToUnmanagedVNet (state, (subnet:>IBuilder).ResourceId)
+        member this.LinkToUnmanagedVNet(state:'T, (vnet, subnetName):VirtualNetworkConfig*ResourceName) = this.LinkToUnmanagedVNet (state, vnet.SubnetIds[subnetName.Value])

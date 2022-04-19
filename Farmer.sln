@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29201.188
@@ -19,6 +19,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{C399
 		samples\scripts\bastion.fsx = samples\scripts\bastion.fsx
 		samples\scripts\cdn.fsx = samples\scripts\cdn.fsx
 		samples\scripts\container-group.fsx = samples\scripts\container-group.fsx
+		samples\scripts\container-instance-gpu.fsx = samples\scripts\container-instance-gpu.fsx
 		samples\scripts\container-instance.fsx = samples\scripts\container-instance.fsx
 		samples\scripts\container-registry.fsx = samples\scripts\container-registry.fsx
 		samples\scripts\cosmos.fsx = samples\scripts\cosmos.fsx
@@ -44,6 +45,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{C399
 		samples\scripts\storage.fsx = samples\scripts\storage.fsx
 		samples\scripts\template.json = samples\scripts\template.json
 		samples\scripts\vm.fsx = samples\scripts\vm.fsx
+		samples\scripts\vm-spot-instance.fsx = samples\scripts\vm-spot-instance.fsx
 		samples\scripts\vnet-gateway.fsx = samples\scripts\vnet-gateway.fsx
 		samples\scripts\vnet-hub-and-spoke.fsx = samples\scripts\vnet-hub-and-spoke.fsx
 		samples\scripts\vnet.fsx = samples\scripts\vnet.fsx

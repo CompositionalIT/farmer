@@ -8,6 +8,7 @@ open System
 let secrets = ResourceType ("Microsoft.KeyVault/vaults/secrets", "2019-09-01")
 let accessPolicies = ResourceType ("Microsoft.KeyVault/vaults/accessPolicies", "2019-09-01")
 let vaults = ResourceType ("Microsoft.KeyVault/vaults", "2019-09-01")
+let keys = ResourceType ("Microsoft.keyVault/vaults/keys", "2019-09-01")
 
 module Vaults =
     type Secret =
@@ -40,7 +41,45 @@ module Vaults =
                                exp = this.ExpirationDate |> Option.map Secret.TotalSecondsSince1970 |> Option.toNullable
                             |}
                         |}
-                |} :> _
+                |}
+    let private armValue armValue (a: 'a option) =
+      a |> Option.map armValue |> Option.defaultValue Unchecked.defaultof<_>
+    type Key =
+        { VaultName : ResourceName
+          KeyName : ResourceName
+          Location : Location
+          Enabled : bool option
+          ActivationDate : DateTime option
+          ExpirationDate : DateTime option
+          KeyOps : KeyOperation list
+          KTY : KeyType
+          Dependencies : ResourceId Set
+          Tags : Map<string, string> }
+        member this.Name = this.VaultName / this.KeyName
+        member this.ResourceId = keys.resourceId this.Name
+        interface IArmResource with
+            member this.ResourceId = this.ResourceId
+            member this.JsonModel =
+              {| keys.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+                   properties =
+                     {| attributes =
+                          {| enabled = this.Enabled |> Option.toNullable
+                             exp = this.ExpirationDate |> Option.map (fun exp -> DateTimeOffset(exp).ToUnixTimeSeconds())
+                             nbf = this.ActivationDate |> Option.map (fun nbf -> DateTimeOffset(nbf).ToUnixTimeSeconds()) |}
+                        curveName =
+                            match this.KTY with
+                            | EC curveName | ECHSM curveName -> curveName |> KeyCurveName.ArmValue
+                            | _ -> null
+                        kty = this.KTY |> KeyType.ArmValue
+                        keyOps =
+                            if this.KeyOps.IsEmpty then Unchecked.defaultof<_>
+                            else this.KeyOps |> List.map KeyOperation.ArmValue
+                        keySize =
+                            match this.KTY with
+                            | RSA (RsaKeyLength keySize) -> box keySize
+                            | RSAHSM (RsaKeyLength keySize) -> box keySize
+                            | _ -> null |}
+              |}
 
 type CreateMode = Recover | Default
 type Vault =
@@ -118,9 +157,9 @@ type Vault =
                         {| defaultAction = this.DefaultAction  |> Option.map string |> Option.toObj
                            bypass = this.Bypass  |> Option.map string |> Option.toObj
                            ipRules = this.IpRules
-                           virtualNetworkRules = this.VnetRules |}
+                           virtualNetworkRules = this.VnetRules |> List.map (fun rule -> {| id = rule |}) |}
                     |}
-            |} :> _
+            |}
 
 type VaultAddPolicies =
     { KeyVault : LinkedResource
@@ -158,5 +197,4 @@ type VaultAddPolicies =
                             |}
                        |]
                     |}
-            |} :> _
-
+            |}

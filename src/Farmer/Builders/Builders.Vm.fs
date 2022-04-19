@@ -19,6 +19,8 @@ type VmConfig =
       Zone: int option
       DiagnosticsStorageAccount : ResourceRef<VmConfig> option
 
+      Priority: Priority option
+
       Username : string option
       PasswordParameter: string option
       Image : ImageDefinition
@@ -34,6 +36,7 @@ type VmConfig =
       CustomData : string option
       DisablePasswordAuthentication : bool option
       SshPathAndPublicKeys : (string * string ) list option
+      AadSshLogin : FeatureFlag
 
       VNet : ResourceRef<VmConfig>
       AddressPrefix : string
@@ -68,6 +71,7 @@ type VmConfig =
                 |> Option.map(fun r -> r.resourceId(this).Name)
               NetworkInterfaceName = this.NicName.Name
               Size = this.Size
+              Priority = this.Priority |> Option.defaultValue Regular
               Credentials =
                 match this.Username with
                 | Some username ->
@@ -88,7 +92,6 @@ type VmConfig =
               DataDisks = this.DataDisks
               Tags = this.Tags }
 
-            let vnetName = this.VNet.resourceId(this).Name
             let subnetName = this.Subnet.resourceId this
             let nsgId = this.NetworkSecurityGroup |> Option.map(fun nsg -> nsg.ResourceId)
 
@@ -100,7 +103,7 @@ type VmConfig =
                    PublicIpAddress =
                         this.PublicIp
                         |> Option.map (fun x -> x.toLinkedResource this) |} ]
-              VirtualNetwork = vnetName
+              VirtualNetwork = this.VNet.toLinkedResource this
               PrivateIpAllocation = this.PrivateIpAllocation
               NetworkSecurityGroup = nsgId
               Tags = this.Tags }
@@ -108,7 +111,7 @@ type VmConfig =
             // VNET
             match this.VNet with
             | DeployableResource this vnet ->
-                { Name = vnetName
+                { Name = this.VNet.resourceId(this).Name
                   Location = location
                   AddressSpacePrefixes = [ this.AddressPrefix ]
                   Subnets = [
@@ -180,6 +183,18 @@ type VmConfig =
                 ()
             | None, _ ->
                 raiseFarmer $"You have supplied custom script files {this.CustomScriptFiles} but no script. Custom script files are not automatically executed; you must provide an inline script which acts as a bootstrapper using the custom_script keyword."
+
+            /// Azure AD SSH login extension
+            match this.AadSshLogin with
+            | FeatureFlag.Enabled when this.Image.OS = Linux && this.Identity.SystemAssigned = Disabled ->
+                raiseFarmer "AAD SSH login requires that system assigned identity be enabled on the virtual machine."
+            | FeatureFlag.Enabled when this.Image.OS = Windows ->
+                raiseFarmer "AAD SSH login is only supported for Linux Virtual Machines"
+            | FeatureFlag.Enabled ->
+                { AadSshLoginExtension.Location = location
+                  VirtualMachine = this.Name
+                  Tags = this.Tags }
+            | FeatureFlag.Disabled -> ()
         ]
 
 type VirtualMachineBuilder() =
@@ -188,6 +203,7 @@ type VirtualMachineBuilder() =
         { Name = ResourceName.Empty
           Zone = None
           DiagnosticsStorageAccount = None
+          Priority = None
           Size = Basic_A0
           Username = None
           PasswordParameter = None
@@ -200,6 +216,7 @@ type VirtualMachineBuilder() =
           CustomData = None
           DisablePasswordAuthentication = None
           SshPathAndPublicKeys = None
+          AadSshLogin = FeatureFlag.Disabled
           OsDisk = { Size = 128; DiskType = Standard_LRS }
           AddressPrefix = "10.0.0.0/16"
           SubnetPrefix = "10.0.0.0/24"
@@ -259,6 +276,20 @@ type VirtualMachineBuilder() =
     /// Adds a data disk to the VM with a specific size and type.
     [<CustomOperation "add_disk">]
     member _.AddDisk(state:VmConfig, size, diskType) = { state with DataDisks = { Size = size; DiskType = diskType } :: state.DataDisks }
+    /// Sets priority of VMm. Overrides spot_instance.
+    [<CustomOperation "priority">]
+    member _.Priority(state:VmConfig, priority) =
+        match state.Priority with
+        | Some priority -> raiseFarmer $"Priority is already set to {priority}. Only one priority or spot_instance setting per VM is allowed"
+        | None -> { state with Priority = Some priority }
+    /// Makes VM a spot instance. Overrides priority.
+    [<CustomOperation "spot_instance">]
+    member _.Spot(state:VmConfig, (evictionPolicy, maxPrice)) : VmConfig =
+        match state.Priority with
+        | Some priority -> raiseFarmer $"Priority is already set to {priority}. Only one priority or spot_instance setting per VM is allowed"
+        | None -> { state with Priority = (evictionPolicy, maxPrice) |> Spot |> Some }
+    member this.Spot(state:VmConfig, evictionPolicy:EvictionPolicy) : VmConfig = this.Spot(state,(evictionPolicy, -1m))
+    member this.Spot(state:VmConfig, maxPrice) : VmConfig = this.Spot(state,(Deallocate, maxPrice))
     /// Adds a SSD data disk to the VM with a specific size.
     [<CustomOperation "add_ssd_disk">]
     member this.AddSsd(state:VmConfig, size) = this.AddDisk(state, size, StandardSSD_LRS)
@@ -284,6 +315,11 @@ type VirtualMachineBuilder() =
     member this.LinkToVNet(state:VmConfig, name) = this.LinkToVNet(state, ResourceName name)
     member this.LinkToVNet(state:VmConfig, vnet:Arm.Network.VirtualNetwork) = this.LinkToVNet(state, vnet.Name)
     member this.LinkToVNet(state:VmConfig, vnet:VirtualNetworkConfig) = this.LinkToVNet(state, vnet.Name)
+    [<CustomOperation "link_to_unmanaged_vnet">]
+    member _.LinkToUnmanagedVNet(state:VmConfig, name:ResourceName) = { state with VNet = LinkedResource (Unmanaged (virtualNetworks.resourceId name)) }
+    member this.LinkToUnmanagedVNet(state:VmConfig, name) = this.LinkToUnmanagedVNet(state, ResourceName name)
+    member this.LinkToUnmanagedVNet(state:VmConfig, vnet:Arm.Network.VirtualNetwork) = this.LinkToUnmanagedVNet(state, vnet.Name)
+    member this.LinkToUnmanagedVNet(state:VmConfig, vnet:VirtualNetworkConfig) = this.LinkToUnmanagedVNet(state, vnet.Name)
 
     [<CustomOperation "custom_script">]
     member _.CustomScript(state:VmConfig, script:string) =
@@ -310,6 +346,10 @@ type VirtualMachineBuilder() =
     member _.AddAuthorizedKeys(state:VmConfig, sshObjects: (string * string) list) = { state with SshPathAndPublicKeys = Some sshObjects }
     [<CustomOperation "add_authorized_key">]
     member this.AddAuthorizedKey(state:VmConfig, path: string, keyData: string) = this.AddAuthorizedKeys(state, [(path, keyData)])
+    /// Azure AD login extension may be enabled for Linux VM's.
+    [<CustomOperation "aad_ssh_login">]
+    member this.AadSshLoginEnabled(state:VmConfig, featureFlag:FeatureFlag) =
+        { state with AadSshLogin = featureFlag }
 
     [<CustomOperation "public_ip">]
     /// Set the public IP for this VM

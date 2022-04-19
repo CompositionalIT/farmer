@@ -1,6 +1,6 @@
 ---
 title: "Web App"
-date: 2020-02-05T08:53:46+01:00
+date: 2022-04-05T11:05:00-04:00
 chapter: false
 weight: 22
 ---
@@ -28,8 +28,9 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | setting | Sets an app setting of the web app in the form "key" "value". |
 | Web App | secret_setting | Sets a "secret" app setting of the web app. You must supply the "key", whilst the value will be supplied as a secure parameter. |
 | Web App | settings | Sets a list of app setting of the web app as tuples in the form of ("key", "value"). |
-| Web App | connection_string | Creates a connection string whose value is supplied as secret parameter, or as an ARM expression in the tupled form of ("key", expr). |
+| Web App | connection_string | Creates a connection string whose value is supplied as secret parameter, or as an ARM expression in the tupled form of ("key", expr), or with the connection string type ("key", expr, SQLAzure). |
 | Web App | connection_strings | Creates a set of connection strings of the web app whose values will be supplied as secret parameters. |
+| Web App | ftp_state | Allows to enable or disable FTP and FTPS. |
 | Web App | https_only | Disables http for this webapp so that only HTTPS is used. |
 | Web App | enable_http2 | Configures the webapp to allow clients to connect over http2.0. |
 | Web App | disable_client_affinity | Stops the webapp from sending client affinity cookies. |
@@ -55,12 +56,20 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | add_slot | Adds a deployment slot to the app |
 | Web App | add_slots | Adds multiple deployment slots to the app |
 | Web App | health_check_path | Sets the path to your functions health check endpoint, which Azure load balancers will ping to determine which instances are healthy.|
+| Web App | custom_domain | Adds a custom domain to the app.  By default this will produce an AppService-managed SSL certificate for your domain as well. Through the overloads of this operator, you can provide a custom certificate thumbprint or choose not to use SSL. You can use this operator multiple times to add multiple custom domains.  |
+| Web App | add_allowed_ip_restriction | Adds an 'allow' rule for an ip |
+| Web App | add_denied_ip_restriction | Adds an 'deny' rule for an ip |
+| Web App | docker_port | Adds `WEBSITES_PORT` setting to map custom docker port to app service port 80 |
+| Web App | link_to_vnet | Enable the VNET integration feature in azure where all outbound traffic from the web app with be sent via the specified subnet. Use this operator when the given VNET is in the same deployment |
+| Web App | link_to_unmanaged_vnet | Enable the VNET integration feature in azure where all outbound traffic from the web app with be sent via the specified subnet. Use this operator when the given VNET is *not* in the same deployment |
+| Web App | add_virtual_applications | Adds list of `virtualApplication` definitions to the webapp |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
 | Service Plan | runtime_stack | Sets the runtime stack. |
 | Service Plan | operating_system | Sets the operating system. If Linux, App Insights configuration settings will be omitted as they are not supported by Azure App Service. |
 | Service Plan | sku | Sets the sku of the service plan. |
 | Service Plan | worker_size | Sets the size of the service plan worker. |
 | Service Plan | number_of_workers | Sets the number of instances on the service plan. |
+| Service Plan | zone_redundant | Enables ZoneRedundant on the service plan. |
 
 > **Farmer also comes with a dedicated Service Plan builder** that contains all of the above keywords that apply to a Service Plan.
 >
@@ -93,6 +102,22 @@ The following keywords exist on the web app:
 | use_keyvault | Tells the web app to create a brand new KeyVault for this App Service's secrets. |
 | link_to_keyvault | Tells the web app to use an existing Farmer-managed KeyVault which you have defined elsewhere. All secret settings will automatically be mapped into KeyVault. |
 | link_to_unmanaged_keyvault | Tells the web app to use an existing non-Farmer managed KeyVault which you have defined elsewhere.  All secret settings will automatically be mapped into KeyVault. |
+
+#### Virtual Applications `virtualApplication`
+Virtual applications can be defined for a webapp which allows you to specify alternative directories for the application executables or enable a single web app to host multiple applications at once. By default, the following `virtualApplication` is provided for you:
+
+```fsharp
+virtualApplication {
+    virtual_path "/"
+    physical_path "wwwroot"
+}
+```
+
+| Keyword                                 | Purpose                                                                  |
+| --------------------------------------- | ------------------------------------------------------------------------ |
+| virtual_path                            | Provides the virtual path mapping                                        |
+| physical_path                           | Specifies the physical directory used (relative to the "site" directory) |
+| preloaded                               | Enables the "preload" feature of the virtual application                 |
 
 #### Examples
 
@@ -141,5 +166,28 @@ let wa = webApp {
 let v = keyVault {
     name "isaacvault"
     add_access_policy (AccessPolicy.create (wa.SystemIdentity.PrincipalId, [ KeyVault.Secret.Get; KeyVault.Secret.List ]))
+}
+```
+
+Serving two applications simultaneously (a frontend and a backend) from one web app using virtual applications.
+
+```fsharp
+open Farmer
+open Farmer.Builders
+
+let wa = webApp {
+    name "my-site-with-api"
+    always_on
+    add_virtual_applications [
+        virtualApplication {
+            virtual_path "/"
+            physical_path "frontend" 
+        }
+        virtualApplication {
+            virtual_path "/api"
+            physical_path "backend"
+            preloaded
+        }
+    ]
 }
 ```

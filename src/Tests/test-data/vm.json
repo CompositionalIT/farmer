@@ -9,7 +9,7 @@
   },
   "resources": [
     {
-      "apiVersion": "2018-10-01",
+      "apiVersion": "2019-03-01",
       "dependsOn": [
         "[resourceId('Microsoft.Network/networkInterfaces', 'isaacsVM-nic')]",
         "[resourceId('Microsoft.Storage/storageAccounts', 'isaacsvmstorage')]"
@@ -38,6 +38,7 @@
           "adminUsername": "isaac",
           "computerName": "isaacsVM"
         },
+        "priority": "Regular",
         "storageProfile": {
           "dataDisks": [
             {

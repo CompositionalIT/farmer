@@ -11,8 +11,30 @@ open Farmer.Arm.Storage
 open Farmer.Arm.KeyVault
 open Farmer.Arm.KeyVault.Vaults
 open System
+open Farmer.Arm
 
 type FunctionsRuntime = DotNet | DotNetIsolated | Node | Java | Python
+type VersionedFunctionsRuntime =  FunctionsRuntime * string option
+type FunctionsRuntime with
+    // These values are defined on FunctionsRuntime to reduce the need for users to be aware of the distinction
+    // between FunctionsRuntime and VersionedFunctionsRuntime as well as to provide parity with WebApp runtime
+    static member DotNetCore31 = DotNet, Some "3.1"
+    static member DotNet50 = DotNet, Some "5.0"
+    static member DotNet50Isolated = DotNetIsolated, Some "5.0"
+    static member DotNet60 = DotNet,Some "6.0"
+    static member DotNet60Isolated = DotNetIsolated, Some"6.0"
+    static member Node14 = Node, Some "14-lts"
+    static member Node12 = Node, Some "12-lts"
+    static member Node10 = Node, Some "10-lts"
+    static member Node10_1 = Node, Some "10.1"
+    static member Node10_6 = Node, Some "10.6"
+    static member Node10_14 = Node, Some "10.14"
+    static member Java8 = Java, Some "8-jre8"
+    static member Java11 = Java, Some "11-java11"
+    static member Python38 = Python, Some "3.8"
+    static member Python37 = Python, Some "3.7"
+    static member Python36 = Python, Some "3.6"
+
 type DockerInfo = {
     User: string
     Password: SecureParameter
@@ -22,25 +44,27 @@ type DockerInfo = {
 type PublishAs =
     | Code
     | DockerContainer of DockerInfo
-type FunctionsExtensionVersion = V1 | V2 | V3
+type FunctionsExtensionVersion = V1 | V2 | V3 | V4
+    with member internal this.ArmValue = match this with | V1 -> "~1" | V2 -> "~2" | V3 -> "~3" | V4 -> "~4"
 
 type FunctionsConfig =
     { CommonWebConfig: CommonWebConfig
       Tags : Map<string, string>
       Dependencies : ResourceId Set
       StorageAccount : ResourceRef<FunctionsConfig>
-      Runtime : FunctionsRuntime
+      VersionedRuntime : VersionedFunctionsRuntime
       PublishAs : PublishAs
       ExtensionVersion : FunctionsExtensionVersion }
     member this.Name = this.CommonWebConfig.Name
+    member this.Runtime = fst this.VersionedRuntime
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity = SystemIdentity (sites.resourceId this.Name.ResourceName)
     /// Gets the ARM expression path to the publishing password of this functions app.
     member this.PublishingPassword = publishingPassword this.Name.ResourceName
     /// Gets the ARM expression path to the storage account key of this functions app.
-    member this.StorageAccountKey = StorageAccount.getConnectionString this.StorageAccountName
+    member this.StorageAccountKey = StorageAccount.getConnectionString this.StorageAccountId
     /// Gets the ARM expression path to the app insights key of this functions app, if it exists.
-    member this.AppInsightsKey = this.AppInsightsName |> Option.map AppInsights.getInstrumentationKey
+    member this.AppInsightsKey = this.AppInsightsId |> Option.map AppInsights.getInstrumentationKey
     /// Gets the default key for the functions site
     member this.DefaultKey =
         $"listkeys(concat(resourceId('Microsoft.Web/sites', '{this.Name.ResourceName.Value}'), '/host/default/'),'2016-08-01').functionKeys.default"
@@ -54,9 +78,15 @@ type FunctionsConfig =
     /// Gets the Service Plan name for this web app.
     member this.ServicePlanName = this.ServicePlanId.Name
     /// Gets the App Insights name for this functions app, if it exists.
+    [<Obsolete("Prefer AppInsightsId instead as this property ignores resource groups")>]
     member this.AppInsightsName : ResourceName option = this.CommonWebConfig.AppInsights |> Option.map (fun ai -> ai.resourceId(this.Name.ResourceName).Name)
     /// Gets the Storage Account name for this functions app.
+    [<Obsolete("Prefer StorageAccountId instead as this property ignores resource groups")>]
     member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.resourceId(this).Name |> Storage.StorageAccountName.Create |> Result.get
+    /// Gets the App Insights resourceId for this functions app, if it exists.
+    member this.AppInsightsId: ResourceId option = this.CommonWebConfig.AppInsights |> Option.map (fun ai -> ai.resourceId(this.Name.ResourceName))
+    /// Gets the Storage Account resourceId for this functions app.
+    member this.StorageAccountId: ResourceId = this.StorageAccount.resourceId(this)
     /// Gets the Resource Id for this functions app
     member this.ResourceId = sites.resourceId this.Name.ResourceName
     interface IBuilder with
@@ -90,7 +120,7 @@ type FunctionsConfig =
                                 | ExpressionSetting expr -> SecretConfig.create (setting.Key, expr) |> Some
                             match secret with
                             | Some secret ->
-                                { Secret.Name = vaultName.Name/secret.Key
+                                { Secret.Name = vaultName.Name/secret.SecretName
                                   Value = secret.Value
                                   ContentType = secret.ContentType
                                   Enabled = secret.Enabled
@@ -125,14 +155,14 @@ type FunctionsConfig =
             let basicSettings = [
                 "FUNCTIONS_WORKER_RUNTIME", functionsRuntime
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
-                "FUNCTIONS_EXTENSION_VERSION", match this.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3"
-                "AzureWebJobsStorage", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval
-                "AzureWebJobsDashboard", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval
+                "FUNCTIONS_EXTENSION_VERSION", this.ExtensionVersion.ArmValue
+                "AzureWebJobsStorage", StorageAccount.getConnectionString this.StorageAccountId|> ArmExpression.Eval
+                "AzureWebJobsDashboard", StorageAccount.getConnectionString this.StorageAccountId|> ArmExpression.Eval
 
                 yield! this.AppInsightsKey |> Option.mapList (fun key -> "APPINSIGHTS_INSTRUMENTATIONKEY", key |> ArmExpression.Eval)
 
                 if this.CommonWebConfig.OperatingSystem = Windows then
-                    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval
+                    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", StorageAccount.getConnectionString this.StorageAccountId|> ArmExpression.Eval
                     "WEBSITE_CONTENTSHARE", this.Name.ResourceName.Value.ToLower()
                 match this.PublishAs with
                 | DockerContainer { User = us; Password = pass; Url = url } ->
@@ -171,7 +201,7 @@ type FunctionsConfig =
                   Location = location
                   Cors = this.CommonWebConfig.Cors
                   Tags = this.Tags
-                  ConnectionStrings = Some Map.empty
+                  ConnectionStrings = Some this.CommonWebConfig.ConnectionStrings
                   AppSettings = Some functionsSettings
                   Identity = this.CommonWebConfig.Identity
                   KeyVaultReferenceIdentity = this.CommonWebConfig.KeyVaultReferenceIdentity
@@ -212,11 +242,23 @@ type FunctionsConfig =
                         ()
                   ]
                   HTTPSOnly = this.CommonWebConfig.HTTPSOnly
+                  FTPState = this.CommonWebConfig.FTPState
                   AlwaysOn = this.CommonWebConfig.AlwaysOn
                   HTTP20Enabled = None
                   ClientAffinityEnabled = None
                   WebSocketsEnabled = None
-                  LinuxFxVersion = None
+                  LinuxFxVersion =
+                    match this.CommonWebConfig.OperatingSystem with
+                    | Windows -> None
+                    | Linux ->
+                      match this.VersionedRuntime with
+                      | DotNet, Some version ->
+                        match Double.TryParse(version) with
+                        | true, versionNo when versionNo < 4.0 -> Some $"DOTNETCORE|{version}"
+                        | _ -> Some $"DOTNET|{version}"
+                      | DotNetIsolated, Some version -> Some $"DOTNET-ISOLATED|{version}"
+                      | _, Some version -> Some $"{functionsRuntime.ToUpper()}|{version}"
+                      | _, None -> None
                   NetFrameworkVersion = None
                   JavaVersion = None
                   JavaContainer = None
@@ -232,17 +274,21 @@ type FunctionsConfig =
                         Some sc
                     | _ -> None
                   WorkerProcess = this.CommonWebConfig.WorkerProcess
-                  HealthCheckPath = this.CommonWebConfig.HealthCheckPath }
+                  HealthCheckPath = this.CommonWebConfig.HealthCheckPath
+                  IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions 
+                  LinkToSubnet = this.CommonWebConfig.IntegratedSubnet
+                  VirtualApplications = Map [] }
 
             match this.CommonWebConfig.ServicePlan with
             | DeployableResource this.Name.ResourceName resourceId ->
                 { Name = resourceId.Name
                   Location = location
-                  Sku = Sku.Y1
+                  Sku = this.CommonWebConfig.Sku
                   WorkerSize = Serverless
                   WorkerCount = 0
                   MaximumElasticWorkerCount = None
                   OperatingSystem = this.CommonWebConfig.OperatingSystem
+                  ZoneRedundant = None
                   Tags = this.Tags }
             | _ ->
                 ()
@@ -267,6 +313,8 @@ type FunctionsConfig =
                   Location = location
                   DisableIpMasking = false
                   SamplingPercentage = 100
+                  Dependencies = Set.empty
+                  InstanceKind = Classic
                   LinkedWebsite =
                     match this.CommonWebConfig.OperatingSystem with
                     | Windows -> Some this.Name.ResourceName
@@ -275,6 +323,14 @@ type FunctionsConfig =
             | Some _
             | None ->
                 ()
+                
+            match this.CommonWebConfig.IntegratedSubnet with
+            | None -> ()
+            | Some subnetRef ->
+                { Site = site
+                  Subnet = subnetRef.ResourceId
+                  Dependencies = subnetRef.Dependency |> Option.toList }
+            yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.CommonWebConfig.PrivateEndpoints)
 
             if Map.isEmpty this.CommonWebConfig.Slots then
                 site
@@ -290,7 +346,9 @@ type FunctionsBuilder() =
             { Name = WebAppName.Empty
               AlwaysOn = false
               AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
+              ConnectionStrings = Map.empty
               Cors = None
+              FTPState = None
               HTTPSOnly = false
               Identity = ManagedIdentity.Empty
               KeyVaultReferenceIdentity = None
@@ -298,20 +356,25 @@ type FunctionsBuilder() =
               SecretStore = AppService
               ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
               Settings = Map.empty
+              Sku = Sku.Y1
               Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None
-              HealthCheckPath = None }
+              HealthCheckPath = None 
+              IpSecurityRestrictions = []
+              IntegratedSubnet = None
+              PrivateEndpoints = Set.empty}
           StorageAccount = derived (fun config ->
             let storage = config.Name.ResourceName.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
             storageAccounts.resourceId storage)
-          Runtime = DotNet
+          VersionedRuntime = FunctionsRuntime.DotNetCore31
           ExtensionVersion = V3
           Dependencies = Set.empty
           PublishAs = Code
           Tags = Map.empty }
     member _.Run (state:FunctionsConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Functions instance name has been set."
+        state.CommonWebConfig.Validate()
         state
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]
@@ -324,7 +387,8 @@ type FunctionsBuilder() =
     member _.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccount = named storageAccounts (ResourceName name) }
     /// Sets the runtime of the Functions host.
     [<CustomOperation "use_runtime">]
-    member _.Runtime(state:FunctionsConfig, runtime) = { state with Runtime = runtime }
+    member _.Runtime(state:FunctionsConfig, runtime) = { state with VersionedRuntime = runtime, None }
+    member _.Runtime(state:FunctionsConfig, runtime) = { state with VersionedRuntime = runtime }
     /// Sets the Publish as Code or Docker container information.
     [<CustomOperation "publish_as">]
     member _.PublishAs(state:FunctionsConfig, publishAs) = { state with PublishAs = publishAs }

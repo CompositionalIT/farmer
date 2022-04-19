@@ -1,6 +1,96 @@
 Release Notes
 =============
 
+## 1.6.34
+* CLI: Include `--overwrite true` option when executing `az storage blob upload-batch` with Azure CLI 2.34.0 and above.
+* Container Groups: Deploy container groups to a specific zone.
+* Container Groups: Diagnostics support to send logs to a Log Analytics workspace.
+* Container Groups: Support for attaching to subnets directly without requiring a network profile.
+
+## 1.6.33
+* Container Groups: Specify DNS nameservers and search domains.
+* Container Registry: Adds name validation
+* DNS: Add support for private DNS zones and records
+* PostgreSQL: Added possibility to set vnet rules for PostgreSQL.
+* WebApps: Support virtual applications with `add_virtual_application`/`add_virtual_application_preloaded`
+
+## 1.6.32
+* DiagnosticSettings now supports resources that contain multiple segments e.g. SQL Databases.
+* ContainerApps now use the updated resource name (Microsoft.App instead of Microsoft.Web).
+* Updated documentation on main page from `Writer.quickDeploy` to `Writer.quickWrite`
+
+## 1.6.31
+* WebApps: Fix flakey deployments of web apps with multiple custom domains.
+* Deployments: Fix `ResourceId` generation when using a resource with a template.
+* AzureFirewall: Supports availability zones
+* WebApps/Functions: Add support for vnet integration
+
+## 1.6.30
+* WebApps/Functions: Specify connection string types
+* WebApps/Functions: Allow adding IP restriction string with CIDR
+* Application Insights: Support for Workspace-enabled instances.
+* VMs: Priority and Spot Instance Settings
+
+## 1.6.29
+* CLI: include `--only-show-error` option when executing Azure CLI commands.
+
+## 1.6.28
+* ServicePlan/WebApp: Support for enabling ZoneRedundant
+
+## 1.6.27
+* Functions: Make `connection_string` available for Azure Functions in addition to WebApps.
+* WebApps/Functions: Add support for ip-restriction rules
+* WebApps/Functions: Don't turn on Logging Extension for Linux App Service.
+* WebApps: Allow multiple custom domains
+* WebApps: Support custom port for docker container with `docker_port`
+
+## 1.6.26
+* WebApps/Functions: Fix .NET 5/6 on Linux deployments.
+
+## 1.6.25
+* CosmosDb: Add support for serverless capacity mode.
+* WebApps/Functions: Fix autoSwapSlotName for app slots.
+* WebApps/Functions: Fix zip deployments for web app with slots.
+* WebApp: Create App-managed certificates in the same resource group as the ASP to avoid ARM bug
+
+## 1.6.24
+* ContainerApps: Eagerly validate whether all containers in an app have a valid CPU/RAM combination.
+* ContainerApps: Correctly round CPU to 2DP.
+* Revert back to targetting NET Standard 2 only.
+
+## 1.6.23
+* ContainerApps: Adds support for [containerApps](https://docs.microsoft.com/azure/container-apps/overview).
+* WebApps/Functions: Added support for .NET 6 runtimes with new Runtime.DotNet60.
+
+## 1.6.22
+* Log Analytics: Add CustomerId configuration member to Log Analytics
+* Service Bus: Added additional overloads for topic.duplicate_detection and queue.duplicate_detection
+* WebApp: Fixed deployment name for nested template in app-managed certificate deployments
+
+## 1.6.21
+* Alerts: Extend a list of possible criteria for time aggregations and operators
+* Alerts: Support of custom metric alerts
+* CDN: Adds new SKU types for Azure Front Door Standard/Premium
+* Functions: Fix for .NET isolated functions hosted on Linux
+* Key Vaults: Fixed bug where adding vnetRules to KeyVault did not work.
+* Support for GPUs in Azure Container Instances
+
+## 1.6.20
+* CDN rules: Only make CacheDuration required for Override and SetIfMissing and not BypassCache when creating cache_expiration action
+* Virtual Machine: Adds support for the `AADSSHLoginForLinux` extension for Azure AD login over SSH on Linux VM's.
+* Virtual Machine: Enables a VM to be deployed on an existing virtual network.
+* WebApps/Functions: Fixed bug preventing references to AppInsights or storage accounts in other resource groups
+* WebApps: Supports custom domains with app service managed certificates
+
+## 1.6.19
+* Application Gateways: support for creating application gateways.
+* Container Service (AKS): support for various addons, including the application gateway ingress controller.
+* ExpressRoute: create authorization keys on newly created circuits.
+* Key Vaults: Add keys to new or existing key vaults.
+* ServiceBus: Allow Service Bus Queues/Topics/Subscriptions to be linked to unmanaged namespaces
+* ServiceBus: Allow adding custom dependencies to Subscriptions
+* WebApp/Functions: Adds 'ftp_state' for controlling FTP access for deployments.
+
 ## 1.6.18
 * Resource Groups: Add support for multiple nested deployments targetting the same resource group
 * Resource Groups: Provide input parameters and key vault references to nested deployments.

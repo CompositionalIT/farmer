@@ -4,16 +4,19 @@ module Farmer.Arm.Web
 open Farmer
 open Farmer.Identity
 open Farmer.WebApp
-open Farmer.Identity
 open System
 
 let serverFarms = ResourceType ("Microsoft.Web/serverfarms", "2018-02-01")
-let sites = ResourceType ("Microsoft.Web/sites", "2020-06-01")
+let sites = ResourceType ("Microsoft.Web/sites", "2021-03-01")
 let config = ResourceType ("Microsoft.Web/sites/config", "2016-08-01")
 let sourceControls = ResourceType ("Microsoft.Web/sites/sourcecontrols", "2019-08-01")
-let staticSites = ResourceType("Microsoft.Web/staticSites", "2019-12-01-preview")
-let siteExtensions = ResourceType("Microsoft.Web/sites/siteextensions", "2020-06-01")
+let staticSites = ResourceType ("Microsoft.Web/staticSites", "2019-12-01-preview")
+let siteExtensions = ResourceType ("Microsoft.Web/sites/siteextensions", "2020-06-01")
 let slots = ResourceType ("Microsoft.Web/sites/slots", "2020-09-01")
+let certificates = ResourceType ("Microsoft.Web/certificates", "2019-08-01")
+let hostNameBindings = ResourceType ("Microsoft.Web/sites/hostNameBindings", "2020-12-01")
+let virtualNetworkConnections = ResourceType ("Microsoft.Web/sites/virtualNetworkConnections", "2021-03-01")
+let slotsVirtualNetworkConnections = ResourceType ("Microsoft.Web/sites/slots/virtualNetworkConnections", "2021-03-01")
 
 let private mapOrNull f = Option.map (Map.toList >> List.map f) >> Option.defaultValue Unchecked.defaultof<_>
 
@@ -25,6 +28,7 @@ type ServerFarm =
       WorkerCount : int
       MaximumElasticWorkerCount : int option
       OperatingSystem : OS
+      ZoneRedundant : FeatureFlag option
       Tags: Map<string,string> }
     member this.IsDynamic =
         match this.Sku, this.WorkerSize with
@@ -102,9 +106,10 @@ type ServerFarm =
                          computeMode = if this.IsDynamic then "Dynamic" else null
                          perSiteScaling = if this.IsDynamic then Nullable() else Nullable false
                          reserved = this.Reserved
-                         maximumElasticWorkerCount = this.MaximumElasticWorkerCount |> Option.toNullable |}
+                         maximumElasticWorkerCount = this.MaximumElasticWorkerCount |> Option.toNullable
+                         zoneRedundant = this.ZoneRedundant |> Option.map(fun f -> f.AsBoolean) |> Option.toNullable |}
                  kind = this.Kind |> Option.toObj
-            |} :> _
+            |}
 
 module ZipDeploy =
     open System.IO
@@ -157,6 +162,12 @@ type SiteType =
         | Slot _ -> slots
         | Site _ -> sites
 
+[<RequireQualifiedAccess>]
+type FTPState =
+    | AllAllowed
+    | FtpsOnly
+    | Disabled
+
 type Site =
     { SiteType : SiteType
       Location : Location
@@ -166,6 +177,7 @@ type Site =
       AlwaysOn : bool
       WorkerProcess : Bitness option
       HTTPSOnly : bool
+      FTPState : FTPState option
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
       WebSocketsEnabled : bool option
@@ -186,17 +198,20 @@ type Site =
       Metadata : List<string * string>
       AutoSwapSlotName: string option
       ZipDeployPath : (string * ZipDeploy.ZipDeployTarget * ZipDeploy.ZipDeploySlot) option
-      HealthCheckPath : string option }
+      HealthCheckPath : string option
+      IpSecurityRestrictions : IpSecurityRestriction list 
+      LinkToSubnet : SubnetReference option
+      VirtualApplications : Map<string, VirtualApplication> }
     /// Shorthand for SiteType.ResourceType
     member this.ResourceType = this.SiteType.ResourceType
     /// Shorthand for SiteType.ResourceName
     member this.Name = this.SiteType.ResourceName
     interface IParameters with
         member this.SecureParameters =
-            let optMapToList map = 
+            let optMapToList map =
                 map
                 |> Option.defaultValue Map.empty
-                |> Map.toList 
+                |> Map.toList
             optMapToList this.AppSettings
             @ (optMapToList this.ConnectionStrings |> List.map(fun (k, (v,_)) -> k, v))
             |> List.choose(snd >> function
@@ -221,7 +236,7 @@ type Site =
     interface IArmResource with
         member this.ResourceId = sites.resourceId this.Name
         member this.JsonModel =
-            let dependencies = this.Dependencies + (Set this.Identity.Dependencies)
+            let dependencies = this.Dependencies + (Set this.Identity.Dependencies) + (this.LinkToSubnet |> Option.bind (fun x -> x.Dependency) |> Option.toList |> Set.ofList)
             let keyvaultId =
                 match (this.KeyVaultReferenceIdentity, this.Identity) with
                 | Some x, _
@@ -238,14 +253,24 @@ type Site =
                        httpsOnly = this.HTTPSOnly
                        clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
                        keyVaultReferenceIdentity = keyvaultId
+                       virtualNetworkSubnetId =
+                            match this.LinkToSubnet with
+                            | None -> null
+                            | Some id -> id.ResourceId.ArmExpression.Eval()
                        siteConfig =
                         {| alwaysOn = this.AlwaysOn
-                           appSettings = 
+                           appSettings =
                                 this.AppSettings
-                                |> mapOrNull (fun (k,v) -> {| name = k; value = v.Value |}) 
-                           connectionStrings = 
-                                this.ConnectionStrings 
+                                |> mapOrNull (fun (k,v) -> {| name = k; value = v.Value |})
+                           connectionStrings =
+                                this.ConnectionStrings
                                 |> mapOrNull (fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
+                           ftpsState =
+                               match this.FTPState with
+                               | Some FTPState.AllAllowed -> "AllAllowed"
+                               | Some FTPState.FtpsOnly -> "FtpsOnly"
+                               | Some FTPState.Disabled -> "Disabled"
+                               | None -> null
                            linuxFxVersion = this.LinuxFxVersion |> Option.toObj
                            appCommandLine = this.AppCommandLine |> Option.toObj
                            netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj
@@ -254,6 +279,16 @@ type Site =
                            javaContainer = this.JavaContainer |> Option.toObj
                            javaContainerVersion = this.JavaContainerVersion |> Option.toObj
                            phpVersion = this.PhpVersion |> Option.toObj
+                           ipSecurityRestrictions =
+                                match this.IpSecurityRestrictions with
+                                | [] -> null
+                                | restrictions ->
+                                    restrictions
+                                    |> List.mapi (fun index restriction ->
+                                        {| ipAddress = IPAddressCidr.format restriction.IpAddressCidr
+                                           name = restriction.Name
+                                           action = restriction.Action.ToString()
+                                           priority = index + 1 |}) |> box
                            pythonVersion = this.PythonVersion |> Option.toObj
                            http20Enabled = this.HTTP20Enabled |> Option.toNullable
                            webSocketsEnabled = this.WebSocketsEnabled |> Option.toNullable
@@ -271,9 +306,22 @@ type Site =
                                            supportCredentials = credentials |> Option.toNullable |})
                             |> Option.toObj
                            healthCheckPath = this.HealthCheckPath |> Option.toObj
+                           autoSwapSlotName = this.AutoSwapSlotName |> Option.toObj
+                           vnetName = this.LinkToSubnet |> Option.map (fun x -> x.ResourceId.Segments[0].Value) |> Option.toObj
+                           vnetRouteAllEnabled = this.LinkToSubnet |> function | Some _ -> Nullable true | None -> Nullable()
+                           virtualApplications = 
+                                if this.VirtualApplications.IsEmpty then
+                                    null
+                                else
+                                    this.VirtualApplications
+                                    |> Seq.map (fun virtualAppKvp ->
+                                        {| virtualPath = virtualAppKvp.Key
+                                           physicalPath = virtualAppKvp.Value.PhysicalPath
+                                           preloadEnabled = virtualAppKvp.Value.PreloadEnabled |> Option.toNullable |})
+                                    |> box
                         |}
                     |}
-            |} :> _
+            |}
 
 module Sites =
     type SourceControl =
@@ -291,7 +339,27 @@ module Sites =
                         {| repoUrl = this.Repository.ToString()
                            branch = this.Branch
                            isManualIntegration = this.ContinuousIntegration.AsBoolean |> not |}
-                |} :> _
+                |}
+
+type VirtualNetworkConnection =
+    { Site: Site
+      Subnet: ResourceId
+      Dependencies: ResourceId list}
+    member this.Name = this.Site.Name / this.Subnet.Name
+    member this.SiteId = this.Site.ResourceType.resourceId this.Site.Name
+    interface IArmResource with
+        member this.ResourceId = virtualNetworkConnections.resourceId this.Name
+        member this.JsonModel =
+            let resourceType =
+                match this.Site.SiteType with
+                | Site _ -> virtualNetworkConnections
+                | Slot _ -> slotsVirtualNetworkConnections
+            {| resourceType.Create (this.Name, dependsOn=[this.SiteId; yield! this.Dependencies]) with
+                properties =
+                {| vnetResourceId = this.Subnet.ArmExpression.Eval()
+                   isSwift = true
+                |}
+            |} :> _
 
 type StaticSite =
     { Name : ResourceName
@@ -318,11 +386,62 @@ type StaticSite =
                 sku =
                  {| Tier = "Free"
                     Name = "Free" |}
-            |} :> _
+            |}
     interface IParameters with
         member this.SecureParameters = [
             this.RepositoryToken
         ]
+type SslState =
+    | SslDisabled
+    | SniBased of thumbprint: ArmExpression
+
+type HostNameBinding =
+    { Location: Location
+      SiteId: LinkedResource
+      DomainName: string
+      SslState: SslState}
+        member this.SiteResourceId =
+            this.SiteId.Name
+        member this.ResourceName =
+            this.SiteResourceId / this.DomainName
+        member this.ResourceId =
+            hostNameBindings.resourceId (this.SiteResourceId, ResourceName this.DomainName)
+        interface IArmResource with
+            member this.ResourceId = hostNameBindings.resourceId this.ResourceName
+            member this.JsonModel =
+                {| hostNameBindings.Create(this.ResourceName, this.Location) with
+                    properties =
+                        match this.SslState with
+                        | SniBased thumbprint ->
+                            {| sslState = "SniEnabled"
+                               thumbprint = thumbprint.Eval() |} :> obj
+                        | SslDisabled -> {| |} :> obj
+                |}
+
+type Certificate =
+    { Location: Location
+      SiteId: LinkedResource
+      ServicePlanId: LinkedResource
+      DomainName: string }
+        member this.ResourceName = ResourceName this.DomainName
+        member this.Thumbprint = this.GetThumbprintReference None
+        member this.GetThumbprintReference certificateResourceGroup =
+            ArmExpression.reference({certificates.resourceId this.ResourceName with ResourceGroup = certificateResourceGroup}).Map(sprintf "%s.Thumbprint")
+        interface IArmResource with
+            member this.ResourceId = certificates.resourceId this.ResourceName
+            member this.JsonModel =
+                let dependencies =
+                  match this.SiteId with
+                  | Managed r -> [ r ; {hostNameBindings.resourceId(r.Name,ResourceName this.DomainName) with ResourceGroup = r.ResourceGroup }]
+                  | _ -> []
+                {| certificates.Create(
+                        this.ResourceName,
+                        this.Location,
+                        dependencies ) with
+                    properties =
+                        {| serverFarmId = this.ServicePlanId.ResourceId.Eval()
+                           canonicalName = this.DomainName |}
+                |}
 
 [<AutoOpen>]
 module SiteExtensions =
@@ -333,4 +452,4 @@ module SiteExtensions =
         interface IArmResource with
             member this.ResourceId = siteExtensions.resourceId(this.SiteName/this.Name)
             member this.JsonModel =
-                siteExtensions.Create(this.SiteName/this.Name, this.Location, [ sites.resourceId this.SiteName ]) :> _
+                siteExtensions.Create(this.SiteName/this.Name, this.Location, [ sites.resourceId this.SiteName ])
