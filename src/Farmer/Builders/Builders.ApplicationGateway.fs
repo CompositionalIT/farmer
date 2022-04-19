@@ -68,6 +68,7 @@ type FrontendIpConfig =
                 Sku = PublicIpAddress.Sku.Standard
                 DomainNameLabel = None
                 Tags = Map.empty
+                Zones = []
             } |> Some
         | _ -> None
 
