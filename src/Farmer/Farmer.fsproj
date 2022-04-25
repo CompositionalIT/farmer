@@ -1,8 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <!-- General -->
     <AssemblyName>Farmer</AssemblyName>
-    <Version>1.6.31</Version>
+    <Version>1.6.35</Version>
     <Description>Farmer makes authoring ARM templates easy!</Description>
     <Copyright>Copyright 2019-2022 Compositional IT Ltd.</Copyright>
     <Company>Compositional IT</Company>
@@ -96,6 +96,7 @@
     <Compile Include="Arm/Search.fs" />
     <Compile Include="Arm/ServiceBus.fs" />
     <Compile Include="Arm/Sql.fs" />
+    <Compile Include="Arm/App.fs" />
     <Compile Include="Arm/Web.fs" />
     <Compile Include="Arm/Maps.fs" />
     <Compile Include="Arm/SignalR.fs" />
@@ -110,7 +111,6 @@
     <Compile Include="Arm/VirtualHub.fs" />
     <Compile Include="Arm\Dashboard.fs" />
     <Compile Include="IdentityExtensions.fs" />
-
     <Compile Include="Builders/Extensions.fs" />
     <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
     <Compile Include="Builders/Builders.ResourceGroup.fs" />

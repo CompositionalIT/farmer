@@ -738,6 +738,9 @@ module WebApp =
             { Name = name
               IpAddressCidr = cidr
               Action = action }
+    type VirtualApplication =
+        { PhysicalPath: string 
+          PreloadEnabled: bool option }
     module Extensions =
         /// The Microsoft.AspNetCore.AzureAppServices logging extension.
         let Logging = ExtensionName "Microsoft.AspNetCore.AzureAppServices.SiteExtension"
@@ -809,6 +812,20 @@ module ContainerRegistry =
         | Basic
         | Standard
         | Premium
+
+module ContainerRegistryValidation =
+    open Validation
+    type ContainerRegistryName =
+        private | ContainerRegistryName of ResourceName
+        static member Create name =
+            [ containsOnly lettersOrNumbers
+              nonEmptyLengthBetween 5 50              
+            ]
+            |> validate "Container Registry Name" name
+            |> Result.map (ResourceName >> ContainerRegistryName)
+
+        static member Create (ResourceName name) = ContainerRegistryName.Create name
+        member this.ResourceName = match this with ContainerRegistryName name -> name
 
 module Search =
     type HostingMode = Default | HighDensity
@@ -1089,10 +1106,15 @@ type ImageRegistryCredential =
 
 [<RequireQualifiedAccess>]
 type ImageRegistryAuthentication =
-/// Credentials for the container registry are included with the password as a template parameter.
-| Credential of ImageRegistryCredential
-/// Credentials for the container registry will be listed by ARM expression.
-| ListCredentials of ResourceId
+    /// Credentials for the container registry are included with the password as a template parameter.
+    | Credential of ImageRegistryCredential
+    /// Credentials for the container registry will be listed by ARM expression.
+    | ListCredentials of ResourceId
+
+[<RequireQualifiedAccess>]
+type LogAnalyticsWorkspace =
+    | WorkspaceResourceId of LinkedResource
+    | WorkspaceKey of WorkspaceId:string * WorkspaceKey:string
 
 module ContainerGroup =
     type PortAccess = PublicPort | InternalPort
@@ -1101,6 +1123,9 @@ module ContainerGroup =
         | PublicAddress
         | PublicAddressWithDns of DnsName:string
         | PrivateAddress
+    type LogType =
+        | ContainerInstanceLogs
+        | ContainerInsights
     /// A secret file that will be attached to a container group.
     type SecretFile =
         /// A secret file which will be encoded as base64 data.

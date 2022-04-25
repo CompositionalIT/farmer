@@ -1,6 +1,6 @@
 ---
 title: "Web App"
-date: 2020-02-05T08:53:46+01:00
+date: 2022-04-05T11:05:00-04:00
 chapter: false
 weight: 22
 ---
@@ -60,6 +60,9 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | add_allowed_ip_restriction | Adds an 'allow' rule for an ip |
 | Web App | add_denied_ip_restriction | Adds an 'deny' rule for an ip |
 | Web App | docker_port | Adds `WEBSITES_PORT` setting to map custom docker port to app service port 80 |
+| Web App | link_to_vnet | Enable the VNET integration feature in azure where all outbound traffic from the web app with be sent via the specified subnet. Use this operator when the given VNET is in the same deployment |
+| Web App | link_to_unmanaged_vnet | Enable the VNET integration feature in azure where all outbound traffic from the web app with be sent via the specified subnet. Use this operator when the given VNET is *not* in the same deployment |
+| Web App | add_virtual_applications | Adds list of `virtualApplication` definitions to the webapp |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
 | Service Plan | runtime_stack | Sets the runtime stack. |
 | Service Plan | operating_system | Sets the operating system. If Linux, App Insights configuration settings will be omitted as they are not supported by Azure App Service. |
@@ -99,6 +102,22 @@ The following keywords exist on the web app:
 | use_keyvault | Tells the web app to create a brand new KeyVault for this App Service's secrets. |
 | link_to_keyvault | Tells the web app to use an existing Farmer-managed KeyVault which you have defined elsewhere. All secret settings will automatically be mapped into KeyVault. |
 | link_to_unmanaged_keyvault | Tells the web app to use an existing non-Farmer managed KeyVault which you have defined elsewhere.  All secret settings will automatically be mapped into KeyVault. |
+
+#### Virtual Applications `virtualApplication`
+Virtual applications can be defined for a webapp which allows you to specify alternative directories for the application executables or enable a single web app to host multiple applications at once. By default, the following `virtualApplication` is provided for you:
+
+```fsharp
+virtualApplication {
+    virtual_path "/"
+    physical_path "wwwroot"
+}
+```
+
+| Keyword                                 | Purpose                                                                  |
+| --------------------------------------- | ------------------------------------------------------------------------ |
+| virtual_path                            | Provides the virtual path mapping                                        |
+| physical_path                           | Specifies the physical directory used (relative to the "site" directory) |
+| preloaded                               | Enables the "preload" feature of the virtual application                 |
 
 #### Examples
 
@@ -147,5 +166,28 @@ let wa = webApp {
 let v = keyVault {
     name "isaacvault"
     add_access_policy (AccessPolicy.create (wa.SystemIdentity.PrincipalId, [ KeyVault.Secret.Get; KeyVault.Secret.List ]))
+}
+```
+
+Serving two applications simultaneously (a frontend and a backend) from one web app using virtual applications.
+
+```fsharp
+open Farmer
+open Farmer.Builders
+
+let wa = webApp {
+    name "my-site-with-api"
+    always_on
+    add_virtual_applications [
+        virtualApplication {
+            virtual_path "/"
+            physical_path "frontend" 
+        }
+        virtualApplication {
+            virtual_path "/api"
+            physical_path "backend"
+            preloaded
+        }
+    ]
 }
 ```

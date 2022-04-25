@@ -29,7 +29,7 @@ let endToEndTests = testList "End to end tests" [
 
 let tests = testList "Azure CLI" [
     test "Can connect to Az CLI" {
-        match Deploy.checkVersion Deploy.Az.MinimumVersion with
+        match Deploy.Az.checkVersion Deploy.Az.MinimumVersion with
         | Ok _ -> ()
         | Error msg -> raiseFarmer $"Version check failed: {msg}"
     }

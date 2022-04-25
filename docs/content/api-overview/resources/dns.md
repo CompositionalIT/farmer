@@ -37,7 +37,6 @@ If you wish to create a *new* NS record set, you **must** give it a `name` field
 #### TODO
 The following items are currently unsupported:
 - CAA records
-- Private Zone (untested)
 - Virtual network support for Private Zones
 - Tags
 
@@ -56,6 +55,7 @@ Each Record type has its own custom builder. All builders share the following co
 | name | Sets the name of the record set (default to `@`). |
 | depends_on | Deploy this DNS record after another resource is successfully deployed. |
 | ttl | Sets the time-to-live of the record set. |
+| zone_type | When set to `Private` changes the resource type from `Microsoft.Network/dnsZone/x` to `Microsoft.Network/privateDnsZone/x`. (default to Public) |
 | link_to_dns_zone | Add the record to a DNS zone in the same deployment. |
 | link_to_unmanaged_dns_zone | Add the record to an existing DNS zone. |
 

@@ -7,6 +7,7 @@ open Farmer.PostgreSQL
 
 let databases = ResourceType ("Microsoft.DBforPostgreSQL/servers/databases", "2017-12-01")
 let firewallRules = ResourceType ("Microsoft.DBforPostgreSQL/servers/firewallrules",  "2017-12-01")
+let virtualNetworkRules = ResourceType ("Microsoft.DBforPostgreSQL/servers/virtualNetworkRules",  "2017-12-01")
 let servers = ResourceType ("Microsoft.DBforPostgreSQL/servers", "2017-12-01")
 
 [<RequireQualifiedAccess>]
@@ -44,6 +45,18 @@ module Servers =
             member this.JsonModel =
                 {| firewallRules.Create(this.Server/this.Name, this.Location, [ servers.resourceId this.Server ]) with
                     properties = {| startIpAddress = string this.Start; endIpAddress = string this.End; |}
+                |}
+
+    type VnetRule =
+        { Name : ResourceName
+          Server : ResourceName
+          VirtualNetworkSubnetId : ResourceId
+          Location : Location }
+        interface IArmResource with
+            member this.ResourceId = virtualNetworkRules.resourceId (this.Server/this.Name)
+            member this.JsonModel =
+                {| virtualNetworkRules.Create(this.Server/this.Name, this.Location, [ servers.resourceId this.Server ]) with
+                    properties = {| virtualNetworkSubnetId = this.VirtualNetworkSubnetId.Eval() |}
                 |}
 
 type Server =

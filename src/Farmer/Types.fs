@@ -138,7 +138,7 @@ type ResourceId with
               this.Type.Type
               this.Name.Value
               for segment in this.Segments do segment.Value ]
-            |> List.map (sprintf "'%s'")
+            |> List.map (fun x -> if x.StartsWith("[") then x.Trim('[' ,']') else $"'%s{x}'") // Fixes case where a template e.g. [resourceGroup().name] is used.
             |> String.concat ", "
             |> sprintf "resourceId(%s)"
             |> ArmExpression.create
