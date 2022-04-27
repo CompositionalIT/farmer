@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.6.35
+* Container Apps: Support for Managed Identities 
+
 ## 1.6.34
 * CLI: Include `--overwrite true` option when executing `az storage blob upload-batch` with Azure CLI 2.34.0 and above.
 * Container Groups: Deploy container groups to a specific zone.

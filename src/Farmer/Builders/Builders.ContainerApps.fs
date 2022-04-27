@@ -6,6 +6,7 @@ open Farmer.Builders
 open Farmer.ContainerApp
 open Farmer.ContainerAppValidation
 open Farmer.Arm.App
+open Farmer.Identity
 
 type ContainerConfig =
     { ContainerName : string
@@ -31,6 +32,7 @@ type ContainerAppConfig =
       /// Credentials for image registries used by containers in this environment.
       ImageRegistryCredentials : ImageRegistryAuthentication list
       Containers : ContainerConfig list
+      Identity : ManagedIdentity
       Dependencies : Set<ResourceId> }
 
 type ContainerEnvironmentConfig =
@@ -75,6 +77,7 @@ type ContainerEnvironmentConfig =
                   DaprConfig = containerApp.DaprConfig
                   Secrets = containerApp.Secrets
                   EnvironmentVariables = containerApp.EnvironmentVariables
+                  Identity = containerApp.Identity
                   ImageRegistryCredentials = containerApp.ImageRegistryCredentials
                   Containers = containerApp.Containers |> List.map (fun c -> c.BuildContainer)
                   Location = location
@@ -144,6 +147,7 @@ type ContainerAppBuilder () =
           IngressMode = None
           EnvironmentVariables = Map.empty
           DaprConfig = None
+          Identity = ManagedIdentity.Empty
           Dependencies = Set.empty }
 
 
@@ -161,6 +165,7 @@ type ContainerAppBuilder () =
 
         state
 
+    interface IIdentity<ContainerAppConfig> with member _.Add state updater = { state with Identity = updater state.Identity }
     /// Sets the name of the Azure Container App.
     [<CustomOperation "name">]
     member _.ResourceName (state:ContainerAppConfig, name:string) = { state with Name = ResourceName name }

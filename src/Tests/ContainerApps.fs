@@ -5,6 +5,9 @@ open Farmer
 open Farmer.Builders
 open Newtonsoft.Json.Linq
 open Farmer.ContainerApp
+open Farmer.Identity
+
+let msi = createUserAssignedIdentity "appUser"
 
 let fullContainerAppDeployment =
     let containerLogs = logAnalytics { name "containerlogs" }
@@ -18,6 +21,7 @@ let fullContainerAppDeployment =
             add_containers [
                 containerApp {
                     name "http"
+                    add_identity msi
                     active_revision_mode Single
                     add_registry_credentials [
                         registry containerRegistryDomain containerRegistryUsername
@@ -62,6 +66,7 @@ let fullContainerAppDeployment =
     arm {
         add_resources [
             containerEnv
+            msi
         ]
     }
 
@@ -122,5 +127,10 @@ let tests = testList "Container Apps" [
         Expect.isNotNull scale "properties.scale was null"
         Expect.equal (scale.["minReplicas"] |> int) 1 "Incorrect min replicas"
         Expect.equal (scale.["maxReplicas"] |> int) 5 "Incorrect max replicas"
+    }
+    test "Makes container app with MSI" {
+        let containerApp = fullContainerAppDeployment.Template.Resources |> List.find(fun r -> r.ResourceId.Name.Value = "http") :?> Farmer.Arm.App.ContainerApp
+        Expect.isNonEmpty containerApp.Identity.UserAssigned "Container app did not have identity"
+        Expect.equal containerApp.Identity.UserAssigned.[0] (UserAssignedIdentity(ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "appUser"))) "Expected user identity named 'appUser'."
     }
 ]
