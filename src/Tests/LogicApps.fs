@@ -21,7 +21,7 @@ let asAzureResource (lac: LogicAppConfig) =
       r.Validate()
       r
 
-let tests = ftestList "Logic Apps" [
+let tests = testList "Logic Apps" [
     test "Creates a logic app workflow" {
         let config =
             logicApp {
