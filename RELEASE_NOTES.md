@@ -1,8 +1,12 @@
 Release Notes
 =============
 
-## 1.6.35
+## 1.6.36
 * Azure CLI: Escape parameters passed to the az deployment command (breaking change). Any previously escaped parameters need to be unescaped before passing to the tryValidate, tryWhatIf, tryExecute, whatIf and execute functions.
+
+## 1.6.35
+* Container Apps: Support for Managed Identities 
+* Logic Apps: Basic support for logic apps. These will require the logic app code to be supplied either directly or via file path.
 
 ## 1.6.34
 * CLI: Include `--overwrite true` option when executing `az storage blob upload-batch` with Azure CLI 2.34.0 and above.

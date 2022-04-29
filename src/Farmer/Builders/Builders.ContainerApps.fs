@@ -6,6 +6,7 @@ open Farmer.Builders
 open Farmer.ContainerApp
 open Farmer.ContainerAppValidation
 open Farmer.Arm.App
+open Farmer.Identity
 
 type ContainerConfig =
     { ContainerName : string
@@ -24,6 +25,7 @@ type ContainerAppConfig =
       ActiveRevisionsMode : ActiveRevisionsMode
       IngressMode : IngressMode option
       ScaleRules : Map<string, ScaleRule>
+      Identity: ManagedIdentity
       Replicas : {| Min : int; Max : int |} option
       DaprConfig : {| AppId : string |} option
       Secrets : Map<ContainerAppSettingKey, SecretValue>
@@ -69,6 +71,7 @@ type ContainerEnvironmentConfig =
                 { Name = containerApp.Name
                   Environment = managedEnvironments.resourceId this.Name
                   ActiveRevisionsMode = containerApp.ActiveRevisionsMode
+                  Identity = containerApp.Identity
                   IngressMode = containerApp.IngressMode
                   ScaleRules = containerApp.ScaleRules
                   Replicas = containerApp.Replicas
@@ -142,10 +145,10 @@ type ContainerAppBuilder () =
           ScaleRules = Map.empty
           Secrets = Map.empty
           IngressMode = None
+          Identity = ManagedIdentity.Empty
           EnvironmentVariables = Map.empty
           DaprConfig = None
           Dependencies = Set.empty }
-
 
     member _.Run (state:ContainerAppConfig) =
         let resourceTotals =
@@ -161,6 +164,7 @@ type ContainerAppBuilder () =
 
         state
 
+    interface IIdentity<ContainerAppConfig> with member _.Add state updater = { state with Identity = updater state.Identity }
     /// Sets the name of the Azure Container App.
     [<CustomOperation "name">]
     member _.ResourceName (state:ContainerAppConfig, name:string) = { state with Name = ResourceName name }

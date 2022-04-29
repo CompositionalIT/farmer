@@ -110,6 +110,7 @@
     <Compile Include="Arm/ApplicationGateway.fs" />
     <Compile Include="Arm/VirtualHub.fs" />
     <Compile Include="Arm\Dashboard.fs" />
+    <Compile Include="Arm/LogicApps.fs" />
     <Compile Include="IdentityExtensions.fs" />
     <Compile Include="Builders/Extensions.fs" />
     <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
@@ -162,6 +163,7 @@
     <Compile Include="Builders/Builders.AzureFirewall.fs" />
     <Compile Include="Builders\Builders.Dashboard.fs" />
     <Compile Include="Builders/Builders.ApplicationGateway.fs" />
+    <Compile Include="Builders/Builders.LogicApps.fs" />
     <Compile Include="Aliases.fs" />
   </ItemGroup>
 </Project>
