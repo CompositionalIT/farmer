@@ -42,6 +42,7 @@ let allTests =
                 Network.tests
                 LoadBalancer.tests
                 LogAnalytics.tests
+                LogicApps.tests
                 Maps.tests
                 NetworkSecurityGroup.tests
                 PostgreSQL.tests
