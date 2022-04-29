@@ -25,6 +25,7 @@ type ContainerAppConfig =
       ActiveRevisionsMode : ActiveRevisionsMode
       IngressMode : IngressMode option
       ScaleRules : Map<string, ScaleRule>
+      Identity: ManagedIdentity
       Replicas : {| Min : int; Max : int |} option
       DaprConfig : {| AppId : string |} option
       Secrets : Map<ContainerAppSettingKey, SecretValue>
@@ -32,7 +33,6 @@ type ContainerAppConfig =
       /// Credentials for image registries used by containers in this environment.
       ImageRegistryCredentials : ImageRegistryAuthentication list
       Containers : ContainerConfig list
-      Identity : ManagedIdentity
       Dependencies : Set<ResourceId> }
 
 type ContainerEnvironmentConfig =
@@ -71,13 +71,13 @@ type ContainerEnvironmentConfig =
                 { Name = containerApp.Name
                   Environment = managedEnvironments.resourceId this.Name
                   ActiveRevisionsMode = containerApp.ActiveRevisionsMode
+                  Identity = containerApp.Identity
                   IngressMode = containerApp.IngressMode
                   ScaleRules = containerApp.ScaleRules
                   Replicas = containerApp.Replicas
                   DaprConfig = containerApp.DaprConfig
                   Secrets = containerApp.Secrets
                   EnvironmentVariables = containerApp.EnvironmentVariables
-                  Identity = containerApp.Identity
                   ImageRegistryCredentials = containerApp.ImageRegistryCredentials
                   Containers = containerApp.Containers |> List.map (fun c -> c.BuildContainer)
                   Location = location
@@ -145,11 +145,10 @@ type ContainerAppBuilder () =
           ScaleRules = Map.empty
           Secrets = Map.empty
           IngressMode = None
+          Identity = ManagedIdentity.Empty
           EnvironmentVariables = Map.empty
           DaprConfig = None
-          Identity = ManagedIdentity.Empty
           Dependencies = Set.empty }
-
 
     member _.Run (state:ContainerAppConfig) =
         let resourceTotals =

@@ -2,6 +2,7 @@
 module Farmer.Arm.App
 
 open Farmer.ContainerApp
+open Farmer.Identity
 open Farmer
 
 let containerApps = ResourceType ("Microsoft.App/containerApps", "2022-01-01-preview")
@@ -20,6 +21,7 @@ type ContainerApp =
       ActiveRevisionsMode : ActiveRevisionsMode
       IngressMode : IngressMode option
       ScaleRules : Map<string, ScaleRule>
+      Identity: ManagedIdentity
       Replicas : {| Min : int; Max : int |} option
       DaprConfig : {| AppId : string |} option
       Secrets : Map<ContainerAppSettingKey, SecretValue>
@@ -27,13 +29,15 @@ type ContainerApp =
       ImageRegistryCredentials : ImageRegistryAuthentication list
       Containers : Container list
       Location : Location
-      Identity : ManagedIdentity
       Dependencies : Set<ResourceId> }
     member private this.dependencies = [
         yield this.Environment
         yield! this.Dependencies
         yield! this.Identity.Dependencies
     ]
+
+    member private this.ResourceId = containerApps.resourceId this.Name
+    member this.SystemIdentity = SystemIdentity this.ResourceId
 
     interface IParameters with
         member this.SecureParameters = [
@@ -53,7 +57,9 @@ type ContainerApp =
         member this.JsonModel =
             {| containerApps.Create(this.Name, this.Location, this.dependencies) with
                    kind = "containerapp"
-                   identity = this.Identity.ToArmJson
+                   identity =
+                       if this.Identity = ManagedIdentity.Empty then Unchecked.defaultof<_>
+                       else this.Identity.ToArmJson
                    properties =
                        {|
                            managedEnvironmentId = this.Environment.Eval()
