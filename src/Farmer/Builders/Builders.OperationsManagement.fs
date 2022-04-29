@@ -78,7 +78,7 @@ let solutionProperties = SolutionPropertiesBuilder()
 type SolutionPlanBuilder() =
     member _.Yield _ =
         { Name = ""
-          Publisher = ""
+          Publisher = "Microsoft"
           Product = "" }
 
     /// Sets the name of the Solution Plan
