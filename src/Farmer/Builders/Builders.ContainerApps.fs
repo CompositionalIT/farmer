@@ -33,7 +33,6 @@ type ContainerAppConfig =
       /// Credentials for image registries used by containers in this environment.
       ImageRegistryCredentials : ImageRegistryAuthentication list
       Containers : ContainerConfig list
-      Identity : ManagedIdentity
       Dependencies : Set<ResourceId> }
 
 type ContainerEnvironmentConfig =
@@ -79,7 +78,6 @@ type ContainerEnvironmentConfig =
                   DaprConfig = containerApp.DaprConfig
                   Secrets = containerApp.Secrets
                   EnvironmentVariables = containerApp.EnvironmentVariables
-                  Identity = containerApp.Identity
                   ImageRegistryCredentials = containerApp.ImageRegistryCredentials
                   Containers = containerApp.Containers |> List.map (fun c -> c.BuildContainer)
                   Location = location
@@ -150,7 +148,6 @@ type ContainerAppBuilder () =
           Identity = ManagedIdentity.Empty
           EnvironmentVariables = Map.empty
           DaprConfig = None
-          Identity = ManagedIdentity.Empty
           Dependencies = Set.empty }
 
     member _.Run (state:ContainerAppConfig) =
@@ -187,9 +184,6 @@ type ContainerAppBuilder () =
         { state with ScaleRules = state.ScaleRules.Add (name, ScaleRule.CPU (Utilisation rule)) }
     member _.AddCpuScaleRule (state:ContainerAppConfig, name, rule) =
         { state with ScaleRules = state.ScaleRules.Add (name, ScaleRule.CPU (AverageValue rule)) }
-    [<CustomOperation "system_identity">]
-    member __.SystemIdentity (state: ContainerAppConfig) =
-        { state with Identity = {state.Identity with SystemAssigned = Enabled } }
     [<CustomOperation "add_memory_scale_rule">]
     member _.AddMemScaleRule (state:ContainerAppConfig, name, rule) =
         { state with ScaleRules = state.ScaleRules.Add (name, ScaleRule.Memory (Utilisation rule)) }

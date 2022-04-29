@@ -29,7 +29,6 @@ type ContainerApp =
       ImageRegistryCredentials : ImageRegistryAuthentication list
       Containers : Container list
       Location : Location
-      Identity : ManagedIdentity
       Dependencies : Set<ResourceId> }
     member private this.dependencies = [
         yield this.Environment
