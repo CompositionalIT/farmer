@@ -5,22 +5,21 @@ open Farmer
 open Farmer.Arm.OperationsManagement
 
 type SolutionProperties =
-    {
-        WorkspaceResourceId: string
-        ContainedResources: string list
-        ReferencedResources : string list
+    { Workspace: IBuilder option
+      // todo - should these be IBuilders to access ResourceIds?
+      ContainedResources: string list
+      ReferencedResources : string list
     } with
         static member Empty = {
-            WorkspaceResourceId = ""
-            ContainedResources = []
-            ReferencedResources = []
+          Workspace = None
+          ContainedResources = []
+          ReferencedResources = []
         }
 
 type SolutionPlan =
-    {
-        Name: string
-        Publisher: string
-        Product: string
+    { Name: string
+      Publisher: string
+      Product: string
     } with
         static member Empty = {
             Name = ""
@@ -29,43 +28,42 @@ type SolutionPlan =
         }
 
 type SolutionConfig =
-    {
-        Name: ResourceName
-        Properties: SolutionProperties
-        Plan: SolutionPlan
-        Tags: Map<string, string>
-    }
+    { Name: ResourceName
+      Properties: SolutionProperties
+      Plan: SolutionPlan
+      Tags: Map<string, string> }
     interface IBuilder with
         member this.ResourceId = solutions.resourceId this.Name
         member this.BuildResources location = [
-          {
-            Name = this.Name
-            Location = location
-            Plan = 
-                {|
-                    Name = this.Plan.Name
-                    Product = this.Plan.Product
-                    Publisher = this.Plan.Publisher
-                |}
-            Properties =
-                {|
-                    WorkspaceResourceId = this.Properties.WorkspaceResourceId
-                    ContainedResources = this.Properties.ContainedResources
-                    ReferencedResources = this.Properties.ReferencedResources
-                |}
-            Tags = this.Tags
-          }
+          match this.Properties.Workspace with
+          | Some workspace ->
+              { Name = this.Name
+                Location = location
+                Plan = 
+                    {|  Name = this.Plan.Name
+                        Product = this.Plan.Product
+                        Publisher = this.Plan.Publisher
+                    |}
+                Properties =
+                    {|  WorkspaceResourceId = workspace.ResourceId
+                        ContainedResources = this.Properties.ContainedResources
+                        ReferencedResources = this.Properties.ReferencedResources
+                    |}
+                Tags = this.Tags
+              }
+          | None ->
+              ()
         ]
 
 type SolutionPropertiesBuilder() =
     member _.Yield _ =
-        { WorkspaceResourceId = ""
+        { Workspace = None
           ContainedResources = []
           ReferencedResources = [] }
 
     /// Sets the workspace resource id of the Solution Properties
     [<CustomOperation "workspace">]
-    member _.WorkspaceResourceId(state: SolutionProperties, workspace) = { state with WorkspaceResourceId = workspace }
+    member _.WorkspaceResourceId(state: SolutionProperties, workspace) = { state with Workspace = Some workspace }
 
     /// Sets the contained resources of the Solution Properties
     [<CustomOperation "contains">]
@@ -93,7 +91,7 @@ type SolutionPlanBuilder() =
 
     /// Sets the product of the Solution Plan
     [<CustomOperation "product">]
-    member _.Product(state: SolutionPlan, product) = { state with Name = product }
+    member _.Product(state: SolutionPlan, product) = { state with Product = product }
 
 let solutionPlan = SolutionPlanBuilder()
 
@@ -119,3 +117,4 @@ type SolutionBuilder() =
     interface ITaggable<WorkspaceConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let solution = SolutionBuilder()
+
