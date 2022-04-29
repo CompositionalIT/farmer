@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.7.2
+* Operations Management: Add basic support for Operations Management to configure & deploy Solutions.
+
 ## 1.7.1
 * App Insights: Add ConnectionString member.
 * Communication Services: **Breaking Changes**: Clean up and fix issues regarding naming and Location.
