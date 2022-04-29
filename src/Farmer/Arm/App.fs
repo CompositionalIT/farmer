@@ -9,6 +9,7 @@ let containerApps = ResourceType ("Microsoft.App/containerApps", "2022-01-01-pre
 let managedEnvironments = ResourceType ("Microsoft.App/managedEnvironments", "2022-01-01-preview")
 
 open Farmer.ContainerAppValidation
+open Farmer.Identity
 
 type Container =
     { Name : string
@@ -28,7 +29,13 @@ type ContainerApp =
       ImageRegistryCredentials : ImageRegistryAuthentication list
       Containers : Container list
       Location : Location
+      Identity : ManagedIdentity
       Dependencies : Set<ResourceId> }
+    member private this.dependencies = [
+        yield this.Environment
+        yield! this.Dependencies
+        yield! this.Identity.Dependencies
+    ]
 
     member private this.ResourceId = containerApps.resourceId this.Name
     member this.SystemIdentity = SystemIdentity this.ResourceId
@@ -49,8 +56,7 @@ type ContainerApp =
     interface IArmResource with
         member this.ResourceId = containerApps.resourceId this.Name
         member this.JsonModel =
-            let dependencies = this.Dependencies.Add this.Environment
-            {| containerApps.Create(this.Name, this.Location, dependencies) with
+            {| containerApps.Create(this.Name, this.Location, this.dependencies) with
                    kind = "containerapp"
                    identity =
                        if this.Identity = ManagedIdentity.Empty then Unchecked.defaultof<_>

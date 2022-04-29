@@ -22,7 +22,10 @@ The Container Group builder (`containerGroup`) defines a Container Group.
 | restart_policy | Sets the restart policy (default Always) |
 | public_dns | Sets the DNS host label when using a public IP. |
 | private_ip | Indicates the container should use a system-assigned private IP address for use in a virtual network. |
-| network_profile | Name of a network profile resource for the subnet in a virtual network where the container group will attach. |
+| network_profile (deprecated) | Name of a network profile resource for the subnet in a virtual network where the container group will attach. |
+| vnet | Resource ID of a virtual network where the container group will attach. |
+| link_to_vnet | Resource ID of an existing virtual network where the container group will attach. |
+| subnet | Name of the subnet in a virtual network where the container group will attach. |
 | add_identity | Adds a managed identity to the the container group. |
 | system_identity | Activates the system identity of the container group. |
 | add_registry_credentials | Adds a container image registry credential with a secure parameter for the password. |
@@ -30,6 +33,10 @@ The Container Group builder (`containerGroup`) defines a Container Group.
 | add_tcp_port | Adds a TCP port to be externally accessible. |
 | add_udp_port | Adds a UDP port to be externally accessible. |
 | add_volumes | Adds volumes to a container group so they are accessible to containers. |
+| availability_zone | Deploys a container group to a specific availability zone. |
+| diagnostics_workspace | Sends logs to a diagnostics workspace included in the same deployment. |
+| diagnostics_workspace_key | Sends logs to a diagnostics workspace by workspace ID and key. |
+| link_to_diagnostics_workspace | Sends logs to an existing diagnostics workspace referenced by resource ID. |
 | dns_nameservers | Specify DNS nameservers for the containers in a vnet-attached container group. |
 | dns_options | Specify DNS options (e.g. 'ndots:2') for the containers in a vnet-attached container group. |
 | dns_search_domains | Specify DNS search domains for the containers in a vnet-attached container group. |
@@ -143,9 +150,12 @@ let containerGroupUser = userAssignedIdentity {
     name "aciUser"
 }
 
+let containerGroupLoggingWorkspace = logAnalytics { name "webapplogs" }
+
 let group = containerGroup {
     name "webApp"
     operating_system Linux
+    diagnostics_workspace LogType.ContainerInstanceLogs containerGroupLoggingWorkspace
     restart_policy AlwaysRestart
     add_identity containerGroupUser
     add_udp_port 123us

@@ -35,6 +35,7 @@ The Container Apps builder (`containerApp`) is used to define one or more contai
 | Keyword | Purpose |
 |-|-|
 | name | Sets the name of the container app. |
+| add_identity | Adds a managed identity to the the container app. |
 | ingress_state | Activates or deactivates the ingress of the Azure Container App. |
 | ingress_target_port | Activates the ingress of the Azure Container App and sets the target port. |
 | ingress_transport | Activates the ingress of the Azure Container App and sets the transport mode. |

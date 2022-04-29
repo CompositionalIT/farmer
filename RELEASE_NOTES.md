@@ -1,6 +1,15 @@
 Release Notes
 =============
 
+## 1.6.35
+* Container Apps: Support for Managed Identities 
+
+## 1.6.34
+* CLI: Include `--overwrite true` option when executing `az storage blob upload-batch` with Azure CLI 2.34.0 and above.
+* Container Groups: Deploy container groups to a specific zone.
+* Container Groups: Diagnostics support to send logs to a Log Analytics workspace.
+* Container Groups: Support for attaching to subnets directly without requiring a network profile.
+
 ## 1.6.33
 * Container Groups: Specify DNS nameservers and search domains.
 * Container Registry: Adds name validation
