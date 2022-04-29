@@ -35,9 +35,11 @@ The Container Apps builder (`containerApp`) is used to define one or more contai
 | Keyword | Purpose |
 |-|-|
 | name | Sets the name of the container app. |
+| add_identity | Adds a managed identity to the the container app. |
 | ingress_state | Activates or deactivates the ingress of the Azure Container App. |
 | ingress_target_port | Activates the ingress of the Azure Container App and sets the target port. |
 | ingress_transport | Activates the ingress of the Azure Container App and sets the transport mode. |
+| system_identity | Activates the system identity of the Azure Container App. |
 | dapr_app_id | Sets the dapr app id for the app. |
 | replicas | Sets the minimum and maximum replicas to scale the container app. |
 | active_revision_mode | Indicates whether multiple version of a container app can be active at once.|

@@ -2,6 +2,7 @@ Release Notes
 =============
 
 ## 1.6.35
+* Container Apps: Support for Managed Identities 
 * Logic Apps: Basic support for logic apps. These will require the logic app code to be supplied either directly or via file path.
 
 ## 1.6.34
