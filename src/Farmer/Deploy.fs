@@ -129,10 +129,13 @@ module Az =
             | Validate -> "validate"
 
     let private deployOrValidate (deploymentCommand:DeploymentCommand) resourceGroup deploymentName templateFilename parameters =
+        let escapeParameterArguments = (fun (a, (b: string)) -> 
+            let escapedValue = b.Replace("\"","\\\"")
+            $"\"%s{a}\"=\"%s{escapedValue}\"")
         let parametersArgument =
             match parameters with
             | [] -> ""
-            | parameters -> sprintf "--parameters %s" (parameters |> List.map(fun (a, b) -> $"%s{a}=%s{b}") |> String.concat " ")
+            | parameters -> sprintf "--parameters %s" (parameters |> List.map(escapeParameterArguments) |> String.concat " ")
         az $"""deployment group {deploymentCommand.Description} -g {resourceGroup} -n {deploymentName} --template-file {templateFilename} {parametersArgument}"""
     /// Deploys an ARM template to an existing resource group.
     let deploy resourceGroup deploymentName templateFilename parameters = deployOrValidate Create resourceGroup deploymentName templateFilename parameters
