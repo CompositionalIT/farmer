@@ -45,7 +45,6 @@ let allTests =
                 LogicApps.tests
                 Maps.tests
                 NetworkSecurityGroup.tests
-                OperationsManagement.tests
                 PostgreSQL.tests
                 ResourceGroup.tests
                 ServiceBus.tests

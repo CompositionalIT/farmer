@@ -61,7 +61,6 @@
     <Compile Include="Types.fs" />
     <Compile Include="TrafficManager.fs" />
     <Compile Include="Dashboards.fs" />
-    <Compile Include="OperationsManagement.fs" />
     <Compile Include="AllTests.fs" />
   </ItemGroup>
 
