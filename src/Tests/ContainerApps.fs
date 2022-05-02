@@ -44,6 +44,17 @@ let fullContainerAppDeployment =
                     add_http_scale_rule "http-rule" { ConcurrentRequests = 100 }
                 }
                 containerApp {
+                    name "multienv"
+                    add_simple_container "mcr.microsoft.com/dotnet/samples" "aspnetapp"
+                    ingress_target_port 80us
+                    ingress_transport Auto
+                    add_http_scale_rule "http-scaler" { ConcurrentRequests = 10 }
+                    add_cpu_scale_rule "cpu-scaler" { Utilisation = 50 }
+                    add_secret_parameters ["servicebusconnectionkey"]
+                    add_env_variables ["ServiceBusQueueName","wishrequests"]
+                    add_secret_expressions ["containerlogs", containerLogs.PrimarySharedKey]
+                }
+                containerApp {
                     name "servicebus"
                     active_revision_mode Single
                     add_containers [
@@ -84,6 +95,12 @@ let tests = testList "Container Apps" [
         Expect.hasLength jobj.["parameters"] 2 "Expecting 2 parameters"
         Expect.isNotNull (jobj.SelectToken("parameters.servicebusconnectionkey")) "Missing 'servicebusconnectionkey' parameter"
         Expect.isNotNull (jobj.SelectToken("parameters['myregistry.azurecr.io-password']")) "Missing 'myregistry.azurecr.io-password' parameter"
+    }
+    test "Seq container environment parameters" {
+        let containerApp = fullContainerAppDeployment.Template.Resources |> List.find(fun r -> r.ResourceId.Name.Value = "multienv") :?> Farmer.Arm.App.ContainerApp
+        containerApp.EnvironmentVariables.["ServiceBusQueueName"] |> ignore
+        containerApp.EnvironmentVariables.["servicebusconnectionkey"] |> ignore
+        containerApp.EnvironmentVariables.["containerlogs"] |> ignore
     }
     test "Full container managed environments" {
         let kubeEnv = jobj.SelectToken("resources[?(@.name=='kubecontainerenv')]")
