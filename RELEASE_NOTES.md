@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.7.1
+* Event Hub: Don't create the `$Default` consumer group explicitly. It will automatically be created by Azure when the resource is created.
+
 ## 1.7.0
 * Azure CLI: Escape parameters passed to the az deployment command (breaking change). Any previously escaped parameters need to be unescaped before passing to the tryValidate, tryWhatIf, tryExecute, whatIf and execute functions.
 
