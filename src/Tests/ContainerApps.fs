@@ -8,11 +8,14 @@ open Farmer.ContainerApp
 open Farmer.Identity
 
 let msi = createUserAssignedIdentity "appUser"
+let containerRegistryName = "myregistry"
 
 let fullContainerAppDeployment =
     let containerLogs = logAnalytics { name "containerlogs" }
-    let containerRegistryDomain = "myregistry.azurecr.io"
-    let containerRegistryUsername = "myregistry"
+    let containerRegistryDomain = $"{containerRegistryName}.azurecr.io"
+    let acr = containerRegistry { 
+        name containerRegistryName
+    }
     let version = "1.0.0"
     let containerEnv =
         containerEnvironment {
@@ -24,7 +27,7 @@ let fullContainerAppDeployment =
                     add_identity msi
                     active_revision_mode Single
                     add_registry_credentials [
-                        registry containerRegistryDomain containerRegistryUsername
+                        registry containerRegistryDomain containerRegistryName
                     ]
                     add_containers [
                         container {
@@ -57,6 +60,7 @@ let fullContainerAppDeployment =
                 containerApp {
                     name "servicebus"
                     active_revision_mode Single
+                    reference_registry_credentials [(acr :> IBuilder).ResourceId]
                     add_containers [
                         container {
                             name "servicebus"
@@ -149,5 +153,9 @@ let tests = testList "Container Apps" [
         let containerApp = fullContainerAppDeployment.Template.Resources |> List.find(fun r -> r.ResourceId.Name.Value = "http") :?> Farmer.Arm.App.ContainerApp
         Expect.isNonEmpty containerApp.Identity.UserAssigned "Container app did not have identity"
         Expect.equal containerApp.Identity.UserAssigned.[0] (UserAssignedIdentity(ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "appUser"))) "Expected user identity named 'appUser'."
+    }
+    test "Linked ACR references correct secret" {
+        let containerApp = fullContainerAppDeployment.Template.Resources |> List.find(fun r -> r.ResourceId.Name.Value = "servicebus") :?> Farmer.Arm.App.ContainerApp
+        Expect.isFalse (containerApp.Secrets |> Map.containsKey (ContainerAppValidation.ContainerAppSettingKey.Create $"{containerRegistryName}-username").OkValue) "Container app did not have linked ACR's secret"
     }
 ]
