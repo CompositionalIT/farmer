@@ -2,6 +2,7 @@ Release Notes
 =============
 
 ## 1.7.1
+* Container Apps: Support for collections of env vars, fix ACR credentials linking 
 * Event Hub: Don't create the `$Default` consumer group explicitly. It will automatically be created by Azure when the resource is created.
 
 ## 1.7.0
