@@ -414,4 +414,30 @@ let tests = testList "Network Tests" [
         Expect.isNotNull routeTableId "routeTable should be specified"
         Expect.equal (string routeTableId) "[resourceId('Microsoft.Network/routeTables', 'my-route-table')]" "Incorrect routeTableId"
     }
+    test "Subnet with custom dependency" {
+        let vnetName = "my-vnet"
+        let otherSubnet = subnets.resourceId("some-other-subnet")
+
+        let subnetResource = 
+            subnet {
+                name "my-subnet"
+                link_to_unmanaged_vnet (virtualNetworks.resourceId vnetName)
+                prefix "10.28.0.0/24"
+                depends_on otherSubnet
+            }
+
+        Expect.equal
+            ((subnetResource :> IBuilder).ResourceId.Eval())
+            "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'my-vnet', 'my-subnet')]"
+            "Incorrect resourceId on subnet"
+
+        let template = arm {
+            add_resources [ subnetResource ]
+        }
+        
+        let jsn = template.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        let dependsOn = jobj.SelectToken("resources[?(@.type=='Microsoft.Network/virtualNetworks/subnets')].dependsOn.[0]").ToString()
+        Expect.equal dependsOn "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'some-other-subnet')]" "dependsOn is wrong"
+    }
 ]
