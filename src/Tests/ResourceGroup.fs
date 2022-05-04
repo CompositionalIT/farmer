@@ -35,4 +35,18 @@ let tests = testList "Resource Group" [
             |> List.map (fun x -> x.ResourceId.Name.Value)
         Expect.equal nestedResources ["stg1";"stg2";"stg3"] "all three storage accounts should be nested"
     }
+    test "zip_deploy should be performed when declared in a nested resource" {
+        let webApp = webApp {
+            name "webapp"
+            zip_deploy "deploy"
+        }
+        
+        let oneNestedLevel = resourceGroup { add_resource webApp }
+        let twoNestedLevels = resourceGroup { add_resource oneNestedLevel }
+        let threeNestedLevels = arm { add_resource twoNestedLevels }
+        
+        Expect.isNonEmpty
+            (threeNestedLevels :> IDeploymentSource).Deployment.PostDeployTasks
+            "The zip_deploy should create a post deployment task"
+    }
 ]
