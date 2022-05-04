@@ -84,7 +84,8 @@ type Subnet =
       AssociatedServiceEndpointPolicies : ResourceId list
       PrivateEndpointNetworkPolicies: FeatureFlag option
       PrivateLinkServiceNetworkPolicies: FeatureFlag option 
-      RouteTable: LinkedResource option }
+      RouteTable: LinkedResource option
+      DependsOn: ResourceId Set }
     member internal this.JsonModelProperties =
         {| addressPrefix = this.Prefix
            networkSecurityGroup =
@@ -115,11 +116,6 @@ type Subnet =
            privateLinkServiceNetworkPolicies = this.PrivateLinkServiceNetworkPolicies |> Option.mapBoxed (fun x->x.ArmValue) 
            routeTable = this.RouteTable |> Option.mapBoxed (fun ref -> {| id = ref.ResourceId.Eval() |}) 
         |}
-        member this.DependsOn = 
-            Set.empty
-            |> LinkedResource.addToSetIfSomeManaged this.VirtualNetwork
-            |> LinkedResource.addToSetIfSomeManaged this.RouteTable
-            |> LinkedResource.addToSetIfSomeManaged this.NetworkSecurityGroup
     interface IArmResource with
         member this.JsonModel =
             match this.VirtualNetwork with

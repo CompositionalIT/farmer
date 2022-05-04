@@ -21,7 +21,8 @@ type SubnetConfig =
       AssociatedServiceEndpointPolicies : ResourceId list
       AllowPrivateEndpoints: FeatureFlag option
       PrivateLinkServiceNetworkPolicies: FeatureFlag option
-      RouteTable: LinkedResource option}
+      RouteTable: LinkedResource option
+      Dependencies: ResourceId Set }
     member internal this.AsSubnetResource =
         { Name = this.Name
           Prefix = IPAddressCidr.format this.Prefix
@@ -36,6 +37,10 @@ type SubnetConfig =
           PrivateEndpointNetworkPolicies = this.AllowPrivateEndpoints |> Option.map FeatureFlag.invert 
           PrivateLinkServiceNetworkPolicies = this.PrivateLinkServiceNetworkPolicies
           RouteTable = this.RouteTable
+          DependsOn = this.Dependencies
+            |> LinkedResource.addToSetIfSomeManaged this.VirtualNetwork
+            |> LinkedResource.addToSetIfSomeManaged this.RouteTable
+            |> LinkedResource.addToSetIfSomeManaged this.NetworkSecurityGroup
         }
     interface IBuilder with
         member this.ResourceId =
@@ -56,7 +61,8 @@ type SubnetBuilder() =
           AssociatedServiceEndpointPolicies = [] 
           AllowPrivateEndpoints = None
           PrivateLinkServiceNetworkPolicies = None
-          RouteTable = None}
+          RouteTable = None
+          Dependencies = Set.empty }
     /// Sets the name of the subnet
     [<CustomOperation "name">]
     member _.Name(state:SubnetConfig, name) = { state with Name = ResourceName name }
@@ -115,6 +121,9 @@ type SubnetBuilder() =
     member _.LinkToRouteTable( state:SubnetConfig, routeTable: ResourceId) = {state with RouteTable = Some (Managed routeTable) }
     [<CustomOperation "link_to_unmanaged_route_table">]
     member _.LinkToUnmanagedRouteTable( state:SubnetConfig, routeTable: ResourceId) = {state with RouteTable = Some (Unmanaged routeTable) }
+
+    /// Enable support for additional dependencies.
+    interface IDependable<SubnetConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 let subnet = SubnetBuilder ()
 /// Specification for a subnet to build from an address space.
@@ -379,7 +388,8 @@ type VirtualNetworkBuilder() =
                       AssociatedServiceEndpointPolicies = serviceEndpointPolicies
                       AllowPrivateEndpoints = allowPrivateEndpoints
                       PrivateLinkServiceNetworkPolicies = privateLinkServiceNetworkPolicies
-                      RouteTable = routeTable }
+                      RouteTable = routeTable
+                      Dependencies = Set.empty }
                 ))
         let newAddressSpaces = addressSpaces |> List.map (fun addressSpace -> addressSpace.Space)
         { state with
