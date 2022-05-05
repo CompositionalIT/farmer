@@ -454,6 +454,9 @@ type PrivateEndpointConfig =
                     PrivateEndpoint = (Managed (this :> IBuilder).ResourceId)
                     PrivateDnsZone = zone }
             ]
+type SubnetReference with
+    static member create (vnetConfig:VirtualNetworkConfig, subnetName) = ViaManagedVNet (vnetConfig.ResourceId,subnetName)
+    static member create (vnetConfig:SubnetConfig) = Direct (Managed (vnetConfig:>IBuilder).ResourceId)
 
 type PrivateEndpointBuilder() =
     member _.Yield _ =
@@ -468,7 +471,7 @@ type PrivateEndpointBuilder() =
 
     [<CustomOperation "subnet">]
     member _.Subnet(state:PrivateEndpointConfig, subnet:SubnetReference) = { state with Subnet = Some subnet }
-    member _.Subnet(state:PrivateEndpointConfig, subnet:SubnetConfig) = { state with Subnet = Some (SubnetReference.Direct (Managed (subnet :> IBuilder).ResourceId)) }
+    member _.Subnet(state:PrivateEndpointConfig, subnet:SubnetConfig) = { state with Subnet = Some (SubnetReference.create(subnet)) }
 
     [<CustomOperation "link_to_resource">]
     member _.PrivateLinkConnection(state:PrivateEndpointConfig, resource:LinkedResource) = 
@@ -486,7 +489,3 @@ type PrivateEndpointBuilder() =
     member _.LinkToDnsZone(state:PrivateEndpointConfig, zone:LinkedResource) = { state with PrivateDnsZone = Some zone }
 
 let privateEndpoint = PrivateEndpointBuilder ()
-
-type SubnetReference with
-    static member create (vnetConfig:VirtualNetworkConfig, subnetName) = ViaManagedVNet (vnetConfig.ResourceId,subnetName)
-    static member create (vnetConfig:SubnetConfig) = Direct (Managed (vnetConfig:>IBuilder).ResourceId)

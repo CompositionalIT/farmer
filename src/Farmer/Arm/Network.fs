@@ -18,7 +18,7 @@ let virtualNetworks = ResourceType ("Microsoft.Network/virtualNetworks", "2020-0
 let virtualNetworkGateways = ResourceType ("Microsoft.Network/virtualNetworkGateways", "2020-05-01")
 let localNetworkGateways = ResourceType ("Microsoft.Network/localNetworkGateways", "")
 let privateEndpoints = ResourceType ("Microsoft.Network/privateEndpoints", "2020-07-01")
-let privateEndpointsDnsZoneGroup = ResourceType ("Microsoft.Network/privateEndpoints/privateDnsZoneGroups", "2021-05-01")
+let privateEndpointsDnsZoneGroups = ResourceType ("Microsoft.Network/privateEndpoints/privateDnsZoneGroups", "2021-05-01")
 let virtualNetworkPeering = ResourceType ("Microsoft.Network/virtualNetworks/virtualNetworkPeerings","2020-05-01")
 let routeTables = ResourceType ("Microsoft.Network/routeTables", "2021-05-01")
 
@@ -487,12 +487,12 @@ type PrivateEndpointDnsZoneGroup =
     PrivateEndpoint: LinkedResource
     PrivateDnsZone: LinkedResource }
   interface IArmResource with
-    member this.ResourceId = privateEndpointsDnsZoneGroup.resourceId this.Name
+    member this.ResourceId = privateEndpointsDnsZoneGroups.resourceId this.Name
     member this.JsonModel = 
       let dependencies = [
         this.PrivateEndpoint.ResourceId
       ]
-      {| privateEndpointsDnsZoneGroup.Create(this.Name, this.Location, dependencies) with
+      {| privateEndpointsDnsZoneGroups.Create(this.Name, this.Location, dependencies) with
            properties = {|
              privateDnsZoneConfigs = [
                  {|
