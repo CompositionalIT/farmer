@@ -2,7 +2,7 @@
   <PropertyGroup>
     <!-- General -->
     <AssemblyName>Farmer</AssemblyName>
-    <Version>1.6.34</Version>
+    <Version>1.7.0</Version>
     <Description>Farmer makes authoring ARM templates easy!</Description>
     <Copyright>Copyright 2019-2022 Compositional IT Ltd.</Copyright>
     <Company>Compositional IT</Company>
@@ -110,6 +110,7 @@
     <Compile Include="Arm/ApplicationGateway.fs" />
     <Compile Include="Arm/VirtualHub.fs" />
     <Compile Include="Arm\Dashboard.fs" />
+    <Compile Include="Arm/LogicApps.fs" />
     <Compile Include="IdentityExtensions.fs" />
     <Compile Include="Builders/Extensions.fs" />
     <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
@@ -162,6 +163,7 @@
     <Compile Include="Builders/Builders.AzureFirewall.fs" />
     <Compile Include="Builders\Builders.Dashboard.fs" />
     <Compile Include="Builders/Builders.ApplicationGateway.fs" />
+    <Compile Include="Builders/Builders.LogicApps.fs" />
     <Compile Include="Aliases.fs" />
   </ItemGroup>
 </Project>

@@ -18,6 +18,7 @@
     <Compile Include="DiagnosticSettings.fs" />
     <Compile Include="Common.fs" />
     <Compile Include="Functions.fs" />
+    <Compile Include="LogicApps.fs" />
     <Compile Include="LogAnalytics.fs" />
     <Compile Include="Bastion.fs" />
     <Compile Include="CommunicationServices.fs" />
@@ -73,6 +74,7 @@
     <PackageReference Include="Microsoft.Azure.Management.ContainerService" Version="1.1.0" />
     <PackageReference Include="Microsoft.Azure.Management.DeviceProvisioningServices" Version="1.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.IotHub" Version="2.10.0-preview" />
+    <PackageReference Include="Microsoft.Azure.Management.Logic" Version="4.1.0" />
     <PackageReference Include="Microsoft.Azure.Management.Maps" Version="1.0.2" />
     <PackageReference Include="Microsoft.Azure.Management.Monitor" Version="0.25.3-preview" />
     <PackageReference Include="Microsoft.Azure.Management.Network" Version="19.20.0-preview" />
