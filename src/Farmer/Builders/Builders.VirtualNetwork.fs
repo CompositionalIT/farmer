@@ -21,7 +21,8 @@ type SubnetConfig =
       AssociatedServiceEndpointPolicies : ResourceId list
       AllowPrivateEndpoints: FeatureFlag option
       PrivateLinkServiceNetworkPolicies: FeatureFlag option
-      RouteTable: LinkedResource option}
+      RouteTable: LinkedResource option
+      Dependencies: ResourceId Set }
     member internal this.AsSubnetResource =
         { Name = this.Name
           Prefix = IPAddressCidr.format this.Prefix
@@ -36,6 +37,10 @@ type SubnetConfig =
           PrivateEndpointNetworkPolicies = this.AllowPrivateEndpoints |> Option.map FeatureFlag.invert 
           PrivateLinkServiceNetworkPolicies = this.PrivateLinkServiceNetworkPolicies
           RouteTable = this.RouteTable
+          DependsOn = this.Dependencies
+            |> LinkedResource.addToSetIfSomeManaged this.VirtualNetwork
+            |> LinkedResource.addToSetIfSomeManaged this.RouteTable
+            |> LinkedResource.addToSetIfSomeManaged this.NetworkSecurityGroup
         }
     interface IBuilder with
         member this.ResourceId =
@@ -56,7 +61,8 @@ type SubnetBuilder() =
           AssociatedServiceEndpointPolicies = [] 
           AllowPrivateEndpoints = None
           PrivateLinkServiceNetworkPolicies = None
-          RouteTable = None}
+          RouteTable = None
+          Dependencies = Set.empty }
     /// Sets the name of the subnet
     [<CustomOperation "name">]
     member _.Name(state:SubnetConfig, name) = { state with Name = ResourceName name }
@@ -115,6 +121,9 @@ type SubnetBuilder() =
     member _.LinkToRouteTable( state:SubnetConfig, routeTable: ResourceId) = {state with RouteTable = Some (Managed routeTable) }
     [<CustomOperation "link_to_unmanaged_route_table">]
     member _.LinkToUnmanagedRouteTable( state:SubnetConfig, routeTable: ResourceId) = {state with RouteTable = Some (Unmanaged routeTable) }
+
+    /// Enable support for additional dependencies.
+    interface IDependable<SubnetConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 let subnet = SubnetBuilder ()
 /// Specification for a subnet to build from an address space.
@@ -379,7 +388,8 @@ type VirtualNetworkBuilder() =
                       AssociatedServiceEndpointPolicies = serviceEndpointPolicies
                       AllowPrivateEndpoints = allowPrivateEndpoints
                       PrivateLinkServiceNetworkPolicies = privateLinkServiceNetworkPolicies
-                      RouteTable = routeTable }
+                      RouteTable = routeTable
+                      Dependencies = Set.empty }
                 ))
         let newAddressSpaces = addressSpaces |> List.map (fun addressSpace -> addressSpace.Space)
         { state with
@@ -409,6 +419,73 @@ type VNetPeeringSpecBuilder() =
 
 let vnetPeering = VNetPeeringSpecBuilder ()
 
+type PrivateLinkServiceConnection = 
+    { Resource: LinkedResource 
+      GroupIds: string list }
+
+type PrivateEndpointConfig = 
+    { Name: ResourceName
+      Subnet : SubnetReference option
+      PrivateLinkServiceConnection: PrivateLinkServiceConnection option
+      PrivateDnsZone: LinkedResource option }
+    interface IBuilder with
+        member this.ResourceId = privateEndpoints.resourceId this.Name
+        member this.BuildResources location = 
+            let serviceConn = 
+                match this.PrivateLinkServiceConnection with
+                | Some sc -> sc
+                | None -> raiseFarmer "Private endpoint must be attached to a resource"
+
+            let endpoint = 
+                { Name = this.Name
+                  Subnet = match this.Subnet with | Some sn -> sn | None -> raiseFarmer "Must have linked subnet"
+                  Location = location
+                  Resource = serviceConn.Resource
+                  GroupIds = serviceConn.GroupIds }
+
+            [
+                endpoint
+
+                match this.PrivateDnsZone with 
+                | None -> ()
+                | Some zone -> {
+                    Name = (ResourceName $"{this.Name.Value}/dnszone")
+                    Location = location
+                    PrivateEndpoint = (Managed (this :> IBuilder).ResourceId)
+                    PrivateDnsZone = zone }
+            ]
 type SubnetReference with
     static member create (vnetConfig:VirtualNetworkConfig, subnetName) = ViaManagedVNet (vnetConfig.ResourceId,subnetName)
     static member create (vnetConfig:SubnetConfig) = Direct (Managed (vnetConfig:>IBuilder).ResourceId)
+
+type PrivateEndpointBuilder() =
+    member _.Yield _ =
+        { Name = ResourceName.Empty
+          Subnet = None
+          PrivateLinkServiceConnection = None
+          PrivateDnsZone = None }
+    
+    [<CustomOperation "name">]
+    member _.Name(state:PrivateEndpointConfig, name:string) = { state with Name = (ResourceName name) }
+    member _.Name(state:PrivateEndpointConfig, name:ResourceName) = { state with Name = name }
+
+    [<CustomOperation "subnet">]
+    member _.Subnet(state:PrivateEndpointConfig, subnet:SubnetReference) = { state with Subnet = Some subnet }
+    member _.Subnet(state:PrivateEndpointConfig, subnet:SubnetConfig) = { state with Subnet = Some (SubnetReference.create(subnet)) }
+
+    [<CustomOperation "link_to_resource">]
+    member _.PrivateLinkConnection(state:PrivateEndpointConfig, resource:LinkedResource) = 
+        let groupIds =
+            match resource.ResourceId.Type.Type with
+            | "Microsoft.Web/sites" -> "sites"
+            | _ -> raiseFarmer $"Invalid resource type. Cannot link private endpoint to type {resource.ResourceId.Type.Type}"
+
+        { state with PrivateLinkServiceConnection = Some { Resource = resource; GroupIds = [groupIds] } }
+
+    [<CustomOperation "link_to_private_dns_zone">]
+    member _.LinkToDnsZone(state:PrivateEndpointConfig, zone:DnsZoneConfig) = { state with PrivateDnsZone = Some (Managed (zone:> IBuilder).ResourceId) }
+
+    [<CustomOperation "link_to_unmanaged_private_dns_zone">]
+    member _.LinkToDnsZone(state:PrivateEndpointConfig, zone:LinkedResource) = { state with PrivateDnsZone = Some zone }
+
+let privateEndpoint = PrivateEndpointBuilder ()

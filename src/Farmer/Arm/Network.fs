@@ -18,6 +18,7 @@ let virtualNetworks = ResourceType ("Microsoft.Network/virtualNetworks", "2020-0
 let virtualNetworkGateways = ResourceType ("Microsoft.Network/virtualNetworkGateways", "2020-05-01")
 let localNetworkGateways = ResourceType ("Microsoft.Network/localNetworkGateways", "")
 let privateEndpoints = ResourceType ("Microsoft.Network/privateEndpoints", "2020-07-01")
+let privateEndpointsDnsZoneGroups = ResourceType ("Microsoft.Network/privateEndpoints/privateDnsZoneGroups", "2021-05-01")
 let virtualNetworkPeering = ResourceType ("Microsoft.Network/virtualNetworks/virtualNetworkPeerings","2020-05-01")
 let routeTables = ResourceType ("Microsoft.Network/routeTables", "2021-05-01")
 
@@ -83,7 +84,8 @@ type Subnet =
       AssociatedServiceEndpointPolicies : ResourceId list
       PrivateEndpointNetworkPolicies: FeatureFlag option
       PrivateLinkServiceNetworkPolicies: FeatureFlag option 
-      RouteTable: LinkedResource option }
+      RouteTable: LinkedResource option
+      DependsOn: ResourceId Set }
     member internal this.JsonModelProperties =
         {| addressPrefix = this.Prefix
            networkSecurityGroup =
@@ -114,11 +116,6 @@ type Subnet =
            privateLinkServiceNetworkPolicies = this.PrivateLinkServiceNetworkPolicies |> Option.mapBoxed (fun x->x.ArmValue) 
            routeTable = this.RouteTable |> Option.mapBoxed (fun ref -> {| id = ref.ResourceId.Eval() |}) 
         |}
-        member this.DependsOn = 
-            Set.empty
-            |> LinkedResource.addToSetIfSomeManaged this.VirtualNetwork
-            |> LinkedResource.addToSetIfSomeManaged this.RouteTable
-            |> LinkedResource.addToSetIfSomeManaged this.NetworkSecurityGroup
     interface IArmResource with
         member this.JsonModel =
             match this.VirtualNetwork with
@@ -482,6 +479,30 @@ type PrivateEndpoint =
                     |}
                   ]
              |}
+      |}
+
+type PrivateEndpointDnsZoneGroup =
+  { Name: ResourceName
+    Location: Location
+    PrivateEndpoint: LinkedResource
+    PrivateDnsZone: LinkedResource }
+  interface IArmResource with
+    member this.ResourceId = privateEndpointsDnsZoneGroups.resourceId this.Name
+    member this.JsonModel = 
+      let dependencies = [
+        this.PrivateEndpoint.ResourceId
+      ]
+      {| privateEndpointsDnsZoneGroups.Create(this.Name, this.Location, dependencies) with
+           properties = {|
+             privateDnsZoneConfigs = [
+                 {|
+                   name = "dnszone"
+                   properties = {|
+                     privateDnsZoneId = this.PrivateDnsZone.ResourceId.Eval()
+                   |}
+                 |}
+             ]
+           |}
       |}
 
 type GatewayTransit =

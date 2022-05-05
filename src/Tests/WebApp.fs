@@ -932,4 +932,38 @@ let tests = testList "Web App Tests" [
         Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
     }
 
+    test "Can integrate with private endpoint and add private dns zone group" {
+        let someSubnet = ResourceId.create(Network.subnets,ResourceName "mySubnet")
+        let dnsZone = ResourceId.create(Dns.privateZones,ResourceName "myPrivateDnsZone")
+        let app = webApp { name "farmerWebApp"; }
+
+        let resources = 
+            arm{
+                add_resources[
+                    app            
+
+                    privateEndpoint { 
+                      name "webapp-ep"
+                      subnet (Direct (Unmanaged someSubnet))
+                      link_to_resource (Managed app.ResourceId)
+                      link_to_unmanaged_private_dns_zone (Unmanaged dnsZone)
+                    }
+                ]
+            }
+
+        let jsn = resources.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='webapp-ep')].type").ToString()) "Microsoft.Network/privateEndpoints" "privateEndpoint type is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='webapp-ep')].dependsOn[0]").ToString()) "[resourceId('Microsoft.Web/sites', 'farmerWebApp')]" "privateEndpoint for web app should depend on web app"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='webapp-ep')].properties.privateLinkServiceConnections[0].name").ToString()) "webapp-ep" "privateEndpoint service connection name is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='webapp-ep')].properties.privateLinkServiceConnections[0].properties.groupIds[0]").ToString()) "sites" "groupIds for privateEndpoint linked to web app should be 'sites'"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='webapp-ep')].properties.privateLinkServiceConnections[0].properties.privateLinkServiceId").ToString()) "[resourceId('Microsoft.Web/sites', 'farmerWebApp')]" "privateEndpoint link service id should be the web app."
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='webapp-ep')].properties.subnet.id").ToString()) "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'mySubnet')]" "privateEndpoint should be linked with correct subnet"
+
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='webapp-ep/dnszone')].type").ToString()) "Microsoft.Network/privateEndpoints/privateDnsZoneGroups" "privateDnsZoneGroups type is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='webapp-ep/dnszone')].dependsOn[0]").ToString()) "[resourceId('Microsoft.Network/privateEndpoints', 'webapp-ep')]" "privateDnsZoneGroups should depend on private endpoint"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='webapp-ep/dnszone')].properties.privateDnsZoneConfigs[0].name").ToString()) "dnszone" "privateDnsZoneGroup name is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='webapp-ep/dnszone')].properties.privateDnsZoneConfigs[0].properties.privateDnsZoneId").ToString()) "[resourceId('Microsoft.Network/privateDnsZones', 'myPrivateDnsZone')]" "privateDnsZoneGroup dns zone id is wrong"
+    }
 ]

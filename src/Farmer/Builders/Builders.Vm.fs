@@ -122,7 +122,8 @@ type VmConfig =
                         AssociatedServiceEndpointPolicies = []
                         PrivateEndpointNetworkPolicies = None
                         PrivateLinkServiceNetworkPolicies = None
-                        RouteTable = None }
+                        RouteTable = None
+                        DependsOn = Set.empty }
                   ]
                   Tags = this.Tags
                 }
