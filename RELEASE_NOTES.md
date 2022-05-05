@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.6.33
+* Virtual networks : Add a privateEndpoint builder with dns zone group support
+* Add subnet depends_on support
 
 ## 1.6.32
 * DNS: Add support for private DNS zones and records

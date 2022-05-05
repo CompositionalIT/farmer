@@ -12,12 +12,13 @@ The virtual network builder is used to deploy virtual networks and their subnets
 - Virtual Network (`Microsoft.Network/virtualNetworks`)
 - Subnets (`Microsoft.Network/virtualNetworks/subnets`)
 
-The Virtual Network module contains four builders
+The Virtual Network module contains five builders
 
 - The `vnet` builder is used to create Azure Virtual Network instances.
 - The `subnet` builder is used within the `vnet` builder to define subnets.
 - The `addressSpace` builder can be used to automatically generate subnets based on the sizes of networks needed within the address space.
 - The `subnetSpec` builder is used to define the automatically generated subnets, with the primary different from the `subnet` builder being that you define the `size` for the prefix, and not the address.
+- The `privateEndpoint` builder is used to create Azure Private Endpoints.
 
 #### Builder Keywords
 
@@ -51,6 +52,15 @@ The Virtual Network module contains four builders
 | private_link_service_network_policies   | Enable or disable support for private link service network polices, default is `Disabled`      |
 | link_to_route_table                     | Associates this subnet with a network route table included in the same deployment              |
 | link_to_unmanaged_route_table           | Associates this subnet with a network route table which is not included in the same deployment |
+
+##### Private Endpoint: `privateEndpoint`
+
+| Keyword                                 | Purpose                                                                                            |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------|
+| name                                    | Name of the private endpoint                                                                       |
+| subnet                                  | The subnet the private endpoint belongs too                                                        |
+| link_to_resource                        | The resource the private endpoint will be attached too                                             |
+| link_to_private_dns_zone                | Optionally link the private endpoint to a private dns zone, to automatically register DNS records. |
 
 ##### Automatically build out an address space: `addressSpace`
 
@@ -210,5 +220,60 @@ let myVnet = vnet {
 let deployment = arm {
     location Location.NorthEurope
     add_resource myVnet
+}
+```
+
+#### Example - Create a VNET, private DNS zone, and a web app with a private endpoint and automatically register the DNS
+
+```fsharp
+let myDnsZone = dnsZone {
+  name "privatelink.azurewebsites.net"
+  zone_type Dns.Private
+}
+
+let myVnet = vnet {
+  name "my-vnet"
+  add_address_spaces [ "192.168.200.0/22" ]
+}
+
+let webAppSubnet = subnet {
+  name "webapps"
+  prefix "192.168.201.0/24"
+  add_delegations [
+      SubnetDelegationService "Microsoft.Web/serverFarms"
+  ]
+  link_to_vnet myVnet.ResourceId
+}
+
+let privateEndpointSubnet = subnet {
+  name "privateendpoints"
+  prefix "192.168.202.0/24"
+  allow_private_endpoints Enabled
+  link_to_vnet myVnet.ResourceId
+  depends_on webAppSubnet // Can't deploy multiple subnets in parallel
+}
+
+let myWebApp = webApp env {
+  name "codatfarmertest-my-webapp"
+  link_to_vnet webAppSubnet
+  sku Sku.P1V3
+}
+
+let myPrivateEndpoint = privateEndpoint {
+  name "mywebapp-privateendpoint"
+  subnet privateEndpointSubnet
+  link_to_resource (Managed myWebApp.ResourceId)
+  link_to_private_dns_zone myDnsZone
+}
+
+let deployment = arm {
+  add_resources [
+      myDnsZone
+      myVnet
+      webAppSubnet
+      privateEndpointSubnet
+      myWebApp
+      myPrivateEndpoint
+  ]
 }
 ```
