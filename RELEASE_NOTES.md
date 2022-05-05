@@ -1,11 +1,13 @@
 Release Notes
 =============
+## 1.7.1
+* App Setting support for Static Web Apps.
 
 ## 1.7.0
 * Azure CLI: Escape parameters passed to the az deployment command (breaking change). Any previously escaped parameters need to be unescaped before passing to the tryValidate, tryWhatIf, tryExecute, whatIf and execute functions.
 
 ## 1.6.35
-* Container Apps: Support for Managed Identities 
+* Container Apps: Support for Managed Identities
 * Logic Apps: Basic support for logic apps. These will require the logic app code to be supplied either directly or via file path.
 
 ## 1.6.34
