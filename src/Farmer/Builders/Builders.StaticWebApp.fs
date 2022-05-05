@@ -3,6 +3,7 @@ module Farmer.Builders.StaticWebApp
 
 open Farmer
 open Farmer.Arm.Web
+open Farmer.Arm.Web.StaticSites
 open System
 
 type StaticWebAppConfig =
@@ -12,7 +13,8 @@ type StaticWebAppConfig =
       RepositoryToken : SecureParameter
       AppLocation : string
       ApiLocation : string option
-      AppArtifactLocation : string option }
+      AppArtifactLocation : string option
+      AppSettings : Map<string, string> }
     interface IBuilder with
         member this.ResourceId = staticSites.resourceId this.Name
         member this.BuildResources location = [
@@ -26,6 +28,9 @@ type StaticWebAppConfig =
                   AppLocation = this.AppLocation
                   ApiLocation = this.ApiLocation
                   AppArtifactLocation = this.AppArtifactLocation }
+                if not this.AppSettings.IsEmpty then
+                    { Config.StaticSite = this.Name
+                      Properties = this.AppSettings }
             | _ ->
                 raiseFarmer "You must set the repository URI."
         ]
@@ -39,7 +44,8 @@ type StaticWebAppBuilder() =
           RepositoryToken = SecureParameter ""
           AppLocation = ""
           ApiLocation = None
-          AppArtifactLocation = None }
+          AppArtifactLocation = None
+          AppSettings = Map.empty }
     member _.Run (state:StaticWebAppConfig) =
         { state with RepositoryToken = SecureParameter state.RepositoryParameter }
 
@@ -55,5 +61,7 @@ type StaticWebAppBuilder() =
     member _.AppLocation (state:StaticWebAppConfig, location) = { state with AppLocation = location }
     [<CustomOperation "artifact_location">]
     member _.ArtifactLocation (state:StaticWebAppConfig, location) = { state with AppArtifactLocation = Some location }
+    [<CustomOperation "app_settings">]
+    member _.AppSettings (state:StaticWebAppConfig, settings) = { state with AppSettings = Map settings}
 
 let staticWebApp = StaticWebAppBuilder()
