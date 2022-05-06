@@ -2,7 +2,12 @@ Release Notes
 =============
 
 ## 1.7.1
+* App Insights: Add ConnectionString member.
+* Communication Services: **Breaking Changes**: Clean up and fix issues regarding naming and Location.
+* Communication Services: Add ConnectionString member.
 * Event Hub: Don't create the `$Default` consumer group explicitly. It will automatically be created by Azure when the resource is created.
+* SignalR: Add ConnectionString member.
+* SignalR: **Breaking Change**: Bug fix - Key now returns Key, not ConnectionString.
 
 ## 1.7.0
 * Azure CLI: Escape parameters passed to the az deployment command (breaking change). Any previously escaped parameters need to be unescaped before passing to the tryValidate, tryWhatIf, tryExecute, whatIf and execute functions.

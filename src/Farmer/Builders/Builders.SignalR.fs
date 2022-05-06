@@ -15,6 +15,7 @@ type SignalRConfig =
       ServiceMode : ServiceMode
       Tags: Map<string,string> }
     member this.ResourceId = signalR.resourceId this.Name
+
     interface IBuilder with
         member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
@@ -24,11 +25,13 @@ type SignalRConfig =
               Capacity = this.Capacity
               AllowedOrigins = this.AllowedOrigins
               ServiceMode = this.ServiceMode
-              Tags = this.Tags  }
+              Tags = this.Tags }
         ]
-    member this.Key =
-        let expr = $"listKeys(resourceId('Microsoft.SignalRService/SignalR', '{this.Name.Value}'), providers('Microsoft.SignalRService', 'SignalR').apiVersions[0]).primaryConnectionString"
+    member private this.GetKeyExpr field =  
+        let expr = $"listKeys(resourceId('Microsoft.SignalRService/SignalR', '{this.Name.Value}'), providers('Microsoft.SignalRService', 'SignalR').apiVersions[0]).{field}"
         ArmExpression.create(expr, this.ResourceId)
+    member this.Key = this.GetKeyExpr "primaryKey"
+    member this.ConnectionString = this.GetKeyExpr "primaryConnectionString"
 
 type SignalRBuilder() =
     member _.Yield _ =

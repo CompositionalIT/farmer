@@ -486,7 +486,7 @@
     },
     {
       "apiVersion": "2020-08-20-preview",
-      "location": "northeurope",
+      "location": "global",
       "name": "test",
       "properties": {
         "dataLocation": "Australia"
