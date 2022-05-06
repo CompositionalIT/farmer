@@ -2,7 +2,7 @@
 title: "Logic Apps"
 date: 2022-04-27T00:55:30+02:00
 chapter: false
-weight: 4
+weight: 12
 ---
 
 #### Overview
