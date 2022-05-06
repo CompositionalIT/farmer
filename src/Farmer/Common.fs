@@ -731,7 +731,7 @@ module WebApp =
         | Allow
         | Deny
     type IpSecurityRestriction =
-        { Name: string 
+        { Name: string
           IpAddressCidr: IPAddressCidr
           Action: IpSecurityAction }
         static member Create name cidr action =
@@ -739,7 +739,7 @@ module WebApp =
               IpAddressCidr = cidr
               Action = action }
     type VirtualApplication =
-        { PhysicalPath: string 
+        { PhysicalPath: string
           PreloadEnabled: bool option }
     module Extensions =
         /// The Microsoft.AspNetCore.AzureAppServices logging extension.
@@ -819,7 +819,7 @@ module ContainerRegistryValidation =
         private | ContainerRegistryName of ResourceName
         static member Create name =
             [ containsOnly lettersOrNumbers
-              nonEmptyLengthBetween 5 50              
+              nonEmptyLengthBetween 5 50
             ]
             |> validate "Container Registry Name" name
             |> Result.map (ResourceName >> ContainerRegistryName)
