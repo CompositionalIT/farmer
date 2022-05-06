@@ -21,6 +21,7 @@ The Static Web App builder is used to create [Static Web Apps](https://azure.mic
 | api_location | The path containing your Azure Functions (optional) |
 | app_location | The path containing your application code (optional) |
 | branch | The branch that you which to use for the static web app (optional, defaults to 'master') |
+| app_settings | Accepts a list of tuple strings representing key/value pairs for the app setting of the static web app |
 
 #### Configuration Members
 | Name | Purpose |
@@ -43,6 +44,10 @@ let myApp = staticWebApp {
     repository "https://github.com/isaacabraham/staticwebreact"
     artifact_location "build"
     api_location "api"
+    app_settings [
+        "key1", "value1"
+        "key2", "value2"
+    ]
 }
 
 let deployment = arm {

@@ -11,6 +11,7 @@ let sites = ResourceType ("Microsoft.Web/sites", "2021-03-01")
 let config = ResourceType ("Microsoft.Web/sites/config", "2016-08-01")
 let sourceControls = ResourceType ("Microsoft.Web/sites/sourcecontrols", "2019-08-01")
 let staticSites = ResourceType ("Microsoft.Web/staticSites", "2019-12-01-preview")
+let staticSitesConfig = ResourceType ("Microsoft.Web/staticSites/config", "2020-09-01")
 let siteExtensions = ResourceType ("Microsoft.Web/sites/siteextensions", "2020-06-01")
 let slots = ResourceType ("Microsoft.Web/sites/slots", "2020-09-01")
 let certificates = ResourceType ("Microsoft.Web/certificates", "2019-08-01")
@@ -199,7 +200,7 @@ type Site =
       AutoSwapSlotName: string option
       ZipDeployPath : (string * ZipDeploy.ZipDeployTarget * ZipDeploy.ZipDeploySlot) option
       HealthCheckPath : string option
-      IpSecurityRestrictions : IpSecurityRestriction list 
+      IpSecurityRestrictions : IpSecurityRestriction list
       LinkToSubnet : SubnetReference option
       VirtualApplications : Map<string, VirtualApplication> }
     /// Shorthand for SiteType.ResourceType
@@ -309,7 +310,7 @@ type Site =
                            autoSwapSlotName = this.AutoSwapSlotName |> Option.toObj
                            vnetName = this.LinkToSubnet |> Option.map (fun x -> x.ResourceId.Segments[0].Value) |> Option.toObj
                            vnetRouteAllEnabled = this.LinkToSubnet |> function | Some _ -> Nullable true | None -> Nullable()
-                           virtualApplications = 
+                           virtualApplications =
                                 if this.VirtualApplications.IsEmpty then
                                     null
                                 else
@@ -391,6 +392,21 @@ type StaticSite =
         member this.SecureParameters = [
             this.RepositoryToken
         ]
+
+module StaticSites =
+    type Config =
+        { StaticSite : ResourceName
+          Properties : Map<string, string> }
+        member this.ResourceName =
+            this.StaticSite / "appsettings"
+        interface IArmResource with
+            member this.ResourceId =
+                staticSitesConfig.resourceId this.ResourceName
+            member this.JsonModel: obj =
+                {| staticSitesConfig.Create(this.ResourceName, dependsOn = [ ResourceId.create(staticSites, this.StaticSite) ]) with
+                    properties = this.Properties
+                |}
+
 type SslState =
     | SslDisabled
     | SniBased of thumbprint: ArmExpression
@@ -399,7 +415,7 @@ type HostNameBinding =
     { Location: Location
       SiteId: LinkedResource
       DomainName: string
-      SslState: SslState}
+      SslState: SslState }
         member this.SiteResourceId =
             this.SiteId.Name
         member this.ResourceName =
