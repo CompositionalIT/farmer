@@ -121,6 +121,7 @@
     <Compile Include="Builders/Builders.PostgreSQL.fs" />
     <Compile Include="Builders/Builders.Cdn.fs" />
     <Compile Include="Builders\Builders.Storage.fs" />
+    <Compile Include="Builders/Builders.AppInsights.fs" />
     <Compile Include="Builders\Builders.ContainerApps.fs" />
     <Compile Include="Builders/Builders.ContainerGroups.fs" />
     <Compile Include="Builders/Builders.ContainerService.fs" />
@@ -135,7 +136,6 @@
     <Compile Include="Builders\Builders.LoadBalancer.fs" />
     <Compile Include="Builders/Builders.Vm.fs" />
     <Compile Include="Builders/Builders.ServicePlan.fs" />
-    <Compile Include="Builders/Builders.AppInsights.fs" />
     <Compile Include="Builders\Builders.AvailabilityTest.fs" />
     <Compile Include="Builders/Builders.WebApp.fs" />
     <Compile Include="Builders/Builders.Functions.fs" />

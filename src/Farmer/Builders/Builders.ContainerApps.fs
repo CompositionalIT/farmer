@@ -39,12 +39,13 @@ type ContainerAppConfig =
         ArmExpression
             .reference(containerApps, this.ResourceId)
             .Map(sprintf "%s.latestRevisionFqdn")
-            
+
 type ContainerEnvironmentConfig =
     { Name : ResourceName
       InternalLoadBalancerState : FeatureFlag
       ContainerApps : ContainerAppConfig list
       LogAnalytics : ResourceRef<ContainerEnvironmentConfig>
+      AppInsights : ResourceId option
       Dependencies: Set<ResourceId>
       Tags: Map<string,string> }
     interface IBuilder with
@@ -94,7 +95,8 @@ type ContainerEnvironmentBuilder() =
         { Name = ResourceName.Empty
           InternalLoadBalancerState = Disabled
           ContainerApps = []
-          LogAnalytics = ResourceRef.derived (fun cfg -> Arm.LogAnalytics.workspaces.resourceId(cfg.Name - "workspace"))
+          LogAnalytics = derived (fun cfg -> Arm.LogAnalytics.workspaces.resourceId(cfg.Name - "workspace"))
+          AppInsights = None
           Dependencies = Set.empty
           Tags = Map.empty }
 
@@ -102,9 +104,14 @@ type ContainerEnvironmentBuilder() =
     [<CustomOperation "name">]
     member _.Name  (state:ContainerEnvironmentConfig, name:string) = { state with Name = ResourceName name }
 
+    /// Sets the App Insights instance of the Environment. Used by DAPR.
+    [<CustomOperation "app_insights_instance">]
+    member _.SetAppInsights (state:ContainerEnvironmentConfig, appInsights:AppInsightsConfig) =
+        { state with AppInsights = Some (Arm.Insights.componentsWorkspace.resourceId appInsights.Name) }
+
     /// Sets the Log Analytics workspace of the Azure Container App.
     [<CustomOperation "log_analytics_instance">]
-    member _.SetLogAnalytics  (state:ContainerEnvironmentConfig, logAnalytics:WorkspaceConfig) =
+    member _.SetLogAnalytics (state:ContainerEnvironmentConfig, logAnalytics:WorkspaceConfig) =
         { state with LogAnalytics = ResourceRef.unmanaged (Arm.LogAnalytics.workspaces.resourceId logAnalytics.Name) }
 
     /// Sets whether an internal load balancer should be used for load balancing traffic to container app replicas.
@@ -285,8 +292,8 @@ type ContainerAppBuilder () =
 
     /// Adds an application secrets to the Azure Container App.
     [<CustomOperation "add_secret_parameters">]
-    member __.AddSecretParameters (state:ContainerAppConfig, keys:#seq<_>) =
-        keys |> Seq.fold (fun s k -> __.AddSecretParameter(s,k)) state
+    member this.AddSecretParameters (state:ContainerAppConfig, keys:#seq<_>) =
+        keys |> Seq.fold (fun s k -> this.AddSecretParameter(s,k)) state
 
     /// Adds an application secret to the Azure Container App.
     [<CustomOperation "add_secret_expression">]
@@ -303,8 +310,8 @@ type ContainerAppBuilder () =
 
     /// Adds an application secrets to the Azure Container App.
     [<CustomOperation "add_secret_expressions">]
-    member __.AddSecretExpressions (state:ContainerAppConfig, xs: #seq<_>) =
-        xs |> Seq.fold (fun s (k,e) -> __.AddSecretExpression(s,k,e)) state
+    member this.AddSecretExpressions (state:ContainerAppConfig, xs: #seq<_>) =
+        xs |> Seq.fold (fun s (k,e) -> this.AddSecretExpression(s,k,e)) state
 
 
     /// Adds a public environment variable to the Azure Container App environment variables.
@@ -316,8 +323,8 @@ type ContainerAppBuilder () =
 
     /// Adds a public environment variables to the Azure Container App environment variables.
     [<CustomOperation "add_env_variables">]
-    member __.AddEnvironmentVariables (state:ContainerAppConfig, vars:#seq<_>) =
-        vars |> Seq.fold (fun s (k,v) -> __.AddEnvironmentVariable(s,k,v)) state
+    member this.AddEnvironmentVariables (state:ContainerAppConfig, vars:#seq<_>) =
+        vars |> Seq.fold (fun s (k,v) -> this.AddEnvironmentVariable(s,k,v)) state
 
     [<CustomOperation "add_simple_container">]
     member this.AddSimpleContainer (state:ContainerAppConfig, dockerImage, dockerVersion) =
@@ -329,7 +336,6 @@ type ContainerAppBuilder () =
             }
         this.AddContainers(state, [ container ])
 
-    /// Support for adding dependencies to this Container App.
     interface IDependable<ContainerAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 type ContainerBuilder () =
