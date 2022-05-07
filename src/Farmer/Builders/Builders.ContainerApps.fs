@@ -243,9 +243,7 @@ type ContainerAppBuilder () =
     /// Configures Dapr in the Azure Container App.
     [<CustomOperation "dapr_app_id">]
     member _.SetDaprAppId (state:ContainerAppConfig, appId) =
-        { state with
-            DaprConfig = state.DaprConfig |> Option.map (fun c -> {| c with AppId = appId |})
-        }
+        { state with DaprConfig = Some {| AppId = appId |} }
 
     /// Sets the minimum and maximum replicas to scale the container app.
     [<CustomOperation "replicas">]
@@ -318,12 +316,12 @@ type ContainerBuilder () =
         { ContainerName = ""
           DockerImage = None
           Resources = defaultResources }
-    /// Set docker credentials
+
     [<CustomOperation "name">]
     member _.ContainerName (state:ContainerConfig, name) =
         { state with ContainerName = name }
 
-        /// Set docker credentials
+    /// Set docker credentials
     [<CustomOperation "private_docker_image">]
     member _.SetPrivateDockerImage (state:ContainerConfig, registry, containerName, version:string) =
         { state with
