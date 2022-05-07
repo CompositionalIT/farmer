@@ -84,7 +84,14 @@ type ContainerEnvironmentConfig =
                   Replicas = containerApp.Replicas
                   DaprConfig = containerApp.DaprConfig
                   Secrets = containerApp.Secrets
-                  EnvironmentVariables = containerApp.EnvironmentVariables
+                  EnvironmentVariables =
+                    let env = containerApp.EnvironmentVariables
+                    match this.AppInsights with
+                    | Some resource ->
+                        env.Add(EnvVar.createSecureExpression "APPINSIGHTS_INSTRUMENTATIONKEY" resource.InstrumentationKey)
+                    | None ->
+                        env
+
                   ImageRegistryCredentials = containerApp.ImageRegistryCredentials
                   Containers = containerApp.Containers |> List.map (fun c -> c.BuildContainer)
                   Location = location
@@ -105,7 +112,7 @@ type ContainerEnvironmentBuilder() =
     [<CustomOperation "name">]
     member _.Name  (state:ContainerEnvironmentConfig, name:string) = { state with Name = ResourceName name }
 
-    /// Sets the App Insights instance of the Environment. Used by DAPR.
+    /// Adds the instrumentation key to each container app and configures for DAPR.
     [<CustomOperation "app_insights_instance">]
     member _.SetAppInsights (state:ContainerEnvironmentConfig, appInsights:AppInsightsConfig) =
         { state with AppInsights = Some appInsights }
@@ -113,7 +120,7 @@ type ContainerEnvironmentBuilder() =
     /// Sets the Log Analytics workspace of the Azure Container App.
     [<CustomOperation "log_analytics_instance">]
     member _.SetLogAnalytics (state:ContainerEnvironmentConfig, logAnalytics:WorkspaceConfig) =
-        { state with LogAnalytics = ResourceRef.unmanaged (Arm.LogAnalytics.workspaces.resourceId logAnalytics.Name) }
+        { state with LogAnalytics = unmanaged (Arm.LogAnalytics.workspaces.resourceId logAnalytics.Name) }
 
     /// Sets whether an internal load balancer should be used for load balancing traffic to container app replicas.
     [<CustomOperation "internal_load_balancer_state">]
@@ -129,9 +136,7 @@ type ContainerEnvironmentBuilder() =
     [<CustomOperation "add_containers">]
     member _.AddContainerApps  (state:ContainerEnvironmentConfig, containerApps:ContainerAppConfig list) =
         { state with ContainerApps = containerApps @ state.ContainerApps }
-    /// Support for adding tags to this Container App Environment.
     interface ITaggable<ContainerEnvironmentConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
-    /// Support for adding dependencies to this Container App Environment.
     interface IDependable<ContainerEnvironmentConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 let private supportedResourceCombinations =

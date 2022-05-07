@@ -9,7 +9,6 @@ let containerApps = ResourceType ("Microsoft.App/containerApps", "2022-01-01-pre
 let managedEnvironments = ResourceType ("Microsoft.App/managedEnvironments", "2022-01-01-preview")
 
 open Farmer.ContainerAppValidation
-open Farmer.Identity
 
 type Container =
     { Name : string
