@@ -34,7 +34,12 @@ type ContainerAppConfig =
       ImageRegistryCredentials : ImageRegistryAuthentication list
       Containers : ContainerConfig list
       Dependencies : Set<ResourceId> }
-
+    member this.ResourceId = containerApps.resourceId this.Name
+    member this.LatestRevisionFqdn =
+        ArmExpression
+            .reference(containerApps, this.ResourceId)
+            .Map(sprintf "%s.latestRevisionFqdn")
+            
 type ContainerEnvironmentConfig =
     { Name : ResourceName
       InternalLoadBalancerState : FeatureFlag
@@ -280,6 +285,11 @@ type ContainerAppBuilder () =
             EnvironmentVariables = state.EnvironmentVariables.Add (EnvVar.create key.Value key.Value)
         }
 
+    /// Adds an application secrets to the Azure Container App.
+    [<CustomOperation "add_secret_parameters">]
+    member __.AddSecretParameters (state:ContainerAppConfig, keys:#seq<_>) =
+        keys |> Seq.fold (fun s k -> __.AddSecretParameter(s,k)) state
+
     /// Adds an application secret to the Azure Container App.
     [<CustomOperation "add_secret_expression">]
     member _.AddSecretExpression (state:ContainerAppConfig, key, expression) =
@@ -293,12 +303,23 @@ type ContainerAppBuilder () =
                 | None -> state.Dependencies
         }
 
+    /// Adds an application secrets to the Azure Container App.
+    [<CustomOperation "add_secret_expressions">]
+    member __.AddSecretExpressions (state:ContainerAppConfig, xs: #seq<_>) =
+        xs |> Seq.fold (fun s (k,e) -> __.AddSecretExpression(s,k,e)) state
+
+
     /// Adds a public environment variable to the Azure Container App environment variables.
     [<CustomOperation "add_env_variable">]
     member _.AddEnvironmentVariable (state:ContainerAppConfig, name, value) =
         { state with
             EnvironmentVariables = state.EnvironmentVariables.Add (EnvVar.create name value)
         }
+
+    /// Adds a public environment variables to the Azure Container App environment variables.
+    [<CustomOperation "add_env_variables">]
+    member __.AddEnvironmentVariables (state:ContainerAppConfig, vars:#seq<_>) =
+        vars |> Seq.fold (fun s (k,v) -> __.AddEnvironmentVariable(s,k,v)) state
 
     [<CustomOperation "add_simple_container">]
     member this.AddSimpleContainer (state:ContainerAppConfig, dockerImage, dockerVersion) =
