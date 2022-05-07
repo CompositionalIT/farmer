@@ -8,11 +8,14 @@ open Farmer.ContainerApp
 open Farmer.Identity
 
 let msi = createUserAssignedIdentity "appUser"
+let containerRegistryName = "myregistry"
 
 let fullContainerAppDeployment =
     let containerLogs = logAnalytics { name "containerlogs" }
-    let containerRegistryDomain = "myregistry.azurecr.io"
-    let containerRegistryUsername = "myregistry"
+    let containerRegistryDomain = $"{containerRegistryName}.azurecr.io"
+    let acr = containerRegistry { 
+        name containerRegistryName
+    }
     let version = "1.0.0"
     let containerEnv =
         containerEnvironment {
@@ -24,7 +27,7 @@ let fullContainerAppDeployment =
                     add_identity msi
                     active_revision_mode Single
                     add_registry_credentials [
-                        registry containerRegistryDomain containerRegistryUsername
+                        registry containerRegistryDomain containerRegistryName
                     ]
                     add_containers [
                         container {
@@ -44,8 +47,20 @@ let fullContainerAppDeployment =
                     add_http_scale_rule "http-rule" { ConcurrentRequests = 100 }
                 }
                 containerApp {
+                    name "multienv"
+                    add_simple_container "mcr.microsoft.com/dotnet/samples" "aspnetapp"
+                    ingress_target_port 80us
+                    ingress_transport Auto
+                    add_http_scale_rule "http-scaler" { ConcurrentRequests = 10 }
+                    add_cpu_scale_rule "cpu-scaler" { Utilisation = 50 }
+                    add_secret_parameters ["servicebusconnectionkey"]
+                    add_env_variables ["ServiceBusQueueName","wishrequests"]
+                    add_secret_expressions ["containerlogs", containerLogs.PrimarySharedKey]
+                }
+                containerApp {
                     name "servicebus"
                     active_revision_mode Single
+                    reference_registry_credentials [(acr :> IBuilder).ResourceId]
                     add_containers [
                         container {
                             name "servicebus"
@@ -84,6 +99,12 @@ let tests = testList "Container Apps" [
         Expect.hasLength jobj.["parameters"] 2 "Expecting 2 parameters"
         Expect.isNotNull (jobj.SelectToken("parameters.servicebusconnectionkey")) "Missing 'servicebusconnectionkey' parameter"
         Expect.isNotNull (jobj.SelectToken("parameters['myregistry.azurecr.io-password']")) "Missing 'myregistry.azurecr.io-password' parameter"
+    }
+    test "Seq container environment parameters" {
+        let containerApp = fullContainerAppDeployment.Template.Resources |> List.find(fun r -> r.ResourceId.Name.Value = "multienv") :?> Farmer.Arm.App.ContainerApp
+        containerApp.EnvironmentVariables.["ServiceBusQueueName"] |> ignore
+        containerApp.EnvironmentVariables.["servicebusconnectionkey"] |> ignore
+        containerApp.EnvironmentVariables.["containerlogs"] |> ignore
     }
     test "Full container managed environments" {
         let kubeEnv = jobj.SelectToken("resources[?(@.name=='kubecontainerenv')]")
@@ -132,5 +153,9 @@ let tests = testList "Container Apps" [
         let containerApp = fullContainerAppDeployment.Template.Resources |> List.find(fun r -> r.ResourceId.Name.Value = "http") :?> Farmer.Arm.App.ContainerApp
         Expect.isNonEmpty containerApp.Identity.UserAssigned "Container app did not have identity"
         Expect.equal containerApp.Identity.UserAssigned.[0] (UserAssignedIdentity(ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "appUser"))) "Expected user identity named 'appUser'."
+    }
+    test "Linked ACR references correct secret" {
+        let containerApp = fullContainerAppDeployment.Template.Resources |> List.find(fun r -> r.ResourceId.Name.Value = "servicebus") :?> Farmer.Arm.App.ContainerApp
+        Expect.isFalse (containerApp.Secrets |> Map.containsKey (ContainerAppValidation.ContainerAppSettingKey.Create $"{containerRegistryName}-username").OkValue) "Container app did not have linked ACR's secret"
     }
 ]

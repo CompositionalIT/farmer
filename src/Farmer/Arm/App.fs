@@ -55,6 +55,7 @@ type ContainerApp =
     interface IArmResource with
         member this.ResourceId = containerApps.resourceId this.Name
         member this.JsonModel =
+            let usernameSecretName (resourceId:ResourceId) = $"{resourceId.Name.Value}-username"
             {| containerApps.Create(this.Name, this.Location, this.dependencies) with
                    kind = "containerapp"
                    identity =
@@ -72,7 +73,7 @@ type ContainerApp =
                                                {| name = cred.Username
                                                   value = cred.Password.ArmExpression.Eval() |}
                                            | ImageRegistryAuthentication.ListCredentials resourceId ->
-                                               {| name = ArmExpression.create($"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username").Eval()
+                                               {| name = usernameSecretName resourceId
                                                   value = ArmExpression.create($"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').passwords[0].value").Eval() |}
                                        for setting in this.Secrets do
                                            {| name = setting.Key.Value
@@ -90,9 +91,9 @@ type ContainerApp =
                                                   username = cred.Username
                                                   passwordSecretRef = cred.Username |}
                                            | ImageRegistryAuthentication.ListCredentials resourceId ->
-                                               {| server = ArmExpression.create($"reference({resourceId.ArmExpression.Value}, '2019-05-01').loginServer").Eval()
+                                               {| server = $"{resourceId.Name.Value}.azurecr.io"
                                                   username = ArmExpression.create($"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username").Eval()
-                                                  passwordSecretRef = ArmExpression.create($"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username").Eval() |}
+                                                  passwordSecretRef = usernameSecretName resourceId |}
                                    |]
                                    ingress =
                                         match this.IngressMode with
