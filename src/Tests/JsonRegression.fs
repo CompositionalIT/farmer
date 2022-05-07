@@ -2,13 +2,13 @@ module JsonRegression
 
 open Expecto
 open Farmer
-open Farmer.Builders
 open Farmer.Arm
+open Farmer.AzureFirewall
+open Farmer.Builders
 open Farmer.Network
-open System.IO
 open Farmer.ServiceBus
 open System
-open Farmer.AzureFirewall
+open System.IO
 
 let tests =
     testList "ARM Writer Regression Tests" [
@@ -79,7 +79,7 @@ let tests =
                 add_resources [cosmos; cosmosMongo; vm]
             }
 
-            let communicationServices = communicationServices {
+            let communicationServices = communicationService {
                 name "test"
                 add_tags [ "a", "b" ]
                 data_location DataLocation.Australia

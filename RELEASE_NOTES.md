@@ -1,12 +1,16 @@
 Release Notes
 =============
-## 1.7.1
-* Container Apps: Support for collections of env vars, fix ACR credentials linking 
-* Event Hub: Don't create the `$Default` consumer group explicitly. It will automatically be created by Azure when the resource is created.
-* Static Web Apps: App Setting support.
 
 ## 1.7.1
+* App Insights: Add ConnectionString member.
+* Communication Services: **Breaking Changes**: Clean up and fix issues regarding naming and Location.
+* Communication Services: Add ConnectionString member.
+* Container Apps: Support for collections of env vars, fix ACR credentials linking 
 * Deployments: Use vault-secrets from unmanaged resource groups
+* Event Hub: Don't create the `$Default` consumer group explicitly. It will automatically be created by Azure when the resource is created.
+* SignalR: Add ConnectionString member.
+* SignalR: **Breaking Change**: Bug fix - Key now returns Key, not ConnectionString.
+* Static Web Apps: App Setting support.
 
 ## 1.7.0
 * Azure CLI: Escape parameters passed to the az deployment command (breaking change). Any previously escaped parameters need to be unescaped before passing to the tryValidate, tryWhatIf, tryExecute, whatIf and execute functions.

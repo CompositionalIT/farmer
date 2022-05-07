@@ -70,6 +70,7 @@ let tests = testList "SignalR" [
 
     test "Key is correctly emitted" {
         let mySignalR = signalR { name "my-signalr" }
-        Expect.equal "[listKeys(resourceId('Microsoft.SignalRService/SignalR', 'my-signalr'), providers('Microsoft.SignalRService', 'SignalR').apiVersions[0]).primaryConnectionString]" (mySignalR.Key.Eval()) "Key is incorrect"
+        Expect.equal "[listKeys(resourceId('Microsoft.SignalRService/SignalR', 'my-signalr'), providers('Microsoft.SignalRService', 'SignalR').apiVersions[0]).primaryKey]" (mySignalR.Key.Eval()) "Key is incorrect"
+        Expect.equal "[listKeys(resourceId('Microsoft.SignalRService/SignalR', 'my-signalr'), providers('Microsoft.SignalRService', 'SignalR').apiVersions[0]).primaryConnectionString]" (mySignalR.ConnectionString.Eval()) "Connection String is incorrect"
     }
 ]
