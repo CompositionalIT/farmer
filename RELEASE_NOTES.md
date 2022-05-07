@@ -7,6 +7,7 @@ Release Notes
 * Communication Services: Add ConnectionString member.
 * Container Apps: Support for collections of env vars, fix ACR credentials linking
 * Container Apps: Fix a bug whereby Dapr was not correctly turned on.
+* Container Apps: Add Dapr / App Insights integration.
 * Deployments: Use vault-secrets from unmanaged resource groups
 * Event Hub: Don't create the `$Default` consumer group explicitly. It will automatically be created by Azure when the resource is created.
 * SignalR: Add ConnectionString member.

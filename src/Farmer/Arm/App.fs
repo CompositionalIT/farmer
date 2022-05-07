@@ -232,6 +232,7 @@ type ManagedEnvironment =
       InternalLoadBalancerState : FeatureFlag
       LogAnalytics : ResourceId
       Dependencies: Set<ResourceId>
+      AppInsightsInstrumentationKey : ArmExpression option
       Tags: Map<string,string> }
     interface IArmResource with
         member this.ResourceId = managedEnvironments.resourceId this.Name
@@ -241,6 +242,10 @@ type ManagedEnvironment =
                 properties =
                     {| ``type`` = "managed"
                        internalLoadBalancerEnabled = this.InternalLoadBalancerState.AsBoolean
+                       daprAIInstrumentationKey =
+                        this.AppInsightsInstrumentationKey
+                        |> Option.map (fun x -> x.Eval())
+                        |> Option.toObj
                        appLogsConfiguration =
                         {| destination = "log-analytics"
                            logAnalyticsConfiguration =

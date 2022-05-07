@@ -45,7 +45,7 @@ type ContainerEnvironmentConfig =
       InternalLoadBalancerState : FeatureFlag
       ContainerApps : ContainerAppConfig list
       LogAnalytics : ResourceRef<ContainerEnvironmentConfig>
-      AppInsights : ResourceId option
+      AppInsights : AppInsightsConfig option
       Dependencies: Set<ResourceId>
       Tags: Map<string,string> }
     interface IBuilder with
@@ -56,6 +56,7 @@ type ContainerEnvironmentConfig =
               InternalLoadBalancerState = this.InternalLoadBalancerState
               LogAnalytics = logAnalyticsResourceId
               Location = location
+              AppInsightsInstrumentationKey = this.AppInsights |> Option.map (fun r -> r.InstrumentationKey)
               Dependencies = this.Dependencies.Add logAnalyticsResourceId
               Tags = this.Tags }
 
@@ -107,7 +108,7 @@ type ContainerEnvironmentBuilder() =
     /// Sets the App Insights instance of the Environment. Used by DAPR.
     [<CustomOperation "app_insights_instance">]
     member _.SetAppInsights (state:ContainerEnvironmentConfig, appInsights:AppInsightsConfig) =
-        { state with AppInsights = Some (Arm.Insights.componentsWorkspace.resourceId appInsights.Name) }
+        { state with AppInsights = Some appInsights }
 
     /// Sets the Log Analytics workspace of the Azure Container App.
     [<CustomOperation "log_analytics_instance">]
