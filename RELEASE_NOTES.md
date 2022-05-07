@@ -5,6 +5,9 @@ Release Notes
 * Event Hub: Don't create the `$Default` consumer group explicitly. It will automatically be created by Azure when the resource is created.
 * Static Web Apps: App Setting support.
 
+## 1.7.1
+* Deployments: Use vault-secrets from unmanaged resource groups
+
 ## 1.7.0
 * Azure CLI: Escape parameters passed to the az deployment command (breaking change). Any previously escaped parameters need to be unescaped before passing to the tryValidate, tryWhatIf, tryExecute, whatIf and execute functions.
 
