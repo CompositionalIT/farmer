@@ -23,7 +23,8 @@ The SignalR builder creates SignalR services.
 
 | Member | Purpose |
 |-|-|
-| Key | Returns an ARM expression to retrieve the primary connection string of the service. Useful for e.g. supplying the connection string to another resource e.g. KeyVault or an app setting in the App Service. |
+| Key | Returns an ARM expression to retrieve the primary Key of the service. Useful for e.g. supplying the connection string to another resource e.g. KeyVault or an app setting in the App Service. |
+| ConnectionString | Returns an ARM expression to retrieve the primary Connection String of the service. Useful for e.g. supplying the connection string to another resource e.g. KeyVault or an app setting in the App Service. |
 
 #### Example
 

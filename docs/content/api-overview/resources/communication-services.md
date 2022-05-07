@@ -13,14 +13,15 @@ The Communication Services builder is used to create Azure Communication Service
 #### Builder Keywords
 | Keyword | Purpose |
 |-|-|
-| name | Sets the name of the Bing Search instance. |
+| name | Sets the name of the Communication Services instance. |
 | data_location | Sets the `dataLocation` property of the instance. Defaults to `United States` |
 
 #### Configuration Members
 
 | Member | Purpose |
 |-|-|
-| Key | Gets the ARM expression path to the Key of this Bing Search instance. |
+| Key | Gets the ARM expression path to the Key of this Communication Services instance. |
+| Key | Gets the ARM expression path to the Connection String of this Communication Services instance. |
 
 #### Example
 ```fsharp
@@ -28,7 +29,7 @@ open Farmer
 open Farmer.Builders
 
 let tags = [ "a", "1"; "b", "2" ]
-let cs = communicationServices {
+let cs = communicationService {
     name "test"
     add_tags tags
     data_location DataLocation.Australia

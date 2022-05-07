@@ -1,7 +1,15 @@
 Release Notes
 =============
+
 ## 1.7.1
+* App Insights: Add ConnectionString member.
+* Communication Services: **Breaking Changes**: Clean up and fix issues regarding naming and Location.
+* Communication Services: Add ConnectionString member.
+* Container Apps: Support for collections of env vars, fix ACR credentials linking 
+* Deployments: Use vault-secrets from unmanaged resource groups
 * Event Hub: Don't create the `$Default` consumer group explicitly. It will automatically be created by Azure when the resource is created.
+* SignalR: Add ConnectionString member.
+* SignalR: **Breaking Change**: Bug fix - Key now returns Key, not ConnectionString.
 * Static Web Apps: App Setting support.
 * Container Apps: Fix a bug whereby Dapr was not correctly turned on.
 

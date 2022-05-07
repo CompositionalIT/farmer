@@ -380,4 +380,40 @@ let tests = testList "Template" [
         let parametersJson = jobjTemplate.SelectToken("$.parameters") |> string<JToken>
         Expect.equal parametersJson "{}" "Outer template should not have parameter that is passed to inner template"
     }
+    test "Can reference vault secret from another resource group" {
+        let webApp = webApp {
+            name "resource-needing-vault-secret"
+            
+            secret_setting "SOME__ENV__VARIABLE"
+        }
+        
+        let resourceGroupBeingDeployed = resourceGroup { 
+            name "rg-being-deployed"
+            
+            add_resource webApp
+            
+            add_secret_references [
+                "SOME__ENV__VARIABLE", vaults.resourceId("vault-name", "already-deployed-resource-group-name"), "vault-secret-name"
+            ]
+        }
+        
+        let deployment = arm  {
+            add_resource resourceGroupBeingDeployed
+        }
+        
+        let deployment = deployment |> findAzureResources<Models.Deployment> dummyClient.SerializationSettings
+        let resourceGroupParamsObj = deployment.[0].Properties.Parameters :?> JObject
+        let resourceGroupParams = 
+            resourceGroupParamsObj.Properties()
+            |> Seq.map (fun x -> x.Name, x.Value.SelectToken(".reference").ToString())
+            |> Map.ofSeq
+
+        let expected = """{
+  "keyVault": {
+    "id": "[resourceId('already-deployed-resource-group-name', 'Microsoft.KeyVault/vaults', 'vault-name')]"
+  },
+  "secretName": "vault-secret-name"
+}"""
+        Expect.equal resourceGroupParams.["SOME__ENV__VARIABLE"] expected "Parameter 'vault-secret-name' is incorrect."
+    }
 ]

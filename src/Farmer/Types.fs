@@ -58,6 +58,7 @@ type ResourceType with
       | [||] | [| _ |] -> ResourceId.create (this, name)
       | parts -> ResourceId.create (this, (ResourceName parts.[0]), (Array.map ResourceName parts.[1..]))
     member this.resourceId name = this.resourceId (ResourceName name)
+    member this.resourceId (name, groupName) = ResourceId.create(this, ResourceName name, group= groupName)
     member this.resourceId (firstSegment, [<ParamArray>] remainingSegments:ResourceName []) = ResourceId.create (this, firstSegment, remainingSegments)
 
 [<AutoOpen>]

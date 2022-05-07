@@ -48,8 +48,11 @@ The Container Apps builder (`containerApp`) is used to define one or more contai
 | add_containers | Adds a list of containers to this container app. All containers in the app share resources and scaling. |
 | add_simple_container | Adds a single container that references a public docker image and version. |
 | add_secret_parameter | Adds an application secret to the entire container app. This is passed as a secure parameter to the template, and an environment variable is automatically created which references the secret. |
+| add_secret_parameters | Adds application secrets to the entire container app. This is passed as secure parameters to the template, and environment variables are automatically created which reference the secret. |
 | add_secret_expression | As per `add_secret_parameter`, but the value is sourced from an ARM expression instead of as a parameter. Useful for e.g. storage keys etc. |
+| add_secret_expressions | As per `add_secret_parameters`, but the values are sourced from an ARM expressions instead of as parameters. Useful for e.g. storage keys etc. |
 | add_env_variable | Adds a static, plain text environment variable. |
+| add_env_variables | Adds static, plain text environment variables. |
 
 ##### Scale Rules
 

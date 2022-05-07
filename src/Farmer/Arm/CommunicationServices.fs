@@ -1,18 +1,17 @@
 [<AutoOpen>]
-module Farmer.Arm.CommunicationServices
+module Farmer.Arm.Communication
 
 open Farmer
 
-let resource = ResourceType ("Microsoft.Communication/communicationServices", "2020-08-20-preview")
+let communicationServices = ResourceType ("Microsoft.Communication/communicationServices", "2020-08-20-preview")
 
-type Resource =
+type CommunicationService =
     { Name: ResourceName
-      Location: Location
       DataLocation: DataLocation
       Tags: Map<string,string> }
     interface IArmResource with
-        member this.ResourceId = resource.resourceId this.Name
+        member this.ResourceId = communicationServices.resourceId this.Name
         member this.JsonModel =
-            {| resource.Create(this.Name, this.Location, tags = this.Tags) with
+            {| communicationServices.Create(this.Name, Location.Global, tags = this.Tags) with
                 properties = {| dataLocation = this.DataLocation.ArmValue |}
             |}

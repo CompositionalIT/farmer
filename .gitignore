@@ -357,3 +357,4 @@ MigrationBackup/
 hugo.exe
 public
 docs/public
+/src/Tests/test-data/*jsonout/deployment.json
