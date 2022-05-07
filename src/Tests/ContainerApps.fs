@@ -6,6 +6,7 @@ open Farmer.Builders
 open Newtonsoft.Json.Linq
 open Farmer.ContainerApp
 open Farmer.Identity
+open Farmer.Arm
 
 let msi = createUserAssignedIdentity "appUser"
 
@@ -129,8 +130,12 @@ let tests = testList "Container Apps" [
         Expect.equal (scale.["maxReplicas"] |> int) 5 "Incorrect max replicas"
     }
     test "Makes container app with MSI" {
-        let containerApp = fullContainerAppDeployment.Template.Resources |> List.find(fun r -> r.ResourceId.Name.Value = "http") :?> Farmer.Arm.App.ContainerApp
+        let containerApp = fullContainerAppDeployment.Template.Resources |> List.find(fun r -> r.ResourceId.Name.Value = "http") :?> App.ContainerApp
         Expect.isNonEmpty containerApp.Identity.UserAssigned "Container app did not have identity"
-        Expect.equal containerApp.Identity.UserAssigned.[0] (UserAssignedIdentity(ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "appUser"))) "Expected user identity named 'appUser'."
+        Expect.equal containerApp.Identity.UserAssigned.[0] (UserAssignedIdentity(ResourceId.create(userAssignedIdentities, ResourceName "appUser"))) "Expected user identity named 'appUser'."
+    }
+    test "Turns on Dapr" {
+        let containerApp = fullContainerAppDeployment.Template.Resources |> List.find(fun r -> r.ResourceId.Name.Value = "http") :?> App.ContainerApp
+        Expect.isSome containerApp.DaprConfig "Dapr config was not set"
     }
 ]
