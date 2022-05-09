@@ -224,6 +224,45 @@ type ContainerApp =
                             |}
                 |}
             |}
+type DaprComponent =
+    { Name : string
+      Location : Location
+      ManagedEnvironment : ResourceName
+      ComponentType : string
+      Version : string
+      IgnoreErrors : bool option
+      InitTimeout : string
+      Metadata : Map<string, EnvVar> }
+    member this.ResourceName = this.ManagedEnvironment / this.Name
+    interface IArmResource with
+        member this.ResourceId = daprComponents.resourceId this.ResourceName
+        member this.JsonModel =
+            {| daprComponents.Create(this.ResourceName, this.Location, [ ResourceId.create (managedEnvironments, this.ManagedEnvironment) ]) with
+                properties =
+                    {|
+                        componentType = this.ComponentType
+                        version = this.Version
+                        ignoreErrors = this.IgnoreErrors |> Option.toNullable
+                        initTimeout = this.InitTimeout
+                        secrets = [
+                            for metadata in this.Metadata do
+                                match metadata.Value with
+                                | SecureEnvValue parameter -> {| name = metadata.Key.ToLower(); value = parameter.ArmExpression.Eval() |}
+                                | SecureEnvExpression expr -> {| name = metadata.Key.ToLower(); value = expr.Eval() |}
+                                | EnvValue _ -> ()
+                        ]
+                        metadata = [
+                            for metadata in this.Metadata do
+                                match metadata.Value with
+                                | SecureEnvValue _
+                                | SecureEnvExpression _ ->
+                                    {| name = metadata.Key; secretRef = metadata.Key.ToLower() |} :> obj
+                                | EnvValue value ->
+                                    {| name = metadata.Key; value = value |}
+                        ]
+                    |}
+            |}
+
 
 type ManagedEnvironment =
     { Name : ResourceName

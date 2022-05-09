@@ -40,6 +40,14 @@ type ContainerAppConfig =
             .reference(containerApps, this.ResourceId)
             .Map(sprintf "%s.latestRevisionFqdn")
 
+type DaprComponentConfig =
+    { Name : string
+      ComponentType : string
+      Version : string
+      IgnoreErrors : bool option
+      InitTimeout : string
+      Metadata : Map<string, EnvVar> }
+
 type ContainerEnvironmentConfig =
     { Name : ResourceName
       InternalLoadBalancerState : FeatureFlag
@@ -47,6 +55,7 @@ type ContainerEnvironmentConfig =
       LogAnalytics : ResourceRef<ContainerEnvironmentConfig>
       AppInsights : AppInsightsConfig option
       Dependencies: Set<ResourceId>
+      StateStore : DaprComponentConfig option
       Tags: Map<string,string> }
     interface IBuilder with
         member this.ResourceId = containerApps.resourceId this.Name
@@ -72,6 +81,19 @@ type ContainerEnvironmentConfig =
                     :> IBuilder
                 yield! workspaceConfig.BuildResources location
             | _ ->
+                ()
+
+            match this.StateStore with
+            | Some stateStore ->
+                { Name = stateStore.Name
+                  Location = location
+                  ManagedEnvironment = this.Name
+                  ComponentType = stateStore.ComponentType
+                  Version = stateStore.Version
+                  IgnoreErrors = stateStore.IgnoreErrors
+                  InitTimeout = stateStore.InitTimeout
+                  Metadata = stateStore.Metadata }
+            | None ->
                 ()
 
             for containerApp in this.ContainerApps do
@@ -105,6 +127,7 @@ type ContainerEnvironmentBuilder() =
           ContainerApps = []
           LogAnalytics = derived (fun cfg -> Arm.LogAnalytics.workspaces.resourceId(cfg.Name - "workspace"))
           AppInsights = None
+          StateStore = None
           Dependencies = Set.empty
           Tags = Map.empty }
 
@@ -136,6 +159,26 @@ type ContainerEnvironmentBuilder() =
     [<CustomOperation "add_containers">]
     member _.AddContainerApps  (state:ContainerEnvironmentConfig, containerApps:ContainerAppConfig list) =
         { state with ContainerApps = containerApps @ state.ContainerApps }
+
+    [<CustomOperation "dapr_state_store">]
+    member _.SetDaprStateStore (state:ContainerEnvironmentConfig, (storageAccount:StorageAccountConfig, containerName)) =
+        { state with
+            StateStore =
+                Some
+                    {
+                        Name = "statestore"
+                        ComponentType = "state.azure.blobstorage"
+                        Version = "v1"
+                        IgnoreErrors = Some false
+                        InitTimeout = "5s"
+                        Metadata = Map [
+                            EnvVar.createSecureExpression "accountKey" storageAccount.Key
+                            EnvVar.create "accountName" storageAccount.Name.ResourceName.Value
+                            EnvVar.create "containerName" containerName
+                        ]
+                    }
+        }
+
     interface ITaggable<ContainerEnvironmentConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<ContainerEnvironmentConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
