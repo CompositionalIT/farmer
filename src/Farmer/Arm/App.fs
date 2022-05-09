@@ -7,6 +7,7 @@ open Farmer
 
 let containerApps = ResourceType ("Microsoft.App/containerApps", "2022-01-01-preview")
 let managedEnvironments = ResourceType ("Microsoft.App/managedEnvironments", "2022-01-01-preview")
+let daprComponents = ResourceType ("Microsoft.App/managedEnvironments/daprComponents", "2022-01-01-preview")
 
 open Farmer.ContainerAppValidation
 
