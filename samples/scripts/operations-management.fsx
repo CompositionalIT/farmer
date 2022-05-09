@@ -10,24 +10,24 @@ let sentinelWorkspace = logAnalytics {
     daily_cap 5<Gb>
 }
 
-let solutionName = $"SecurityInsights({sentinelWorkspace.Name.Value})"
+let omsName = $"SecurityInsights({sentinelWorkspace.Name.Value})"
 
-let sentinelSolution = solution {
-    name solutionName
-    plan (solutionPlan {
-        name solutionName
+let sentinelSolution = oms {
+    name omsName
+    plan (omsPlan {
+        name omsName
         publisher "Microsoft"
         product "OMSGallery/SecurityInsights"
     })
-    properties(solutionProperties {
+    properties(omsProperties {
         workspace sentinelWorkspace
     })
 }
 
 let deployment = arm {
-  location Location.NorthCentralUS
-  add_resource sentinelWorkspace
-  add_resource sentinelSolution
+    location Location.NorthCentralUS
+    add_resource sentinelWorkspace
+    add_resource sentinelSolution
 }
 
 deployment

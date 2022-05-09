@@ -3,9 +3,9 @@ module Farmer.Arm.OperationsManagement
 
 open Farmer
 
-let solutions = ResourceType("Microsoft.OperationsManagement/solutions", "2015-11-01-preview")
+let oms = ResourceType("Microsoft.OperationsManagement/solutions", "2015-11-01-preview")
 
-type Solution =
+type OMS =
     { Name: ResourceName
       Location: Location
       Plan: 
@@ -14,16 +14,16 @@ type Solution =
               Publisher: string
           |}
       Properties:
-          {|  ContainedResources: string list
-              ReferencedResources: string list
+          {|  ContainedResources: ResourceId list
+              ReferencedResources: ResourceId list
               WorkspaceResourceId: ResourceId
           |}
       Tags: Map<string, string>
     }
     interface IArmResource with
-        member this.ResourceId = solutions.resourceId this.Name
+        member this.ResourceId = oms.resourceId this.Name
         member this.JsonModel =
-            {| solutions.Create(this.Name, this.Location, tags = this.Tags) with
+            {| oms.Create(this.Name, this.Location, tags = this.Tags) with
                   plan =
                       {|  name = this.Plan.Name
                           publisher = this.Plan.Publisher
@@ -32,7 +32,7 @@ type Solution =
                       |}
                   properties =
                       {|  workspaceResourceId = this.Properties.WorkspaceResourceId.Eval()
-                          containedResources = this.Properties.ContainedResources
-                          referencedResources = this.Properties.ReferencedResources
+                          containedResources = this.Properties.ContainedResources |> List.map (fun cr -> cr.Eval())
+                          referencedResources = this.Properties.ReferencedResources |> List.map (fun rr -> rr.Eval())
                       |}
             |}

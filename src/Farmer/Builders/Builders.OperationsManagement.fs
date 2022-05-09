@@ -4,11 +4,12 @@ module Farmer.Builders.OperationsManagement
 open Farmer
 open Farmer.Arm.OperationsManagement
 
-type SolutionProperties =
+/// OMS = Operations Management Solution
+
+type OMSProperties =
     { Workspace: IBuilder option
-      // todo - should these be IBuilders to access ResourceIds?
-      ContainedResources: string list
-      ReferencedResources : string list
+      ContainedResources: IBuilder list
+      ReferencedResources : IBuilder list
     } with
         static member Empty = {
           Workspace = None
@@ -16,7 +17,7 @@ type SolutionProperties =
           ReferencedResources = []
         }
 
-type SolutionPlan =
+type OMSPlan =
     { Name: string
       Publisher: string
       Product: string
@@ -27,13 +28,13 @@ type SolutionPlan =
             Product = ""
         }
 
-type SolutionConfig =
+type OMSConfig =
     { Name: ResourceName
-      Properties: SolutionProperties
-      Plan: SolutionPlan
+      Properties: OMSProperties
+      Plan: OMSPlan
       Tags: Map<string, string> }
     interface IBuilder with
-        member this.ResourceId = solutions.resourceId this.Name
+        member this.ResourceId = oms.resourceId this.Name
         member this.BuildResources location = [
           match this.Properties.Workspace with
           | Some workspace ->
@@ -46,8 +47,8 @@ type SolutionConfig =
                     |}
                 Properties =
                     {|  WorkspaceResourceId = workspace.ResourceId
-                        ContainedResources = this.Properties.ContainedResources
-                        ReferencedResources = this.Properties.ReferencedResources
+                        ContainedResources = this.Properties.ContainedResources |> List.map (fun cr -> cr.ResourceId)
+                        ReferencedResources = this.Properties.ReferencedResources |> List.map (fun rr -> rr.ResourceId)
                     |}
                 Tags = this.Tags
               }
@@ -55,66 +56,74 @@ type SolutionConfig =
               ()
         ]
 
-type SolutionPropertiesBuilder() =
+type OMSPropertiesBuilder() =
     member _.Yield _ =
         { Workspace = None
           ContainedResources = []
           ReferencedResources = [] }
 
-    /// Sets the workspace resource id of the Solution Properties
+    /// Sets the workspace resource id of the OMS Properties
     [<CustomOperation "workspace">]
-    member _.WorkspaceResourceId(state: SolutionProperties, workspace) = { state with Workspace = Some workspace }
+    member _.WorkspaceResourceId(state: OMSProperties, workspace) = { state with Workspace = Some workspace }
 
-    /// Sets the contained resources of the Solution Properties
-    [<CustomOperation "contains">]
-    member _.ContainedResources(state: SolutionProperties, contained) = { state with ContainedResources = contained }
+    /// Adds a contained resource.
+    [<CustomOperation "add_contained_resource">]
+    member _.AddContainedResource(state: OMSProperties, contained) = { state with ContainedResources = contained :: state.ContainedResources }
 
-    /// Sets the referenced resources of the Solution Properties
-    [<CustomOperation "references">]
-    member _.ReferencedResources(state: SolutionProperties, referenced) = { state with ReferencedResources = referenced }
+    /// Adds a collection of contained resources.
+    [<CustomOperation "add_contained_resources">]
+    member _.AddContainedResources(state: OMSProperties, contained) = { state with ContainedResources = contained @ state.ContainedResources }
 
-let solutionProperties = SolutionPropertiesBuilder()
+    /// Adds a referenced resource.
+    [<CustomOperation "add_referenced_resource">]
+    member _.AddReferencedResource(state: OMSProperties, referenced) = { state with ReferencedResources = referenced :: state.ReferencedResources }
 
-type SolutionPlanBuilder() =
+    /// Adds a collection of referenced resources.
+    [<CustomOperation "add_referenced_resources">]
+    member _.AddReferencedResources(state: OMSProperties, referenced) = { state with ReferencedResources = referenced @ state.ReferencedResources }
+
+let omsProperties = OMSPropertiesBuilder()
+
+type OMSPlanBuilder() =
     member _.Yield _ =
         { Name = ""
           Publisher = "Microsoft"
           Product = "" }
 
-    /// Sets the name of the Solution Plan
+    /// Sets the name of the OMS Plan
     [<CustomOperation "name">]
-    member _.Name(state: SolutionPlan, name) = { state with Name = name }
+    member _.Name(state: OMSPlan, name) = { state with Name = name }
 
-    /// Sets the publisher of the Solution Plan
+    /// Sets the publisher of the OMS Plan
     [<CustomOperation "publisher">]
-    member _.Publisher(state: SolutionPlan, publisher) = { state with Publisher = publisher }
+    member _.Publisher(state: OMSPlan, publisher) = { state with Publisher = publisher }
 
-    /// Sets the product of the Solution Plan
+    /// Sets the product of the OMS Plan
     [<CustomOperation "product">]
-    member _.Product(state: SolutionPlan, product) = { state with Product = product }
+    member _.Product(state: OMSPlan, product) = { state with Product = product }
 
-let solutionPlan = SolutionPlanBuilder()
+let omsPlan = OMSPlanBuilder()
 
-type SolutionBuilder() =
+type OMSBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          Plan = SolutionPlan.Empty
-          Properties = SolutionProperties.Empty
+          Plan = OMSPlan.Empty
+          Properties = OMSProperties.Empty
           Tags = Map.empty }
 
-    /// Sets the name of the Solution
+    /// Sets the name of the OMS
     [<CustomOperation "name">]
-    member _.Name(state: SolutionConfig, name) = { state with Name = ResourceName name }
+    member _.Name(state: OMSConfig, name) = { state with Name = ResourceName name }
 
-    /// Sets the Solution Plan
+    /// Sets the OMS Plan
     [<CustomOperation "plan">]
-    member _.Plan(state: SolutionConfig, plan : SolutionPlan) = { state with Plan = plan}
+    member _.Plan(state: OMSConfig, plan : OMSPlan) = { state with Plan = plan}
 
-    /// Sets the Solution Plan
+    /// Sets the OMS Plan
     [<CustomOperation "properties">]
-    member _.Properties(state: SolutionConfig, properties : SolutionProperties) = { state with Properties = properties}
+    member _.Properties(state: OMSConfig, properties : OMSProperties) = { state with Properties = properties}
 
     interface ITaggable<WorkspaceConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
-let solution = SolutionBuilder()
+let oms = OMSBuilder()
 
