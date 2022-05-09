@@ -48,7 +48,7 @@ type ContainerEnvironmentConfig =
       Dependencies: Set<ResourceId>
       Tags: Map<string,string> }
     interface IBuilder with
-        member this.ResourceId = containerApps.resourceId this.Name
+        member this.ResourceId = managedEnvironments.resourceId this.Name
         member this.BuildResources location = [
             let logAnalyticsResourceId = this.LogAnalytics.resourceId this
             { Name = this.Name
