@@ -117,11 +117,11 @@ type OMSBuilder() =
 
     /// Sets the OMS Plan
     [<CustomOperation "plan">]
-    member _.Plan(state: OMSConfig, plan : OMSPlan) = { state with Plan = plan}
+    member _.Plan(state: OMSConfig, plan : OMSPlan) = { state with Plan = plan }
 
-    /// Sets the OMS Plan
+    /// Sets the OMS Properties
     [<CustomOperation "properties">]
-    member _.Properties(state: OMSConfig, properties : OMSProperties) = { state with Properties = properties}
+    member _.Properties(state: OMSConfig, properties : OMSProperties) = { state with Properties = properties }
 
     interface ITaggable<WorkspaceConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
