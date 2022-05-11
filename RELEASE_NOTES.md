@@ -2,6 +2,7 @@ Release Notes
 =============
 
 ## 1.7.2
+* Container Apps: Fix ResourceId
 * Operations Management: Add basic support for Operations Management to configure & deploy Solutions.
 
 ## 1.7.1
