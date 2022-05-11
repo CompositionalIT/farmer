@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+## PR-933
+* Network: Added Microsoft.Web/serverFarms to the SubnetDelegationService as a new static member WebServerFarms
+
+
 ## 1.7.2
 * Container Apps: Fix ResourceId
 * Operations Management: Add basic support for Operations Management to configure & deploy Solutions.
