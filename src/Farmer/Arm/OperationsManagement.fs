@@ -23,7 +23,7 @@ type OMS =
     interface IArmResource with
         member this.ResourceId = oms.resourceId this.Name
         member this.JsonModel =
-            {| oms.Create(this.Name, this.Location, tags = this.Tags) with
+            {| oms.Create(this.Name, this.Location, [ this.Properties.WorkspaceResourceId ], tags = this.Tags) with
                   plan =
                       {|  name = this.Plan.Name
                           publisher = this.Plan.Publisher
