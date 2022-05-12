@@ -1,28 +1,30 @@
 ---
 title: "Operations Management"
 date: 2022-04-29T09:40:00-04:00
-weight: 18
+weight: 15
 chapter: false
 ---
 
 #### Overview
 The Operations Management builder is used to create [Solutions](https://docs.microsoft.com/en-us/azure/templates/microsoft.operationsmanagement/solutions?tabs=bicep) for a [Log Analytics Workspace](https://docs.microsoft.com/en-us/azure/azure-monitor/logs/log-analytics-workspace-overview).
 
-### Builder Keywords
+#### Builder Keywords
 
 | Builder | Keyword | Purpose |
 |-|-|-|
-| solutionPlan | name | The name of the plan, which can match the name of the overall Solution. |
-| solutionPlan | publisher | The publisher of the solution, usually "Microsoft" (the default value). |
-| solutionPlan | product | The specific solution being created, such as `OMGSGallery/SecurityInsights`. |
-| solutionProperties | workspace | The Log Analytics workspace this solution uses. |
-| solutionProperties | contains | Resources contained by this solution. |
-| solutionProperties | references | Resources referenced by this solution. |
-| solution | name | The name of the solution. |
-| solution | plan | The `SolutionPlan` for the solution. |
-| solution | properties | The `SolutionProperties` for the solution. |
-| solution | add_tag | Add a tag to the solution. |
-| solution | add_tags | Add one or more tags to the solution. |
+| omsPlan | name | The name of the plan, which can match the name of the overall Solution. |
+| omsPlan | publisher | The publisher of the solution, usually "Microsoft" (the default value). |
+| omsPlan | product | The specific solution being created, such as `OMGSGallery/SecurityInsights`. |
+| omsProperties | workspace | The Log Analytics workspace this solution uses. |
+| omsProperties | add_contained_resource | Adds a resource contained by this solution. |
+| omsProperties | add_contained_resources | Adds multiple resources contained by this solution. |
+| omsProperties | add_referenced_resource | Adds a resource referenced by this solution. |
+| omsProperties | add_referenced_resources | Adds multiple resources referenced by this solution. |
+| oms | name | The name of the solution. |
+| oms | plan | The `OMSPlan` for the solution. |
+| oms | properties | The `OMSProperties` for the solution. |
+| oms | add_tag | Add a tag to the solution. |
+| oms | add_tags | Add one or more tags to the solution. |
 
 #### Example
 
@@ -41,14 +43,14 @@ let sentinelWorkspace = logAnalytics {
 
 let solutionName = $"SecurityInsights({sentinelWorkspace.Name.Value})"
 
-let sentinelSolution = solution {
+let sentinelSolution = oms {
     name solutionName
-    plan (solutionPlan {
+    plan (omsPlan {
         name solutionName
         publisher "Microsoft"
         product "OMSGallery/SecurityInsights"
     })
-    properties(solutionProperties {
+    properties(omsProperties {
         workspace sentinelWorkspace
     })
 }
