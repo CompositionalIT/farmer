@@ -857,6 +857,7 @@ module Sql =
         | Gen5_32
         | Gen5_40
         | Gen5_80
+        | S_Gen5 of CapacityMin: int * CapacityMax: int
         member this.Name = Reflection.FSharpValue.GetUnionFields(this, typeof<Gen5Series>) |> fun (v,_) -> v.Name
 
     type FSeries =

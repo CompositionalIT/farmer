@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.7.3
+* SQL Azure: Support for serverless
+
 ## 1.7.2
 * Container Apps: Fix ResourceId
 * Operations Management: Add basic support for Operations Management to configure & deploy Solutions.
