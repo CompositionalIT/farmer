@@ -1655,6 +1655,8 @@ module Network =
         static member ServiceFabricMeshNetworks = SubnetDelegationService "Microsoft.ServiceFabricMesh/networks"
         /// Microsoft.Sql/managedInstances
         static member SqlManagedInstances = SubnetDelegationService "Microsoft.Sql/managedInstances"
+        /// Microsoft.Web/serverFarms
+        static member WebServerFarms = SubnetDelegationService "Microsoft.Web/serverFarms"
 
     type EndpointServiceType = EndpointServiceType of string
     with
