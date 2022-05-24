@@ -1,9 +1,9 @@
 Release Notes
 =============
 
-## PR-933
+## 1.7.3
+* SQL Azure: Support for serverless
 * Network: Added Microsoft.Web/serverFarms to the SubnetDelegationService as a new static member WebServerFarms
-
 
 ## 1.7.2
 * Container Apps: Fix ResourceId
