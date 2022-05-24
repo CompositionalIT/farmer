@@ -5,17 +5,20 @@ open Farmer
 open Farmer.Arm.LogAnalytics
 
 let private (|InBounds|OutOfBounds|) days =
-    if days < 30<Days> then OutOfBounds days
-    elif days > 730<Days> then OutOfBounds days
-    else InBounds days
+    if days < 30<Days> then
+        OutOfBounds days
+    elif days > 730<Days> then
+        OutOfBounds days
+    else
+        InBounds days
 
 type WorkspaceConfig =
     { Name: ResourceName
       RetentionPeriod: int<Days> option
       IngestionSupport: FeatureFlag option
       QuerySupport: FeatureFlag option
-      DailyCap : int<Gb> option
-      Tags: Map<string,string> }
+      DailyCap: int<Gb> option
+      Tags: Map<string, string> }
 
     /// Gets the ARM expression path to the customer ID of this LogAnalytics instance.
     member this.CustomerId = LogAnalytics.getCustomerId this.Name
@@ -25,15 +28,15 @@ type WorkspaceConfig =
 
     interface IBuilder with
         member this.ResourceId = workspaces.resourceId this.Name
-        member this.BuildResources location = [
-            { Name = this.Name
-              Location = location
-              RetentionPeriod = this.RetentionPeriod
-              IngestionSupport = this.IngestionSupport
-              QuerySupport = this.QuerySupport
-              DailyCap = this.DailyCap
-              Tags = this.Tags }
-        ]
+
+        member this.BuildResources location =
+            [ { Name = this.Name
+                Location = location
+                RetentionPeriod = this.RetentionPeriod
+                IngestionSupport = this.IngestionSupport
+                QuerySupport = this.QuerySupport
+                DailyCap = this.DailyCap
+                Tags = this.Tags } ]
 
 type WorkspaceBuilder() =
     member _.Yield _ =
@@ -44,13 +47,12 @@ type WorkspaceBuilder() =
           QuerySupport = None
           Tags = Map.empty }
 
-    member _.Run (state:WorkspaceConfig) =
+    member _.Run(state: WorkspaceConfig) =
         match state.RetentionPeriod with
         | Some (OutOfBounds days) ->
             raiseFarmer $"The retention period must be between 30 and 730 days. It is currently {days}."
         | None
-        | Some (InBounds _) ->
-            ()
+        | Some (InBounds _) -> ()
 
         state
 
@@ -77,8 +79,8 @@ type WorkspaceBuilder() =
     [<CustomOperation "daily_cap">]
     member _.DailyCap(state: WorkspaceConfig, cap) = { state with DailyCap = Some cap }
 
-    interface ITaggable<WorkspaceConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+    interface ITaggable<WorkspaceConfig> with
+        member _.Add state tags =
+            { state with Tags = state.Tags |> Map.merge tags }
 
 let logAnalytics = WorkspaceBuilder()
-
-

@@ -3,7 +3,7 @@ module Farmer.Arm.VirtualWan
 
 open Farmer
 
-let virtualWans = ResourceType ("Microsoft.Network/virtualWans", "2020-07-01")
+let virtualWans = ResourceType("Microsoft.Network/virtualWans", "2020-07-01")
 
 [<RequireQualifiedAccess>]
 type Office365LocalBreakoutCategory =
@@ -28,20 +28,26 @@ type VwanType =
         | Basic -> "Basic"
 
 type VirtualWan =
-    { Name : ResourceName
-      Location : Location
-      AllowBranchToBranchTraffic : bool option
-      DisableVpnEncryption : bool option
-      Office365LocalBreakoutCategory : Office365LocalBreakoutCategory option
-      VwanType : VwanType }
+    { Name: ResourceName
+      Location: Location
+      AllowBranchToBranchTraffic: bool option
+      DisableVpnEncryption: bool option
+      Office365LocalBreakoutCategory: Office365LocalBreakoutCategory option
+      VwanType: VwanType }
     interface IArmResource with
         member this.ResourceId = virtualWans.resourceId this.Name
+
         member this.JsonModel =
             {| virtualWans.Create(this.Name, this.Location) with
                 properties =
-                    {|
-                       allowBranchToBranchTraffic = this.AllowBranchToBranchTraffic |> Option.defaultValue false
-                       disableVpnEncryption = this.DisableVpnEncryption |> Option.defaultValue false
-                       office365LocalBreakoutCategory = (this.Office365LocalBreakoutCategory |> Option.defaultValue Office365LocalBreakoutCategory.None).ArmValue
-                       ``type`` = this.VwanType.ArmValue |}
-            |}
+                    {| allowBranchToBranchTraffic =
+                        this.AllowBranchToBranchTraffic
+                        |> Option.defaultValue false
+                       disableVpnEncryption =
+                        this.DisableVpnEncryption
+                        |> Option.defaultValue false
+                       office365LocalBreakoutCategory =
+                        (this.Office365LocalBreakoutCategory
+                         |> Option.defaultValue Office365LocalBreakoutCategory.None)
+                            .ArmValue
+                       ``type`` = this.VwanType.ArmValue |} |}

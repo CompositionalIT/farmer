@@ -5,10 +5,16 @@ open System.Net
 open Farmer
 open Farmer.PostgreSQL
 
-let databases = ResourceType ("Microsoft.DBforPostgreSQL/servers/databases", "2017-12-01")
-let firewallRules = ResourceType ("Microsoft.DBforPostgreSQL/servers/firewallrules",  "2017-12-01")
-let virtualNetworkRules = ResourceType ("Microsoft.DBforPostgreSQL/servers/virtualNetworkRules",  "2017-12-01")
-let servers = ResourceType ("Microsoft.DBforPostgreSQL/servers", "2017-12-01")
+let databases =
+    ResourceType("Microsoft.DBforPostgreSQL/servers/databases", "2017-12-01")
+
+let firewallRules =
+    ResourceType("Microsoft.DBforPostgreSQL/servers/firewallrules", "2017-12-01")
+
+let virtualNetworkRules =
+    ResourceType("Microsoft.DBforPostgreSQL/servers/virtualNetworkRules", "2017-12-01")
+
+let servers = ResourceType("Microsoft.DBforPostgreSQL/servers", "2017-12-01")
 
 [<RequireQualifiedAccess>]
 type PostgreSQLFamily =
@@ -16,6 +22,7 @@ type PostgreSQLFamily =
     override this.ToString() =
         match this with
         | Gen5 -> "Gen5"
+
     member this.AsArmValue =
         match this with
         | Gen5 -> "Gen5"
@@ -23,55 +30,64 @@ type PostgreSQLFamily =
 
 module Servers =
     type Database =
-        { Name : ResourceName
-          Server : ResourceName
-          Charset : string
-          Collation : string }
+        { Name: ResourceName
+          Server: ResourceName
+          Charset: string
+          Collation: string }
         interface IArmResource with
-            member this.ResourceId = databases.resourceId (this.Server/this.Name)
+            member this.ResourceId = databases.resourceId (this.Server / this.Name)
+
             member this.JsonModel =
-                {|  databases.Create(this.Server/this.Name, dependsOn = [ servers.resourceId this.Server ]) with
-                        properties = {|  charset = this.Charset; collation = this.Collation |}
-                |}
+                {| databases.Create(this.Server / this.Name, dependsOn = [ servers.resourceId this.Server ]) with
+                    properties =
+                        {| charset = this.Charset
+                           collation = this.Collation |} |}
 
     type FirewallRule =
-        { Name : ResourceName
-          Server : ResourceName
-          Start : IPAddress
-          End : IPAddress
-          Location : Location }
+        { Name: ResourceName
+          Server: ResourceName
+          Start: IPAddress
+          End: IPAddress
+          Location: Location }
         interface IArmResource with
-            member this.ResourceId = firewallRules.resourceId (this.Server/this.Name)
+            member this.ResourceId = firewallRules.resourceId (this.Server / this.Name)
+
             member this.JsonModel =
-                {| firewallRules.Create(this.Server/this.Name, this.Location, [ servers.resourceId this.Server ]) with
-                    properties = {| startIpAddress = string this.Start; endIpAddress = string this.End; |}
-                |}
+                {| firewallRules.Create(this.Server / this.Name, this.Location, [ servers.resourceId this.Server ]) with
+                    properties =
+                        {| startIpAddress = string this.Start
+                           endIpAddress = string this.End |} |}
 
     type VnetRule =
-        { Name : ResourceName
-          Server : ResourceName
-          VirtualNetworkSubnetId : ResourceId
-          Location : Location }
+        { Name: ResourceName
+          Server: ResourceName
+          VirtualNetworkSubnetId: ResourceId
+          Location: Location }
         interface IArmResource with
-            member this.ResourceId = virtualNetworkRules.resourceId (this.Server/this.Name)
+            member this.ResourceId = virtualNetworkRules.resourceId (this.Server / this.Name)
+
             member this.JsonModel =
-                {| virtualNetworkRules.Create(this.Server/this.Name, this.Location, [ servers.resourceId this.Server ]) with
-                    properties = {| virtualNetworkSubnetId = this.VirtualNetworkSubnetId.Eval() |}
-                |}
+                {| virtualNetworkRules.Create(
+                    this.Server / this.Name,
+                    this.Location,
+                    [ servers.resourceId this.Server ]
+                   ) with
+                       properties = {| virtualNetworkSubnetId = this.VirtualNetworkSubnetId.Eval() |} |}
 
 type Server =
-    { Name : ResourceName
-      Location : Location
-      Credentials : {| Username : string; Password : SecureParameter |}
-      Version : Version
-      Capacity : int<VCores>
-      StorageSize : int<Mb>
-      Tier : Sku
-      Family : PostgreSQLFamily
-      GeoRedundantBackup : FeatureFlag
-      StorageAutoGrow : FeatureFlag
-      BackupRetention : int<Days>
-      Tags: Map<string,string>  }
+    { Name: ResourceName
+      Location: Location
+      Credentials: {| Username: string
+                      Password: SecureParameter |}
+      Version: Version
+      Capacity: int<VCores>
+      StorageSize: int<Mb>
+      Tier: Sku
+      Family: PostgreSQLFamily
+      GeoRedundantBackup: FeatureFlag
+      StorageAutoGrow: FeatureFlag
+      BackupRetention: int<Days>
+      Tags: Map<string, string> }
 
     member this.Sku =
         {| name = $"{this.Tier.Name}_{this.Family.AsArmValue}_{this.Capacity}"
@@ -80,14 +96,13 @@ type Server =
            family = string this.Family
            size = string this.StorageSize |}
 
-    member this.GetStorageProfile () = {|
-        storageMB = this.StorageSize
-        backupRetentionDays = this.BackupRetention
-        geoRedundantBackup = string this.GeoRedundantBackup
-        storageAutoGrow = string this.StorageAutoGrow
-    |}
+    member this.GetStorageProfile() =
+        {| storageMB = this.StorageSize
+           backupRetentionDays = this.BackupRetention
+           geoRedundantBackup = string this.GeoRedundantBackup
+           storageAutoGrow = string this.StorageAutoGrow |}
 
-    member this.GetProperties () =
+    member this.GetProperties() =
         let version =
             match this.Version with
             | VS_9_5 -> "9.5"
@@ -105,8 +120,8 @@ type Server =
 
     interface IArmResource with
         member this.ResourceId = servers.resourceId this.Name
+
         member this.JsonModel =
             {| servers.Create(this.Name, this.Location, tags = (this.Tags |> Map.add "displayName" this.Name.Value)) with
-                    sku = this.Sku
-                    properties = this.GetProperties()
-            |}
+                sku = this.Sku
+                properties = this.GetProperties() |}

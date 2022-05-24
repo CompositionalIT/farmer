@@ -4,15 +4,20 @@ open Expecto
 open System
 open Farmer
 
-let hasEnv a b = Environment.GetEnvironmentVariable a = b
-let notEnv a b = Environment.GetEnvironmentVariable a <> b
+let hasEnv a b =
+    Environment.GetEnvironmentVariable a = b
+
+let notEnv a b =
+    Environment.GetEnvironmentVariable a <> b
 
 [<Tests>]
 let allTests =
-    testSequencedGroup "" <|
-        testList "All Tests" [
-            testList "Builders" [
-                AppGateway.tests
+    testSequencedGroup ""
+    <| testList
+        "All Tests"
+        [ testList
+              "Builders"
+              [ AppGateway.tests
                 AppInsights.tests
                 AppInsightsAvailability.tests
                 if notEnv "BUILD_REASON" "PullRequest" then
@@ -62,16 +67,16 @@ let allTests =
                 WebApp.tests
                 Dashboards.tests
                 Alerts.tests
-                ServicePlan.tests
-            ]
-            testList "Control" [
-                if (hasEnv "TF_BUILD" "True" && notEnv "BUILD_REASON" "PullRequest") || hasEnv "FARMER_E2E" "True" then
+                ServicePlan.tests ]
+          testList
+              "Control"
+              [ if (hasEnv "TF_BUILD" "True"
+                    && notEnv "BUILD_REASON" "PullRequest")
+                   || hasEnv "FARMER_E2E" "True" then
                     AzCli.endToEndTests
                 Common.tests
                 Identity.tests
-                Template.tests
-            ]
-        ]
+                Template.tests ] ]
 
 [<EntryPoint>]
 let main _ =

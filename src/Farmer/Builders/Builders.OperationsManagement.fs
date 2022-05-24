@@ -9,24 +9,20 @@ open Farmer.Arm.OperationsManagement
 type OMSProperties =
     { Workspace: IBuilder option
       ContainedResources: IBuilder list
-      ReferencedResources : IBuilder list
-    } with
-        static member Empty = {
-          Workspace = None
+      ReferencedResources: IBuilder list }
+    static member Empty =
+        { Workspace = None
           ContainedResources = []
-          ReferencedResources = []
-        }
+          ReferencedResources = [] }
 
 type OMSPlan =
     { Name: string
       Publisher: string
-      Product: string
-    } with
-        static member Empty = {
-            Name = ""
-            Publisher = ""
-            Product = ""
-        }
+      Product: string }
+    static member Empty =
+        { Name = ""
+          Publisher = ""
+          Product = "" }
 
 type OMSConfig =
     { Name: ResourceName
@@ -35,26 +31,26 @@ type OMSConfig =
       Tags: Map<string, string> }
     interface IBuilder with
         member this.ResourceId = oms.resourceId this.Name
-        member this.BuildResources location = [
-          match this.Properties.Workspace with
-          | Some workspace ->
-              { Name = this.Name
-                Location = location
-                Plan = 
-                    {|  Name = this.Plan.Name
-                        Product = this.Plan.Product
-                        Publisher = this.Plan.Publisher
-                    |}
-                Properties =
-                    {|  WorkspaceResourceId = workspace.ResourceId
-                        ContainedResources = this.Properties.ContainedResources |> List.map (fun cr -> cr.ResourceId)
-                        ReferencedResources = this.Properties.ReferencedResources |> List.map (fun rr -> rr.ResourceId)
-                    |}
-                Tags = this.Tags
-              }
-          | None ->
-              ()
-        ]
+
+        member this.BuildResources location =
+            [ match this.Properties.Workspace with
+              | Some workspace ->
+                  { Name = this.Name
+                    Location = location
+                    Plan =
+                      {| Name = this.Plan.Name
+                         Product = this.Plan.Product
+                         Publisher = this.Plan.Publisher |}
+                    Properties =
+                      {| WorkspaceResourceId = workspace.ResourceId
+                         ContainedResources =
+                          this.Properties.ContainedResources
+                          |> List.map (fun cr -> cr.ResourceId)
+                         ReferencedResources =
+                          this.Properties.ReferencedResources
+                          |> List.map (fun rr -> rr.ResourceId) |}
+                    Tags = this.Tags }
+              | None -> () ]
 
 type OMSPropertiesBuilder() =
     member _.Yield _ =
@@ -64,23 +60,28 @@ type OMSPropertiesBuilder() =
 
     /// Sets the workspace resource id of the OMS Properties
     [<CustomOperation "workspace">]
-    member _.WorkspaceResourceId(state: OMSProperties, workspace) = { state with Workspace = Some workspace }
+    member _.WorkspaceResourceId(state: OMSProperties, workspace) =
+        { state with Workspace = Some workspace }
 
     /// Adds a contained resource.
     [<CustomOperation "add_contained_resource">]
-    member _.AddContainedResource(state: OMSProperties, contained) = { state with ContainedResources = contained :: state.ContainedResources }
+    member _.AddContainedResource(state: OMSProperties, contained) =
+        { state with ContainedResources = contained :: state.ContainedResources }
 
     /// Adds a collection of contained resources.
     [<CustomOperation "add_contained_resources">]
-    member _.AddContainedResources(state: OMSProperties, contained) = { state with ContainedResources = contained @ state.ContainedResources }
+    member _.AddContainedResources(state: OMSProperties, contained) =
+        { state with ContainedResources = contained @ state.ContainedResources }
 
     /// Adds a referenced resource.
     [<CustomOperation "add_referenced_resource">]
-    member _.AddReferencedResource(state: OMSProperties, referenced) = { state with ReferencedResources = referenced :: state.ReferencedResources }
+    member _.AddReferencedResource(state: OMSProperties, referenced) =
+        { state with ReferencedResources = referenced :: state.ReferencedResources }
 
     /// Adds a collection of referenced resources.
     [<CustomOperation "add_referenced_resources">]
-    member _.AddReferencedResources(state: OMSProperties, referenced) = { state with ReferencedResources = referenced @ state.ReferencedResources }
+    member _.AddReferencedResources(state: OMSProperties, referenced) =
+        { state with ReferencedResources = referenced @ state.ReferencedResources }
 
 let omsProperties = OMSPropertiesBuilder()
 
@@ -117,13 +118,14 @@ type OMSBuilder() =
 
     /// Sets the OMS Plan
     [<CustomOperation "plan">]
-    member _.Plan(state: OMSConfig, plan : OMSPlan) = { state with Plan = plan }
+    member _.Plan(state: OMSConfig, plan: OMSPlan) = { state with Plan = plan }
 
     /// Sets the OMS Properties
     [<CustomOperation "properties">]
-    member _.Properties(state: OMSConfig, properties : OMSProperties) = { state with Properties = properties }
+    member _.Properties(state: OMSConfig, properties: OMSProperties) = { state with Properties = properties }
 
-    interface ITaggable<WorkspaceConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+    interface ITaggable<WorkspaceConfig> with
+        member _.Add state tags =
+            { state with Tags = state.Tags |> Map.merge tags }
 
 let oms = OMSBuilder()
-
