@@ -1,0 +1,29 @@
+name: PR
+
+on: [pull_request]
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build:
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        dotnet: [6.0.200]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: ${{ matrix.dotnet }}
+    - name: Install local tools
+      run: dotnet tool restore
+    - name: Format check
+      run: dotnet fantomas src -r --check
+    - name: Build source code
+      run: dotnet build -c Release
