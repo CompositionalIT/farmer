@@ -23,6 +23,10 @@ let myDatabases = sqlServer {
             db_size (1024<Mb> * 128)
             hybrid_benefit
         }
+        sqlDb {
+            name "serverless4to8cpu"
+            sku (GeneralPurpose (S_Gen5 (4, 8)))
+        }
     ]
 }
 
