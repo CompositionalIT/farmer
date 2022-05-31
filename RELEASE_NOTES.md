@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## PR-938
+* Added Basic Types documentation and examples for  unmanaged resources.
+
 ## 1.7.3
 * SQL Azure: Support for serverless
 * Network: Added Microsoft.Web/serverFarms to the SubnetDelegationService as a new static member WebServerFarms
