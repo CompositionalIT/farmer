@@ -9,12 +9,17 @@ open Farmer.Identity
 
 let msi = createUserAssignedIdentity "appUser"
 let containerRegistryName = "myregistry"
+let storageAccountName = "storagename"
 
 let fullContainerAppDeployment =
     let containerLogs = logAnalytics { name "containerlogs" }
     let containerRegistryDomain = $"{containerRegistryName}.azurecr.io"
     let acr = containerRegistry { 
         name containerRegistryName
+    }
+    let storage = storageAccount {
+        name storageAccountName
+        add_file_share "certs"
     }
     let version = "1.0.0"
     let containerEnv =
@@ -35,6 +40,7 @@ let fullContainerAppDeployment =
                             private_docker_image containerRegistryDomain "http" version
                             cpu_cores 0.25<VCores>
                             memory 0.5<Gb>
+                            ephemeral_storage 1.<Gb>
                         }
                     ]
                     replicas 1 5
@@ -61,10 +67,14 @@ let fullContainerAppDeployment =
                     name "servicebus"
                     active_revision_mode Single
                     reference_registry_credentials [(acr :> IBuilder).ResourceId]
+                    add_volumes [ Volume.emptyDir "empty-v"
+                                  Volume.azureFile "certs-v" "certs" storage.Name.ResourceName.Value StorageAccessMode.ReadOnly ]
                     add_containers [
                         container {
                             name "servicebus"
                             private_docker_image containerRegistryDomain "servicebus" version
+                            add_volume_mounts [ "empty-v", "/tmp"
+                                                "certs-v", "/certs" ]
                         }
                     ]
                     replicas 0 3
@@ -115,6 +125,7 @@ let tests = testList "Container Apps" [
         let kubeEnvLogAnalyticsCustomerId = jobj.SelectToken("resources[?(@.name=='kubecontainerenv')].properties.appLogsConfiguration.logAnalyticsConfiguration")
         Expect.equal (kubeEnvLogAnalyticsCustomerId.["customerId"] |> string) "[reference(resourceId('Microsoft.OperationalInsights/workspaces', 'containerlogs'), '2020-03-01-preview').customerId]" "Incorrect log analytics customerId reference"
     }
+
     test "Full container environment containerApp" {
         let httpContainerApp = jobj.SelectToken("resources[?(@.name=='http')]")
         Expect.equal (httpContainerApp.["type"] |> string) "Microsoft.App/containerApps" "Incorrect type for containerApps"
@@ -143,16 +154,34 @@ let tests = testList "Container Apps" [
         Expect.equal (httpContainer.["name"] |> string ) "http" "Incorrect container name"
         Expect.equal (httpContainer.SelectToken("resources.cpu") |> float ) 0.25 "Incorrect container cpu resources"
         Expect.equal (httpContainer.SelectToken("resources.memory") |> string ) "0.50Gi" "Incorrect container memory resources"
+        Expect.equal (httpContainer.SelectToken("resources.ephemeralStorage") |> string ) "1.00Gi" "Incorrect container ephemeral storage resources"
 
         let scale = httpContainerApp.SelectToken("properties.template.scale")
         Expect.isNotNull scale "properties.scale was null"
         Expect.equal (scale.["minReplicas"] |> int) 1 "Incorrect min replicas"
         Expect.equal (scale.["maxReplicas"] |> int) 5 "Incorrect max replicas"
+
+        let serviceBusContainerApp = jobj.SelectToken("resources[?(@.name=='servicebus')]")
+        let volumes = serviceBusContainerApp.SelectToken("properties.template.volumes")
+        Expect.hasLength volumes 2 "Expecting 2 volumes"
+
+        let serviceBusContainer = serviceBusContainerApp.SelectToken("properties.template.containers") |> Seq.head
+        let serviceBusVolumeMounts = serviceBusContainer.SelectToken("volumeMounts")
+        Expect.equal (serviceBusVolumeMounts.[1].["volumeName"] |> string) "empty-v" "Incorrect container volume mount"
+        Expect.equal (serviceBusVolumeMounts.[1].["mountPath"] |> string) "/tmp" "Incorrect container volume mount"
+        Expect.equal (serviceBusVolumeMounts.[0].["volumeName"] |> string) "certs-v" "Incorrect container volume mount"
+        Expect.equal (serviceBusVolumeMounts.[0].["mountPath"] |> string) "/certs" "Incorrect container volume mount"
     }
     test "Makes container app with MSI" {
         let containerApp = fullContainerAppDeployment.Template.Resources |> List.find(fun r -> r.ResourceId.Name.Value = "http") :?> Farmer.Arm.App.ContainerApp
         Expect.isNonEmpty containerApp.Identity.UserAssigned "Container app did not have identity"
         Expect.equal containerApp.Identity.UserAssigned.[0] (UserAssignedIdentity(ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "appUser"))) "Expected user identity named 'appUser'."
+    }
+    test "Makes container environment with volumes" {
+        let certsStorage = fullContainerAppDeployment.Template.Resources |> List.find(fun r -> r.ResourceId.Name.Value = "certs-v") :?> Farmer.Arm.App.ManagedEnvironmentStorage
+        Expect.equal certsStorage.AzureFile.AccessMode StorageAccessMode.ReadOnly "Expected ReadOnly mode for 'certs-v'."
+        Expect.equal certsStorage.AzureFile.AccountName.ResourceName.Value storageAccountName "Expected 'certs-v' account name."
+        Expect.equal certsStorage.AzureFile.ShareName.Value "certs" "Expected 'certs-v' share name."
     }
     test "Linked ACR references correct secret" {
         let containerApp = fullContainerAppDeployment.Template.Resources |> List.find(fun r -> r.ResourceId.Name.Value = "servicebus") :?> Farmer.Arm.App.ContainerApp

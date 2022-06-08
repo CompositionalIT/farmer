@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.7.4
+* Container Apps: Support for mounted storage
+
 ## PR-938
 * Added Basic Types documentation and examples for  unmanaged resources.
 

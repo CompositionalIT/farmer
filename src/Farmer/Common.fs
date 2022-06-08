@@ -1,4 +1,4 @@
-namespace Farmer
+﻿namespace Farmer
 
 open System
 
@@ -1117,6 +1117,7 @@ type LogAnalyticsWorkspace =
     | WorkspaceResourceId of LinkedResource
     | WorkspaceKey of WorkspaceId:string * WorkspaceKey:string
 
+
 module ContainerGroup =
     type PortAccess = PublicPort | InternalPort
     type RestartPolicy = NeverRestart | AlwaysRestart | RestartOnFailure
@@ -2206,6 +2207,16 @@ module ContainerApp =
     type Transport = HTTP1 | HTTP2 | Auto
     type IngressMode = External of port:uint16 * Transport option | InternalOnly
     type ActiveRevisionsMode = Single | Multiple
+    
+    type StorageAccessMode = ReadOnly | ReadWrite
+    with member this.ArmValue = this.ToString()
+
+    [<RequireQualifiedAccess>]
+    type Volume =
+        /// Mounts an empty directory on the container group.
+        | EmptyDirectory
+        /// Mounts an Azure File Share in the same resource group, performing a key lookup.
+        | AzureFileShare of ShareName:ResourceName * StorageAccountName:Storage.StorageAccountName * StorageAccessMode
 
 namespace Farmer.DiagnosticSettings
 
