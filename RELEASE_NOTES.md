@@ -1,8 +1,9 @@
 Release Notes
 =============
 
-## PR-938
+## Next
 * Added Basic Types documentation and examples for  unmanaged resources.
+* Web App: add an overload for `link_to_service_plan` that accepts Web App
 
 ## 1.7.3
 * SQL Azure: Support for serverless
