@@ -298,7 +298,7 @@ type ContainerAppBuilder () =
         let key = (ContainerAppSettingKey.Create key).OkValue
         { state with
             Secrets = state.Secrets.Add (key, ParameterSecret (SecureParameter key.Value))
-            EnvironmentVariables = state.EnvironmentVariables.Add (EnvVar.create key.Value key.Value)
+            EnvironmentVariables = state.EnvironmentVariables.Add (EnvVar.createSecure key.Value key.Value)
         }
 
     /// Adds an application secrets to the Azure Container App.
