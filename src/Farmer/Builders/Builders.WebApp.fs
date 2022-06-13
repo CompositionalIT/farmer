@@ -9,6 +9,8 @@ open Farmer.Arm.KeyVault.Vaults
 open Sites
 open System
 open Farmer.Identity
+open System.Threading
+open System.Net
 
 type JavaHost =
     | JavaSE | WildFly14 | Tomcat of string
@@ -100,7 +102,37 @@ type SlotConfig =
                 [ fun rg -> 
                     match this.PostDeploySwapTarget with
                     | None -> None
-                    | Some target -> Some (Deploy.Az.swapSlots rg owner.Name.Value this.Name target)
+                    | Some target -> 
+                        match owner.HealthCheckPath with
+                        | None -> None
+                        | Some path ->
+                            let maxWaitForHealthy = TimeSpan.FromMinutes(1)
+                            Console.WriteLine $"Waiting for {owner.Name.Value}/{this.Name} to become healthy:"
+                            let healthCheckDomain = $"https://%s{owner.Name.Value}-%s{this.Name}.azurewebsites.net/{path}"
+                            let cancelToken = (new CancellationTokenSource(maxWaitForHealthy)).Token
+                            let mutable statusCode = HttpStatusCode.SeeOther;
+                            while not cancelToken.IsCancellationRequested && statusCode <> HttpStatusCode.OK do
+                                Console.Write "\tChecking slot health..."
+                                let nextCheck = System.Threading.Tasks.Task.Delay(10_000)
+                                let client = new System.Net.Http.HttpClient();
+                                let response = 
+                                    client.GetAsync(healthCheckDomain,cancelToken)
+                                    |> Async.AwaitTask 
+                                    |> Async.RunSynchronously
+                                statusCode <- response.StatusCode
+                                Console.WriteLine statusCode
+                                Async.AwaitTask nextCheck |> Async.RunSynchronously
+
+                            match statusCode with
+                            | HttpStatusCode.OK ->
+                                Some (Ok statusCode)
+                            | _ ->
+                                Some (Error $"Slot '{this.Name}' healthcheck failed to return OK within {maxWaitForHealthy.TotalMinutes} minutes.")
+                        |> function
+                        | None | Some (Ok _) ->
+                            Console.WriteLine "Swapping slots."
+                            Some (Deploy.Az.swapSlots rg owner.Name.Value this.Name target)
+                        | Some (Error e) -> Some (Error e)
                 ]
         }
 
