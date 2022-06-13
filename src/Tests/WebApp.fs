@@ -1022,4 +1022,12 @@ let tests = testList "Web App Tests" [
         Expect.equal (jobj.SelectToken("resources[?(@.name=='webapp-ep/dnszone')].properties.privateDnsZoneConfigs[0].name").ToString()) "dnszone" "privateDnsZoneGroup name is wrong"
         Expect.equal (jobj.SelectToken("resources[?(@.name=='webapp-ep/dnszone')].properties.privateDnsZoneConfigs[0].properties.privateDnsZoneId").ToString()) "[resourceId('Microsoft.Network/privateDnsZones', 'myPrivateDnsZone')]" "privateDnsZoneGroup dns zone id is wrong"
     }
+    test "WebApp supports blocking slot-swap" {
+        let slot = appSlot { name "deployment"; post_deploy_swap }
+        let app = webApp{ name "webapp"; add_slot slot; zip_deploy_slot "deployment" "some/path"}
+        
+        let site = app |> getResources |> getResource<Web.Site> |> List.item 1
+        Expect.equal site.Name.Value "webapp/deployment" "site name was not as expected"
+        Expect.hasLength site.PostDeployActions 1 "no custom post deploy actions found"
+    }
 ]

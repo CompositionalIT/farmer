@@ -152,6 +152,7 @@ module Az =
     let zipDeployWebApp = zipDeploy "webapp"
     /// Deploys a zip file to a function app using the Zip Deploy mechanism.
     let zipDeployFunctionApp = zipDeploy "functionapp"
+    let swapSlots resoourceGroup webapp slot targetSlot = az $"webapp deployment slot swap -g %s{resoourceGroup} -n %s{webapp} -s %s{slot} --target-slot %s{targetSlot}"
     let delete resourceGroup = az $"group delete --name %s{resourceGroup} --yes --no-wait"
     let enableStaticWebsite name indexDoc errorDoc =
         [ $"storage blob service-properties update --account-name %s{name} --static-website --index-document %s{indexDoc}"

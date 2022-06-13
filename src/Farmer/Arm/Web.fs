@@ -202,7 +202,8 @@ type Site =
       HealthCheckPath : string option
       IpSecurityRestrictions : IpSecurityRestriction list
       LinkToSubnet : SubnetReference option
-      VirtualApplications : Map<string, VirtualApplication> }
+      VirtualApplications : Map<string, VirtualApplication>
+      PostDeployActions : (string -> Result<string,string> option) list}
     /// Shorthand for SiteType.ResourceType
     member this.ResourceType = this.SiteType.ResourceType
     /// Shorthand for SiteType.ResourceName
@@ -221,19 +222,39 @@ type Site =
 
     interface IPostDeploy with
         member this.Run resourceGroupName =
-            match this with
-            | { ZipDeployPath = Some (path, target, slot); SiteType = siteType } ->
-                let path =
-                    ZipDeploy.ZipDeployKind.TryParse path
-                    |> Option.defaultWith (fun () ->
-                        raiseFarmer $"Path '{path}' must either be a folder to be zipped, or an existing zip.")
-                let slotName = slot.ToOption
-                printfn "Running ZIP deploy to %s for %s" (slotName |> Option.defaultValue "WebApp") path.Value
-                Some (match target with
-                      | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp siteType.ResourceName.Value path.GetZipPath resourceGroupName slotName
-                      | ZipDeploy.FunctionApp -> Deploy.Az.zipDeployFunctionApp siteType.ResourceName.Value path.GetZipPath resourceGroupName slotName)
-            | _ ->
-                None
+            let zipDeployResult = 
+                match this with
+                | { ZipDeployPath = Some (path, target, slot); SiteType = siteType } ->
+                    let path =
+                        ZipDeploy.ZipDeployKind.TryParse path
+                        |> Option.defaultWith (fun () ->
+                            raiseFarmer $"Path '{path}' must either be a folder to be zipped, or an existing zip.")
+                    let slotName = slot.ToOption
+                    printfn "Running ZIP deploy to %s for %s" (slotName |> Option.defaultValue "WebApp") path.Value
+                    Some (match target with
+                          | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp siteType.ResourceName.Value path.GetZipPath resourceGroupName slotName
+                          | ZipDeploy.FunctionApp -> Deploy.Az.zipDeployFunctionApp siteType.ResourceName.Value path.GetZipPath resourceGroupName slotName)
+                | _ ->
+                    None
+
+            match zipDeployResult with
+            | Some (Error _) -> zipDeployResult
+            | _ when this.PostDeployActions.IsEmpty -> zipDeployResult
+            | zipDeployResult ->
+                this.PostDeployActions
+                    |> List.fold 
+                        (fun result action -> 
+                            match result with 
+                            | None -> action resourceGroupName
+                            | Some (Error _) -> result
+                            | Some (Ok soFar) -> 
+                                match action resourceGroupName with 
+                                | None -> result
+                                | Some (Ok msg) -> Some (Ok $"{soFar}\n{msg}")
+                                | Some (Error msg) -> Some (Error $"{soFar}\nFAILED: {msg}")
+                            )
+                        zipDeployResult
+        
     interface IArmResource with
         member this.ResourceId = sites.resourceId this.Name
         member this.JsonModel =

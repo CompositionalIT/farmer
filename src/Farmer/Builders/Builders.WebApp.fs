@@ -77,6 +77,7 @@ type SecretStore =
 type SlotConfig =
     { Name: string
       AutoSwapSlotName: string option
+      PostDeploySwapTarget: string option
       AppSettings: Map<string,Setting>
       ConnectionStrings: Map<string,(Setting * ConnectionStringKind)>
       Identity: ManagedIdentity
@@ -94,12 +95,20 @@ type SlotConfig =
             Identity = this.Identity + owner.Identity
             KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity |> Option.orElse owner.KeyVaultReferenceIdentity
             IpSecurityRestrictions = this.IpSecurityRestrictions
-            ZipDeployPath = None }
+            ZipDeployPath = None
+            PostDeployActions = 
+                [ fun rg -> 
+                    match this.PostDeploySwapTarget with
+                    | None -> None
+                    | Some target -> Some (Deploy.Az.swapSlots rg owner.Name.Value this.Name target)
+                ]
+        }
 
 type SlotBuilder() =
     member this.Yield _ =
         { Name = "staging"
           AutoSwapSlotName = None
+          PostDeploySwapTarget = None
           AppSettings = Map.empty
           ConnectionStrings = Map.empty
           Identity = ManagedIdentity.Empty
@@ -113,6 +122,9 @@ type SlotBuilder() =
 
     [<CustomOperation "autoSlotSwapName">]
     member this.AutoSlotSwapName (state,autoSlotSwapName) : SlotConfig = {state with AutoSwapSlotName = Some autoSlotSwapName}
+
+    [<CustomOperation "post_deploy_swap">]
+    member this.ManualSwap(state, ?targetSlotName) : SlotConfig = {state with PostDeploySwapTarget = Some (targetSlotName |> Option.defaultValue "Production") }
 
     /// Sets an app setting of the web app in the form "key" "value".
     [<CustomOperation "add_identity">]
@@ -501,6 +513,7 @@ type WebAppConfig =
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath
                   IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
                   LinkToSubnet = this.CommonWebConfig.IntegratedSubnet
+                  PostDeployActions = []
                   VirtualApplications = this.VirtualApplications }
 
             match keyVault with

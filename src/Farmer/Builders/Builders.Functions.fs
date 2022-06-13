@@ -267,6 +267,7 @@ type FunctionsConfig =
                   PythonVersion = None
                   Metadata = []
                   AutoSwapSlotName = None
+                  PostDeployActions = []
                   ZipDeployPath = this.CommonWebConfig.ZipDeployPath |> Option.map (fun (path, slot) -> path, ZipDeploy.ZipDeployTarget.FunctionApp, slot)
                   AppCommandLine =
                     match this.PublishAs with
