@@ -2,7 +2,7 @@
 title: "PostgreSQL"
 date: 2020-05-22T07:14:00+02:00
 chapter: false
-weight: 15
+weight: 16
 ---
 
 #### Overview
@@ -35,6 +35,8 @@ parameter for the admin account password.
 | Server | enable_azure_firewall | Enables firewall access to all Azure services |
 | Server | add_firewall_rule (name:string, start ip:string, end ip:string) | Adds a firewall rule to the server |
 | Server | add_firewall_rules (rules:(string*string*sting)list) | As add_firewall_rule but a list of rules |
+| Server | add_vnet_rule (name:string, virtualNetworkSubnetId:ResourceId) | Adds a vnet rule to the server |
+| Server | add_vnet_rules (rules:(string*ResourceId)list) | As add_vnet_rule but a list of rules |
 
 #### PostgreSQLDb Builder keywords
 | Applies To | Keyword | Purpose |

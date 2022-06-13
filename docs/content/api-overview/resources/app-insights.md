@@ -26,6 +26,7 @@ The App Insights builder is used to create Application Insights accounts. Use th
 | Member | Purpose |
 |-|-|
 | InstrumentationKey | Gets the ARM expression path to the instrumentation key of this App Insights instance. |
+| ConnectionString | Gets the ARM expression path to the connection string of this App Insights instance. |
 
 #### Example
 

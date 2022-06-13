@@ -5,8 +5,8 @@ open Farmer
 open Farmer.Builders
 open Farmer.ContainerApp
 open Farmer.ContainerAppValidation
-open Farmer.Arm.Web
-open Farmer.Arm.Web.ContainerApp
+open Farmer.Arm.App
+open Farmer.Identity
 
 type ContainerConfig =
     { ContainerName : string
@@ -25,6 +25,7 @@ type ContainerAppConfig =
       ActiveRevisionsMode : ActiveRevisionsMode
       IngressMode : IngressMode option
       ScaleRules : Map<string, ScaleRule>
+      Identity: ManagedIdentity
       Replicas : {| Min : int; Max : int |} option
       DaprConfig : {| AppId : string |} option
       Secrets : Map<ContainerAppSettingKey, SecretValue>
@@ -33,7 +34,12 @@ type ContainerAppConfig =
       ImageRegistryCredentials : ImageRegistryAuthentication list
       Containers : ContainerConfig list
       Dependencies : Set<ResourceId> }
-
+    member this.ResourceId = containerApps.resourceId this.Name
+    member this.LatestRevisionFqdn =
+        ArmExpression
+            .reference(containerApps, this.ResourceId)
+            .Map(sprintf "%s.latestRevisionFqdn")
+            
 type ContainerEnvironmentConfig =
     { Name : ResourceName
       InternalLoadBalancerState : FeatureFlag
@@ -42,7 +48,7 @@ type ContainerEnvironmentConfig =
       Dependencies: Set<ResourceId>
       Tags: Map<string,string> }
     interface IBuilder with
-        member this.ResourceId = containerApps.resourceId this.Name
+        member this.ResourceId = managedEnvironments.resourceId this.Name
         member this.BuildResources location = [
             let logAnalyticsResourceId = this.LogAnalytics.resourceId this
             { Name = this.Name
@@ -68,8 +74,9 @@ type ContainerEnvironmentConfig =
 
             for containerApp in this.ContainerApps do
                 { Name = containerApp.Name
-                  Environment = kubeEnvironments.resourceId this.Name
+                  Environment = managedEnvironments.resourceId this.Name
                   ActiveRevisionsMode = containerApp.ActiveRevisionsMode
+                  Identity = containerApp.Identity
                   IngressMode = containerApp.IngressMode
                   ScaleRules = containerApp.ScaleRules
                   Replicas = containerApp.Replicas
@@ -143,10 +150,10 @@ type ContainerAppBuilder () =
           ScaleRules = Map.empty
           Secrets = Map.empty
           IngressMode = None
+          Identity = ManagedIdentity.Empty
           EnvironmentVariables = Map.empty
           DaprConfig = None
           Dependencies = Set.empty }
-
 
     member _.Run (state:ContainerAppConfig) =
         let resourceTotals =
@@ -162,6 +169,7 @@ type ContainerAppBuilder () =
 
         state
 
+    interface IIdentity<ContainerAppConfig> with member _.Add state updater = { state with Identity = updater state.Identity }
     /// Sets the name of the Azure Container App.
     [<CustomOperation "name">]
     member _.ResourceName (state:ContainerAppConfig, name:string) = { state with Name = ResourceName name }
@@ -277,6 +285,11 @@ type ContainerAppBuilder () =
             EnvironmentVariables = state.EnvironmentVariables.Add (EnvVar.create key.Value key.Value)
         }
 
+    /// Adds an application secrets to the Azure Container App.
+    [<CustomOperation "add_secret_parameters">]
+    member __.AddSecretParameters (state:ContainerAppConfig, keys:#seq<_>) =
+        keys |> Seq.fold (fun s k -> __.AddSecretParameter(s,k)) state
+
     /// Adds an application secret to the Azure Container App.
     [<CustomOperation "add_secret_expression">]
     member _.AddSecretExpression (state:ContainerAppConfig, key, expression) =
@@ -290,12 +303,23 @@ type ContainerAppBuilder () =
                 | None -> state.Dependencies
         }
 
+    /// Adds an application secrets to the Azure Container App.
+    [<CustomOperation "add_secret_expressions">]
+    member __.AddSecretExpressions (state:ContainerAppConfig, xs: #seq<_>) =
+        xs |> Seq.fold (fun s (k,e) -> __.AddSecretExpression(s,k,e)) state
+
+
     /// Adds a public environment variable to the Azure Container App environment variables.
     [<CustomOperation "add_env_variable">]
     member _.AddEnvironmentVariable (state:ContainerAppConfig, name, value) =
         { state with
             EnvironmentVariables = state.EnvironmentVariables.Add (EnvVar.create name value)
         }
+
+    /// Adds a public environment variables to the Azure Container App environment variables.
+    [<CustomOperation "add_env_variables">]
+    member __.AddEnvironmentVariables (state:ContainerAppConfig, vars:#seq<_>) =
+        vars |> Seq.fold (fun s (k,v) -> __.AddEnvironmentVariable(s,k,v)) state
 
     [<CustomOperation "add_simple_container">]
     member this.AddSimpleContainer (state:ContainerAppConfig, dockerImage, dockerVersion) =

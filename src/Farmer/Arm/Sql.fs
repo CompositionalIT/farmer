@@ -92,6 +92,10 @@ module Servers =
                 {| databases.Create(this.Server.ResourceName/this.Name, this.Location, dependsOn, tags = Map [ "displayName", this.Name.Value ]) with
                     sku =
                         match this.Sku with
+                        | Standalone (VCore (GeneralPurpose (S_Gen5 (_,max)),_) as sku) 
+                        | Standalone (VCore (BusinessCritical (S_Gen5 (_,max)),_) as sku) 
+                        | Standalone (VCore (Hyperscale (S_Gen5 (_,max)),_) as sku) -> (* Serverless *) 
+                            box {| name = sku.Name; tier = sku.Edition; capacity = max; family = "Gen5" |}
                         | Standalone sku -> box {| name = sku.Name; tier = sku.Edition |}
                         | Pool _ -> null
                     properties =
@@ -108,6 +112,18 @@ module Servers =
                             match this.Sku with
                             | Standalone _ -> null
                             | Pool pool -> elasticPools.resourceId(this.Server.ResourceName, pool).Eval()
+                           autoPauseDelay = 
+                            match this.Sku with
+                            | Standalone (VCore (GeneralPurpose (S_Gen5 _),_)) 
+                            | Standalone (VCore (BusinessCritical (S_Gen5 _),_)) 
+                            | Standalone (VCore (Hyperscale (S_Gen5 _),_)) -> -1 |> box
+                            | _ -> null
+                           minCapacity =
+                            match this.Sku with
+                            | Standalone (VCore (GeneralPurpose (S_Gen5 (min,_)),_) as sku) 
+                            | Standalone (VCore (BusinessCritical (S_Gen5 (min,_)),_) as sku) 
+                            | Standalone (VCore (Hyperscale (S_Gen5 (min,_)),_) as sku) -> min |> box
+                            | _ -> null
                         |}
                 |}
 

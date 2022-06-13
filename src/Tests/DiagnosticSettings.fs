@@ -92,12 +92,25 @@ let tests = testList "Diagnostic Settings" [
                 name "myDiagnosticSetting"
                 metrics_source logicAppResource
                 capture_logs [ LogSetting.Create "WorkflowRuntime" ]
-            } |> ignore) (sprintf "Should have thrown an exception for not specifying at least on data sink")
+            } |> ignore) "Should have thrown an exception for not specifying at least on data sink"
     }
 
     test "Can't create test with retention period outside 1 and 365" {
         for days in [ 0<Days>; 366<Days> ] do
             Expect.throws (fun _ -> LogSetting.Create("", days) |> ignore) (sprintf "Should have thrown for %d" days)
             Expect.throws (fun _ -> MetricSetting.Create("", days) |> ignore) (sprintf "Should have thrown for %d" days)
+    }
+
+    test "Supports segmented names such as SQL databases" {
+        let config =
+            let storageAccount = storageAccount { name "foo" }
+            diagnosticSettings {
+                name "myDiagnosticSetting"
+                add_destination storageAccount
+                metrics_source (Arm.Sql.databases.resourceId(ResourceName "sqlserver", ResourceName "sqldatabase"))
+                capture_logs [ Logging.Sql.Servers.Databases.AutomaticTuning ]
+            }
+        let result = asAzureResource config
+        Expect.equal result.Name "sqlserver/sqldatabase/Microsoft.Insights/myDiagnosticSetting" "Incorrect Name"
     }
 ]

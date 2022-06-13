@@ -187,6 +187,31 @@ type SlotBuilder() =
 
 let appSlot = SlotBuilder()
 
+type VirtualApplicationConfig =
+    { VirtualPath: string
+      PhysicalPath: string
+      PreloadEnabled: bool option }
+
+type VirtualApplicationBuilder() =
+    member this.Yield _ =
+        { VirtualPath = ""
+          PhysicalPath = ""
+          PreloadEnabled = None }
+    member _.Run (config: VirtualApplicationConfig) =
+        if String.IsNullOrWhiteSpace config.VirtualPath then
+            raiseFarmer "Missing Virtual Path on Virtual Application - specify 'virtual_path' on all virtual applications"
+        if String.IsNullOrWhiteSpace config.PhysicalPath then
+            raiseFarmer "Missing Physical Path on Virtual Application - specify 'physical_path' on all virtual applications"
+        config
+    [<CustomOperation "virtual_path">]
+    member _.VirtualPath (state, virtualPath) : VirtualApplicationConfig = { state with VirtualPath = virtualPath }
+    [<CustomOperation "physical_path">]
+    member _.PhysicalPath (state, physicalPath) : VirtualApplicationConfig = { state with PhysicalPath = physicalPath }
+    [<CustomOperation "preloaded">]
+    member _.Preloaded state : VirtualApplicationConfig = { state with PreloadEnabled = Some true }
+
+let virtualApplication = VirtualApplicationBuilder()
+
 /// Common fields between WebApp and Functions
 type CommonWebConfig =
     { Name : WebAppName
@@ -249,7 +274,8 @@ type WebAppConfig =
       PrivateEndpoints: (LinkedResource * string option) Set
       CustomDomains : Map<string,DomainConfig>
       DockerPort: int option
-      ZoneRedundant : FeatureFlag option }
+      ZoneRedundant : FeatureFlag option
+      VirtualApplications : Map<string, VirtualApplication> }
     member this.Name = this.CommonWebConfig.Name
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.CommonWebConfig.ServicePlan.resourceId this.Name.ResourceName
@@ -474,7 +500,8 @@ type WebAppConfig =
                   ZipDeployPath = this.CommonWebConfig.ZipDeployPath |> Option.map (fun (path,slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot )
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath
                   IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
-                  LinkToSubnet = this.CommonWebConfig.IntegratedSubnet }
+                  LinkToSubnet = this.CommonWebConfig.IntegratedSubnet
+                  VirtualApplications = this.VirtualApplications }
 
             match keyVault with
             | Some keyVault ->
@@ -674,7 +701,8 @@ type WebAppBuilder() =
           PrivateEndpoints = Set.empty
           CustomDomains = Map.empty
           DockerPort = None
-          ZoneRedundant = None }
+          ZoneRedundant = None
+          VirtualApplications = Map [] }
     member _.Run(state:WebAppConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Web App name has been set."
         state.CommonWebConfig.Validate()
@@ -785,7 +813,18 @@ type WebAppBuilder() =
     [<CustomOperation "zone_redundant">]
     member this.ZoneRedundant(state:WebAppConfig, flag:FeatureFlag) = {state with ZoneRedundant = Some flag}
 
-    interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = {state with CommonWebConfig = { state.CommonWebConfig with PrivateEndpoints =  state.CommonWebConfig.PrivateEndpoints |> Set.union endpoints}}
+    [<CustomOperation "add_virtual_applications">] 
+    member this.AddVirtualApplications(state:WebAppConfig, newVirtualApps) =
+        let currentVirtualApps =
+            if state.VirtualApplications.IsEmpty
+                then Map [ ("/", { PhysicalPath = "site\\wwwroot"; PreloadEnabled = None } ) ]
+                else state.VirtualApplications
+        { state with
+            VirtualApplications =
+                (currentVirtualApps, newVirtualApps)
+                ||> List.fold (fun map config -> Map.add config.VirtualPath { PhysicalPath = "site\\" + config.PhysicalPath; PreloadEnabled = config.PreloadEnabled } map) }
+
+    interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with CommonWebConfig = { state.CommonWebConfig with PrivateEndpoints =  state.CommonWebConfig.PrivateEndpoints |> Set.union endpoints } }
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface IServicePlanApp<WebAppConfig> with

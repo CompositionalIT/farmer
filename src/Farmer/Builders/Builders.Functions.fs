@@ -276,7 +276,8 @@ type FunctionsConfig =
                   WorkerProcess = this.CommonWebConfig.WorkerProcess
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath
                   IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions 
-                  LinkToSubnet = this.CommonWebConfig.IntegratedSubnet }
+                  LinkToSubnet = this.CommonWebConfig.IntegratedSubnet
+                  VirtualApplications = Map [] }
 
             match this.CommonWebConfig.ServicePlan with
             | DeployableResource this.Name.ResourceName resourceId ->
