@@ -1,11 +1,52 @@
 Release Notes
 =============
+
+## PR-938
+* Added Basic Types documentation and examples for  unmanaged resources.
+
+## 1.7.3
+* SQL Azure: Support for serverless
+* Network: Added Microsoft.Web/serverFarms to the SubnetDelegationService as a new static member WebServerFarms
+
+## 1.7.2
+* Container Apps: Fix ResourceId
+* Operations Management: Add basic support for Operations Management to configure & deploy Solutions.
+
+## 1.7.1
+* App Insights: Add ConnectionString member.
+* Communication Services: **Breaking Changes**: Clean up and fix issues regarding naming and Location.
+* Communication Services: Add ConnectionString member.
+* Container Apps: Support for collections of env vars, fix ACR credentials linking 
+* Deployments: Use vault-secrets from unmanaged resource groups
+* Event Hub: Don't create the `$Default` consumer group explicitly. It will automatically be created by Azure when the resource is created.
+* SignalR: Add ConnectionString member.
+* SignalR: **Breaking Change**: Bug fix - Key now returns Key, not ConnectionString.
+* Static Web Apps: App Setting support.
+
+## 1.7.0
+* Azure CLI: Escape parameters passed to the az deployment command (breaking change). Any previously escaped parameters need to be unescaped before passing to the tryValidate, tryWhatIf, tryExecute, whatIf and execute functions.
+
+## 1.6.35
+* Container Apps: Support for Managed Identities
+* Logic Apps: Basic support for logic apps. These will require the logic app code to be supplied either directly or via file path.
+
+## 1.6.34
+* CLI: Include `--overwrite true` option when executing `az storage blob upload-batch` with Azure CLI 2.34.0 and above.
+* Container Groups: Deploy container groups to a specific zone.
+* Container Groups: Diagnostics support to send logs to a Log Analytics workspace.
+* Container Groups: Support for attaching to subnets directly without requiring a network profile.
+
 ## 1.6.33
-* Virtual networks : Add a privateEndpoint builder with dns zone group support
-* Add subnet depends_on support
+* Container Groups: Specify DNS nameservers and search domains.
+* Container Registry: Adds name validation
+* DNS: Add support for private DNS zones and records
+* PostgreSQL: Added possibility to set vnet rules for PostgreSQL.
+* WebApps: Support virtual applications with `add_virtual_application`/`add_virtual_application_preloaded`
 
 ## 1.6.32
-* DNS: Add support for private DNS zones and records
+* DiagnosticSettings now supports resources that contain multiple segments e.g. SQL Databases.
+* ContainerApps now use the updated resource name (Microsoft.App instead of Microsoft.Web).
+* Updated documentation on main page from `Writer.quickDeploy` to `Writer.quickWrite`
 
 ## 1.6.31
 * WebApps: Fix flakey deployments of web apps with multiple custom domains.

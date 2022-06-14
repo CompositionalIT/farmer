@@ -9,6 +9,8 @@ open Farmer.Arm.KeyVault.Vaults
 open Sites
 open System
 open Farmer.Identity
+open System.Threading
+open System.Net
 
 type JavaHost =
     | JavaSE | WildFly14 | Tomcat of string
@@ -77,6 +79,7 @@ type SecretStore =
 type SlotConfig =
     { Name: string
       AutoSwapSlotName: string option
+      PostDeploySwapTarget: string option
       AppSettings: Map<string,Setting>
       ConnectionStrings: Map<string,(Setting * ConnectionStringKind)>
       Identity: ManagedIdentity
@@ -94,12 +97,56 @@ type SlotConfig =
             Identity = this.Identity + owner.Identity
             KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity |> Option.orElse owner.KeyVaultReferenceIdentity
             IpSecurityRestrictions = this.IpSecurityRestrictions
-            ZipDeployPath = None }
+            ZipDeployPath = None
+            PostDeployActions = 
+                [ fun rg -> 
+                    match this.PostDeploySwapTarget with
+                    | None -> None
+                    | Some target -> 
+                        match owner.HealthCheckPath with
+                        | None -> None
+                        | Some path ->
+                            let maxWaitForHealthy = TimeSpan.FromMinutes(5)
+                            let healthCheckDomain = $"https://%s{owner.Name.Value}-%s{this.Name}.azurewebsites.net/{path}"
+                            Console.WriteLine $"Waiting for %s{owner.Name.Value}/%s{this.Name} to become healthy (GET %s{healthCheckDomain}):"
+                            let cancelToken = (new CancellationTokenSource(maxWaitForHealthy)).Token
+                            let mutable statusCode = HttpStatusCode.SeeOther;
+                            let timer = System.Diagnostics.Stopwatch()
+                            let client = new System.Net.Http.HttpClient();
+                            while not cancelToken.IsCancellationRequested && statusCode <> HttpStatusCode.OK do
+                                Console.Write "\tChecking slot health ... "
+                                let nextCheckDue = System.Threading.Tasks.Task.Delay(10_000)
+                                timer.Start()
+                                let response = 
+                                    client.GetAsync(healthCheckDomain,cancelToken)
+                                    |> Async.AwaitTask 
+                                    |> Async.RunSynchronously
+                                timer.Stop()
+                                statusCode <- response.StatusCode
+                                Console.WriteLine $"%s{statusCode.ToString()} (%i{timer.ElapsedMilliseconds} ms)"
+                                // Wait for nextCheckDue to ensure we don't hit the endpoint too frequently
+                                Async.AwaitTask nextCheckDue |> Async.RunSynchronously
+
+                            match statusCode with
+                            | HttpStatusCode.OK ->
+                                Some (Ok statusCode)
+                            | _ ->
+                                Some (Error $"Slot '%s{this.Name}' health check path failed to return OK within %f{maxWaitForHealthy.TotalMinutes} minutes.")
+                        |> function
+                        | None | Some (Ok _) ->
+                            Console.Write $"Swapping slots %s{owner.Name.Value}/%s{this.Name} <-> %s{target} ... "
+                            let result = (Deploy.Az.swapSlots rg owner.Name.Value this.Name target)
+                            Console.WriteLine (result |> function | Ok _ -> "Done!" | _ -> "Error!")
+                            Some result
+                        | Some (Error e) -> Some (Error e)
+                ]
+        }
 
 type SlotBuilder() =
     member this.Yield _ =
         { Name = "staging"
           AutoSwapSlotName = None
+          PostDeploySwapTarget = None
           AppSettings = Map.empty
           ConnectionStrings = Map.empty
           Identity = ManagedIdentity.Empty
@@ -113,6 +160,9 @@ type SlotBuilder() =
 
     [<CustomOperation "autoSlotSwapName">]
     member this.AutoSlotSwapName (state,autoSlotSwapName) : SlotConfig = {state with AutoSwapSlotName = Some autoSlotSwapName}
+
+    [<CustomOperation "post_deploy_swap">]
+    member this.ManualSwap(state, ?targetSlotName) : SlotConfig = {state with PostDeploySwapTarget = Some (targetSlotName |> Option.defaultValue "Production") }
 
     /// Sets an app setting of the web app in the form "key" "value".
     [<CustomOperation "add_identity">]
@@ -187,6 +237,31 @@ type SlotBuilder() =
 
 let appSlot = SlotBuilder()
 
+type VirtualApplicationConfig =
+    { VirtualPath: string
+      PhysicalPath: string
+      PreloadEnabled: bool option }
+
+type VirtualApplicationBuilder() =
+    member this.Yield _ =
+        { VirtualPath = ""
+          PhysicalPath = ""
+          PreloadEnabled = None }
+    member _.Run (config: VirtualApplicationConfig) =
+        if String.IsNullOrWhiteSpace config.VirtualPath then
+            raiseFarmer "Missing Virtual Path on Virtual Application - specify 'virtual_path' on all virtual applications"
+        if String.IsNullOrWhiteSpace config.PhysicalPath then
+            raiseFarmer "Missing Physical Path on Virtual Application - specify 'physical_path' on all virtual applications"
+        config
+    [<CustomOperation "virtual_path">]
+    member _.VirtualPath (state, virtualPath) : VirtualApplicationConfig = { state with VirtualPath = virtualPath }
+    [<CustomOperation "physical_path">]
+    member _.PhysicalPath (state, physicalPath) : VirtualApplicationConfig = { state with PhysicalPath = physicalPath }
+    [<CustomOperation "preloaded">]
+    member _.Preloaded state : VirtualApplicationConfig = { state with PreloadEnabled = Some true }
+
+let virtualApplication = VirtualApplicationBuilder()
+
 /// Common fields between WebApp and Functions
 type CommonWebConfig =
     { Name : WebAppName
@@ -249,7 +324,8 @@ type WebAppConfig =
       PrivateEndpoints: (LinkedResource * string option) Set
       CustomDomains : Map<string,DomainConfig>
       DockerPort: int option
-      ZoneRedundant : FeatureFlag option }
+      ZoneRedundant : FeatureFlag option
+      VirtualApplications : Map<string, VirtualApplication> }
     member this.Name = this.CommonWebConfig.Name
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.CommonWebConfig.ServicePlan.resourceId this.Name.ResourceName
@@ -474,7 +550,9 @@ type WebAppConfig =
                   ZipDeployPath = this.CommonWebConfig.ZipDeployPath |> Option.map (fun (path,slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot )
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath
                   IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
-                  LinkToSubnet = this.CommonWebConfig.IntegratedSubnet }
+                  LinkToSubnet = this.CommonWebConfig.IntegratedSubnet
+                  PostDeployActions = []
+                  VirtualApplications = this.VirtualApplications }
 
             match keyVault with
             | Some keyVault ->
@@ -674,7 +752,8 @@ type WebAppBuilder() =
           PrivateEndpoints = Set.empty
           CustomDomains = Map.empty
           DockerPort = None
-          ZoneRedundant = None }
+          ZoneRedundant = None
+          VirtualApplications = Map [] }
     member _.Run(state:WebAppConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Web App name has been set."
         state.CommonWebConfig.Validate()
@@ -785,7 +864,18 @@ type WebAppBuilder() =
     [<CustomOperation "zone_redundant">]
     member this.ZoneRedundant(state:WebAppConfig, flag:FeatureFlag) = {state with ZoneRedundant = Some flag}
 
-    interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = {state with CommonWebConfig = { state.CommonWebConfig with PrivateEndpoints =  state.CommonWebConfig.PrivateEndpoints |> Set.union endpoints}}
+    [<CustomOperation "add_virtual_applications">] 
+    member this.AddVirtualApplications(state:WebAppConfig, newVirtualApps) =
+        let currentVirtualApps =
+            if state.VirtualApplications.IsEmpty
+                then Map [ ("/", { PhysicalPath = "site\\wwwroot"; PreloadEnabled = None } ) ]
+                else state.VirtualApplications
+        { state with
+            VirtualApplications =
+                (currentVirtualApps, newVirtualApps)
+                ||> List.fold (fun map config -> Map.add config.VirtualPath { PhysicalPath = "site\\" + config.PhysicalPath; PreloadEnabled = config.PreloadEnabled } map) }
+
+    interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with CommonWebConfig = { state.CommonWebConfig with PrivateEndpoints =  state.CommonWebConfig.PrivateEndpoints |> Set.union endpoints } }
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface IServicePlanApp<WebAppConfig> with

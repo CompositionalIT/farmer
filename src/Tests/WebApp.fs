@@ -932,6 +932,62 @@ let tests = testList "Web App Tests" [
         Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
     }
 
+    test "Supports redefining root application directory" {
+        let wa = webApp {
+            name "test"
+            add_virtual_applications [
+                virtualApplication {
+                    virtual_path "/"
+                    physical_path "altdirectory" 
+                }
+            ]
+        }
+
+        let site = wa |> getResources |> getResource<Web.Site> |> List.head
+
+        let expectedVirtualApplications = Map [ "/", { PhysicalPath = "site\\altdirectory"; PreloadEnabled = None } ]
+        Expect.equal site.VirtualApplications expectedVirtualApplications "Should add virtual application definition for root"
+    }
+
+    test "Supports defining additional virtual applications without changing root" {
+        let wa = webApp {
+            name "test"
+            add_virtual_applications [
+                virtualApplication {
+                    virtual_path "/subapp"
+                    physical_path "wwwsubapp"
+                }
+            ]
+        }
+
+        let site = wa |> getResources |> getResource<Web.Site> |> List.head
+
+        let expectedVirtualApplications = Map [
+            ("/", { PhysicalPath = "site\\wwwroot"; PreloadEnabled = None }), 1u
+            ("/subapp", { PhysicalPath = "site\\wwwsubapp"; PreloadEnabled = None }), 1u
+        ]
+        Expect.distribution (site.VirtualApplications |> Seq.map(fun it -> (it.Key, it.Value))) expectedVirtualApplications "Should add virtual application definition for /subapp, but keep the root app around"
+    }
+
+    test "Supports virtual applications with preload enabled" {
+        let wa = webApp {
+            name "test"
+            add_virtual_applications [
+                virtualApplication {
+                    virtual_path "/subapp"
+                    physical_path "wwwroot\\subApp"
+                    preloaded
+                }
+            ]
+        }
+
+        let site = wa |> getResources |> getResource<Web.Site> |> List.head
+        
+        let expectedVirtualApplications = Map [
+            ("/subapp", { PhysicalPath = "site\\wwwroot\\subApp"; PreloadEnabled = (Some true) }), 1u
+        ]
+        Expect.distribution (site.VirtualApplications |> Seq.map(fun it -> (it.Key, it.Value))) expectedVirtualApplications "Should add preloaded virtual application definition"
+    }
     test "Can integrate with private endpoint and add private dns zone group" {
         let someSubnet = ResourceId.create(Network.subnets,ResourceName "mySubnet")
         let dnsZone = ResourceId.create(Dns.privateZones,ResourceName "myPrivateDnsZone")
@@ -965,5 +1021,13 @@ let tests = testList "Web App Tests" [
         Expect.equal (jobj.SelectToken("resources[?(@.name=='webapp-ep/dnszone')].dependsOn[0]").ToString()) "[resourceId('Microsoft.Network/privateEndpoints', 'webapp-ep')]" "privateDnsZoneGroups should depend on private endpoint"
         Expect.equal (jobj.SelectToken("resources[?(@.name=='webapp-ep/dnszone')].properties.privateDnsZoneConfigs[0].name").ToString()) "dnszone" "privateDnsZoneGroup name is wrong"
         Expect.equal (jobj.SelectToken("resources[?(@.name=='webapp-ep/dnszone')].properties.privateDnsZoneConfigs[0].properties.privateDnsZoneId").ToString()) "[resourceId('Microsoft.Network/privateDnsZones', 'myPrivateDnsZone')]" "privateDnsZoneGroup dns zone id is wrong"
+    }
+    test "WebApp supports blocking slot-swap" {
+        let slot = appSlot { name "deployment"; post_deploy_swap }
+        let app = webApp{ name "webapp"; add_slot slot; zip_deploy_slot "deployment" "some/path"}
+        
+        let site = app |> getResources |> getResource<Web.Site> |> List.item 1
+        Expect.equal site.Name.Value "webapp/deployment" "site name was not as expected"
+        Expect.hasLength site.PostDeployActions 1 "no custom post deploy actions found"
     }
 ]

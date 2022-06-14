@@ -5,11 +5,17 @@ open Farmer
 open Farmer.Builders
 open Newtonsoft.Json.Linq
 open Farmer.ContainerApp
+open Farmer.Identity
+
+let msi = createUserAssignedIdentity "appUser"
+let containerRegistryName = "myregistry"
 
 let fullContainerAppDeployment =
     let containerLogs = logAnalytics { name "containerlogs" }
-    let containerRegistryDomain = "myregistry.azurecr.io"
-    let containerRegistryUsername = "myregistry"
+    let containerRegistryDomain = $"{containerRegistryName}.azurecr.io"
+    let acr = containerRegistry { 
+        name containerRegistryName
+    }
     let version = "1.0.0"
     let containerEnv =
         containerEnvironment {
@@ -18,9 +24,10 @@ let fullContainerAppDeployment =
             add_containers [
                 containerApp {
                     name "http"
+                    add_identity msi
                     active_revision_mode Single
                     add_registry_credentials [
-                        registry containerRegistryDomain containerRegistryUsername
+                        registry containerRegistryDomain containerRegistryName
                     ]
                     add_containers [
                         container {
@@ -40,8 +47,20 @@ let fullContainerAppDeployment =
                     add_http_scale_rule "http-rule" { ConcurrentRequests = 100 }
                 }
                 containerApp {
+                    name "multienv"
+                    add_simple_container "mcr.microsoft.com/dotnet/samples" "aspnetapp"
+                    ingress_target_port 80us
+                    ingress_transport Auto
+                    add_http_scale_rule "http-scaler" { ConcurrentRequests = 10 }
+                    add_cpu_scale_rule "cpu-scaler" { Utilisation = 50 }
+                    add_secret_parameters ["servicebusconnectionkey"]
+                    add_env_variables ["ServiceBusQueueName","wishrequests"]
+                    add_secret_expressions ["containerlogs", containerLogs.PrimarySharedKey]
+                }
+                containerApp {
                     name "servicebus"
                     active_revision_mode Single
+                    reference_registry_credentials [(acr :> IBuilder).ResourceId]
                     add_containers [
                         container {
                             name "servicebus"
@@ -62,6 +81,7 @@ let fullContainerAppDeployment =
     arm {
         add_resources [
             containerEnv
+            msi
         ]
     }
 
@@ -80,9 +100,15 @@ let tests = testList "Container Apps" [
         Expect.isNotNull (jobj.SelectToken("parameters.servicebusconnectionkey")) "Missing 'servicebusconnectionkey' parameter"
         Expect.isNotNull (jobj.SelectToken("parameters['myregistry.azurecr.io-password']")) "Missing 'myregistry.azurecr.io-password' parameter"
     }
-    test "Full container environment kubeEnvironment" {
+    test "Seq container environment parameters" {
+        let containerApp = fullContainerAppDeployment.Template.Resources |> List.find(fun r -> r.ResourceId.Name.Value = "multienv") :?> Farmer.Arm.App.ContainerApp
+        containerApp.EnvironmentVariables.["ServiceBusQueueName"] |> ignore
+        containerApp.EnvironmentVariables.["servicebusconnectionkey"] |> ignore
+        containerApp.EnvironmentVariables.["containerlogs"] |> ignore
+    }
+    test "Full container managed environments" {
         let kubeEnv = jobj.SelectToken("resources[?(@.name=='kubecontainerenv')]")
-        Expect.equal (kubeEnv.["type"] |> string) "Microsoft.Web/kubeEnvironments" "Incorrect type for kuberenetes environment"
+        Expect.equal (kubeEnv.["type"] |> string) "Microsoft.App/managedEnvironments" "Incorrect type for kuberenetes environment"
         Expect.equal (kubeEnv.["kind"] |> string) "containerenvironment" "Incorrect kind for kuberenetes environment"
         let kubeEnvAppLogConfig = jobj.SelectToken("resources[?(@.name=='kubecontainerenv')].properties.appLogsConfiguration")
         Expect.equal (kubeEnvAppLogConfig.["destination"] |> string) "log-analytics" "Incorrect type for app log config"
@@ -91,7 +117,7 @@ let tests = testList "Container Apps" [
     }
     test "Full container environment containerApp" {
         let httpContainerApp = jobj.SelectToken("resources[?(@.name=='http')]")
-        Expect.equal (httpContainerApp.["type"] |> string) "Microsoft.Web/containerApps" "Incorrect type for containerApps"
+        Expect.equal (httpContainerApp.["type"] |> string) "Microsoft.App/containerApps" "Incorrect type for containerApps"
         Expect.equal (httpContainerApp.["kind"] |> string) "containerapp" "Incorrect kind for containerApps"
         let ingress = httpContainerApp.SelectToken("properties.configuration.ingress")
         Expect.isTrue (ingress.SelectToken("external") |> string |> bool.Parse) "Incorrect external ingress"
@@ -108,7 +134,7 @@ let tests = testList "Container Apps" [
         Expect.hasLength secrets 2 "Expecting 2 secrets"
         Expect.equal (secrets.[0].["name"] |> string) "myregistry" "Incorrect name for registry password secret"
         Expect.equal (secrets.[0].["value"] |> string) "[parameters('myregistry.azurecr.io-password')]" "Incorrect password parameter for registry password secret"
-        Expect.equal (httpContainerApp.SelectToken("properties.kubeEnvironmentId") |> string) "[resourceId('Microsoft.Web/kubeEnvironments', 'kubecontainerenv')]" "Incorrect kube environment Id"
+        Expect.equal (httpContainerApp.SelectToken("properties.managedEnvironmentId") |> string) "[resourceId('Microsoft.App/managedEnvironments', 'kubecontainerenv')]" "Incorrect kube environment Id"
 
         let containers = httpContainerApp.SelectToken("properties.template.containers")
         Expect.hasLength containers 1 "Expected 1 http container"
@@ -122,5 +148,14 @@ let tests = testList "Container Apps" [
         Expect.isNotNull scale "properties.scale was null"
         Expect.equal (scale.["minReplicas"] |> int) 1 "Incorrect min replicas"
         Expect.equal (scale.["maxReplicas"] |> int) 5 "Incorrect max replicas"
+    }
+    test "Makes container app with MSI" {
+        let containerApp = fullContainerAppDeployment.Template.Resources |> List.find(fun r -> r.ResourceId.Name.Value = "http") :?> Farmer.Arm.App.ContainerApp
+        Expect.isNonEmpty containerApp.Identity.UserAssigned "Container app did not have identity"
+        Expect.equal containerApp.Identity.UserAssigned.[0] (UserAssignedIdentity(ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "appUser"))) "Expected user identity named 'appUser'."
+    }
+    test "Linked ACR references correct secret" {
+        let containerApp = fullContainerAppDeployment.Template.Resources |> List.find(fun r -> r.ResourceId.Name.Value = "servicebus") :?> Farmer.Arm.App.ContainerApp
+        Expect.isFalse (containerApp.Secrets |> Map.containsKey (ContainerAppValidation.ContainerAppSettingKey.Create $"{containerRegistryName}-username").OkValue) "Container app did not have linked ACR's secret"
     }
 ]

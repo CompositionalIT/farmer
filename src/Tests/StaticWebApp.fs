@@ -33,4 +33,17 @@ let tests = testList "Static Web App Tests" [
         let swaArm = (swa :> IBuilder).BuildResources(Location.WestEurope).[0] :?> StaticSite
         Expect.equal swaArm.Branch "master" "Branch"
     }
+    test "Supports app settings" {
+        let swa = staticWebApp {
+            name "foo"
+            repository "https://compositional-it.com"
+            app_settings [
+                "foo", "bar"
+                "blip", "blop"
+            ]
+
+        }
+        let swaArm = (swa :> IBuilder).BuildResources(Location.WestEurope).[1] :?> StaticSites.Config
+        Expect.equal swaArm.Properties (Map [ "foo", "bar"; "blip", "blop"]) "App Settings not set"
+    }
 ]

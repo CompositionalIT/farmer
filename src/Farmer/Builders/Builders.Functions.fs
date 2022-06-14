@@ -267,6 +267,7 @@ type FunctionsConfig =
                   PythonVersion = None
                   Metadata = []
                   AutoSwapSlotName = None
+                  PostDeployActions = []
                   ZipDeployPath = this.CommonWebConfig.ZipDeployPath |> Option.map (fun (path, slot) -> path, ZipDeploy.ZipDeployTarget.FunctionApp, slot)
                   AppCommandLine =
                     match this.PublishAs with
@@ -276,7 +277,8 @@ type FunctionsConfig =
                   WorkerProcess = this.CommonWebConfig.WorkerProcess
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath
                   IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions 
-                  LinkToSubnet = this.CommonWebConfig.IntegratedSubnet }
+                  LinkToSubnet = this.CommonWebConfig.IntegratedSubnet
+                  VirtualApplications = Map [] }
 
             match this.CommonWebConfig.ServicePlan with
             | DeployableResource this.Name.ResourceName resourceId ->
