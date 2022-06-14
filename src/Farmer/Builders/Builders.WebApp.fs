@@ -108,13 +108,13 @@ type SlotConfig =
                         | Some path ->
                             let maxWaitForHealthy = TimeSpan.FromMinutes(5)
                             let healthCheckDomain = $"https://%s{owner.Name.Value}-%s{this.Name}.azurewebsites.net/{path}"
-                            Console.WriteLine $"Waiting for {owner.Name.Value}/{this.Name} to become healthy (GET {healthCheckDomain}):"
+                            Console.WriteLine $"Waiting for %s{owner.Name.Value}/%s{this.Name} to become healthy (GET %s{healthCheckDomain}):"
                             let cancelToken = (new CancellationTokenSource(maxWaitForHealthy)).Token
                             let mutable statusCode = HttpStatusCode.SeeOther;
                             let timer = System.Diagnostics.Stopwatch()
                             let client = new System.Net.Http.HttpClient();
                             while not cancelToken.IsCancellationRequested && statusCode <> HttpStatusCode.OK do
-                                Console.Write "\tChecking slot health..."
+                                Console.Write "\tChecking slot health ... "
                                 let nextCheckDue = System.Threading.Tasks.Task.Delay(10_000)
                                 timer.Start()
                                 let response = 
@@ -123,7 +123,7 @@ type SlotConfig =
                                     |> Async.RunSynchronously
                                 timer.Stop()
                                 statusCode <- response.StatusCode
-                                Console.WriteLine $"{statusCode} ({timer.ElapsedMilliseconds} ms)"
+                                Console.WriteLine $"%s{statusCode.ToString()} (%i{timer.ElapsedMilliseconds} ms)"
                                 // Wait for nextCheckDue to ensure we don't hit the endpoint too frequently
                                 Async.AwaitTask nextCheckDue |> Async.RunSynchronously
 
@@ -131,10 +131,10 @@ type SlotConfig =
                             | HttpStatusCode.OK ->
                                 Some (Ok statusCode)
                             | _ ->
-                                Some (Error $"Slot '{this.Name}' health check path failed to return OK within {maxWaitForHealthy.TotalMinutes} minutes.")
+                                Some (Error $"Slot '%s{this.Name}' health check path failed to return OK within %f{maxWaitForHealthy.TotalMinutes} minutes.")
                         |> function
                         | None | Some (Ok _) ->
-                            Console.Write $"Swapping slots {this.Name} <-> {target} ... "
+                            Console.Write $"Swapping slots %s{owner.Name.Value}/%s{this.Name} <-> %s{target} ... "
                             let result = (Deploy.Az.swapSlots rg owner.Name.Value this.Name target)
                             Console.WriteLine (result |> function | Ok _ -> "Done!" | _ -> "Error!")
                             Some result
