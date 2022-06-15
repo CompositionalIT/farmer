@@ -28,11 +28,11 @@ let env =
             containerApp {
                 name "queuereaderapp"
                 add_volumes [ Volume.emptyDir "empty-v"
-                              Volume.azureFile "certs-v" "certs" myStorageAccount.Name.ResourceName.Value StorageAccessMode.ReadOnly ]
+                              Volume.azureFile "certs-v" (ResourceName "certs") myStorageAccount.Name StorageAccessMode.ReadOnly ]
                 add_containers [
                     container {
                         name "queuereaderapp"
-                        public_docker_image "mcr.microsoft.com/azuredocs/containerapps-queuereader" ""
+                        public_docker_image "mcr.microsoft.com/azuredocs/containerapps-queuereader" "latest"
                         cpu_cores 0.25<VCores>
                         memory 0.5<Gb>
                         ephemeral_storage 1.<Gb>

@@ -152,8 +152,8 @@ let private defaultResources = {| CPU = 0.25<VCores>; Memory = 0.5<Gb>; Ephemera
 module Volume =
     let emptyDir volumeName =
         volumeName, Volume.EmptyDirectory
-    let azureFile volumeName shareName (storageAccountName:string) accessMode =
-        volumeName, Volume.AzureFileShare (ResourceName shareName, Storage.StorageAccountName.Create(storageAccountName).OkValue, accessMode)
+    let azureFile volumeName (shareName:ResourceName) (storageAccount:Storage.StorageAccountName) accessMode =
+        volumeName, Volume.AzureFileShare (shareName, storageAccount, accessMode)
 
 type ContainerAppBuilder () =
     member _.Yield _ =

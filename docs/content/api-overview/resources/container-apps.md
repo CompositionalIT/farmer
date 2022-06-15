@@ -107,7 +107,7 @@ containerEnvironment {
                 ContainerRegistry.registries.resourceId "myazurecontainerregistry"
             ]
             add_volumes [ Volume.emptyDir "empty-v"
-                          Volume.azureFile "certs-v" "certs" myStorageAccount.Name.ResourceName.Value StorageAccessMode.ReadOnly ]
+                          Volume.azureFile "certs-v" (ResourceName "certs") myStorageAccount.Name StorageAccessMode.ReadOnly ]
             add_containers [
                 container {
                     name "myservice1"

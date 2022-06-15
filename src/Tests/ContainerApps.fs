@@ -68,7 +68,7 @@ let fullContainerAppDeployment =
                     active_revision_mode Single
                     reference_registry_credentials [(acr :> IBuilder).ResourceId]
                     add_volumes [ Volume.emptyDir "empty-v"
-                                  Volume.azureFile "certs-v" "certs" storage.Name.ResourceName.Value StorageAccessMode.ReadOnly ]
+                                  Volume.azureFile "certs-v" (ResourceName "certs") storage.Name StorageAccessMode.ReadOnly ]
                     add_containers [
                         container {
                             name "servicebus"
