@@ -21,13 +21,6 @@ let applicationGatewaySslProfiles = ResourceType ("Microsoft.Network/application
 let applicationGatewayTrustedRootCertificates = ResourceType ("Microsoft.Network/applicationGateways/trustedRootCertificates", "2020-11-01")
 let applicationGatewayUrlPathMaps = ResourceType ("Microsoft.Network/applicationGateways/urlPathMap", "2020-11-01")
 
-
-module private ResourceId =
-    let asId (resourceId: ResourceId) =
-        {| id = resourceId.Eval() |}
-
-let private curry a b = a,b
-
 type ApplicationGateway =
     { Name : ResourceName
       Location : Location
@@ -262,7 +255,7 @@ type ApplicationGateway =
                                     affinityCookieName = settings.AffinityCookieName |> Option.toObj
                                     authenticationCertificates =
                                         settings.AuthenticationCertificates
-                                        |> List.map (curry this.Name >> applicationGatewayAuthenticationCertificates.resourceId >> ResourceId.asId)
+                                        |> List.map (tuple this.Name >> applicationGatewayAuthenticationCertificates.resourceId >> ResourceId.AsIdObject)
                                     connectionDraining = settings.ConnectionDraining |> Option.map (fun drain ->
                                         {|
                                           drainTimeoutInSec = drain.DrainTimeoutInSeconds
@@ -274,13 +267,13 @@ type ApplicationGateway =
                                     path = settings.Path |> Option.toObj
                                     pickHostNameFromBackendAddress = settings.PickHostNameFromBackendAddress
                                     port = settings.Port
-                                    probe = settings.Probe |> Option.map (curry this.Name >> ApplicationGatewayProbes.resourceId >> ResourceId.asId) |> Option.defaultValue Unchecked.defaultof<_>
+                                    probe = settings.Probe |> Option.map (tuple this.Name >> ApplicationGatewayProbes.resourceId >> ResourceId.AsIdObject) |> Option.defaultValue Unchecked.defaultof<_>
                                     probeEnabled = settings.ProbeEnabled
                                     protocol = settings.Protocol.ArmValue
                                     requestTimeout = settings.RequestTimeoutInSeconds
                                     trustedRootCertificates =
                                         settings.TrustedRootCertificates
-                                        |> List.map (curry this.Name >> applicationGatewayTrustedRootCertificates.resourceId >> ResourceId.asId)
+                                        |> List.map (tuple this.Name >> applicationGatewayTrustedRootCertificates.resourceId >> ResourceId.AsIdObject)
                                 |}
                             |}
                         )
@@ -292,7 +285,7 @@ type ApplicationGateway =
                         )
                         enableFips = this.EnableFips |> Option.toNullable
                         enableHttp2 = this.EnableHttp2 |> Option.toNullable
-                        firewallPolicy = this.FirewallPolicy |> Option.map ResourceId.asId |> Option.defaultValue Unchecked.defaultof<_>
+                        firewallPolicy = this.FirewallPolicy |> Option.map ResourceId.AsIdObject |> Option.defaultValue Unchecked.defaultof<_>
                         frontendPorts = this.FrontendPorts |> List.map (fun frontend ->
                             {|
                                 name = frontend.Name.Value
@@ -304,7 +297,7 @@ type ApplicationGateway =
                             {|
                                 name = gwip.Name.Value
                                 properties =
-                                    {| subnet = gwip.Subnet |> Option.map ResourceId.asId |> Option.defaultValue Unchecked.defaultof<_> |}
+                                    {| subnet = gwip.Subnet |> Option.map ResourceId.AsIdObject |> Option.defaultValue Unchecked.defaultof<_> |}
                             |}
                         )
                         httpListeners = this.HttpListeners |> List.map (fun listener ->
@@ -318,14 +311,14 @@ type ApplicationGateway =
                                       statusCode = cfg.StatusCode.ArmValue
                                     |}
                                   )
-                                  firewallPolicy = listener.FirewallPolicy |> Option.map ResourceId.asId |> Option.defaultValue Unchecked.defaultof<_>
-                                  frontendIPConfiguration = (this.Name,listener.FrontendIpConfiguration) |> applicationGatewayFrontendIPConfigurations.resourceId |> ResourceId.asId
-                                  frontendPort = (this.Name,listener.FrontendPort) |> applicationGatewayFrontendPorts.resourceId |> ResourceId.asId
+                                  firewallPolicy = listener.FirewallPolicy |> Option.map ResourceId.AsIdObject |> Option.defaultValue Unchecked.defaultof<_>
+                                  frontendIPConfiguration = (this.Name,listener.FrontendIpConfiguration) |> applicationGatewayFrontendIPConfigurations.resourceId |> ResourceId.AsIdObject
+                                  frontendPort = (this.Name,listener.FrontendPort) |> applicationGatewayFrontendPorts.resourceId |> ResourceId.AsIdObject
                                   hostNames = listener.HostNames
                                   protocol = listener.Protocol.ArmValue
                                   requireServerNameIndication = listener.RequireServerNameIndication
-                                  sslCertificate = listener.SslCertificate |> Option.map (curry this.Name >> applicationGatewaySslCertificates.resourceId >> ResourceId.asId) |> Option.defaultValue Unchecked.defaultof<_>
-                                  sslProfile = listener.SslProfile |> Option.map (curry this.Name >> applicationGatewaySslProfiles.resourceId >> ResourceId.asId) |> Option.defaultValue Unchecked.defaultof<_>
+                                  sslCertificate = listener.SslCertificate |> Option.map (tuple this.Name >> applicationGatewaySslCertificates.resourceId >> ResourceId.AsIdObject) |> Option.defaultValue Unchecked.defaultof<_>
+                                  sslProfile = listener.SslProfile |> Option.map (tuple this.Name >> applicationGatewaySslProfiles.resourceId >> ResourceId.AsIdObject) |> Option.defaultValue Unchecked.defaultof<_>
                                 |}
                           |}
                         )
@@ -372,12 +365,12 @@ type ApplicationGateway =
                                     {|
                                         includePath = cfg.IncludePath
                                         includeQueryString = cfg.IncludeQueryString
-                                        pathRules = cfg.PathRules |> List.map (curry this.Name >> applicationGatewayPathRules.resourceId >> ResourceId.asId)
+                                        pathRules = cfg.PathRules |> List.map (tuple this.Name >> applicationGatewayPathRules.resourceId >> ResourceId.AsIdObject)
                                         redirectType = cfg.RedirectType.ArmValue
-                                        requestRoutingRules = cfg.RequestRoutingRules |> List.map (curry this.Name >> applicationGatewayRequestRoutingRules.resourceId >> ResourceId.asId)
-                                        targetListener = applicationGatewayHttpListeners.resourceId(this.Name,cfg.TargetListener) |> ResourceId.asId
+                                        requestRoutingRules = cfg.RequestRoutingRules |> List.map (tuple this.Name >> applicationGatewayRequestRoutingRules.resourceId >> ResourceId.AsIdObject)
+                                        targetListener = applicationGatewayHttpListeners.resourceId(this.Name,cfg.TargetListener) |> ResourceId.AsIdObject
                                         targetUrl = cfg.TargetUrl
-                                        urlPathMaps = cfg.UrlPathMaps |> List.map (curry this.Name >> applicationGatewayUrlPathMaps.resourceId >> ResourceId.asId)
+                                        urlPathMaps = cfg.UrlPathMaps |> List.map (tuple this.Name >> applicationGatewayUrlPathMaps.resourceId >> ResourceId.AsIdObject)
                                     |}
                             |}
                         )
@@ -386,14 +379,14 @@ type ApplicationGateway =
                                 name = routingRule.Name.Value
                                 properties =
                                     {|
-                                        backendAddressPool = applicationGatewayBackendAddressPools.resourceId(this.Name,routingRule.BackendAddressPool) |> ResourceId.asId
-                                        backendHttpSettings = applicationGatewayBackendHttpSettingsCollection.resourceId(this.Name,routingRule.BackendHttpSettings) |> ResourceId.asId
-                                        httpListener = applicationGatewayHttpListeners.resourceId(this.Name,routingRule.HttpListener) |> ResourceId.asId
+                                        backendAddressPool = applicationGatewayBackendAddressPools.resourceId(this.Name,routingRule.BackendAddressPool) |> ResourceId.AsIdObject
+                                        backendHttpSettings = applicationGatewayBackendHttpSettingsCollection.resourceId(this.Name,routingRule.BackendHttpSettings) |> ResourceId.AsIdObject
+                                        httpListener = applicationGatewayHttpListeners.resourceId(this.Name,routingRule.HttpListener) |> ResourceId.AsIdObject
                                         priority = routingRule.Priority |> Option.toNullable
-                                        redirectConfiguration =  routingRule.RedirectConfiguration |> Option.map (curry this.Name >> applicationGatewayRedirectConfigurations.resourceId >> ResourceId.asId) |> Option.defaultValue Unchecked.defaultof<_>
-                                        rewriteRuleSet = routingRule.RewriteRuleSet |> Option.map (curry this.Name >> applicationGatewayRewriteRuleSets.resourceId >> ResourceId.asId) |> Option.defaultValue Unchecked.defaultof<_>
+                                        redirectConfiguration =  routingRule.RedirectConfiguration |> Option.map (tuple this.Name >> applicationGatewayRedirectConfigurations.resourceId >> ResourceId.AsIdObject) |> Option.defaultValue Unchecked.defaultof<_>
+                                        rewriteRuleSet = routingRule.RewriteRuleSet |> Option.map (tuple this.Name >> applicationGatewayRewriteRuleSets.resourceId >> ResourceId.AsIdObject) |> Option.defaultValue Unchecked.defaultof<_>
                                         ruleType = routingRule.RuleType.ArmValue
-                                        urlPathMap = routingRule.UrlPathMap |> Option.map (curry this.Name >> applicationGatewayUrlPathMaps.resourceId >> ResourceId.asId) |> Option.defaultValue Unchecked.defaultof<_>
+                                        urlPathMap = routingRule.UrlPathMap |> Option.map (tuple this.Name >> applicationGatewayUrlPathMaps.resourceId >> ResourceId.AsIdObject) |> Option.defaultValue Unchecked.defaultof<_>
                                     |}
                             |}
                         )
@@ -473,7 +466,7 @@ type ApplicationGateway =
                                   ) |> Option.defaultValue Unchecked.defaultof<_>
                                   trustedClientCertificates =
                                     sslProfile.TrustedClientCertificates
-                                    |> List.map (curry this.Name >> applicationGatewayTrustedRootCertificates.resourceId >> ResourceId.asId)
+                                    |> List.map (tuple this.Name >> applicationGatewayTrustedRootCertificates.resourceId >> ResourceId.AsIdObject)
                                 |}
                             |}
                         )
@@ -495,20 +488,20 @@ type ApplicationGateway =
                                 name = pathMap.Name.Value
                                 properties =
                                     {|
-                                       defaultBackendAddressPool = applicationGatewayBackendAddressPools.resourceId(this.Name,pathMap.DefaultBackendAddressPool) |> ResourceId.asId
-                                       defaultBackendHttpSettings = applicationGatewayBackendHttpSettingsCollection.resourceId(this.Name,pathMap.DefaultBackendHttpSettings) |> ResourceId.asId
-                                       defaultRedirectConfiguration = applicationGatewayRedirectConfigurations.resourceId(this.Name,pathMap.DefaultRedirectConfiguration) |> ResourceId.asId
-                                       defaultRewriteRuleSet = applicationGatewayRewriteRuleSets.resourceId(this.Name,pathMap.DefaultRewriteRuleSet) |> ResourceId.asId
+                                       defaultBackendAddressPool = applicationGatewayBackendAddressPools.resourceId(this.Name,pathMap.DefaultBackendAddressPool) |> ResourceId.AsIdObject
+                                       defaultBackendHttpSettings = applicationGatewayBackendHttpSettingsCollection.resourceId(this.Name,pathMap.DefaultBackendHttpSettings) |> ResourceId.AsIdObject
+                                       defaultRedirectConfiguration = applicationGatewayRedirectConfigurations.resourceId(this.Name,pathMap.DefaultRedirectConfiguration) |> ResourceId.AsIdObject
+                                       defaultRewriteRuleSet = applicationGatewayRewriteRuleSets.resourceId(this.Name,pathMap.DefaultRewriteRuleSet) |> ResourceId.AsIdObject
                                        pathRules = pathMap.PathRules |> List.map (fun pathRule ->
                                           {|
                                               name = pathRule.Name.Value
                                               properties =
                                               {|
-                                                backendAddressPool = applicationGatewayBackendAddressPools.resourceId(this.Name,pathRule.BackendAddressPool) |> ResourceId.asId
-                                                backendHttpSettings = applicationGatewayBackendHttpSettingsCollection.resourceId(this.Name,pathRule.BackendHttpSettings) |> ResourceId.asId
-                                                firewallPolicy = pathRule.FirewallPolicy |> ResourceId.asId
-                                                redirectConfiguration = applicationGatewayRedirectConfigurations.resourceId(this.Name,pathRule.RedirectConfiguration) |> ResourceId.asId
-                                                rewriteRuleSet = applicationGatewayRewriteRuleSets.resourceId(this.Name,pathRule.RewriteRuleSet) |> ResourceId.asId
+                                                backendAddressPool = applicationGatewayBackendAddressPools.resourceId(this.Name,pathRule.BackendAddressPool) |> ResourceId.AsIdObject
+                                                backendHttpSettings = applicationGatewayBackendHttpSettingsCollection.resourceId(this.Name,pathRule.BackendHttpSettings) |> ResourceId.AsIdObject
+                                                firewallPolicy = pathRule.FirewallPolicy |> ResourceId.AsIdObject
+                                                redirectConfiguration = applicationGatewayRedirectConfigurations.resourceId(this.Name,pathRule.RedirectConfiguration) |> ResourceId.AsIdObject
+                                                rewriteRuleSet = applicationGatewayRewriteRuleSets.resourceId(this.Name,pathRule.RewriteRuleSet) |> ResourceId.AsIdObject
                                                 paths = pathRule.Paths
                                               |}
                                           |}
