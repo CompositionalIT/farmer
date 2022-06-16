@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.7.4
+* Private Link Services: Adds support for provisioning private link services
+
 ## 1.7.2
 * Container Apps: Fix ResourceId
 * Operations Management: Add basic support for Operations Management to configure & deploy Solutions.

@@ -35,6 +35,7 @@
     <Compile Include="LoadBalancer.fs" />
     <Compile Include="NetworkSecurityGroup.fs" />
     <Compile Include="OperationsManagement.fs" />
+    <Compile Include="PrivateLink.fs" />
     <Compile Include="ResourceGroup.fs" />
     <Compile Include="Storage.fs" />
     <Compile Include="ServiceBus.fs" />
