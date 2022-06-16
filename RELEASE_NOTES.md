@@ -2,7 +2,14 @@ Release Notes
 =============
 
 ## 1.7.4
+* Container Apps: Support for mounted storage
 * Private Link Services: Adds support for provisioning private link services
+* Web App: add an overload for `link_to_service_plan` that accepts Web App
+* Added Basic Types documentation and examples for unmanaged resources.
+
+## 1.7.3
+* SQL Azure: Support for serverless
+* Network: Added Microsoft.Web/serverFarms to the SubnetDelegationService as a new static member WebServerFarms
 
 ## 1.7.2
 * Container Apps: Fix ResourceId

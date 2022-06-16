@@ -1,4 +1,4 @@
-namespace Farmer
+﻿namespace Farmer
 
 open System
 
@@ -857,6 +857,7 @@ module Sql =
         | Gen5_32
         | Gen5_40
         | Gen5_80
+        | S_Gen5 of CapacityMin: int * CapacityMax: int
         member this.Name = Reflection.FSharpValue.GetUnionFields(this, typeof<Gen5Series>) |> fun (v,_) -> v.Name
 
     type FSeries =
@@ -1115,6 +1116,7 @@ type ImageRegistryAuthentication =
 type LogAnalyticsWorkspace =
     | WorkspaceResourceId of LinkedResource
     | WorkspaceKey of WorkspaceId:string * WorkspaceKey:string
+
 
 module ContainerGroup =
     type PortAccess = PublicPort | InternalPort
@@ -1654,6 +1656,8 @@ module Network =
         static member ServiceFabricMeshNetworks = SubnetDelegationService "Microsoft.ServiceFabricMesh/networks"
         /// Microsoft.Sql/managedInstances
         static member SqlManagedInstances = SubnetDelegationService "Microsoft.Sql/managedInstances"
+        /// Microsoft.Web/serverFarms
+        static member WebServerFarms = SubnetDelegationService "Microsoft.Web/serverFarms"
 
     type EndpointServiceType = EndpointServiceType of string
     with
@@ -2203,6 +2207,16 @@ module ContainerApp =
     type Transport = HTTP1 | HTTP2 | Auto
     type IngressMode = External of port:uint16 * Transport option | InternalOnly
     type ActiveRevisionsMode = Single | Multiple
+    
+    type StorageAccessMode = ReadOnly | ReadWrite
+    with member this.ArmValue = this.ToString()
+
+    [<RequireQualifiedAccess>]
+    type Volume =
+        /// Mounts an empty directory on the container group.
+        | EmptyDirectory
+        /// Mounts an Azure File Share in the same resource group, performing a key lookup.
+        | AzureFileShare of ShareName:ResourceName * StorageAccountName:Storage.StorageAccountName * StorageAccessMode
 
 namespace Farmer.DiagnosticSettings
 
