@@ -3,9 +3,8 @@ Release Notes
 
 ## 1.7.4
 * Container Apps: Support for mounted storage
-
-## PR-938
-* Added Basic Types documentation and examples for  unmanaged resources.
+* Web App: add an overload for `link_to_service_plan` that accepts Web App
+* Added Basic Types documentation and examples for unmanaged resources.
 
 ## 1.7.3
 * SQL Azure: Support for serverless
