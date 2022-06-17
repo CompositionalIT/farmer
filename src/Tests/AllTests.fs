@@ -47,6 +47,7 @@ let allTests =
                 NetworkSecurityGroup.tests
                 OperationsManagement.tests
                 PostgreSQL.tests
+                PrivateLink.tests
                 ResourceGroup.tests
                 ServiceBus.tests
                 SignalR.tests

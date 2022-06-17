@@ -13,6 +13,7 @@ type FrontendIpConfig =
         Name: ResourceName
         PrivateIpAllocationMethod: PrivateIpAddress.AllocationMethod
         PublicIp: LinkedResource option
+        Subnet: LinkedResource option
     }
     static member BuildResource frontend =
         {|
@@ -20,7 +21,10 @@ type FrontendIpConfig =
             PrivateIpAllocationMethod = frontend.PrivateIpAllocationMethod
             PublicIp =
                 frontend.PublicIp
-                |> Option.map (function | Managed resId -> resId | Unmanaged resId -> resId)
+                |> Option.map (fun linkedRes -> linkedRes.ResourceId)
+            Subnet =
+                frontend.Subnet
+                |> Option.map (fun linkedRes -> linkedRes.ResourceId)
         |}
     static member BuildIp (frontend:FrontendIpConfig) (lbName:string) (lbSku:LoadBalancer.Sku) (location:Location) : PublicIpAddress option =
         match frontend.PublicIp with
@@ -47,6 +51,7 @@ type FrontendIpBuilder () =
             Name = ResourceName.Empty
             PrivateIpAllocationMethod = PrivateIpAddress.DynamicPrivateIp
             PublicIp = None
+            Subnet = None
         }
     /// Sets the name of the frontend IP configuration.
     [<CustomOperation "name">]
@@ -61,6 +66,12 @@ type FrontendIpBuilder () =
     /// Links the frontend to an existing public IP.
     [<CustomOperation "link_to_public_ip">]
     member _.LinkToPublicIp(state:FrontendIpConfig, publicIp) = { state with PublicIp = Some (Unmanaged publicIp) }
+    /// Links the frontend to a subnet in the same deployment.
+    [<CustomOperation "link_to_subnet">]
+    member _.LinkToSubnet(state:FrontendIpConfig, subnetId) = { state with Subnet = Some (Managed subnetId) }
+    /// Links the frontend to an existing subnet.
+    [<CustomOperation "link_to_unmanaged_subnet">]
+    member _.LinkToUnmanagedSubnet(state:FrontendIpConfig, subnetId) = { state with Subnet = Some (Unmanaged subnetId) }
 
 let frontend = FrontendIpBuilder()
 
@@ -372,10 +383,11 @@ type LoadBalancerBuilder () =
     /// Add one or more probes.
     [<CustomOperation "add_probes">]
     member _.AddProbes(state:LoadBalancerConfig, probes) = { state with Probes = state.Probes @ probes }
-    /// Add any additional dependencies that must be built before this.
+    /// Add any additional dependencies that must be built before this - for backwards compatibility since this implements IDependable now.
     [<CustomOperation "add_dependencies">]
     member _.AddDependencies(state:LoadBalancerConfig, deps:ResourceId list) =
         { state with Dependencies = deps |> Set.ofList |> Set.union state.Dependencies }
+    interface IDependable<LoadBalancerConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface ITaggable<LoadBalancerConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let loadBalancer = LoadBalancerBuilder ()

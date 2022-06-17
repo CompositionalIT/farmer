@@ -92,6 +92,7 @@
     <Compile Include="Arm\AvailabilityTest.fs" />
     <Compile Include="Arm/KeyVault.fs" />
     <Compile Include="Arm\LoadBalancer.fs" />
+    <Compile Include="Arm\PrivateLinkService.fs" />
     <Compile Include="Arm/RoleAssignment.fs" />
     <Compile Include="Arm/Search.fs" />
     <Compile Include="Arm/ServiceBus.fs" />
@@ -166,6 +167,7 @@
     <Compile Include="Builders/Builders.ApplicationGateway.fs" />
     <Compile Include="Builders/Builders.LogicApps.fs" />
     <Compile Include="Builders/Builders.OperationsManagement.fs" />
+    <Compile Include="Builders\Builders.PrivateLink.fs" />
     <Compile Include="Aliases.fs" />
   </ItemGroup>
 </Project>
