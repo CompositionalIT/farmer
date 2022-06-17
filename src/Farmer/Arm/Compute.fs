@@ -150,10 +150,17 @@ type VirtualMachine =
                     diagnosticsProfile =
                         match this.StorageAccount with
                         | Some storageAccount ->
+                            let resourceId = storageAccounts.resourceId storageAccount
+                            let storageUriExpr =
+                                ArmExpression
+                                    .reference(storageAccounts, resourceId)
+                                    .Map(fun r -> r + ".primaryEndpoints.blob")
+                                    .WithOwner(resourceId)
+                                    .Eval()
                             box
                                 {| bootDiagnostics =
                                     {| enabled = true
-                                       storageUri = $"[reference('{storageAccount.Value}').primaryEndpoints.blob]"
+                                       storageUri = storageUriExpr
                                     |}
                                 |}
                         | None ->

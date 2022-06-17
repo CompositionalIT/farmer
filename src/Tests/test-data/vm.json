@@ -20,7 +20,7 @@
         "diagnosticsProfile": {
           "bootDiagnostics": {
             "enabled": true,
-            "storageUri": "[reference('isaacsvmstorage').primaryEndpoints.blob]"
+            "storageUri": "[reference(resourceId('Microsoft.Storage/storageAccounts', 'isaacsvmstorage'), '2019-06-01').primaryEndpoints.blob]"
           }
         },
         "hardwareProfile": {
