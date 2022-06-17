@@ -3,6 +3,7 @@ Release Notes
 
 ## 1.7.4
 * Container Apps: Support for mounted storage
+* Virtual Machines: Fix reference to an existing storage account in boot diagnostics.
 * Web App: add an overload for `link_to_service_plan` that accepts Web App
 * Added Basic Types documentation and examples for unmanaged resources.
 
