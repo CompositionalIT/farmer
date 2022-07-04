@@ -440,4 +440,18 @@ let tests = testList "Network Tests" [
         let dependsOn = jobj.SelectToken("resources[?(@.type=='Microsoft.Network/virtualNetworks/subnets')].dependsOn.[0]").ToString()
         Expect.equal dependsOn "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'some-other-subnet')]" "dependsOn is wrong"
     }
+    test "Can create private endpoint for app slot" {
+        let peConfig = 
+          privateEndpoint {
+              name "privateendpoint"
+              subnet (subnets.resourceId "some-subnet" |> Unmanaged |> SubnetReference.create)
+              link_to_resource (Arm.Web.slots.resourceId (ResourceName "webApp",ResourceName "slotName") |> Unmanaged)
+              link_to_private_dns_zone (Farmer.Arm.Dns.zones.resourceId("dnsZone") |> Unmanaged)
+          } :> IBuilder
+        let resources = peConfig.BuildResources Location.NorthEurope
+        let armPe = resources[0] :?> Arm.Network.PrivateEndpoint
+        
+        Expect.equal ["sites-slotName"] armPe.GroupIds "private endpoint groupIds should match slot name"
+        Expect.equal (Arm.Web.sites.resourceId (ResourceName "webApp") |> Unmanaged) armPe.Resource "private endpoint resource should match parent site name"
+    }
 ]
