@@ -478,6 +478,10 @@ type PrivateEndpointBuilder() =
         let groupIds =
             match resource.ResourceId.Type.Type with
             | "Microsoft.Web/sites" -> "sites"
+            | "Microsoft.Web/sites/slots" -> 
+                match resource.ResourceId.Segments |> List.tryHead with
+                | Some slotName -> $"sites-{slotName}"
+                | None -> raiseFarmer $"Invalid private endpoint configuration. Slots must have a slot name {resource.ResourceId.Type.Type}"
             | _ -> raiseFarmer $"Invalid resource type. Cannot link private endpoint to type {resource.ResourceId.Type.Type}"
 
         { state with PrivateLinkServiceConnection = Some { Resource = resource; GroupIds = [groupIds] } }
