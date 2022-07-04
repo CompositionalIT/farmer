@@ -224,6 +224,10 @@ type LinkedResource =
         | Managed resId
         | Unmanaged resId -> resId
     member this.Name = this.ResourceId.Name
+    member this.Map f = 
+      match this with
+      | Managed x -> Managed(f x)
+      | Unmanaged x -> Unmanaged(f x)
     
     static member addToSetIfManaged =
         function

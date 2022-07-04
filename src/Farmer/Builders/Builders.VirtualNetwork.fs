@@ -475,16 +475,16 @@ type PrivateEndpointBuilder() =
 
     [<CustomOperation "link_to_resource">]
     member _.PrivateLinkConnection(state:PrivateEndpointConfig, resource:LinkedResource) = 
-        let groupIds =
+        let outputResource, groupIds =
             match resource.ResourceId.Type.Type with
-            | "Microsoft.Web/sites" -> "sites"
+            | "Microsoft.Web/sites" -> resource,["sites"]
             | "Microsoft.Web/sites/slots" -> 
                 match resource.ResourceId.Segments |> List.tryHead with
-                | Some slotName -> $"sites-%s{slotName.Value}"
+                | Some slotName -> resource.Map(fun id->{id with Type = Arm.Web.sites; Segments = []}),[$"sites-%s{slotName.Value}"]
                 | None -> raiseFarmer $"Invalid private endpoint configuration. Slots must have a slot name %s{resource.ResourceId.Type.Type}"
             | _ -> raiseFarmer $"Invalid resource type. Cannot link private endpoint to type %s{resource.ResourceId.Type.Type}"
 
-        { state with PrivateLinkServiceConnection = Some { Resource = resource; GroupIds = [groupIds] } }
+        { state with PrivateLinkServiceConnection = Some { Resource = outputResource; GroupIds = groupIds } }
 
     [<CustomOperation "link_to_private_dns_zone">]
     member _.LinkToDnsZone(state:PrivateEndpointConfig, zone:DnsZoneConfig) = { state with PrivateDnsZone = Some (Managed (zone:> IBuilder).ResourceId) }
