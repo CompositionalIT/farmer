@@ -53,6 +53,7 @@ The Container Apps builder (`containerApp`) is used to define one or more contai
 | add_secret_expressions | As per `add_secret_parameters`, but the values are sourced from an ARM expressions instead of as parameters. Useful for e.g. storage keys etc. |
 | add_env_variable | Adds a static, plain text environment variable. |
 | add_env_variables | Adds static, plain text environment variables. |
+| add_volumes | Adds volumes to a container app so they are accessible to containers. |
 
 ##### Scale Rules
 
@@ -80,6 +81,7 @@ The Container builder (`container`) is used to define one or more containers for
 | private_docker_image | Sets a private container image. |
 | cpu_cores | Specifies the CPU cores allocated to the container (maximum 2.0). |
 | memory | Specifies the memory in gigabytes allocated to the container (maximum 4.0). |
+| add_volume_mount | Adds a volume mount on a container from a volume in the container app. |
 
 #### Example
 
@@ -87,6 +89,13 @@ The Container builder (`container`) is used to define one or more containers for
 open Farmer
 open Farmer.Builders
 open Farmer.Arm
+
+let storageName = $"{Guid.NewGuid().ToString().[0..5]}containerqueue"
+let myStorageAccount = storageAccount {
+    name storageName
+    add_queue queueName
+    add_file_share "certs"
+}
 
 containerEnvironment {
     name "my-container-app"
@@ -97,17 +106,21 @@ containerEnvironment {
             reference_registry_credentials [
                 ContainerRegistry.registries.resourceId "myazurecontainerregistry"
             ]
+            add_volumes [ Volume.emptyDir "empty-v"
+                          Volume.azureFile "certs-v" (ResourceName "certs") myStorageAccount.Name StorageAccessMode.ReadOnly ]
             add_containers [
                 container {
                     name "myservice1"
                     public_docker_image containerRegistryDomain containerRegistry "myimage1" version
                     memory 0.2<Gb>
-                }
+                    add_volume_mounts [ "empty-v", "/tmp" ]
+               }
                 container {
                     name "myservice2"
                     public_docker_image containerRegistryDomain containerRegistry "myimage2" version
                     cpu_cores 0.5<VCores>
                     memory 1.0<Gb>
+                    add_volume_mounts [ "certs-v", "/certs" ]
                 }
             ]
             replicas 1 5

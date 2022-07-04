@@ -1,8 +1,12 @@
 Release Notes
 =============
 
-## PR-938
-* Added Basic Types documentation and examples for  unmanaged resources.
+## 1.7.4
+* Container Apps: Support for mounted storage
+* Private Link Services: Adds support for provisioning private link services
+* Virtual Machines: Fix reference to an existing storage account in boot diagnostics.
+* Web App: add an overload for `link_to_service_plan` that accepts Web App
+* Added Basic Types documentation and examples for unmanaged resources.
 
 ## 1.7.3
 * SQL Azure: Support for serverless
