@@ -2,6 +2,11 @@ namespace Farmer
 
 open System
 
+/// Common generic functions to support internals
+[<AutoOpen>]
+module internal Functional =
+    let tuple a b = a,b
+
 /// Represents a name of an ARM resource
 type ResourceName =
     | ResourceName of string
@@ -147,6 +152,8 @@ type ResourceId with
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     member this.Eval() = this.ArmExpression.Eval()
     static member Eval (resourceId: ResourceId) = resourceId.ArmExpression.Eval()
+    static member internal AsIdObject (resourceId: ResourceId) =
+        {| id = resourceId.Eval() |}
 
 type ArmExpression with
     static member reference (resourceId:ResourceId) =
@@ -217,6 +224,10 @@ type LinkedResource =
         | Managed resId
         | Unmanaged resId -> resId
     member this.Name = this.ResourceId.Name
+    member this.Map f = 
+      match this with
+      | Managed x -> Managed(f x)
+      | Unmanaged x -> Unmanaged(f x)
     
     static member addToSetIfManaged =
         function
