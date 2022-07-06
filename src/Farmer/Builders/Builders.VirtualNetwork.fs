@@ -421,7 +421,8 @@ let vnetPeering = VNetPeeringSpecBuilder ()
 
 type PrivateLinkServiceConnection = 
     { Resource: LinkedResource 
-      GroupIds: string list }
+      GroupIds: string list
+      Dependencies: ResourceId Set }
 
 type PrivateEndpointConfig = 
     { Name: ResourceName
@@ -441,7 +442,8 @@ type PrivateEndpointConfig =
                   Subnet = match this.Subnet with | Some sn -> sn | None -> raiseFarmer "Must have linked subnet"
                   Location = location
                   Resource = serviceConn.Resource
-                  GroupIds = serviceConn.GroupIds }
+                  GroupIds = serviceConn.GroupIds
+                  Dependencies = serviceConn.Dependencies }
 
             [
                 endpoint
@@ -475,16 +477,16 @@ type PrivateEndpointBuilder() =
 
     [<CustomOperation "link_to_resource">]
     member _.PrivateLinkConnection(state:PrivateEndpointConfig, resource:LinkedResource) = 
-        let outputResource, groupIds =
+        let outputResource, groupIds, dependencies =
             match resource.ResourceId.Type.Type with
-            | "Microsoft.Web/sites" -> resource,["sites"]
+            | "Microsoft.Web/sites" -> resource,["sites"],[]
             | "Microsoft.Web/sites/slots" -> 
                 match resource.ResourceId.Segments |> List.tryHead with
-                | Some slotName -> resource.Map(fun id->{id with Type = Arm.Web.sites; Segments = []}),[$"sites-%s{slotName.Value}"]
+                | Some slotName -> resource.Map(fun id->{id with Type = Arm.Web.sites; Segments = []}),[$"sites-%s{slotName.Value}"],[resource.ResourceId]
                 | None -> raiseFarmer $"Invalid private endpoint configuration. Slots must have a slot name %s{resource.ResourceId.Type.Type}"
             | _ -> raiseFarmer $"Invalid resource type. Cannot link private endpoint to type %s{resource.ResourceId.Type.Type}"
 
-        { state with PrivateLinkServiceConnection = Some { Resource = outputResource; GroupIds = groupIds } }
+        { state with PrivateLinkServiceConnection = Some { Resource = outputResource; GroupIds = groupIds; Dependencies = Set.ofList dependencies } }
 
     [<CustomOperation "link_to_private_dns_zone">]
     member _.LinkToDnsZone(state:PrivateEndpointConfig, zone:DnsZoneConfig) = { state with PrivateDnsZone = Some (Managed (zone:> IBuilder).ResourceId) }

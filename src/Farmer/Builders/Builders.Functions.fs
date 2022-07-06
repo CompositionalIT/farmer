@@ -331,7 +331,7 @@ type FunctionsConfig =
                 { Site = site
                   Subnet = subnetRef.ResourceId
                   Dependencies = subnetRef.Dependency |> Option.toList }
-            yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.CommonWebConfig.PrivateEndpoints)
+            yield! (PrivateEndpoint.create location this.ResourceId ["sites"] Set.empty this.CommonWebConfig.PrivateEndpoints)
 
             if Map.isEmpty this.CommonWebConfig.Slots then
                 site
