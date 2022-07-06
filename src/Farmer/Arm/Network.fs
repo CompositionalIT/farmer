@@ -452,20 +452,23 @@ type PrivateEndpoint =
     Location: Location
     Subnet: SubnetReference
     Resource: LinkedResource
-    GroupIds: string list}
-  static member create location (resourceId:ResourceId) groupIds =
+    GroupIds: string list
+    Dependencies: ResourceId Set }
+  static member create location (resourceId:ResourceId) groupIds dependencies =
     Set.toSeq >> Seq.map
       (fun (subnet: SubnetReference, epName:string option) ->
         { Name = epName |> Option.defaultValue $"{resourceId.Name.Value}-ep-{subnet.ResourceId.Name.Value}" |> ResourceName
           Location = location
           Subnet = subnet
           Resource = Managed resourceId
-          GroupIds = groupIds } :> IArmResource)
+          GroupIds = groupIds
+          Dependencies = dependencies } :> IArmResource)
   interface IArmResource with
     member this.ResourceId = privateEndpoints.resourceId this.Name
     member this.JsonModel =
       let dependencies =
         [ yield! this.Subnet.Dependency |> Option.toList
+          yield! this.Dependencies
           match this.Resource with | Managed x -> x | _ -> () ]
       {| privateEndpoints.Create(this.Name, this.Location, dependencies) with
           properties =
