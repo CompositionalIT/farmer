@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.7.5
+* Container Apps: Workaround for empty mounted volumes bug
+
 ## 1.7.4
 * Container Apps: Support for mounted storage
 * Private Link Services: Adds support for provisioning private link services
