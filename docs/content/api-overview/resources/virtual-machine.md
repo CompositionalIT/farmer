@@ -21,7 +21,8 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |Keyword|Purpose|
 |-|-|
 |name|Sets the name of the VM.|
-|diagnostics_support|Turns on diagnostics support using an automatically created created storage account.|
+|diagnostics_support|Turns on diagnostics support using an automatically created storage account.|
+|diagnostics_support_managed|Turns on diagnostics support using an Azure-managed storage account.|
 |diagnostics_support_external|Turns on diagnostics support using an existing storage account.|
 |vm_size|Sets the size of the VM.|
 |priority|Sets the VM Priority. Only one `spot_instance` or `priority` setting is allowed per VM.|
@@ -33,6 +34,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |add_disk|Adds a data disk to the VM with a specific size and type.|
 |add_ssd_disk|Adds a SSD data disk to the VM with a specific size.|
 |add_slow_disk|Adds a conventional (non-SSD) data disk to the VM with a specific size.|
+|no_disk|Excludes a data disk (only an OS disk) - common when mounting cloud storage.|
 |domain_name_prefix|Sets the prefix for the domain name of the VM.|
 |address_prefix|Sets the IP address prefix of the VM.|
 |subnet_prefix|Sets the subnet prefix of the VM.|

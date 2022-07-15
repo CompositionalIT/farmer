@@ -3,6 +3,9 @@ Release Notes
 
 ## 1.7.5
 * Container Apps: Workaround for empty mounted volumes bug
+* Virtual Machines: Use an Azure-managed storage account for boot diagnostics.
+* Virtual Machines: Create a VM without any data disks at all (useful when mounting cloud storage).
+* Virtual Machines: Adds support for Ubuntu 20.04 OS image.
 
 ## 1.7.4
 * Container Apps: Support for mounted storage

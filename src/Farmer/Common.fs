@@ -293,6 +293,7 @@ module Vm =
     let RHEL_7RAW = makeLinuxVm "RHEL" "RedHat" "7-RAW"
     let SLES_15 = makeLinuxVm "SLES" "SUSE" "15"
     let UbuntuServer_1804LTS = makeLinuxVm "UbuntuServer" "Canonical" "18.04-LTS"
+    let UbuntuServer_2004LTS = makeLinuxVm "0001-com-ubuntu-server-focal" "canonical" "20_04-lts-gen2" 
 
     let WindowsServer_2019Datacenter = makeWindowsVm "2019-Datacenter"
     let WindowsServer_2016Datacenter = makeWindowsVm "2016-Datacenter"
