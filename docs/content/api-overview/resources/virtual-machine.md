@@ -21,7 +21,8 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |Keyword|Purpose|
 |-|-|
 |name|Sets the name of the VM.|
-|diagnostics_support|Turns on diagnostics support using an automatically created created storage account.|
+|diagnostics_support|Turns on diagnostics support using an automatically created storage account.|
+|diagnostics_support_managed|Turns on diagnostics support using an Azure-managed storage account.|
 |diagnostics_support_external|Turns on diagnostics support using an existing storage account.|
 |vm_size|Sets the size of the VM.|
 |priority|Sets the VM Priority. Only one `spot_instance` or `priority` setting is allowed per VM.|

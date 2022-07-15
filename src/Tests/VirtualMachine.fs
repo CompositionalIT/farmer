@@ -39,6 +39,23 @@ let tests = testList "Virtual Machine" [
         Expect.equal resource.NetworkProfile.NetworkInterfaces.[0].Id "[resourceId('Microsoft.Network/networkInterfaces', 'isaacsVM-nic')]" "Incorrect NIC reference"
         Expect.isTrue (resource.DiagnosticsProfile.BootDiagnostics.Enabled.GetValueOrDefault false) "Boot Diagnostics should be enabled"
     }
+    test "Can create a basic virtual machine with managed boot diagnostics" {
+        let resource =
+            let myVm = vm {
+                name "bootdiagvm"
+                username "farmeruser"
+                vm_size Standard_A2
+                operating_system UbuntuServer_1804LTS
+                diagnostics_support_managed
+            }
+            arm { add_resource myVm }
+            |> findAzureResources<VirtualMachine> client.SerializationSettings
+            |> List.head
+
+        resource.Validate()
+        Expect.isTrue (resource.DiagnosticsProfile.BootDiagnostics.Enabled.GetValueOrDefault false) "Boot Diagnostics should be enabled"
+        Expect.isTrue (isNull resource.DiagnosticsProfile.BootDiagnostics.StorageUri) "Storage should be null for managed boot diagnotics"
+    }
     test "Creates a parameter for the password" {
         let deployment =
             arm {
