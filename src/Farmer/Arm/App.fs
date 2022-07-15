@@ -169,7 +169,8 @@ type ContainerApp =
                                                :> obj
                                             volumeMounts =
                                                 container.VolumeMounts
-                                                |> Seq.map (fun kvp -> {| volumeName=kvp.Key; mountPath=kvp.Value |}) |> List.ofSeq
+                                                |> Seq.map (fun kvp -> {| volumeName=kvp.Key; mountPath=kvp.Value |})
+                                                |> List.ofSeq |> function [] -> Unchecked.defaultof<_> | vms -> vms
                                       |}
                                   |]
                                   scale =
@@ -280,7 +281,7 @@ type ContainerApp =
                                                {| name = volumeName
                                                   storageType = "EmptyDir"
                                                   storageName = null |}
-                                  ]
+                                  ] |> function [] -> Unchecked.defaultof<_> | vs -> vs
                         |}
                    |}
             |}

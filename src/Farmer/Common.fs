@@ -1092,12 +1092,10 @@ module Containers =
                 match repo.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) |> List.ofArray with
                 | first::rest when (first.Contains ".") -> DockerImage.PrivateImage(first, (rest |> String.concat "/"), Version=Some version)
                 | _ -> DockerImage.PublicImage(repo, Version=Some version)
-                | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of repository segments: '{tag}'"
             | [| repo |] ->
                 match repo.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) |> List.ofArray with
                 | first::rest when (first.Contains ".") -> DockerImage.PrivateImage(first, (rest |> String.concat "/"), None)
                 | _ -> DockerImage.PublicImage(repo, None)
-                | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of repository segments: '{tag}'"
             | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of version segments: '{tag}'"
 
 /// Credential for accessing an image registry.
