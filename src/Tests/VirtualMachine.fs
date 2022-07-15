@@ -56,6 +56,23 @@ let tests = testList "Virtual Machine" [
         Expect.isTrue (resource.DiagnosticsProfile.BootDiagnostics.Enabled.GetValueOrDefault false) "Boot Diagnostics should be enabled"
         Expect.isTrue (isNull resource.DiagnosticsProfile.BootDiagnostics.StorageUri) "Storage should be null for managed boot diagnotics"
     }
+    test "Can create a basic virtual machine with no data disk" {
+        let resource =
+            let myVm = vm {
+                name "nodatadiskvm"
+                username "farmeruser"
+                vm_size Standard_A2
+                no_data_disk
+                operating_system UbuntuServer_1804LTS
+                diagnostics_support_managed
+            }
+            arm { add_resource myVm }
+            |> findAzureResources<VirtualMachine> client.SerializationSettings
+            |> List.head
+
+        resource.Validate()
+        Expect.hasLength resource.StorageProfile.DataDisks 0 "Should have no data disks"
+    }
     test "Creates a parameter for the password" {
         let deployment =
             arm {

@@ -26,7 +26,7 @@ type VmConfig =
       Image : ImageDefinition
       Size : VMSize
       OsDisk : DiskInfo
-      DataDisks : DiskInfo list
+      DataDisks : DiskInfo list option
 
       CustomScript : string option
       CustomScriptFiles : Uri list
@@ -89,7 +89,7 @@ type VmConfig =
               Identity = this.Identity
               Image = this.Image
               OsDisk = this.OsDisk
-              DataDisks = this.DataDisks
+              DataDisks = this.DataDisks |> Option.defaultValue [] 
               Tags = this.Tags }
 
             let subnetName = this.Subnet.resourceId this
@@ -199,7 +199,7 @@ type VirtualMachineBuilder() =
           Username = None
           PasswordParameter = None
           Image = WindowsServer_2012Datacenter
-          DataDisks = []
+          DataDisks = Some []
           Identity = ManagedIdentity.Empty
           CustomScript = None
           CustomScriptFiles = []
@@ -221,10 +221,10 @@ type VirtualMachineBuilder() =
 
     member _.Run (state:VmConfig) =
         { state with
-            DataDisks =
-                match state.DataDisks with
+            DataDisks = state.DataDisks |> Option.map (function
                 | [] -> [ { Size = 1024; DiskType = DiskType.Standard_LRS } ]
                 | other -> other
+            )
         }
 
     /// Sets the name of the VM.
@@ -268,7 +268,15 @@ type VirtualMachineBuilder() =
         { state with OsDisk = { Size = size; DiskType = diskType } }
     /// Adds a data disk to the VM with a specific size and type.
     [<CustomOperation "add_disk">]
-    member _.AddDisk(state:VmConfig, size, diskType) = { state with DataDisks = { Size = size; DiskType = diskType } :: state.DataDisks }
+    member _.AddDisk(state:VmConfig, size, diskType) =
+        let existingDisks =
+            match state.DataDisks with
+            | Some disks -> disks
+            | None -> []
+        { state with DataDisks = { Size = size; DiskType = diskType } :: existingDisks |> Some }
+    /// Provision the VM without generating a data disk (OS-only).
+    [<CustomOperation "no_data_disk">]
+    member _.NoDataDisk(state:VmConfig) = { state with DataDisks = None }
     /// Sets priority of VMm. Overrides spot_instance.
     [<CustomOperation "priority">]
     member _.Priority(state:VmConfig, priority) =

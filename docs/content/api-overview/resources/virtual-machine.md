@@ -34,6 +34,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |add_disk|Adds a data disk to the VM with a specific size and type.|
 |add_ssd_disk|Adds a SSD data disk to the VM with a specific size.|
 |add_slow_disk|Adds a conventional (non-SSD) data disk to the VM with a specific size.|
+|no_disk|Excludes a data disk (only an OS disk) - common when mounting cloud storage.|
 |domain_name_prefix|Sets the prefix for the domain name of the VM.|
 |address_prefix|Sets the IP address prefix of the VM.|
 |subnet_prefix|Sets the subnet prefix of the VM.|
