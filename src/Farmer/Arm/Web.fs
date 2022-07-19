@@ -436,7 +436,7 @@ type HostNameBinding =
     { Location: Location
       SiteId: LinkedResource
       DomainName: string
-      SslState: SslState }
+      SslState: SslState option}
         member this.SiteResourceId =
             this.SiteId.Name
         member this.ResourceName =
@@ -449,10 +449,11 @@ type HostNameBinding =
                 {| hostNameBindings.Create(this.ResourceName, this.Location) with
                     properties =
                         match this.SslState with
-                        | SniBased thumbprint ->
+                        | Some (SniBased thumbprint) ->
                             {| sslState = "SniEnabled"
                                thumbprint = thumbprint.Eval() |} :> obj
-                        | SslDisabled -> {| |} :> obj
+                        | Some SslDisabled -> {| |} :> obj
+                        | None -> null
                 |}
 
 type Certificate =

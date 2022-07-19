@@ -646,7 +646,7 @@ let tests = testList "Web App Tests" [
 
         // Testing HostnameBinding
         let hostnameBinding = nested.[0].Resources |> getResource<Web.HostNameBinding> |> List.head
-        let expectedSslState = SslState.SslDisabled
+        let expectedSslState = None
         let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
         Expect.equal hostnameBinding.DomainName expectedDomainName $"HostnameBinding domain name should have {expectedDomainName}"
         Expect.equal hostnameBinding.SslState expectedSslState $"HostnameBinding should have a {expectedSslState} Ssl state"
@@ -659,7 +659,7 @@ let tests = testList "Web App Tests" [
         // Testing hostname/certificate link.
         let bindingDeployment = nested.[2]
         let innerResource = bindingDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
-        let innerExpectedSslState = SslState.SniBased thumbprint
+        let innerExpectedSslState = Some (SslState.SniBased thumbprint)
         Expect.stringStarts bindingDeployment.DeploymentName.Value "[concat" "resourceGroupDeployment name should start as a valid ARM expression"
         Expect.stringEnds bindingDeployment.DeploymentName.Value ")]" "resourceGroupDeployment stage should end as a valid ARM expression"
         Expect.equal bindingDeployment.Resources.Length 1 "resourceGroupDeployment stage should only contain one resource"
@@ -676,7 +676,7 @@ let tests = testList "Web App Tests" [
         
         // Testing HostnameBinding
         let hostnameBinding = nested.[0].Resources |> getResource<Web.HostNameBinding> |> List.head
-        let expectedSslState = SslState.SslDisabled
+        let expectedSslState = None
         let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
         Expect.equal hostnameBinding.DomainName expectedDomainName $"HostnameBinding domain name should have {expectedDomainName}"
         Expect.equal hostnameBinding.SslState expectedSslState $"HostnameBinding should have a {expectedSslState} Ssl state"
@@ -689,7 +689,7 @@ let tests = testList "Web App Tests" [
         // Testing hostname/certificate link.
         let bindingDeployment = nested.[2]
         let innerResource = bindingDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
-        let innerExpectedSslState = SslState.SniBased cert.Thumbprint
+        let innerExpectedSslState = Some (SslState.SniBased cert.Thumbprint)
         Expect.equal bindingDeployment.Resources.Length 1 "resourceGroupDeployment stage should only contain one resource"
         Expect.equal bindingDeployment.Dependencies.Count 1 "resourceGroupDeployment stage should only contain one dependencies"
         Expect.equal innerResource.SslState innerExpectedSslState $"hostnameBinding should have a {innerExpectedSslState} Ssl state inside the resourceGroupDeployment template"
@@ -707,7 +707,7 @@ let tests = testList "Web App Tests" [
               |> Seq.map(fun x -> getResource<Web.HostNameBinding>(x.Resources))
               |> Seq.concat
               |> Seq.head
-        let expectedSslState = SslState.SslDisabled
+        let expectedSslState = None
         let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
         let expectedDomainName = "customDomain.io"
 
