@@ -490,7 +490,7 @@ type WebAppConfig =
                     | Php _, _ -> Some "php"
                     | Python _, Windows -> Some "python"
                     | DotNetCore _, Windows -> Some "dotnetcore"
-                    | AspNet _, _ | DotNet "5.0", Windows -> Some "dotnet"
+                    | AspNet _, _ | DotNet _, Windows -> Some "dotnet"
                     | _ -> None
                     |> Option.map(fun stack -> "CURRENT_STACK", stack)
                     |> Option.toList

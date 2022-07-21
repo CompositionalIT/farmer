@@ -316,8 +316,9 @@ let tests = testList "Web App Tests" [
 
     test "Supports .NET 6" {
         let app = webApp { name "net6"; runtime_stack Runtime.DotNet60 }
-        let site:Site = app |> getResourceAtIndex 2
-        Expect.equal site.SiteConfig.NetFrameworkVersion "v6.0" "Wrong dotnet version"
+        let site = app |> getResources |> getResource<Web.Site> |> List.head
+        Expect.equal site.NetFrameworkVersion.Value "v6.0" "Wrong dotnet version"
+        Expect.equal site.Metadata.Head ("CURRENT_STACK", "dotnet") "Stack should be dotnet"
     }
 
     test "Supports .NET 5 on Linux" {
