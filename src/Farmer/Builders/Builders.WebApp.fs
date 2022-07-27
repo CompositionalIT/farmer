@@ -88,6 +88,11 @@ type SlotConfig =
       Dependencies: ResourceId Set
       IpSecurityRestrictions: IpSecurityRestriction list }
     member this.ToSite (owner: Arm.Web.Site) =
+        // https://docs.microsoft.com/en-us/azure/app-service/deploy-staging-slots
+        let maxAppNameLengthWhenUsingSlots = 40
+        let errorMsg = $"App name '{owner.Name.Value}' has length={owner.Name.Value.Length}, which exceeds max length ({maxAppNameLengthWhenUsingSlots}) so cannot be used with slots"
+        if(owner.Name.Value.Length > maxAppNameLengthWhenUsingSlots) then Exceptions.raiseFarmer errorMsg 
+
         { owner with
             SiteType = SiteType.Slot (owner.Name/this.Name)
             Dependencies = owner.Dependencies |> Set.add (owner.ResourceType.resourceId owner.Name)
