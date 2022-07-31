@@ -8,6 +8,13 @@ trigger:
   tags:
     include:
     - '*'
+
+variables:
+- name: DOTNET_SKIP_FIRST_TIME_EXPERIENCE
+  value: true
+- name: DOTNET_CLI_TELEMETRY_OPTOUT
+  value: true
+
 stages:
 - stage: "Prepare"
   displayName: "Build, test and pack"
@@ -31,10 +38,18 @@ stages:
         useGlobalJson: true
         installationPath: $(Agent.ToolsDirectory)/dotnet
     - task: DotNetCoreCLI@2
-      displayName: 'Restore'
+      displayName: 'Restore Tools'
+      inputs:
+        command: 'tool restore'
+    - task: DotNetCoreCLI@2
+      displayName: 'Restore Packages'
       inputs:
         command: 'restore'
         verbosityRestore: 'Minimal'
+    - task: DotNetCoreCLI@2
+      displayName: 'Fantomas Check'
+      inputs:
+        command: 'fantomas src -r --check'
     - task: DotNetCoreCLI@2
       displayName: 'Build'
       inputs:
