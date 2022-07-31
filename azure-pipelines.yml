@@ -46,7 +46,8 @@ stages:
     - task: DotNetCoreCLI@2
       displayName: 'Fantomas Check'
       inputs:
-        command: 'fantomas'
+        command: 'custom'
+        custom: 'fantomas'
         arguments: 'src -r --check'
     - task: DotNetCoreCLI@2
       displayName: 'Restore Packages'
