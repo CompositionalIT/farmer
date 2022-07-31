@@ -192,4 +192,27 @@ let tests = testList "Load Balancers" [
         )
     }
 
+    test "Setting backend pool on VM NIC" {
+        let vm1 =
+            vm {
+                name "webserver1"
+                vm_size Vm.Standard_B1ms
+                operating_system Vm.UbuntuServer_2004LTS
+                public_ip None
+                username "webserver"
+                diagnostics_support_managed
+                link_to_vnet "my-vnet"
+                subnet_name "my-webservers"
+                link_to_backend_address_pool (Farmer.Arm.LoadBalancer.loadBalancerBackendAddressPools.resourceId "lb/lb-backend")
+            }
+        let template = arm {
+            add_resource vm1
+        }
+        match template.Template.Resources with
+        | [resource1; resource2] ->
+            let _ = resource1 :?> Farmer.Arm.Compute.VirtualMachine
+            let nic = resource2 :?> Farmer.Arm.Network.NetworkInterface
+            Expect.equal (Farmer.Arm.LoadBalancer.loadBalancerBackendAddressPools.resourceId "lb/lb-backend") nic.IpConfigs.[0].LoadBalancerBackendAddressPools.[0].ResourceId "Backend ID didn't match"
+        | _ -> failwith "Only expecting two resources in the template."
+    }
 ]
