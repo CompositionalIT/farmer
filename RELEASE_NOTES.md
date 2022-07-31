@@ -1,6 +1,27 @@
 Release Notes
 =============
 
+## 1.7.5
+* Container Apps: Workaround for empty mounted volumes bug
+* Virtual Machines: Use an Azure-managed storage account for boot diagnostics.
+* Virtual Machines: Create a VM without any data disks at all (useful when mounting cloud storage).
+* Virtual Machines: Adds support for Ubuntu 20.04 OS image.
+
+## 1.7.4
+* Container Apps: Support for mounted storage
+* Private Link Services: Adds support for provisioning private link services
+* Virtual Machines: Fix reference to an existing storage account in boot diagnostics.
+* Web App: add an overload for `link_to_service_plan` that accepts Web App
+* Added Basic Types documentation and examples for unmanaged resources.
+
+## 1.7.3
+* SQL Azure: Support for serverless
+* Network: Added Microsoft.Web/serverFarms to the SubnetDelegationService as a new static member WebServerFarms
+
+## 1.7.2
+* Container Apps: Fix ResourceId
+* Operations Management: Add basic support for Operations Management to configure & deploy Solutions.
+
 ## 1.7.1
 * App Insights: Add ConnectionString member.
 * Communication Services: **Breaking Changes**: Clean up and fix issues regarding naming and Location.

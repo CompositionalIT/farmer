@@ -44,6 +44,13 @@ let tests = testList "Web App Tests" [
         Expect.isEmpty (resources |> getResource<Insights.Components>) "Should be no AI component"
         Expect.isEmpty (resources |> getResource<Web.ServerFarm>) "Should be no server farm"
     }
+    test "Web Apps link together" {
+        let first = webApp { name "first"; link_to_service_plan (servicePlan { name "firstSp" }) }
+        let second = webApp { name "test"; link_to_service_plan first } |> getResources
+        let wa = second |> getResource<Web.Site> |> List.head
+        Expect.containsAll wa.Dependencies [ ResourceId.create(serverFarms, ResourceName "firstSp") ] "Missing dependencies"
+        Expect.isEmpty (second |> getResource<Web.ServerFarm>) "Should be no server farm"
+    }
     test "Web App does not create dependencies for unmanaged linked resources" {
         let resources = webApp { name "test"; link_to_unmanaged_app_insights (components.resourceId "test"); link_to_unmanaged_service_plan (serverFarms.resourceId "test2") } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
@@ -309,8 +316,9 @@ let tests = testList "Web App Tests" [
 
     test "Supports .NET 6" {
         let app = webApp { name "net6"; runtime_stack Runtime.DotNet60 }
-        let site:Site = app |> getResourceAtIndex 2
-        Expect.equal site.SiteConfig.NetFrameworkVersion "v6.0" "Wrong dotnet version"
+        let site = app |> getResources |> getResource<Web.Site> |> List.head
+        Expect.equal site.NetFrameworkVersion.Value "v6.0" "Wrong dotnet version"
+        Expect.equal site.Metadata.Head ("CURRENT_STACK", "dotnet") "Stack should be dotnet"
     }
 
     test "Supports .NET 5 on Linux" {

@@ -183,6 +183,28 @@ let tests = testList "SQL Server" [
         ()
     }
 
+    test "Serverless sql has min and max capacity" {
+        let sql = sqlServer {
+            name "my37server"
+            admin_username "isaac"
+            add_databases [
+                sqlDb {
+                    name "mydb22"
+                    sku (GeneralPurpose (S_Gen5 (2, 4)))
+                }
+            ]
+        }
+
+        let template = arm { location Location.UKSouth; add_resources [ sql ] }
+        let jsn = template.Template |> Writer.toJson
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='my37server/mydb22')].sku.name").ToString()) "GP_S_Gen5" "Not serverless name"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='my37server/mydb22')].sku.capacity").ToString()) "4" "Incorrect max capacity"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='my37server/mydb22')].properties.minCapacity").ToString()) "2" "Incorrect min capacity"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='my37server/mydb22')].properties.autoPauseDelay").ToString()) "-1" "Incorrect autoPauseDelay"
+    }
+
+
     test "Must set a SQL Server account name" {
         Expect.throws (fun () -> sqlServer { admin_username "test" } |> ignore) "Must set a name on a sql server account"
     }

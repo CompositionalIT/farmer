@@ -15,7 +15,8 @@ type LoadBalancer =
       FrontendIpConfigs :
           {|  Name : ResourceName
               PrivateIpAllocationMethod : PrivateIpAddress.AllocationMethod
-              PublicIp : ResourceId option |} list
+              PublicIp : ResourceId option
+              Subnet : ResourceId option |} list
       BackendAddressPools : ResourceName list
       LoadBalancingRules :
           {|  /// Name of the load balancing rule
@@ -69,6 +70,8 @@ type LoadBalancer =
                                        privateIPAddress = ip
                                        publicIPAddress =
                                            frontend.PublicIp |> Option.map (fun pip -> {| id = pip.Eval() |} )
+                                           |> Option.defaultValue Unchecked.defaultof<_>
+                                       subnet = frontend.Subnet |> Option.map (fun subnetId -> {| id = subnetId.Eval() |} )
                                            |> Option.defaultValue Unchecked.defaultof<_>
                                    |}
                             |}

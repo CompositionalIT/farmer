@@ -11,14 +11,18 @@ open Farmer.Identity
 type ContainerConfig =
     { ContainerName : string
       DockerImage : Containers.DockerImage option
-      Resources : {| CPU : float<VCores>; Memory : float<Gb> |} }
+      /// Volume mounts for the container
+      VolumeMounts : Map<string, string>
+      Resources : {| CPU : float<VCores>; Memory : float<Gb>; EphemeralStorage: float<Gb> option |} }
     member internal this.BuildContainer : Container =
         match this.DockerImage with
         | Some dockerImage ->
             { Name = this.ContainerName
               DockerImage = dockerImage
-              Resources = this.Resources }
-        | None -> raiseFarmer $"Container '{this.ContainerName}' requires a docker image."
+              Resources = this.Resources
+              VolumeMounts = this.VolumeMounts }
+        | None ->
+            raiseFarmer $"Container '{this.ContainerName}' requires a docker image."
 
 type ContainerAppConfig =
     { Name : ResourceName
@@ -30,6 +34,7 @@ type ContainerAppConfig =
       DaprConfig : {| AppId : string |} option
       Secrets : Map<ContainerAppSettingKey, SecretValue>
       EnvironmentVariables : Map<string, EnvVar>
+      Volumes : Map<string, Volume>
       /// Credentials for image registries used by containers in this environment.
       ImageRegistryCredentials : ImageRegistryAuthentication list
       Containers : ContainerConfig list
@@ -58,7 +63,7 @@ type ContainerEnvironmentConfig =
       StateStore : DaprComponentConfig option
       Tags: Map<string,string> }
     interface IBuilder with
-        member this.ResourceId = containerApps.resourceId this.Name
+        member this.ResourceId = managedEnvironments.resourceId this.Name
         member this.BuildResources location = [
             let logAnalyticsResourceId = this.LogAnalytics.resourceId this
             { Name = this.Name
@@ -80,8 +85,7 @@ type ContainerEnvironmentConfig =
                       Tags = Map.empty }
                     :> IBuilder
                 yield! workspaceConfig.BuildResources location
-            | _ ->
-                ()
+            | _ -> ()
 
             match this.StateStore with
             | Some stateStore ->
@@ -117,7 +121,13 @@ type ContainerEnvironmentConfig =
                   ImageRegistryCredentials = containerApp.ImageRegistryCredentials
                   Containers = containerApp.Containers |> List.map (fun c -> c.BuildContainer)
                   Location = location
+                  Volumes = containerApp.Volumes
                   Dependencies = containerApp.Dependencies }
+
+            for app in this.ContainerApps do
+                let uniqueVolumes = app.Volumes |> Seq.choose (ManagedEnvironmentStorage.from (managedEnvironments.resourceId this.Name)) |> Seq.distinctBy (fun v -> v.Name)
+                for volume in uniqueVolumes do
+                    volume
         ]
 
 type ContainerEnvironmentBuilder() =
@@ -194,7 +204,13 @@ let private supportedResourceCombinations =
         2.0<VCores>, 4.<Gb>
     ]
 
-let private defaultResources = {| CPU = 0.25<VCores>; Memory = 0.5<Gb> |}
+let private defaultResources = {| CPU = 0.25<VCores>; Memory = 0.5<Gb>; EphemeralStorage = None |}
+
+module Volume =
+    let emptyDir volumeName =
+        volumeName, Volume.EmptyDirectory
+    let azureFile volumeName (shareName:ResourceName) (storageAccount:Storage.StorageAccountName) accessMode =
+        volumeName, Volume.AzureFileShare (shareName, storageAccount, accessMode)
 
 type ContainerAppBuilder () =
     member _.Yield _ =
@@ -206,6 +222,7 @@ type ContainerAppBuilder () =
           ScaleRules = Map.empty
           Secrets = Map.empty
           IngressMode = None
+          Volumes = Map.empty
           Identity = ManagedIdentity.Empty
           EnvironmentVariables = Map.empty
           DaprConfig = None
@@ -336,7 +353,7 @@ type ContainerAppBuilder () =
         let key = (ContainerAppSettingKey.Create key).OkValue
         { state with
             Secrets = state.Secrets.Add (key, ParameterSecret (SecureParameter key.Value))
-            EnvironmentVariables = state.EnvironmentVariables.Add (EnvVar.create key.Value key.Value)
+            EnvironmentVariables = state.EnvironmentVariables.Add (EnvVar.createSecure key.Value key.Value)
         }
 
     /// Adds an application secrets to the Azure Container App.
@@ -382,8 +399,16 @@ type ContainerAppBuilder () =
                 ContainerConfig.ContainerName = state.Name.Value
                 DockerImage = Some (Containers.PublicImage (dockerImage, Some dockerVersion))
                 Resources = defaultResources
+                VolumeMounts = Map.empty
             }
         this.AddContainers(state, [ container ])
+
+    /// Adds volumes to the container app so they can be mounted on containers.
+    [<CustomOperation "add_volumes">]
+    member _.AddVolumes(state:ContainerAppConfig, volumes) =
+        let newVolumes = volumes |> Map.ofSeq
+        let updatedVolumes = state.Volumes |> Map.fold (fun current key vol -> Map.add key vol current) newVolumes
+        { state with Volumes = updatedVolumes }
 
     interface IDependable<ContainerAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
@@ -391,8 +416,8 @@ type ContainerBuilder () =
     member _.Yield _ =
         { ContainerName = ""
           DockerImage = None
-          Resources = defaultResources }
-
+          Resources = defaultResources
+          VolumeMounts = Map.empty }
     [<CustomOperation "name">]
     member _.ContainerName (state:ContainerConfig, name) =
         { state with ContainerName = name }
@@ -415,12 +440,22 @@ type ContainerBuilder () =
         let roundedCpuCount = System.Math.Round(numCores, 2) * 1.<VCores>
         { state with Resources = {| state.Resources with CPU = roundedCpuCount |} }
 
+    [<CustomOperation "ephemeral_storage">]
+    member _.EphemeralStorage (state:ContainerConfig, size:float<Gb>) =
+        let size = size / 1.<Gb>
+        let roundedSize = System.Math.Round(size, 2) * 1.<Gb>
+        { state with Resources = {| state.Resources with EphemeralStorage = Some roundedSize |} }
+
     [<CustomOperation "memory">]
     member _.Memory (state:ContainerConfig, memory:float<Gb>) =
         let memory = memory / 1.<Gb>
         if memory > 4. then raiseFarmer $"'{state.ContainerName}' exceeds maximum memory of 4.0 Gb for containers in containerApps."
         let roundedMemory = System.Math.Round(memory, 2) * 1.<Gb>
         { state with Resources = {| state.Resources with Memory = roundedMemory |} }
+
+    [<CustomOperation "add_volume_mounts">]
+    member _.AddVolumeMounts (state:ContainerConfig, mounts:#seq<_>) =
+        { state with VolumeMounts = mounts |> Seq.fold (fun s (volumeName, mountPath) -> s |> Map.add volumeName mountPath) state.VolumeMounts }
 
 let containerEnvironment = ContainerEnvironmentBuilder()
 let containerApp = ContainerAppBuilder()

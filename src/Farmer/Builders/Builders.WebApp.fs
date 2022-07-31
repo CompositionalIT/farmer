@@ -490,7 +490,7 @@ type WebAppConfig =
                     | Php _, _ -> Some "php"
                     | Python _, Windows -> Some "python"
                     | DotNetCore _, Windows -> Some "dotnetcore"
-                    | AspNet _, _ | DotNet "5.0", Windows -> Some "dotnet"
+                    | AspNet _, _ | DotNet _, Windows -> Some "dotnet"
                     | _ -> None
                     |> Option.map(fun stack -> "CURRENT_STACK", stack)
                     |> Option.toList
@@ -853,6 +853,7 @@ module Extensions =
         /// A dependency will automatically be set for this instance.
         [<CustomOperation "link_to_service_plan">]
         member this.LinkToServicePlan (state:'T, name) = { this.Get state with ServicePlan = managed serverFarms name } |> this.Wrap state
+        member this.LinkToServicePlan (state:'T, servPlanApp:WebAppConfig) = { this.Get state with ServicePlan = managed serverFarms servPlanApp.ServicePlanName } |> this.Wrap state
         member this.LinkToServicePlan (state:'T, name:string) = this.LinkToServicePlan (state, ResourceName name)
         member this.LinkToServicePlan (state:'T, config:ServicePlanConfig) = this.LinkToServicePlan (state, config.Name)
         /// Instead of creating a new service plan instance, configure this webapp to point to another unmanaged service plan instance.

@@ -86,11 +86,17 @@ type ResourceGroupConfig =
 
     interface IDeploymentSource with
         member this.Deployment=
+            let rec getPostDeployTasks (resources: IArmResource list) = [
+                    for resource in resources do
+                        match resource with
+                        | :? IPostDeploy as pd -> pd
+                        | :? ResourceGroupDeployment as rgp -> yield! getPostDeployTasks rgp.Resources 
+                        | _ -> ()
+                ]
+                
             { Location=this.Location
               Template = this.Template
-              PostDeployTasks =
-                    this.Resources
-                    |> List.choose (function | :? IPostDeploy as pd -> Some pd |_ -> None)
+              PostDeployTasks = getPostDeployTasks this.Resources
               RequiredResourceGroups =
                     this.Resources
                     |> List.collect (function | :? ResourceGroupDeployment as rg -> rg.RequiredResourceGroups | _ -> [])

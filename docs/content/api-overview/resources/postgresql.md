@@ -2,7 +2,7 @@
 title: "PostgreSQL"
 date: 2020-05-22T07:14:00+02:00
 chapter: false
-weight: 15
+weight: 16
 ---
 
 #### Overview

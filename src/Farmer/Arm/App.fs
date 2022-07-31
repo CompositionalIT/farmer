@@ -5,16 +5,49 @@ open Farmer.ContainerApp
 open Farmer.Identity
 open Farmer
 
-let containerApps = ResourceType ("Microsoft.App/containerApps", "2022-01-01-preview")
-let managedEnvironments = ResourceType ("Microsoft.App/managedEnvironments", "2022-01-01-preview")
+let containerApps = ResourceType ("Microsoft.App/containerApps", "2022-03-01")
+let managedEnvironments = ResourceType ("Microsoft.App/managedEnvironments", "2022-03-01")
 let daprComponents = ResourceType ("Microsoft.App/managedEnvironments/daprComponents", "2022-01-01-preview")
+let storages = ResourceType ("Microsoft.App/managedEnvironments/storages", "2022-03-01")
 
 open Farmer.ContainerAppValidation
 
 type Container =
     { Name : string
       DockerImage : Containers.DockerImage
-      Resources : {| CPU : float<VCores>; Memory : float<Gb> |} }
+      VolumeMounts : Map<string,string> 
+      Resources : {| CPU : float<VCores>; Memory : float<Gb>; EphemeralStorage : float<Gb> option |} }
+
+type ManagedEnvironmentStorage =
+    { Name : ResourceName
+      Environment : ResourceId
+      AzureFile : {| ShareName : ResourceName; AccountName : Storage.StorageAccountName; AccountKey: string; AccessMode : StorageAccessMode |}
+      Dependencies : Set<ResourceId> }
+    interface IArmResource with
+        member this.ResourceId = storages.resourceId this.Name
+        member this.JsonModel =
+            {| storages.Create(ResourceName $"{this.Environment.Name.Value}/{this.Name.Value}", dependsOn = this.Dependencies) with
+                properties = {|
+                    azureFile = {| shareName = this.AzureFile.ShareName.Value
+                                   accountName = this.AzureFile.AccountName.ResourceName.Value
+                                   accountKey = this.AzureFile.AccountKey
+                                   accessMode = this.AzureFile.AccessMode.ArmValue |}
+                |}
+            |}
+    static member from (env: ResourceId) = function 
+        | KeyValue (name, Volume.AzureFileShare(share, accountName, accessMode)) -> 
+            Some { Name = ResourceName name
+                   Environment = env
+                   Dependencies = Set.ofList [ env; Storage.storageAccounts.resourceId accountName.ResourceName ]
+                   AzureFile = {|
+                       ShareName = share
+                       AccountName = accountName
+                       AccountKey = $"[listKeys('Microsoft.Storage/storageAccounts/{accountName.ResourceName.Value}', '2018-07-01').keys[0].value]"
+                       AccessMode = accessMode
+                   |}} 
+        | _ ->
+            None
+
 type ContainerApp =
     { Name : ResourceName
       Environment : ResourceId
@@ -29,10 +62,13 @@ type ContainerApp =
       ImageRegistryCredentials : ImageRegistryAuthentication list
       Containers : Container list
       Location : Location
-      Dependencies : Set<ResourceId> }
+      Dependencies : Set<ResourceId>
+      Volumes: Map<string,Volume> }
     member private this.dependencies = [
         yield this.Environment
         yield! this.Dependencies
+        yield! this.Volumes
+               |> Seq.choose (function KeyValue(name,Volume.AzureFileShare(_)) -> storages.resourceId(this.Environment.Name, ResourceName name) |> Some | _ -> None)
         yield! this.Identity.Dependencies
     ]
 
@@ -135,9 +171,14 @@ type ContainerApp =
                                        |]
                                        resources =
                                         {| cpu = container.Resources.CPU
+                                           ephemeralStorage = container.Resources.EphemeralStorage |> Option.map (sprintf "%.2fGi") |> Option.toObj
                                            memory = container.Resources.Memory |> sprintf "%.2fGi" |}
-                                        :> obj
-                                |}
+                                           :> obj
+                                       volumeMounts =
+                                           container.VolumeMounts
+                                           |> Seq.map (fun kvp -> {| volumeName=kvp.Key; mountPath=kvp.Value |})
+                                           |> List.ofSeq |> function [] -> Unchecked.defaultof<_> | vms -> vms
+                                    |}
                                |]
                                scale =
                                 {| minReplicas = this.Replicas |> Option.map (fun c -> c.Min) |> Option.toNullable
@@ -222,6 +263,18 @@ type ContainerApp =
                                             |}
                                    |]
                                 |}
+                               volumes = [
+                                   for key, value in Map.toSeq this.Volumes do
+                                       match key, value with
+                                       |  volumeName, Volume.AzureFileShare (shareName, accountName, _) ->
+                                           {| name = volumeName
+                                              storageType = "AzureFile"
+                                              storageName = volumeName |}
+                                       |  volumeName, Volume.EmptyDirectory ->
+                                           {| name = volumeName
+                                              storageType = "EmptyDir"
+                                              storageName = null |}
+                               ] |> function [] -> Unchecked.defaultof<_> | vs -> vs
                             |}
                 |}
             |}
@@ -286,10 +339,10 @@ type ManagedEnvironment =
                         |> Option.map (fun x -> x.Eval())
                         |> Option.toObj
                        appLogsConfiguration =
-                        {| destination = "log-analytics"
-                           logAnalyticsConfiguration =
-                           {| customerId = LogAnalytics.getCustomerId(this.LogAnalytics).Eval()
-                              sharedKey = LogAnalytics.getPrimarySharedKey(this.LogAnalytics).Eval() |}
-                        |}
+                            {| destination = "log-analytics"
+                               logAnalyticsConfiguration =
+                               {| customerId = LogAnalytics.getCustomerId(this.LogAnalytics).Eval()
+                                  sharedKey = LogAnalytics.getPrimarySharedKey(this.LogAnalytics).Eval() |}
+                            |}
                     |}
             |}

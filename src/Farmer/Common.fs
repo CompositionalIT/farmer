@@ -1,4 +1,4 @@
-namespace Farmer
+﻿namespace Farmer
 
 open System
 
@@ -293,6 +293,7 @@ module Vm =
     let RHEL_7RAW = makeLinuxVm "RHEL" "RedHat" "7-RAW"
     let SLES_15 = makeLinuxVm "SLES" "SUSE" "15"
     let UbuntuServer_1804LTS = makeLinuxVm "UbuntuServer" "Canonical" "18.04-LTS"
+    let UbuntuServer_2004LTS = makeLinuxVm "0001-com-ubuntu-server-focal" "canonical" "20_04-lts-gen2" 
 
     let WindowsServer_2019Datacenter = makeWindowsVm "2019-Datacenter"
     let WindowsServer_2016Datacenter = makeWindowsVm "2016-Datacenter"
@@ -857,6 +858,7 @@ module Sql =
         | Gen5_32
         | Gen5_40
         | Gen5_80
+        | S_Gen5 of CapacityMin: int * CapacityMax: int
         member this.Name = Reflection.FSharpValue.GetUnionFields(this, typeof<Gen5Series>) |> fun (v,_) -> v.Name
 
     type FSeries =
@@ -1090,12 +1092,10 @@ module Containers =
                 match repo.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) |> List.ofArray with
                 | first::rest when (first.Contains ".") -> DockerImage.PrivateImage(first, (rest |> String.concat "/"), Version=Some version)
                 | _ -> DockerImage.PublicImage(repo, Version=Some version)
-                | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of repository segments: '{tag}'"
             | [| repo |] ->
                 match repo.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) |> List.ofArray with
                 | first::rest when (first.Contains ".") -> DockerImage.PrivateImage(first, (rest |> String.concat "/"), None)
                 | _ -> DockerImage.PublicImage(repo, None)
-                | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of repository segments: '{tag}'"
             | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of version segments: '{tag}'"
 
 /// Credential for accessing an image registry.
@@ -1115,6 +1115,7 @@ type ImageRegistryAuthentication =
 type LogAnalyticsWorkspace =
     | WorkspaceResourceId of LinkedResource
     | WorkspaceKey of WorkspaceId:string * WorkspaceKey:string
+
 
 module ContainerGroup =
     type PortAccess = PublicPort | InternalPort
@@ -1654,6 +1655,8 @@ module Network =
         static member ServiceFabricMeshNetworks = SubnetDelegationService "Microsoft.ServiceFabricMesh/networks"
         /// Microsoft.Sql/managedInstances
         static member SqlManagedInstances = SubnetDelegationService "Microsoft.Sql/managedInstances"
+        /// Microsoft.Web/serverFarms
+        static member WebServerFarms = SubnetDelegationService "Microsoft.Web/serverFarms"
 
     type EndpointServiceType = EndpointServiceType of string
     with
@@ -2203,6 +2206,16 @@ module ContainerApp =
     type Transport = HTTP1 | HTTP2 | Auto
     type IngressMode = External of port:uint16 * Transport option | InternalOnly
     type ActiveRevisionsMode = Single | Multiple
+    
+    type StorageAccessMode = ReadOnly | ReadWrite
+    with member this.ArmValue = this.ToString()
+
+    [<RequireQualifiedAccess>]
+    type Volume =
+        /// Mounts an empty directory on the container group.
+        | EmptyDirectory
+        /// Mounts an Azure File Share in the same resource group, performing a key lookup.
+        | AzureFileShare of ShareName:ResourceName * StorageAccountName:Storage.StorageAccountName * StorageAccessMode
 
 namespace Farmer.DiagnosticSettings
 

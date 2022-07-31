@@ -7,7 +7,7 @@ open Farmer.Vm
 open System
 open System.Text
 
-let virtualMachines = ResourceType ("Microsoft.Compute/virtualMachines", "2019-03-01")
+let virtualMachines = ResourceType ("Microsoft.Compute/virtualMachines", "2020-06-01")
 let extensions = ResourceType ("Microsoft.Compute/virtualMachines/extensions", "2019-12-01")
 
 type CustomScriptExtension =
@@ -68,6 +68,7 @@ type AadSshLoginExtension =
 type VirtualMachine =
     { Name : ResourceName
       Location : Location
+      DiagnosticsEnabled : bool option
       StorageAccount : ResourceName option
       Size : VMSize
       Priority : Priority
@@ -148,16 +149,27 @@ type VirtualMachine =
                            ]
                         |}
                     diagnosticsProfile =
-                        match this.StorageAccount with
-                        | Some storageAccount ->
-                            box
-                                {| bootDiagnostics =
-                                    {| enabled = true
-                                       storageUri = $"[reference('{storageAccount.Value}').primaryEndpoints.blob]"
-                                    |}
-                                |}
-                        | None ->
+                        match this.DiagnosticsEnabled with
+                        | None | Some false ->
                             box {| bootDiagnostics = {| enabled = false |} |}
+                        | Some true ->
+                            match this.StorageAccount with
+                            | Some storageAccount ->
+                                let resourceId = storageAccounts.resourceId storageAccount
+                                let storageUriExpr =
+                                    ArmExpression
+                                        .reference(storageAccounts, resourceId)
+                                        .Map(fun r -> r + ".primaryEndpoints.blob")
+                                        .WithOwner(resourceId)
+                                        .Eval()
+                                box
+                                    {| bootDiagnostics =
+                                        {| enabled = true
+                                           storageUri = storageUriExpr
+                                        |}
+                                    |}
+                            | None ->
+                                box {| bootDiagnostics = {| enabled = true |} |}
                 |}
 
             {| virtualMachines.Create(this.Name, this.Location, dependsOn, this.Tags) with
