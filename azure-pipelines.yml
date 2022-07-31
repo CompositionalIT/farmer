@@ -40,18 +40,19 @@ stages:
     - task: DotNetCoreCLI@2
       displayName: 'Restore Tools'
       inputs:
-        command: 'tool'
+        command: 'custom'
+        custom: 'tool'
         arguments: 'restore'
-    - task: DotNetCoreCLI@2
-      displayName: 'Restore Packages'
-      inputs:
-        command: 'restore'
-        verbosityRestore: 'Minimal'
     - task: DotNetCoreCLI@2
       displayName: 'Fantomas Check'
       inputs:
         command: 'fantomas'
         arguments: 'src -r --check'
+    - task: DotNetCoreCLI@2
+      displayName: 'Restore Packages'
+      inputs:
+        command: 'restore'
+        verbosityRestore: 'Minimal'
     - task: DotNetCoreCLI@2
       displayName: 'Build'
       inputs:
