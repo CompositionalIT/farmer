@@ -149,6 +149,7 @@ type VmConfig =
                                     VirtualNetwork = Some(Managed vnet)
                                     NetworkSecurityGroup = nsgId |> Option.map (fun x -> Managed x)
                                     Delegations = []
+                                    NatGateway = None
                                     ServiceEndpoints = []
                                     AssociatedServiceEndpointPolicies = []
                                     PrivateEndpointNetworkPolicies = None

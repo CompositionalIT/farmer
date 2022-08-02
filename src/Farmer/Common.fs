@@ -101,6 +101,9 @@ type Mbps
 type Seconds
 
 [<Measure>]
+type Minutes
+
+[<Measure>]
 type Hours
 
 [<Measure>]
