@@ -47,6 +47,7 @@ type VmConfig =
         PublicIp: ResourceRef<VmConfig> option
         IpAllocation: PublicIpAddress.AllocationMethod option
         PrivateIpAllocation: PrivateIpAddress.AllocationMethod option
+        LoadBalancerBackendAddressPools: LinkedResource list
         Identity: Identity.ManagedIdentity
         NetworkSecurityGroup: LinkedResource option
 
@@ -125,6 +126,7 @@ type VmConfig =
                         [
                             {|
                                 SubnetName = subnetName.Name
+                                LoadBalancerBackendAddressPools = this.LoadBalancerBackendAddressPools
                                 PublicIpAddress = this.PublicIp |> Option.map (fun x -> x.toLinkedResource this)
                             |}
                         ]
@@ -258,6 +260,7 @@ type VirtualMachineBuilder() =
             PublicIp = automaticPublicIp
             IpAllocation = None
             PrivateIpAllocation = None
+            LoadBalancerBackendAddressPools = []
             NetworkSecurityGroup = None
             Tags = Map.empty
         }
@@ -451,6 +454,27 @@ type VirtualMachineBuilder() =
 
     member this.LinkToUnmanagedVNet(state: VmConfig, vnet: VirtualNetworkConfig) =
         this.LinkToUnmanagedVNet(state, vnet.Name)
+
+    /// Adds the VM network interface to a load balancer backend address pool that is deployed with this VM.
+    [<CustomOperation "link_to_backend_address_pool">]
+    member _.LinkToBackendAddressPool(state: VmConfig, backendResourceId: ResourceId) =
+        { state with
+            LoadBalancerBackendAddressPools = Managed(backendResourceId) :: state.LoadBalancerBackendAddressPools
+        }
+
+    member _.LinkToBackendAddressPool(state: VmConfig, backend: BackendAddressPoolConfig) =
+        { state with
+            LoadBalancerBackendAddressPools =
+                Managed((backend :> IBuilder).ResourceId)
+                :: state.LoadBalancerBackendAddressPools
+        }
+
+    /// Adds the VM network interface to an existing load balancer backend address pool.
+    [<CustomOperation "link_to_unmanaged_backend_address_pool">]
+    member _.LinkToExistingBackendAddressPool(state: VmConfig, backendResourceId: ResourceId) =
+        { state with
+            LoadBalancerBackendAddressPools = Unmanaged(backendResourceId) :: state.LoadBalancerBackendAddressPools
+        }
 
     [<CustomOperation "custom_script">]
     member _.CustomScript(state: VmConfig, script: string) =

@@ -434,7 +434,8 @@ type NetworkInterface =
         Name: ResourceName
         Location: Location
         IpConfigs: {| SubnetName: ResourceName
-                      PublicIpAddress: LinkedResource option |} list
+                      PublicIpAddress: LinkedResource option
+                      LoadBalancerBackendAddressPools: LinkedResource list |} list
         VirtualNetwork: LinkedResource
         NetworkSecurityGroup: ResourceId option
         PrivateIpAllocation: PrivateIpAddress.AllocationMethod option
@@ -454,6 +455,11 @@ type NetworkInterface =
                         match config.PublicIpAddress with
                         | Some ipName -> ipName.ResourceId
                         | _ -> ()
+
+                        for linkedResource in config.LoadBalancerBackendAddressPools do
+                            match linkedResource with
+                            | Managed resId -> resId
+                            | _ -> ()
                     if this.NetworkSecurityGroup.IsSome then
                         this.NetworkSecurityGroup.Value
                 ]
@@ -472,6 +478,13 @@ type NetworkInterface =
                                         | _ -> "Dynamic", null
 
                                     {|
+                                        loadBalancerBackendAddressPools =
+                                            match ipConfig.LoadBalancerBackendAddressPools with
+                                            | [] -> null // Don't emit the field if there are none set.
+                                            | backendPools ->
+                                                backendPools
+                                                |> List.map (fun lr -> lr.ResourceId |> ResourceId.AsIdObject)
+                                                |> box
                                         privateIPAllocationMethod = allocationMethod
                                         privateIPAddress = ip
                                         publicIPAddress =
@@ -489,6 +502,8 @@ type NetworkInterface =
                                                         .Eval()
                                             |}
                                     |}
+
+
                             |})
                 |}
 

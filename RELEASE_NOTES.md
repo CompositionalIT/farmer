@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.7.6
+* Virtual Machines: Support for adding a VM network interface to a load balancer backend.
+
 ## 1.7.5
 * Container Apps: Workaround for empty mounted volumes bug
 * Virtual Machines: Use an Azure-managed storage account for boot diagnostics.
