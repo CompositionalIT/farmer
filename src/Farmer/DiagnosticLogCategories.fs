@@ -1,4 +1,5 @@
 namespace Farmer.DiagnosticSettings.Logging.AAD
+
 open Farmer.DiagnosticSettings
 
 module DomainServices =
@@ -22,6 +23,7 @@ module DomainServices =
     let SystemSecurity = LogCategory "SystemSecurity"
 
 namespace Farmer.DiagnosticSettings.Logging.AnalysisServices
+
 open Farmer.DiagnosticSettings
 
 module Servers =
@@ -31,6 +33,7 @@ module Servers =
     let Service = LogCategory "Service"
 
 namespace Farmer.DiagnosticSettings.Logging.ApiManagement
+
 open Farmer.DiagnosticSettings
 
 module Service =
@@ -38,6 +41,7 @@ module Service =
     let GatewayLogs = LogCategory "GatewayLogs"
 
 namespace Farmer.DiagnosticSettings.Logging.AppConfiguration
+
 open Farmer.DiagnosticSettings
 
 module ConfigurationStores =
@@ -45,6 +49,7 @@ module ConfigurationStores =
     let HttpRequest = LogCategory "HttpRequest"
 
 namespace Farmer.DiagnosticSettings.Logging.AppPlatform
+
 open Farmer.DiagnosticSettings
 
 module Spring =
@@ -54,6 +59,7 @@ module Spring =
     let SystemLogs = LogCategory "SystemLogs"
 
 namespace Farmer.DiagnosticSettings.Logging.Attestation
+
 open Farmer.DiagnosticSettings
 
 module AttestationProviders =
@@ -67,6 +73,7 @@ module AttestationProviders =
     let WRN = LogCategory "WRN"
 
 namespace Farmer.DiagnosticSettings.Logging.Automation
+
 open Farmer.DiagnosticSettings
 
 module AutomationAccounts =
@@ -78,6 +85,7 @@ module AutomationAccounts =
     let JobStreams = LogCategory "JobStreams"
 
 namespace Farmer.DiagnosticSettings.Logging.Batch
+
 open Farmer.DiagnosticSettings
 
 module BatchAccounts =
@@ -85,6 +93,7 @@ module BatchAccounts =
     let ServiceLog = LogCategory "ServiceLog"
 
 namespace Farmer.DiagnosticSettings.Logging.BatchAI
+
 open Farmer.DiagnosticSettings
 
 module Workspaces =
@@ -96,6 +105,7 @@ module Workspaces =
     let BaiJobEvent = LogCategory "BaiJobEvent"
 
 namespace Farmer.DiagnosticSettings.Logging.Blockchain
+
 open Farmer.DiagnosticSettings
 
 module BlockchainMembers =
@@ -113,6 +123,7 @@ module CordaMembers =
     let BlockchainApplication = LogCategory "BlockchainApplication"
 
 namespace Farmer.DiagnosticSettings.Logging.Otservice
+
 open Farmer.DiagnosticSettings
 
 module Botservices =
@@ -122,6 +133,7 @@ module Botservices =
     let DependencyRequest = LogCategory "DependencyRequest"
 
 namespace Farmer.DiagnosticSettings.Logging.Cdn
+
 open Farmer.DiagnosticSettings
 
 module Cdnwebapplicationfirewallpolicies =
@@ -135,14 +147,17 @@ module Profiles =
     let FrontDoorAccessLog = LogCategory "FrontDoorAccessLog"
     /// FrontDoor Health Probe Log
     let FrontDoorHealthProbeLog = LogCategory "FrontDoorHealthProbeLog"
+
     /// FrontDoor WebApplicationFirewall Log
-    let FrontDoorWebApplicationFirewallLog = LogCategory "FrontDoorWebApplicationFirewallLog"
+    let FrontDoorWebApplicationFirewallLog =
+        LogCategory "FrontDoorWebApplicationFirewallLog"
 
     module Endpoints =
         /// Gets the metrics of the endpoint, e.g., bandwidth, egress, etc.
         let CoreAnalytics = LogCategory "CoreAnalytics"
 
 namespace Farmer.DiagnosticSettings.Logging.ClassicNetwork
+
 open Farmer.DiagnosticSettings
 
 module Networksecuritygroups =
@@ -150,6 +165,7 @@ module Networksecuritygroups =
     let Network = LogCategory "Network"
 
 namespace Farmer.DiagnosticSettings.Logging.CognitiveServices
+
 open Farmer.DiagnosticSettings
 
 module Accounts =
@@ -161,6 +177,7 @@ module Accounts =
     let Trace = LogCategory "Trace"
 
 namespace Farmer.DiagnosticSettings.Logging.Communication
+
 open Farmer.DiagnosticSettings
 
 module CommunicationServices =
@@ -172,15 +189,19 @@ module CommunicationServices =
     let Usage = LogCategory "Usage"
 
 namespace Farmer.DiagnosticSettings.Logging.ContainerRegistry
+
 open Farmer.DiagnosticSettings
 
 module Registries =
     /// Login Events
     let ContainerRegistryLoginEvents = LogCategory "ContainerRegistryLoginEvents"
+
     /// RepositoryEvent logs
-    let ContainerRegistryRepositoryEvents = LogCategory "ContainerRegistryRepositoryEvents"
+    let ContainerRegistryRepositoryEvents =
+        LogCategory "ContainerRegistryRepositoryEvents"
 
 namespace Farmer.DiagnosticSettings.Logging.ContainerService
+
 open Farmer.DiagnosticSettings
 
 module ManagedClusters =
@@ -200,6 +221,7 @@ module ManagedClusters =
     let kubescheduler = LogCategory "kube"
 
 namespace Farmer.DiagnosticSettings.Logging.CustomProviders
+
 open Farmer.DiagnosticSettings
 
 module Resourceproviders =
@@ -207,6 +229,7 @@ module Resourceproviders =
     let AuditLogs = LogCategory "AuditLogs"
 
 namespace Farmer.DiagnosticSettings.Logging.D365CustomerInsights
+
 open Farmer.DiagnosticSettings
 
 module Instances =
@@ -216,6 +239,7 @@ module Instances =
     let Operational = LogCategory "Operational"
 
 namespace Farmer.DiagnosticSettings.Logging.Databricks
+
 open Farmer.DiagnosticSettings
 
 module Workspaces =
@@ -241,6 +265,7 @@ module Workspaces =
     let workspace = LogCategory "workspace"
 
 namespace Farmer.DiagnosticSettings.Logging.DataCollaboration
+
 open Farmer.DiagnosticSettings
 
 module Workspaces =
@@ -256,6 +281,7 @@ module Workspaces =
     let Scripts = LogCategory "Scripts"
 
 namespace Farmer.DiagnosticSettings.Logging.DataFactory
+
 open Farmer.DiagnosticSettings
 
 module Factories =
@@ -271,14 +297,20 @@ module Factories =
     let SSISPackageEventMessages = LogCategory "SSISPackageEventMessages"
     /// SSIS package executable statistics
     let SSISPackageExecutableStatistics = LogCategory "SSISPackageExecutableStatistics"
+
     /// SSIS package execution component phases
-    let SSISPackageExecutionComponentPhases = LogCategory "SSISPackageExecutionComponentPhases"
+    let SSISPackageExecutionComponentPhases =
+        LogCategory "SSISPackageExecutionComponentPhases"
+
     /// SSIS package exeution data statistics
-    let SSISPackageExecutionDataStatistics = LogCategory "SSISPackageExecutionDataStatistics"
+    let SSISPackageExecutionDataStatistics =
+        LogCategory "SSISPackageExecutionDataStatistics"
+
     /// Trigger runs log
     let TriggerRuns = LogCategory "TriggerRuns"
 
 namespace Farmer.DiagnosticSettings.Logging.DataLakeAnalytics
+
 open Farmer.DiagnosticSettings
 
 module Accounts =
@@ -288,6 +320,7 @@ module Accounts =
     let Requests = LogCategory "Requests"
 
 namespace Farmer.DiagnosticSettings.Logging.DataLakeStore
+
 open Farmer.DiagnosticSettings
 
 module Accounts =
@@ -297,6 +330,7 @@ module Accounts =
     let Requests = LogCategory "Requests"
 
 namespace Farmer.DiagnosticSettings.Logging.DataShare
+
 open Farmer.DiagnosticSettings
 
 module Accounts =
@@ -310,6 +344,7 @@ module Accounts =
     let ShareSubscriptions = LogCategory "ShareSubscriptions"
 
 namespace Farmer.DiagnosticSettings.Logging.DBforMariaDB
+
 open Farmer.DiagnosticSettings
 
 module Servers =
@@ -319,6 +354,7 @@ module Servers =
     let MySqlSlowLogs = LogCategory "MySqlSlowLogs"
 
 namespace Farmer.DiagnosticSettings.Logging.DBforMySQL
+
 open Farmer.DiagnosticSettings
 
 module FlexibleServers =
@@ -334,6 +370,7 @@ module Servers =
     let MySqlSlowLogs = LogCategory "MySqlSlowLogs"
 
 namespace Farmer.DiagnosticSettings.Logging.DBforPostgreSQL
+
 open Farmer.DiagnosticSettings
 
 module FlexibleServers =
@@ -353,6 +390,7 @@ module Serversv2 =
     let PostgreSQLLogs = LogCategory "PostgreSQLLogs"
 
 namespace Farmer.DiagnosticSettings.Logging.DesktopVirtualization
+
 open Farmer.DiagnosticSettings
 
 module Applicationgroups =
@@ -388,6 +426,7 @@ module Workspaces =
     let Management = LogCategory "Management"
 
 namespace Farmer.DiagnosticSettings.Logging.Devices.ElasticPools
+
 open Farmer.DiagnosticSettings
 
 module IotHubTenants =
@@ -421,6 +460,7 @@ module IotHubTenants =
     let TwinQueries = LogCategory "TwinQueries"
 
 namespace Farmer.DiagnosticSettings.Logging.Devices
+
 open Farmer.DiagnosticSettings
 
 module IotHubs =
@@ -460,6 +500,7 @@ module ProvisioningServices =
     let ServiceOperations = LogCategory "ServiceOperations"
 
 namespace Farmer.DiagnosticSettings.Logging.DigitalTwins
+
 open Farmer.DiagnosticSettings
 
 module DigitalTwinsInstances =
@@ -473,6 +514,7 @@ module DigitalTwinsInstances =
     let QueryOperation = LogCategory "QueryOperation"
 
 namespace Farmer.DiagnosticSettings.Logging.DocumentDB
+
 open Farmer.DiagnosticSettings
 
 module DatabaseAccounts =
@@ -494,6 +536,7 @@ module DatabaseAccounts =
     let QueryRuntimeStatistics = LogCategory "QueryRuntimeStatistics"
 
 namespace Farmer.DiagnosticSettings.Logging.EventGrid
+
 open Farmer.DiagnosticSettings
 
 module Domains =
@@ -523,6 +566,7 @@ module Topics =
     let PublishFailures = LogCategory "PublishFailures"
 
 namespace Farmer.DiagnosticSettings.Logging.EventHub
+
 open Farmer.DiagnosticSettings
 
 module Namespaces =
@@ -542,6 +586,7 @@ module Namespaces =
     let OperationalLogs = LogCategory "OperationalLogs"
 
 namespace Farmer.DiagnosticSettings.Logging.Experimentation
+
 open Farmer.DiagnosticSettings
 
 module ExperimentWorkspaces =
@@ -549,6 +594,7 @@ module ExperimentWorkspaces =
     let Request = LogCategory "Request"
 
 namespace Farmer.DiagnosticSettings.Logging.HealthcareApis
+
 open Farmer.DiagnosticSettings
 
 module Services =
@@ -556,6 +602,7 @@ module Services =
     let AuditLogs = LogCategory "AuditLogs"
 
 namespace Farmer.DiagnosticSettings.Logging.Insights
+
 open Farmer.DiagnosticSettings
 
 module Autoscalesettings =
@@ -589,6 +636,7 @@ module Components =
     let AppTraces = LogCategory "AppTraces"
 
 namespace Farmer.DiagnosticSettings.Logging.IoTSpaces
+
 open Farmer.DiagnosticSettings
 
 module Graph =
@@ -606,6 +654,7 @@ module Graph =
     let UserDefinedFunction = LogCategory "UserDefinedFunction"
 
 namespace Farmer.DiagnosticSettings.Logging.KeyVault
+
 open Farmer.DiagnosticSettings
 
 module Managedhsms =
@@ -617,6 +666,7 @@ module Vaults =
     let AuditEvent = LogCategory "AuditEvent"
 
 namespace Farmer.DiagnosticSettings.Logging.Kusto
+
 open Farmer.DiagnosticSettings
 
 module Clusters =
@@ -636,17 +686,20 @@ module Clusters =
     let TableUsageStatistics = LogCategory "TableUsageStatistics"
 
 namespace Farmer.DiagnosticSettings.Logging.Logic
+
 open Farmer.DiagnosticSettings
 
 module IntegrationAccounts =
     /// Integration Account track events
-    let IntegrationAccountTrackingEvents = LogCategory "IntegrationAccountTrackingEvents"
+    let IntegrationAccountTrackingEvents =
+        LogCategory "IntegrationAccountTrackingEvents"
 
 module Workflows =
     /// Workflow runtime diagnostic events
     let WorkflowRuntime = LogCategory "WorkflowRuntime"
 
 namespace Farmer.DiagnosticSettings.Logging.MachineLearningServices
+
 open Farmer.DiagnosticSettings
 
 module Workspaces =
@@ -662,6 +715,7 @@ module Workspaces =
     let AmlRunStatusChangedEvent = LogCategory "AmlRunStatusChangedEvent"
 
 namespace Farmer.DiagnosticSettings.Logging.Media
+
 open Farmer.DiagnosticSettings
 
 module Mediaservices =
@@ -669,6 +723,7 @@ module Mediaservices =
     let KeyDeliveryRequests = LogCategory "KeyDeliveryRequests"
 
 namespace Farmer.DiagnosticSettings.Logging.Network
+
 open Farmer.DiagnosticSettings
 
 module ApplicationGateways =
@@ -676,8 +731,10 @@ module ApplicationGateways =
     let ApplicationGatewayAccessLog = LogCategory "ApplicationGatewayAccessLog"
     /// Application Gateway Firewall Log
     let ApplicationGatewayFirewallLog = LogCategory "ApplicationGatewayFirewallLog"
+
     /// Application Gateway Performance Log
-    let ApplicationGatewayPerformanceLog = LogCategory "ApplicationGatewayPerformanceLog"
+    let ApplicationGatewayPerformanceLog =
+        LogCategory "ApplicationGatewayPerformanceLog"
 
 module Azurefirewalls =
     /// Azure Firewall Application Rule
@@ -698,8 +755,10 @@ module ExpressRouteCircuits =
 module Frontdoors =
     /// Frontdoor Access Log
     let FrontdoorAccessLog = LogCategory "FrontdoorAccessLog"
+
     /// Frontdoor Web Application Firewall Log
-    let FrontdoorWebApplicationFirewallLog = LogCategory "FrontdoorWebApplicationFirewallLog"
+    let FrontdoorWebApplicationFirewallLog =
+        LogCategory "FrontdoorWebApplicationFirewallLog"
 
 module LoadBalancers =
     /// Load Balancer Alert Events
@@ -762,12 +821,15 @@ module VpnGateways =
     let TunnelDiagnosticLog = LogCategory "TunnelDiagnosticLog"
 
 namespace Farmer.DiagnosticSettings.Logging.NotificationHubs
+
 open Farmer.DiagnosticSettings
+
 module Namespaces =
     /// Operational Logs
     let OperationalLogs = LogCategory "OperationalLogs"
 
 namespace Farmer.DiagnosticSettings.Logging.OperationalInsights
+
 open Farmer.DiagnosticSettings
 
 module Workspaces =
@@ -775,6 +837,7 @@ module Workspaces =
     let Audit = LogCategory "Audit"
 
 namespace Farmer.DiagnosticSettings.Logging.PowerBI
+
 open Farmer.DiagnosticSettings
 
 module Tenants =
@@ -786,6 +849,7 @@ module Tenants =
         let Engine = LogCategory "Engine"
 
 namespace Farmer.DiagnosticSettings.Logging.PowerBIDedicated
+
 open Farmer.DiagnosticSettings
 
 module Capacities =
@@ -793,6 +857,7 @@ module Capacities =
     let Engine = LogCategory "Engine"
 
 namespace Farmer.DiagnosticSettings.Logging.ProjectBabylon
+
 open Farmer.DiagnosticSettings
 
 module Accounts =
@@ -800,6 +865,7 @@ module Accounts =
     let ScanStatusLogEvent = LogCategory "ScanStatusLogEvent"
 
 namespace Farmer.DiagnosticSettings.Logging.Purview
+
 open Farmer.DiagnosticSettings
 
 module Accounts =
@@ -807,6 +873,7 @@ module Accounts =
     let ScanStatusLogEvent = LogCategory "ScanStatusLogEvent"
 
 namespace Farmer.DiagnosticSettings.Logging.RecoveryServices
+
 open Farmer.DiagnosticSettings
 
 module Vaults =
@@ -816,8 +883,11 @@ module Vaults =
     let AddonAzureBackupJobs = LogCategory "AddonAzureBackupJobs"
     /// Addon Azure Backup Policy Data
     let AddonAzureBackupPolicy = LogCategory "AddonAzureBackupPolicy"
+
     /// Addon Azure Backup Protected Instance Data
-    let AddonAzureBackupProtectedInstance = LogCategory "AddonAzureBackupProtectedInstance"
+    let AddonAzureBackupProtectedInstance =
+        LogCategory "AddonAzureBackupProtectedInstance"
+
     /// Addon Azure Backup Storage Data
     let AddonAzureBackupStorage = LogCategory "AddonAzureBackupStorage"
     /// Azure Backup Reporting Data
@@ -826,21 +896,33 @@ module Vaults =
     let AzureSiteRecoveryEvents = LogCategory "AzureSiteRecoveryEvents"
     /// Azure Site Recovery Jobs
     let AzureSiteRecoveryJobs = LogCategory "AzureSiteRecoveryJobs"
+
     /// Azure Site Recovery Protected Disk Data Churn
-    let AzureSiteRecoveryProtectedDiskDataChurn = LogCategory "AzureSiteRecoveryProtectedDiskDataChurn"
+    let AzureSiteRecoveryProtectedDiskDataChurn =
+        LogCategory "AzureSiteRecoveryProtectedDiskDataChurn"
+
     /// Azure Site Recovery Recovery Points
     let AzureSiteRecoveryRecoveryPoints = LogCategory "AzureSiteRecoveryRecoveryPoints"
+
     /// Azure Site Recovery Replicated Items
-    let AzureSiteRecoveryReplicatedItems = LogCategory "AzureSiteRecoveryReplicatedItems"
+    let AzureSiteRecoveryReplicatedItems =
+        LogCategory "AzureSiteRecoveryReplicatedItems"
+
     /// Azure Site Recovery Replication Data Upload Rate
-    let AzureSiteRecoveryReplicationDataUploadRate = LogCategory "AzureSiteRecoveryReplicationDataUploadRate"
+    let AzureSiteRecoveryReplicationDataUploadRate =
+        LogCategory "AzureSiteRecoveryReplicationDataUploadRate"
+
     /// Azure Site Recovery Replication Stats
-    let AzureSiteRecoveryReplicationStats = LogCategory "AzureSiteRecoveryReplicationStats"
+    let AzureSiteRecoveryReplicationStats =
+        LogCategory "AzureSiteRecoveryReplicationStats"
+
     /// Core Azure Backup Data
     let CoreAzureBackup = LogCategory "CoreAzureBackup"
 
 namespace Farmer.DiagnosticSettings.Logging.Relay
+
 open Farmer.DiagnosticSettings
+
 module Namespaces =
     /// HybridConnections Events
     let HybridConnectionsEvent = LogCategory "HybridConnectionsEvent"
@@ -848,6 +930,7 @@ module Namespaces =
     let HybridConnectionsLogs = LogCategory "HybridConnectionsLogs"
 
 namespace Farmer.DiagnosticSettings.Logging.Search
+
 open Farmer.DiagnosticSettings
 
 module SearchServices =
@@ -855,12 +938,15 @@ module SearchServices =
     let OperationLogs = LogCategory "OperationLogs"
 
 namespace Farmer.DiagnosticSettings.Logging.ServiceBus
+
 open Farmer.DiagnosticSettings
+
 module Namespaces =
     /// Operational Logs
     let OperationalLogs = LogCategory "OperationalLogs"
 
 namespace Farmer.DiagnosticSettings.Logging.SignalRService
+
 open Farmer.DiagnosticSettings
 
 module SignalR =
@@ -868,6 +954,7 @@ module SignalR =
     let AllLogs = LogCategory "AllLogs"
 
 namespace Farmer.DiagnosticSettings.Logging.Sql
+
 open Farmer.DiagnosticSettings
 
 module ManagedInstances =
@@ -889,6 +976,7 @@ module ManagedInstances =
         let SQLInsights = LogCategory "SQLInsights"
 
 namespace Farmer.DiagnosticSettings.Logging.Sql.Servers
+
 open Farmer.DiagnosticSettings
 
 module Databases =
@@ -926,6 +1014,7 @@ module Databases =
     let Waits = LogCategory "Waits"
 
 namespace Farmer.DiagnosticSettings.Logging.Storage.StorageAccounts
+
 open Farmer.DiagnosticSettings
 
 module Storage =
@@ -965,6 +1054,7 @@ module TableServices =
     let StorageWrite = LogCategory "StorageWrite"
 
 namespace Farmer.DiagnosticSettings.Logging.StreamAnalytics
+
 open Farmer.DiagnosticSettings
 
 module Streamingjobs =
@@ -974,6 +1064,7 @@ module Streamingjobs =
     let Execution = LogCategory "Execution"
 
 namespace Farmer.DiagnosticSettings.Logging.Synapse
+
 open Farmer.DiagnosticSettings
 
 module Workspaces =
@@ -1005,6 +1096,7 @@ module SqlPools =
     let Waits = LogCategory "Waits"
 
 namespace Farmer.DiagnosticSettings.Logging.TimeSeriesInsights
+
 open Farmer.DiagnosticSettings
 
 module Environments =
@@ -1020,15 +1112,19 @@ module Environments =
         let Management = LogCategory "Management"
 
 namespace Farmer.DiagnosticSettings.Logging.Web
+
 open Farmer.DiagnosticSettings
 
 module Hostingenvironments =
     /// App Service Environment Platform Logs
-    let AppServiceEnvironmentPlatformLogs = LogCategory "AppServiceEnvironmentPlatformLogs"
+    let AppServiceEnvironmentPlatformLogs =
+        LogCategory "AppServiceEnvironmentPlatformLogs"
 
 module Sites =
     /// Report Antivirus Audit Logs
-    let AppServiceAntivirusScanAuditLogs = LogCategory "AppServiceAntivirusScanAuditLogs"
+    let AppServiceAntivirusScanAuditLogs =
+        LogCategory "AppServiceAntivirusScanAuditLogs"
+
     /// App Service Application Logs
     let AppServiceAppLogs = LogCategory "AppServiceAppLogs"
     /// Access Audit Logs
@@ -1048,7 +1144,9 @@ module Sites =
 
     module Slots =
         /// Report Antivirus Audit Logs
-        let AppServiceAntivirusScanAuditLogs = LogCategory "AppServiceAntivirusScanAuditLogs"
+        let AppServiceAntivirusScanAuditLogs =
+            LogCategory "AppServiceAntivirusScanAuditLogs"
+
         /// App Service Application Logs
         let AppServiceAppLogs = LogCategory "AppServiceAppLogs"
         /// Access Audit Logs
