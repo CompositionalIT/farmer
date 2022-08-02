@@ -54,6 +54,8 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |link_to_network_security_group| Specify an existing Network Security Group (NSG) for VM/NIC.             |
 |link_to_vnet|Attaches the VM NIC to a vnet that is deployed in this same template|
 |link_to_unmanaged_vnet|Attaches the VM NIC to a vnet that is already deployed|
+|link_to_backend_address_pool|Adds the VM network interface to a load balancer backend address pool that is deployed with this VM.|
+|link_to_unmanaged_backend_address_pool|Adds the VM network interface to an existing load balancer backend address pool.|
 
 #### Configuration Members
 
