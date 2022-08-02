@@ -155,116 +155,425 @@ module Vm =
         | Basic_A2
         | Basic_A3
         | Basic_A4
+        | Premium_P
+        | Premium_P1
+        | Premium_P10
+        | Premium_P15
+        | Premium_P2
+        | Premium_P20
+        | Premium_P3
+        | Premium_P30
+        | Premium_P4
+        | Premium_P40
+        | Premium_P50
+        | Premium_P6
+        | Premium_P60
+        | Premium_P70
+        | Premium_P80
         | Standard_A0
         | Standard_A1
+        | Standard_A1_v2
+        | Standard_A10
+        | Standard_A11
         | Standard_A2
+        | Standard_A2_v2
+        | Standard_A2m_v2
         | Standard_A3
         | Standard_A4
+        | Standard_A4_v2
+        | Standard_A4m_v2
         | Standard_A5
         | Standard_A6
         | Standard_A7
         | Standard_A8
-        | Standard_A9
-        | Standard_A10
-        | Standard_A11
-        | Standard_A1_v2
-        | Standard_A2_v2
-        | Standard_A4_v2
         | Standard_A8_v2
-        | Standard_A2m_v2
-        | Standard_A4m_v2
         | Standard_A8m_v2
-        | Standard_B1s
+        | Standard_A9
+        | Standard_B12ms
+        | Standard_B16ms
+        | Standard_B1ls
         | Standard_B1ms
-        | Standard_B2s
+        | Standard_B1s
+        | Standard_B20ms
         | Standard_B2ms
+        | Standard_B2s
         | Standard_B4ms
         | Standard_B8ms
         | Standard_D1
-        | Standard_D2
-        | Standard_D3
-        | Standard_D4
-        | Standard_D11
-        | Standard_D12
-        | Standard_D13
-        | Standard_D14
         | Standard_D1_v2
-        | Standard_D2_v2
-        | Standard_D3_v2
-        | Standard_D4_v2
-        | Standard_D5_v2
-        | Standard_D2_v3
-        | Standard_D4_v3
-        | Standard_D8_v3
-        | Standard_D16_v3
-        | Standard_D32_v3
-        | Standard_D64_v3
-        | Standard_D2s_v3
-        | Standard_D4s_v3
-        | Standard_D8s_v3
-        | Standard_D16s_v3
-        | Standard_D32s_v3
-        | Standard_D64s_v3
+        | Standard_D11
         | Standard_D11_v2
+        | Standard_D12
         | Standard_D12_v2
+        | Standard_D13
         | Standard_D13_v2
+        | Standard_D14
         | Standard_D14_v2
         | Standard_D15_v2
+        | Standard_D16_v3
+        | Standard_D16_v4
+        | Standard_D16_v5
+        | Standard_D16a_v4
+        | Standard_D16ads_v5
+        | Standard_D16as_v4
+        | Standard_D16as_v5
+        | Standard_D16d_v4
+        | Standard_D16d_v5
+        | Standard_D16ds_v4
+        | Standard_D16ds_v5
+        | Standard_D16s_v3
+        | Standard_D16s_v4
+        | Standard_D16s_v5
+        | Standard_D2
+        | Standard_D2_v2
+        | Standard_D2_v3
+        | Standard_D2_v4
+        | Standard_D2_v5
+        | Standard_D2a_v4
+        | Standard_D2ads_v5
+        | Standard_D2as_v4
+        | Standard_D2as_v5
+        | Standard_D2d_v4
+        | Standard_D2d_v5
+        | Standard_D2ds_v4
+        | Standard_D2ds_v5
+        | Standard_D2s_v3
+        | Standard_D2s_v4
+        | Standard_D2s_v5
+        | Standard_D3
+        | Standard_D3_v2
+        | Standard_D32_v3
+        | Standard_D32_v4
+        | Standard_D32_v5
+        | Standard_D32a_v4
+        | Standard_D32ads_v5
+        | Standard_D32as_v4
+        | Standard_D32as_v5
+        | Standard_D32d_v4
+        | Standard_D32d_v5
+        | Standard_D32ds_v4
+        | Standard_D32ds_v5
+        | Standard_D32s_v3
+        | Standard_D32s_v4
+        | Standard_D32s_v5
+        | Standard_D4
+        | Standard_D4_v2
+        | Standard_D4_v3
+        | Standard_D4_v4
+        | Standard_D4_v5
+        | Standard_D48_v3
+        | Standard_D48_v4
+        | Standard_D48_v5
+        | Standard_D48a_v4
+        | Standard_D48ads_v5
+        | Standard_D48as_v4
+        | Standard_D48as_v5
+        | Standard_D48d_v4
+        | Standard_D48d_v5
+        | Standard_D48ds_v4
+        | Standard_D48ds_v5
+        | Standard_D48s_v3
+        | Standard_D48s_v4
+        | Standard_D48s_v5
+        | Standard_D4a_v4
+        | Standard_D4ads_v5
+        | Standard_D4as_v4
+        | Standard_D4as_v5
+        | Standard_D4d_v4
+        | Standard_D4d_v5
+        | Standard_D4ds_v4
+        | Standard_D4ds_v5
+        | Standard_D4s_v3
+        | Standard_D4s_v4
+        | Standard_D4s_v5
+        | Standard_D5_v2
+        | Standard_D64_v3
+        | Standard_D64_v4
+        | Standard_D64_v5
+        | Standard_D64a_v4
+        | Standard_D64ads_v5
+        | Standard_D64as_v4
+        | Standard_D64as_v5
+        | Standard_D64d_v4
+        | Standard_D64d_v5
+        | Standard_D64ds_v4
+        | Standard_D64ds_v5
+        | Standard_D64s_v3
+        | Standard_D64s_v4
+        | Standard_D64s_v5
+        | Standard_D8_v3
+        | Standard_D8_v4
+        | Standard_D8_v5
+        | Standard_D8a_v4
+        | Standard_D8ads_v5
+        | Standard_D8as_v4
+        | Standard_D8as_v5
+        | Standard_D8d_v4
+        | Standard_D8d_v5
+        | Standard_D8ds_v4
+        | Standard_D8ds_v5
+        | Standard_D8s_v3
+        | Standard_D8s_v4
+        | Standard_D8s_v5
+        | Standard_D96_v5
+        | Standard_D96a_v4
+        | Standard_D96ads_v5
+        | Standard_D96as_v4
+        | Standard_D96as_v5
+        | Standard_D96d_v5
+        | Standard_D96ds_v5
+        | Standard_D96s_v5
+        | Standard_DC16ads_v5
+        | Standard_DC16as_v5
+        | Standard_DC1s_v2
+        | Standard_DC2ads_v5
+        | Standard_DC2as_v5
+        | Standard_DC2s
+        | Standard_DC2s_v2
+        | Standard_DC32ads_v5
+        | Standard_DC32as_v5
+        | Standard_DC48ads_v5
+        | Standard_DC48as_v5
+        | Standard_DC4ads_v5
+        | Standard_DC4as_v5
+        | Standard_DC4s
+        | Standard_DC4s_v2
+        | Standard_DC64ads_v5
+        | Standard_DC64as_v5
+        | Standard_DC8_v2
+        | Standard_DC8ads_v5
+        | Standard_DC8as_v5
+        | Standard_DC96ads_v5
+        | Standard_DC96as_v5
         | Standard_DS1
-        | Standard_DS2
-        | Standard_DS3
-        | Standard_DS4
-        | Standard_DS11
-        | Standard_DS12
-        | Standard_DS13
-        | Standard_DS14
         | Standard_DS1_v2
-        | Standard_DS2_v2
-        | Standard_DS3_v2
-        | Standard_DS4_v2
-        | Standard_DS5_v2
+        | Standard_DS11
         | Standard_DS11_v2
+        | Standard_DS12
         | Standard_DS12_v2
+        | Standard_DS13
+        | Standard_DS13_2_v2
+        | Standard_DS13_4_v2
         | Standard_DS13_v2
+        | Standard_DS14
+        | Standard_DS14_4_v2
+        | Standard_DS14_8_v2
         | Standard_DS14_v2
         | Standard_DS15_v2
-        | Standard_DS13_4_v2
-        | Standard_DS13_2_v2
-        | Standard_DS14_8_v2
-        | Standard_DS14_4_v2
-        | Standard_E2_v3_v3
-        | Standard_E4_v3
-        | Standard_E8_v3
+        | Standard_DS2
+        | Standard_DS2_v2
+        | Standard_DS3
+        | Standard_DS3_v2
+        | Standard_DS4
+        | Standard_DS4_v2
+        | Standard_DS5_v2
+        | Standard_E1
+        | Standard_E10
+        | Standard_E104i_v5
+        | Standard_E104id_v5
+        | Standard_E104ids_v5
+        | Standard_E104is_v5
+        | Standard_E112iads_v5
+        | Standard_E112ias_v5
+        | Standard_E15
         | Standard_E16_v3
-        | Standard_E32_v3
-        | Standard_E64_v3
-        | Standard_E2s_v3
-        | Standard_E4s_v3
-        | Standard_E8s_v3
+        | Standard_E16_v4
+        | Standard_E16_v5
+        | Standard_E16a_v4
+        | Standard_E16ads_v5
+        | Standard_E16as_v4
+        | Standard_E16as_v5
+        | Standard_E16bds_v5
+        | Standard_E16bs_v5
+        | Standard_E16d_v4
+        | Standard_E16d_v5
+        | Standard_E16ds_v4
+        | Standard_E16ds_v5
         | Standard_E16s_v3
-        | Standard_E32s_v3
-        | Standard_E64s_v3
+        | Standard_E16s_v4
+        | Standard_E16s_v5
+        | Standard_E2
+        | Standard_E2_v3
+        | Standard_E2_v3_v3
+        | Standard_E2_v4
+        | Standard_E2_v5
+        | Standard_E20
+        | Standard_E20_v3
+        | Standard_E20_v4
+        | Standard_E20_v5
+        | Standard_E20a_v4
+        | Standard_E20ads_v5
+        | Standard_E20as_v4
+        | Standard_E20as_v5
+        | Standard_E20d_v4
+        | Standard_E20d_v5
+        | Standard_E20ds_v4
+        | Standard_E20ds_v5
+        | Standard_E20s_v3
+        | Standard_E20s_v4
+        | Standard_E20s_v5
+        | Standard_E2a_v4
+        | Standard_E2ads_v5
+        | Standard_E2as_v4
+        | Standard_E2as_v5
+        | Standard_E2bds_v5
+        | Standard_E2bs_v5
+        | Standard_E2d_v4
+        | Standard_E2d_v5
+        | Standard_E2ds_v4
+        | Standard_E2ds_v5
+        | Standard_E2s_v3
+        | Standard_E2s_v4
+        | Standard_E2s_v5
+        | Standard_E3
+        | Standard_E30
         | Standard_E32_16_v3
         | Standard_E32_8s_v3
-        | Standard_E64_32s_v3
+        | Standard_E32_v3
+        | Standard_E32_v4
+        | Standard_E32_v5
+        | Standard_E32a_v4
+        | Standard_E32ads_v5
+        | Standard_E32as_v4
+        | Standard_E32as_v5
+        | Standard_E32bds_v5
+        | Standard_E32bs_v5
+        | Standard_E32d_v4
+        | Standard_E32d_v5
+        | Standard_E32ds_v4
+        | Standard_E32ds_v5
+        | Standard_E32s_v3
+        | Standard_E32s_v4
+        | Standard_E32s_v5
+        | Standard_E4
+        | Standard_E4_v3
+        | Standard_E4_v4
+        | Standard_E4_v5
+        | Standard_E40
+        | Standard_E48_v3
+        | Standard_E48_v4
+        | Standard_E48_v5
+        | Standard_E48a_v4
+        | Standard_E48ads_v5
+        | Standard_E48as_v4
+        | Standard_E48as_v5
+        | Standard_E48bds_v5
+        | Standard_E48bs_v5
+        | Standard_E48d_v4
+        | Standard_E48d_v5
+        | Standard_E48ds_v4
+        | Standard_E48ds_v5
+        | Standard_E48s_v3
+        | Standard_E48s_v4
+        | Standard_E48s_v5
+        | Standard_E4a_v4
+        | Standard_E4ads_v5
+        | Standard_E4as_v4
+        | Standard_E4as_v5
+        | Standard_E4bds_v5
+        | Standard_E4bs_v5
+        | Standard_E4d_v4
+        | Standard_E4d_v5
+        | Standard_E4ds_v4
+        | Standard_E4ds_v5
+        | Standard_E4s_v3
+        | Standard_E4s_v4
+        | Standard_E4s_v5
+        | Standard_E50
+        | Standard_E6
+        | Standard_E60
         | Standard_E64_16s_v3
+        | Standard_E64_32s_v3
+        | Standard_E64_v3
+        | Standard_E64_v4
+        | Standard_E64_v5
+        | Standard_E64a_v4
+        | Standard_E64ads_v5
+        | Standard_E64as_v4
+        | Standard_E64as_v5
+        | Standard_E64bds_v5
+        | Standard_E64bs_v5
+        | Standard_E64d_v4
+        | Standard_E64d_v5
+        | Standard_E64ds_v4
+        | Standard_E64ds_v5
+        | Standard_E64i_v3
+        | Standard_E64is_v3
+        | Standard_E64s_v3
+        | Standard_E64s_v4
+        | Standard_E64s_v5
+        | Standard_E70
+        | Standard_E8_v3
+        | Standard_E8_v4
+        | Standard_E8_v5
+        | Standard_E80
+        | Standard_E80ids_v4
+        | Standard_E80is_v4
+        | Standard_E8a_v4
+        | Standard_E8ads_v5
+        | Standard_E8as_v4
+        | Standard_E8as_v5
+        | Standard_E8bds_v5
+        | Standard_E8bs_v5
+        | Standard_E8d_v4
+        | Standard_E8d_v5
+        | Standard_E8ds_v4
+        | Standard_E8ds_v5
+        | Standard_E8s_v3
+        | Standard_E8s_v4
+        | Standard_E8s_v5
+        | Standard_E96_v5
+        | Standard_E96a_v4
+        | Standard_E96ads_v5
+        | Standard_E96as_v4
+        | Standard_E96as_v5
+        | Standard_E96d_v5
+        | Standard_E96ds_v5
+        | Standard_E96ias_v4
+        | Standard_E96s_v5
+        | Standard_EC16ads_v5
+        | Standard_EC16as_v5
+        | Standard_EC20ads_v5
+        | Standard_EC20as_v5
+        | Standard_EC2ads_v5
+        | Standard_EC2as_v5
+        | Standard_EC32ads_v5
+        | Standard_EC32as_v5
+        | Standard_EC48ads_v5
+        | Standard_EC48as_v5
+        | Standard_EC4ads_v5
+        | Standard_EC4as_v5
+        | Standard_EC64ads_v5
+        | Standard_EC64as_v5
+        | Standard_EC8ads_v5
+        | Standard_EC8as_v5
+        | Standard_EC96ads_v5
+        | Standard_EC96as_v5
+        | Standard_EC96iads_v5
+        | Standard_EC96ias_v5
         | Standard_F1
-        | Standard_F2
-        | Standard_F4
-        | Standard_F8
         | Standard_F16
-        | Standard_F1s
-        | Standard_F2s
-        | Standard_F4s
-        | Standard_F8s
         | Standard_F16s
-        | Standard_F2s_v2
-        | Standard_F4s_v2
-        | Standard_F8s_v2
         | Standard_F16s_v2
+        | Standard_F1s
+        | Standard_F2
+        | Standard_F2s
+        | Standard_F2s_v2
         | Standard_F32s_v2
+        | Standard_F4
+        | Standard_F48s_v2
+        | Standard_F4s
+        | Standard_F4s_v2
         | Standard_F64s_v2
         | Standard_F72s_v2
+        | Standard_F8
+        | Standard_F8s
+        | Standard_F8s_v2
+        | Standard_FX12mds
+        | Standard_FX24mds
+        | Standard_FX36mds
+        | Standard_FX48mds
+        | Standard_FX4mds
         | Standard_G1
         | Standard_G2
         | Standard_G3
@@ -274,48 +583,126 @@ module Vm =
         | Standard_GS2
         | Standard_GS3
         | Standard_GS4
-        | Standard_GS5
-        | Standard_GS4_8
         | Standard_GS4_4
+        | Standard_GS4_8
+        | Standard_GS5
         | Standard_GS5_16
         | Standard_GS5_8
-        | Standard_H8
         | Standard_H16
-        | Standard_H8m
+        | Standard_H16_Promo
         | Standard_H16m
-        | Standard_H16r
+        | Standard_H16m_Promo
         | Standard_H16mr
-        | Standard_L4s
-        | Standard_L8s
+        | Standard_H16mr_Promo
+        | Standard_H16r
+        | Standard_H16r_Promo
+        | Standard_H8
+        | Standard_H8_Promo
+        | Standard_H8m
+        | Standard_H8m_Promo
+        | Standard_HB120rs_v2
+        | Standard_HB120rs_v3
+        | Standard_L16as_v3
         | Standard_L16s
+        | Standard_L16s_v2
+        | Standard_L16s_v3
+        | Standard_L32as_v3
         | Standard_L32s
-        | Standard_M64s
-        | Standard_M64ms
-        | Standard_M128s
-        | Standard_M128ms
-        | Standard_M64_32ms
-        | Standard_M64_16ms
-        | Standard_M128_64ms
+        | Standard_L32s_v2
+        | Standard_L32s_v3
+        | Standard_L48as_v3
+        | Standard_L48s_v2
+        | Standard_L48s_v3
+        | Standard_L4s
+        | Standard_L64as_v3
+        | Standard_L64s_v2
+        | Standard_L64s_v3
+        | Standard_L80as_v3
+        | Standard_L80s_v2
+        | Standard_L80s_v3
+        | Standard_L8as_v3
+        | Standard_L8s
+        | Standard_L8s_v2
+        | Standard_L8s_v3
+        | Standard_M128
         | Standard_M128_32ms
-        | Standard_NC6
+        | Standard_M128_64ms
+        | Standard_M128dms_v2
+        | Standard_M128ds_v2
+        | Standard_M128m
+        | Standard_M128ms
+        | Standard_M128ms_v2
+        | Standard_M128s
+        | Standard_M128s_v2
+        | Standard_M16ms
+        | Standard_M192idms_v2
+        | Standard_M192ids_v2
+        | Standard_M192ims_v2
+        | Standard_M192is_v2
+        | Standard_M208ms_v2
+        | Standard_M208s_v2
+        | Standard_M32dms_v2
+        | Standard_M32ls
+        | Standard_M32ms
+        | Standard_M32ms_v2
+        | Standard_M32ts
+        | Standard_M416ms_v2
+        | Standard_M416s_v2
+        | Standard_M64
+        | Standard_M64_16ms
+        | Standard_M64_32ms
+        | Standard_M64dms_v2
+        | Standard_M64ds_v2
+        | Standard_M64ls
+        | Standard_M64m
+        | Standard_M64ms
+        | Standard_M64ms_v2
+        | Standard_M64s
+        | Standard_M64s_v2
+        | Standard_M8ms
         | Standard_NC12
-        | Standard_NC24
-        | Standard_NC24r
-        | Standard_NC6s_v2
         | Standard_NC12s_v2
-        | Standard_NC24s_v2
-        | Standard_NC24rs_v2
-        | Standard_NC6s_v3
         | Standard_NC12s_v3
-        | Standard_NC24s_v3
+        | Standard_NC16as_T4_v3
+        | Standard_NC24
+        | Standard_NC24ads_A100_v4
+        | Standard_NC24r
+        | Standard_NC24rs_v2
         | Standard_NC24rs_v3
-        | Standard_ND6s
+        | Standard_NC24s_v2
+        | Standard_NC24s_v3
+        | Standard_NC48ads_A100_v4
+        | Standard_NC4as_T4_v3
+        | Standard_NC6
+        | Standard_NC64as_T4_v3
+        | Standard_NC6s_v2
+        | Standard_NC6s_v3
+        | Standard_NC8as_T4_v3
+        | Standard_NC96ads_A100_v4
         | Standard_ND12s
-        | Standard_ND24s
         | Standard_ND24rs
-        | Standard_NV6
+        | Standard_ND24s
+        | Standard_ND40rs_v2
+        | Standard_ND6s
+        | Standard_ND96asr_v4
         | Standard_NV12
+        | Standard_NV16as_v4
         | Standard_NV24
+        | Standard_NV32as_v4
+        | Standard_NV4as_v4
+        | Standard_NV6
+        | Standard_NV8as_v4
+        | Standard_S10
+        | Standard_S15
+        | Standard_S20
+        | Standard_S30
+        | Standard_S4
+        | Standard_S40
+        | Standard_S50
+        | Standard_S6
+        | Standard_S60
+        | Standard_S70
+        | Standard_S80
         | CustomImage of string
 
         member this.ArmValue =
