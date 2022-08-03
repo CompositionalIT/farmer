@@ -617,33 +617,51 @@ let tests =
                 let deployment =
                     arm {
                         location Location.EastUS
-                        add_resources [
-                            natGateway {
-                                name "my-nat-gateway"
-                            }
-                            vnet {
-                                name "my-net"
-                                add_address_spaces [ "10.100.0.0/16" ]
-                                add_subnets [
-                                    subnet {
-                                        name "my-services"
-                                        prefix "10.100.12.0/24"
-                                        nat_gateway (natGateways.resourceId "my-nat-gateway")
-                                    }
-                                ]
-                            }
-                        ]
+
+                        add_resources
+                            [
+                                natGateway { name "my-nat-gateway" }
+                                vnet {
+                                    name "my-net"
+                                    add_address_spaces [ "10.100.0.0/16" ]
+
+                                    add_subnets
+                                        [
+                                            subnet {
+                                                name "my-services"
+                                                prefix "10.100.12.0/24"
+                                                nat_gateway (natGateways.resourceId "my-nat-gateway")
+                                            }
+                                        ]
+                                }
+                            ]
                     }
+
                 let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
-                let natGateway = jobj.SelectToken "resources[?(@.type=='Microsoft.Network/natGateways')]"
+
+                let natGateway =
+                    jobj.SelectToken "resources[?(@.type=='Microsoft.Network/natGateways')]"
+
                 let dependencies = natGateway.["dependsOn"] :?> JArray
-                Expect.contains dependencies (JValue "[resourceId('Microsoft.Network/publicIPAddresses', 'my-nat-gateway-publicip-1')]") "Missing dependency for public IP"
+
+                Expect.contains
+                    dependencies
+                    (JValue "[resourceId('Microsoft.Network/publicIPAddresses', 'my-nat-gateway-publicip-1')]")
+                    "Missing dependency for public IP"
+
                 let natGwProps = natGateway.["properties"]
                 let idleTimeout = natGwProps.["idleTimeoutInMinutes"]
                 Expect.equal (int idleTimeout) 4 "Incorrect default value for idle timeout"
                 let ipRefs = natGwProps.["publicIpAddresses"]
-                Expect.equal (string ipRefs.[0].["id"]) "[resourceId('Microsoft.Network/publicIPAddresses', 'my-nat-gateway-publicip-1')]" "IP Addresses did not match"
-                let publicIp = jobj.SelectToken "resources[?(@.type=='Microsoft.Network/publicIPAddresses')]"
+
+                Expect.equal
+                    (string ipRefs.[0].["id"])
+                    "[resourceId('Microsoft.Network/publicIPAddresses', 'my-nat-gateway-publicip-1')]"
+                    "IP Addresses did not match"
+
+                let publicIp =
+                    jobj.SelectToken "resources[?(@.type=='Microsoft.Network/publicIPAddresses')]"
+
                 Expect.isNotNull publicIp "Public IP should have been generated for the NAT gateway."
             }
         ]
