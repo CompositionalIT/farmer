@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## vNext
+* NAT Gateways: Initial support for NAT Gateways.
+
 ## 1.7.6
 * Virtual Machines: Support for adding a VM network interface to a load balancer backend.
 

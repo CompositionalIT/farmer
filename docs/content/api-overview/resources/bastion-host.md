@@ -19,8 +19,7 @@ The Bastion Host builder creates a bastion host to access resources inside a vir
 #### Example
 
 ```fsharp
-#r @"./libs/Newtonsoft.Json.dll"
-#r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
+#r "nuget:Farmer"
 
 open Farmer
 open Farmer.Builders
