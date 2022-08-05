@@ -48,7 +48,8 @@ type ContainerAppConfig =
         Dependencies: Set<ResourceId>
     }
 
-    member this.ResourceId = containerApps.resourceId this.Name
+    member this.ResourceId =
+        containerApps.resourceId this.Name
 
     member this.LatestRevisionFqdn =
         ArmExpression
@@ -60,23 +61,29 @@ type ContainerEnvironmentConfig =
         Name: ResourceName
         InternalLoadBalancerState: FeatureFlag
         ContainerApps: ContainerAppConfig list
+        AppInsights: AppInsightsConfig option
         LogAnalytics: ResourceRef<ContainerEnvironmentConfig>
         Dependencies: Set<ResourceId>
         Tags: Map<string, string>
     }
 
     interface IBuilder with
-        member this.ResourceId = managedEnvironments.resourceId this.Name
+        member this.ResourceId =
+            managedEnvironments.resourceId this.Name
 
         member this.BuildResources location =
             [
-                let logAnalyticsResourceId = this.LogAnalytics.resourceId this
+                let logAnalyticsResourceId =
+                    this.LogAnalytics.resourceId this
 
                 {
                     Name = this.Name
                     InternalLoadBalancerState = this.InternalLoadBalancerState
                     LogAnalytics = logAnalyticsResourceId
                     Location = location
+                    AppInsightsInstrumentationKey =
+                        this.AppInsights
+                        |> Option.map (fun r -> r.InstrumentationKey)
                     Dependencies = this.Dependencies.Add logAnalyticsResourceId
                     Tags = this.Tags
                 }
@@ -108,9 +115,21 @@ type ContainerEnvironmentConfig =
                         Replicas = containerApp.Replicas
                         DaprConfig = containerApp.DaprConfig
                         Secrets = containerApp.Secrets
-                        EnvironmentVariables = containerApp.EnvironmentVariables
+                        EnvironmentVariables =
+                            let env = containerApp.EnvironmentVariables
+
+                            match this.AppInsights with
+                            | Some resource ->
+                                env.Add(
+                                    EnvVar.createSecureExpression
+                                        "APPINSIGHTS_INSTRUMENTATIONKEY"
+                                        resource.InstrumentationKey
+                                )
+                            | None -> env
                         ImageRegistryCredentials = containerApp.ImageRegistryCredentials
-                        Containers = containerApp.Containers |> List.map (fun c -> c.BuildContainer)
+                        Containers =
+                            containerApp.Containers
+                            |> List.map (fun c -> c.BuildContainer)
                         Location = location
                         Volumes = containerApp.Volumes
                         Dependencies = containerApp.Dependencies
@@ -132,8 +151,8 @@ type ContainerEnvironmentBuilder() =
             Name = ResourceName.Empty
             InternalLoadBalancerState = Disabled
             ContainerApps = []
-            LogAnalytics =
-                ResourceRef.derived (fun cfg -> Arm.LogAnalytics.workspaces.resourceId (cfg.Name - "workspace"))
+            AppInsights = None
+            LogAnalytics = derived (fun cfg -> Arm.LogAnalytics.workspaces.resourceId (cfg.Name - "workspace"))
             Dependencies = Set.empty
             Tags = Map.empty
         }
@@ -142,11 +161,18 @@ type ContainerEnvironmentBuilder() =
     [<CustomOperation "name">]
     member _.Name(state: ContainerEnvironmentConfig, name: string) = { state with Name = ResourceName name }
 
+    /// Adds the instrumentation key to each container app and configures for Dapr.
+    [<CustomOperation "app_insights_instance">]
+    member _.SetAppInsights(state: ContainerEnvironmentConfig, appInsights: AppInsightsConfig) =
+        { state with
+            AppInsights = Some appInsights
+        }
+
     /// Sets the Log Analytics workspace of the Azure Container App.
     [<CustomOperation "log_analytics_instance">]
     member _.SetLogAnalytics(state: ContainerEnvironmentConfig, logAnalytics: WorkspaceConfig) =
         { state with
-            LogAnalytics = ResourceRef.unmanaged (Arm.LogAnalytics.workspaces.resourceId logAnalytics.Name)
+            LogAnalytics = unmanaged (Arm.LogAnalytics.workspaces.resourceId logAnalytics.Name)
         }
 
     /// Sets whether an internal load balancer should be used for load balancing traffic to container app replicas.
@@ -170,14 +196,15 @@ type ContainerEnvironmentBuilder() =
             ContainerApps = containerApps @ state.ContainerApps
         }
 
-    /// Support for adding tags to this Container App Environment.
     interface ITaggable<ContainerEnvironmentConfig> with
+        /// Adds a tag to this Container App Environment.
         member _.Add state tags =
             { state with
                 Tags = state.Tags |> Map.merge tags
             }
-    /// Support for adding dependencies to this Container App Environment.
+
     interface IDependable<ContainerEnvironmentConfig> with
+        /// Adds an explicit dependency to this Container App Environment.
         member _.Add state newDeps =
             { state with
                 Dependencies = state.Dependencies + newDeps
@@ -310,7 +337,8 @@ type ContainerAppBuilder() =
         let state =
             this.AddEnvironmentVariable(state, $"scalerule-{name}-queue-name", queueName)
 
-        let secretRef = $"scalerule-{name}-connection"
+        let secretRef =
+            $"scalerule-{name}-connection"
 
         let state: ContainerAppConfig =
             this.AddSecretExpression(state, secretRef, storageAccount.Key)
@@ -376,7 +404,7 @@ type ContainerAppBuilder() =
     [<CustomOperation "dapr_app_id">]
     member _.SetDaprAppId(state: ContainerAppConfig, appId) =
         { state with
-            DaprConfig = state.DaprConfig |> Option.map (fun c -> {| c with AppId = appId |})
+            DaprConfig = Some {| AppId = appId |}
         }
 
     /// Sets the minimum and maximum replicas to scale the container app.
@@ -397,7 +425,8 @@ type ContainerAppBuilder() =
         { state with
             ImageRegistryCredentials =
                 state.ImageRegistryCredentials
-                @ (credentials |> List.map ImageRegistryAuthentication.Credential)
+                @ (credentials
+                   |> List.map ImageRegistryAuthentication.Credential)
         }
 
     /// Reference container registries to import their admin credential at deployment time.
@@ -406,7 +435,8 @@ type ContainerAppBuilder() =
         { state with
             ImageRegistryCredentials =
                 state.ImageRegistryCredentials
-                @ (resourceIds |> List.map ImageRegistryAuthentication.ListCredentials)
+                @ (resourceIds
+                   |> List.map ImageRegistryAuthentication.ListCredentials)
         }
 
     /// Adds one or more containers to the container app.
@@ -426,7 +456,8 @@ type ContainerAppBuilder() =
     /// Adds an application secret to the Azure Container App.
     [<CustomOperation "add_secret_parameter">]
     member _.AddSecretParameter(state: ContainerAppConfig, key) =
-        let key = (ContainerAppSettingKey.Create key).OkValue
+        let key =
+            (ContainerAppSettingKey.Create key).OkValue
 
         { state with
             Secrets = state.Secrets.Add(key, ParameterSecret(SecureParameter key.Value))
@@ -435,13 +466,15 @@ type ContainerAppBuilder() =
 
     /// Adds an application secrets to the Azure Container App.
     [<CustomOperation "add_secret_parameters">]
-    member __.AddSecretParameters(state: ContainerAppConfig, keys: #seq<_>) =
-        keys |> Seq.fold (fun s k -> __.AddSecretParameter(s, k)) state
+    member this.AddSecretParameters(state: ContainerAppConfig, keys: #seq<_>) =
+        keys
+        |> Seq.fold (fun s k -> this.AddSecretParameter(s, k)) state
 
     /// Adds an application secret to the Azure Container App.
     [<CustomOperation "add_secret_expression">]
     member _.AddSecretExpression(state: ContainerAppConfig, key, expression) =
-        let key = (ContainerAppSettingKey.Create key).OkValue
+        let key =
+            (ContainerAppSettingKey.Create key).OkValue
 
         { state with
             Secrets = state.Secrets.Add(key, ExpressionSecret expression)
@@ -454,8 +487,9 @@ type ContainerAppBuilder() =
 
     /// Adds an application secrets to the Azure Container App.
     [<CustomOperation "add_secret_expressions">]
-    member __.AddSecretExpressions(state: ContainerAppConfig, xs: #seq<_>) =
-        xs |> Seq.fold (fun s (k, e) -> __.AddSecretExpression(s, k, e)) state
+    member this.AddSecretExpressions(state: ContainerAppConfig, xs: #seq<_>) =
+        xs
+        |> Seq.fold (fun s (k, e) -> this.AddSecretExpression(s, k, e)) state
 
 
     /// Adds a public environment variable to the Azure Container App environment variables.
@@ -467,8 +501,9 @@ type ContainerAppBuilder() =
 
     /// Adds a public environment variables to the Azure Container App environment variables.
     [<CustomOperation "add_env_variables">]
-    member __.AddEnvironmentVariables(state: ContainerAppConfig, vars: #seq<_>) =
-        vars |> Seq.fold (fun s (k, v) -> __.AddEnvironmentVariable(s, k, v)) state
+    member this.AddEnvironmentVariables(state: ContainerAppConfig, vars: #seq<_>) =
+        vars
+        |> Seq.fold (fun s (k, v) -> this.AddEnvironmentVariable(s, k, v)) state
 
     [<CustomOperation "add_simple_container">]
     member this.AddSimpleContainer(state: ContainerAppConfig, dockerImage, dockerVersion) =
@@ -493,8 +528,8 @@ type ContainerAppBuilder() =
 
         { state with Volumes = updatedVolumes }
 
-    /// Support for adding dependencies to this Container App.
     interface IDependable<ContainerAppConfig> with
+        /// Adds an explicit dependency to this Container App.
         member _.Add state newDeps =
             { state with
                 Dependencies = state.Dependencies + newDeps
@@ -533,7 +568,8 @@ type ContainerBuilder() =
         if numCores > 2. then
             raiseFarmer $"'{state.ContainerName}' exceeds maximum CPU cores of 2.0 for containers in containerApps."
 
-        let roundedCpuCount = System.Math.Round(numCores, 2) * 1.<VCores>
+        let roundedCpuCount =
+            System.Math.Round(numCores, 2) * 1.<VCores>
 
         { state with
             Resources =
@@ -545,7 +581,9 @@ type ContainerBuilder() =
     [<CustomOperation "ephemeral_storage">]
     member _.EphemeralStorage(state: ContainerConfig, size: float<Gb>) =
         let size = size / 1.<Gb>
-        let roundedSize = System.Math.Round(size, 2) * 1.<Gb>
+
+        let roundedSize =
+            System.Math.Round(size, 2) * 1.<Gb>
 
         { state with
             Resources =
@@ -561,7 +599,8 @@ type ContainerBuilder() =
         if memory > 4. then
             raiseFarmer $"'{state.ContainerName}' exceeds maximum memory of 4.0 Gb for containers in containerApps."
 
-        let roundedMemory = System.Math.Round(memory, 2) * 1.<Gb>
+        let roundedMemory =
+            System.Math.Round(memory, 2) * 1.<Gb>
 
         { state with
             Resources =
@@ -578,6 +617,8 @@ type ContainerBuilder() =
                 |> Seq.fold (fun s (volumeName, mountPath) -> s |> Map.add volumeName mountPath) state.VolumeMounts
         }
 
-let containerEnvironment = ContainerEnvironmentBuilder()
+let containerEnvironment =
+    ContainerEnvironmentBuilder()
+
 let containerApp = ContainerAppBuilder()
 let container = ContainerBuilder()

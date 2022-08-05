@@ -1,5 +1,9 @@
 Release Notes
 =============
+## vNext
+* Container Apps: Fix a bug whereby Dapr was not correctly turned on.
+* Container Apps: Support for collections of env vars, fix ACR credentials linking.
+* Container Apps: Add Dapr / App Insights integration.
 
 ## 1.7.7
 * Private Endpoints: Adds `privateEndpoint` builder and option to set custom network interface name.

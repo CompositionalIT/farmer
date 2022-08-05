@@ -2,10 +2,10 @@
 module Farmer.Arm.App
 
 open Farmer.ContainerApp
-open Farmer.Identity
 open Farmer
 
-let containerApps = ResourceType("Microsoft.App/containerApps", "2022-03-01")
+let containerApps =
+    ResourceType("Microsoft.App/containerApps", "2022-03-01")
 
 let managedEnvironments =
     ResourceType("Microsoft.App/managedEnvironments", "2022-03-01")
@@ -38,7 +38,8 @@ type ManagedEnvironmentStorage =
     }
 
     interface IArmResource with
-        member this.ResourceId = storages.resourceId this.Name
+        member this.ResourceId =
+            storages.resourceId this.Name
 
         member this.JsonModel =
             {| storages.Create(
@@ -64,7 +65,12 @@ type ManagedEnvironmentStorage =
                 {
                     Name = ResourceName name
                     Environment = env
-                    Dependencies = Set.ofList [ env; Storage.storageAccounts.resourceId accountName.ResourceName ]
+                    Dependencies =
+                        Set.ofList
+                            [
+                                env
+                                Storage.storageAccounts.resourceId accountName.ResourceName
+                            ]
                     AzureFile =
                         {|
                             ShareName = share
@@ -97,19 +103,23 @@ type ContainerApp =
 
     member private this.dependencies =
         [
-            yield this.Environment
+            this.Environment
             yield! this.Dependencies
             yield!
                 this.Volumes
                 |> Seq.choose (function
                     | KeyValue (name, Volume.AzureFileShare (_)) ->
-                        storages.resourceId (this.Environment.Name, ResourceName name) |> Some
+                        storages.resourceId (this.Environment.Name, ResourceName name)
+                        |> Some
                     | _ -> None)
             yield! this.Identity.Dependencies
         ]
 
-    member private this.ResourceId = containerApps.resourceId this.Name
-    member this.SystemIdentity = SystemIdentity this.ResourceId
+    member private this.ResourceId =
+        containerApps.resourceId this.Name
+
+    member this.SystemIdentity =
+        SystemIdentity this.ResourceId
 
     interface IParameters with
         member this.SecureParameters =
@@ -125,11 +135,10 @@ type ContainerApp =
             ]
 
     interface IArmResource with
-        member this.ResourceId = containerApps.resourceId this.Name
+        member this.ResourceId =
+            containerApps.resourceId this.Name
 
         member this.JsonModel =
-            let usernameSecretName (resourceId: ResourceId) = $"{resourceId.Name.Value}-username"
-
             {| containerApps.Create(this.Name, this.Location, this.dependencies) with
                 kind = "containerapp"
                 identity =
@@ -153,7 +162,12 @@ type ContainerApp =
                                                 |}
                                             | ImageRegistryAuthentication.ListCredentials resourceId ->
                                                 {|
-                                                    name = usernameSecretName resourceId
+                                                    name =
+                                                        ArmExpression
+                                                            .create(
+                                                                $"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username"
+                                                            )
+                                                            .Eval()
                                                     value =
                                                         ArmExpression
                                                             .create(
@@ -183,14 +197,24 @@ type ContainerApp =
                                                 |}
                                             | ImageRegistryAuthentication.ListCredentials resourceId ->
                                                 {|
-                                                    server = $"{resourceId.Name.Value}.azurecr.io"
+                                                    server =
+                                                        ArmExpression
+                                                            .create(
+                                                                $"reference({resourceId.ArmExpression.Value}, '2019-05-01').loginServer"
+                                                            )
+                                                            .Eval()
                                                     username =
                                                         ArmExpression
                                                             .create(
                                                                 $"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username"
                                                             )
                                                             .Eval()
-                                                    passwordSecretRef = usernameSecretName resourceId
+                                                    passwordSecretRef =
+                                                        ArmExpression
+                                                            .create(
+                                                                $"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username"
+                                                            )
+                                                            .Eval()
                                                 |}
                                     |]
                                 ingress =
@@ -232,8 +256,8 @@ type ContainerApp =
                                                             | SecureEnvExpression armExpr ->
                                                                 {|
                                                                     name = env.Key
-                                                                    value = null
-                                                                    secretref = armExpr.Eval()
+                                                                    value = armExpr.Eval()
+                                                                    secretref = null
                                                                 |}
                                                             | SecureEnvValue _ ->
                                                                 {|
@@ -267,8 +291,14 @@ type ContainerApp =
                                     |]
                                 scale =
                                     {|
-                                        minReplicas = this.Replicas |> Option.map (fun c -> c.Min) |> Option.toNullable
-                                        maxReplicas = this.Replicas |> Option.map (fun c -> c.Max) |> Option.toNullable
+                                        minReplicas =
+                                            this.Replicas
+                                            |> Option.map (fun c -> c.Min)
+                                            |> Option.toNullable
+                                        maxReplicas =
+                                            this.Replicas
+                                            |> Option.map (fun c -> c.Max)
+                                            |> Option.toNullable
                                         rules =
                                             [|
                                                 for rule in this.ScaleRules do
@@ -415,7 +445,7 @@ type ContainerApp =
                                             appId = settings.AppId
                                         |}
                                         :> obj
-                                    | None -> {| enabled = false |} :> obj
+                                    | None -> {| enabled = false |}
                                 volumes =
                                     [
                                         for key, value in Map.toSeq this.Volumes do
@@ -446,12 +476,14 @@ type ManagedEnvironment =
         Location: Location
         InternalLoadBalancerState: FeatureFlag
         LogAnalytics: ResourceId
+        AppInsightsInstrumentationKey: ArmExpression option
         Dependencies: Set<ResourceId>
         Tags: Map<string, string>
     }
 
     interface IArmResource with
-        member this.ResourceId = managedEnvironments.resourceId this.Name
+        member this.ResourceId =
+            managedEnvironments.resourceId this.Name
 
         member this.JsonModel =
             {| managedEnvironments.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
@@ -460,6 +492,10 @@ type ManagedEnvironment =
                     {|
                         ``type`` = "managed"
                         internalLoadBalancerEnabled = this.InternalLoadBalancerState.AsBoolean
+                        daprAIInstrumentationKey =
+                            this.AppInsightsInstrumentationKey
+                            |> Option.map (fun key -> key.Eval())
+                            |> Option.toObj
                         appLogsConfiguration =
                             {|
                                 destination = "log-analytics"
