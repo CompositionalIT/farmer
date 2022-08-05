@@ -15,26 +15,17 @@ Every PR to Farmer **must** include an entry to the `RELEASE_NOTES.md` file unde
 #### 5. Adhere to Coding Standards
 Here are some (very basic!) standards for the project:
 
-* Follow the coding style of the existing source.
-* Use 4 spaces for indentation.
-* Records are defined as follows:
-
-```fsharp
-type MyRecord =
-    { Field : Type
-      Field : Type } list
-```
-
-* List comprehensions should be done as follows:
-
-```fsharp
-results = [
-  for item in collection do
-    item.Foo
-]
-```
-* Put all pattern matching handlers on the same line as the pattern *or* all of them one a new line.
+* We use Fantomas to auto-format code. See below on instructions for usage.
 * Do not use `yield` - it is no longer necessary in F#.
 * Prefer `[ for x in y do ... ]`  to `[ for x in y -> ... ]`
-* Never use `.Value` on `Option` types.
-* As a last resort, adhere to [official](https://docs.microsoft.com/en-us/dotnet/fsharp/style-guide/) style guide as a basis.
+* **Never** use `.Value` on `Option` types.
+
+##### 5.1 Using Fantomas
+We use Fantomas to consistently format F#.
+
+1. Install it via: `dotnet tool restore` (only required once).
+2. Run it either:
+   * Through IDE tooling (e.g. VS Code, Rider or Visual Studio)
+   * Via the command line `dotnet fantomas src -r`
+
+If you do not apply Fantomas formatting, your PR will be rejected as this is automatically checked by the build system.
