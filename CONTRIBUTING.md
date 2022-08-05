@@ -15,7 +15,6 @@ Every PR to Farmer **must** include an entry to the `RELEASE_NOTES.md` file unde
 #### 5. Adhere to Coding Standards
 Here are some (very basic!) standards for the project:
 
-* We use Fantomas to auto-format code. See below on instructions for usage.
 * Do not use `yield` - it is no longer necessary in F#.
 * Prefer `[ for x in y do ... ]`  to `[ for x in y -> ... ]`
 * **Never** use `.Value` on `Option` types.
