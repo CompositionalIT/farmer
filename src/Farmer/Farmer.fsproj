@@ -168,6 +168,7 @@
     <Compile Include="Builders/Builders.LogicApps.fs" />
     <Compile Include="Builders/Builders.OperationsManagement.fs" />
     <Compile Include="Builders\Builders.PrivateLink.fs" />
+    <Compile Include="Builders\Builders.PrivateEndpoint.fs" />
     <Compile Include="Aliases.fs" />
   </ItemGroup>
 </Project>

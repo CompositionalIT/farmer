@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.7.7
+* Private Endpoints: Adds `privateEndpoint` builder and option to set custom network interface name.
+
 ## 1.7.6
 * Virtual Machines: Support for adding a VM network interface to a load balancer backend.
 

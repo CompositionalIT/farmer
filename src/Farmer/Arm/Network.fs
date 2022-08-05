@@ -39,7 +39,7 @@ let localNetworkGateways =
     ResourceType("Microsoft.Network/localNetworkGateways", "")
 
 let privateEndpoints =
-    ResourceType("Microsoft.Network/privateEndpoints", "2020-07-01")
+    ResourceType("Microsoft.Network/privateEndpoints", "2021-05-01")
 
 let virtualNetworkPeering =
     ResourceType("Microsoft.Network/virtualNetworks/virtualNetworkPeerings", "2020-05-01")
@@ -504,6 +504,7 @@ type NetworkInterface =
                                     |}
 
 
+
                             |})
                 |}
 
@@ -657,6 +658,7 @@ type PrivateEndpoint =
         Location: Location
         Subnet: SubnetReference
         Resource: LinkedResource
+        CustomNetworkInterfaceName: string option
         GroupIds: string list
     }
 
@@ -671,6 +673,7 @@ type PrivateEndpoint =
                 Location = location
                 Subnet = subnet
                 Resource = Managed resourceId
+                CustomNetworkInterfaceName = None
                 GroupIds = groupIds
             }
             :> IArmResource)
@@ -691,6 +694,7 @@ type PrivateEndpoint =
                 properties =
                     {|
                         subnet = {| id = this.Subnet.ResourceId.Eval() |}
+                        customNetworkInterfaceName = this.CustomNetworkInterfaceName |> Option.toObj
                         privateLinkServiceConnections =
                             [
                                 {|
