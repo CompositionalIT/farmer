@@ -15,6 +15,12 @@ let storageAccountName = "storagename"
 let fullContainerAppDeployment =
     let containerLogs = logAnalytics { name "containerlogs" }
 
+    let insights =
+        appInsights {
+            name "appinsights"
+            log_analytics_workspace containerLogs
+        }
+
     let containerRegistryDomain = $"{containerRegistryName}.azurecr.io"
 
     let acr = containerRegistry { name containerRegistryName }
@@ -31,6 +37,7 @@ let fullContainerAppDeployment =
         containerEnvironment {
             name "kubecontainerenv"
             log_analytics_instance containerLogs
+            app_insights_instance insights
 
             add_containers
                 [
@@ -365,5 +372,27 @@ let tests =
                     :?> ContainerApp
 
                 Expect.isSome containerApp.DaprConfig "Dapr config was not set"
+            }
+
+            test "Adds App Insight integration" {
+                let apps =
+                    fullContainerAppDeployment.Template.Resources
+                    |> List.choose (function
+                        | (:? ContainerApp as c) -> Some c
+                        | _ -> None)
+
+                for ca in apps do
+                    Expect.exists
+                        ca.EnvironmentVariables
+                        (fun r -> r.Key = "APPINSIGHTS_INSTRUMENTATIONKEY")
+                        "Missing AI key"
+
+                let managedEnvironment =
+                    fullContainerAppDeployment.Template.Resources
+                    |> List.pick (function
+                        | (:? ManagedEnvironment as c) -> Some c
+                        | _ -> None)
+
+                Expect.isSome managedEnvironment.AppInsightsInstrumentationKey "Dapr AI key not set"
             }
         ]
