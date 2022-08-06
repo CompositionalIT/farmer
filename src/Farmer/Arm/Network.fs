@@ -502,9 +502,6 @@ type NetworkInterface =
                                                         .Eval()
                                             |}
                                     |}
-
-
-
                             |})
                 |}
 
@@ -520,7 +517,6 @@ type NetworkInterface =
                             networkSecurityGroup = {| id = nsg.Eval() |}
                         |}
                 |}
-
 
 type NetworkProfile =
     {

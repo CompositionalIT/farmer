@@ -13,14 +13,11 @@ let containerRegistryName = "myregistry"
 let storageAccountName = "storagename"
 
 let fullContainerAppDeployment =
-    let containerLogs =
-        logAnalytics { name "containerlogs" }
+    let containerLogs = logAnalytics { name "containerlogs" }
 
-    let containerRegistryDomain =
-        $"{containerRegistryName}.azurecr.io"
+    let containerRegistryDomain = $"{containerRegistryName}.azurecr.io"
 
-    let acr =
-        containerRegistry { name containerRegistryName }
+    let acr = containerRegistry { name containerRegistryName }
 
     let storage =
         storageAccount {
@@ -42,10 +39,7 @@ let fullContainerAppDeployment =
                         add_identity msi
                         active_revision_mode Single
 
-                        add_registry_credentials
-                            [
-                                registry containerRegistryDomain containerRegistryName
-                            ]
+                        add_registry_credentials [ registry containerRegistryDomain containerRegistryName ]
 
                         add_containers
                             [
@@ -76,15 +70,9 @@ let fullContainerAppDeployment =
                         add_cpu_scale_rule "cpu-scaler" { Utilisation = 50 }
                         add_secret_parameters [ "servicebusconnectionkey" ]
 
-                        add_env_variables
-                            [
-                                "ServiceBusQueueName", "wishrequests"
-                            ]
+                        add_env_variables [ "ServiceBusQueueName", "wishrequests" ]
 
-                        add_secret_expressions
-                            [
-                                "containerlogs", containerLogs.PrimarySharedKey
-                            ]
+                        add_secret_expressions [ "containerlogs", containerLogs.PrimarySharedKey ]
                     }
                     containerApp {
                         name "servicebus"
@@ -107,11 +95,7 @@ let fullContainerAppDeployment =
                                     name "servicebus"
                                     private_docker_image containerRegistryDomain "servicebus" version
 
-                                    add_volume_mounts
-                                        [
-                                            "empty-v", "/tmp"
-                                            "certs-v", "/certs"
-                                        ]
+                                    add_volume_mounts [ "empty-v", "/tmp"; "certs-v", "/certs" ]
                                 }
                             ]
 
@@ -136,18 +120,14 @@ let tests =
     testList
         "Container Apps"
         [
-            let jsonTemplate =
-                fullContainerAppDeployment.Template
-                |> Writer.toJson
+            let jsonTemplate = fullContainerAppDeployment.Template |> Writer.toJson
 
             let jobj = JObject.Parse jsonTemplate
 
             test "Container automatically creates a log analytics workspace" {
-                let env: IBuilder =
-                    containerEnvironment { name "testca" }
+                let env: IBuilder = containerEnvironment { name "testca" }
 
-                let resources =
-                    env.BuildResources Location.NorthEurope
+                let resources = env.BuildResources Location.NorthEurope
 
                 Expect.exists
                     resources
@@ -173,19 +153,15 @@ let tests =
                     |> List.find (fun r -> r.ResourceId.Name.Value = "multienv")
                     :?> Farmer.Arm.App.ContainerApp
 
-                containerApp.EnvironmentVariables.["ServiceBusQueueName"]
-                |> ignore
+                containerApp.EnvironmentVariables.["ServiceBusQueueName"] |> ignore
 
-                containerApp.EnvironmentVariables.["servicebusconnectionkey"]
-                |> ignore
+                containerApp.EnvironmentVariables.["servicebusconnectionkey"] |> ignore
 
-                containerApp.EnvironmentVariables.["containerlogs"]
-                |> ignore
+                containerApp.EnvironmentVariables.["containerlogs"] |> ignore
             }
 
             test "Full container managed environments" {
-                let kubeEnv =
-                    jobj.SelectToken("resources[?(@.name=='kubecontainerenv')]")
+                let kubeEnv = jobj.SelectToken("resources[?(@.name=='kubecontainerenv')]")
 
                 Expect.equal
                     (kubeEnv.["type"] |> string)
@@ -211,15 +187,13 @@ let tests =
                     )
 
                 Expect.equal
-                    (kubeEnvLogAnalyticsCustomerId.["customerId"]
-                     |> string)
+                    (kubeEnvLogAnalyticsCustomerId.["customerId"] |> string)
                     "[reference(resourceId('Microsoft.OperationalInsights/workspaces', 'containerlogs'), '2020-03-01-preview').customerId]"
                     "Incorrect log analytics customerId reference"
             }
 
             test "Full container environment containerApp" {
-                let httpContainerApp =
-                    jobj.SelectToken("resources[?(@.name=='http')]")
+                let httpContainerApp = jobj.SelectToken("resources[?(@.name=='http')]")
 
                 Expect.equal
                     (httpContainerApp.["type"] |> string)
@@ -228,27 +202,20 @@ let tests =
 
                 Expect.equal (httpContainerApp.["kind"] |> string) "containerapp" "Incorrect kind for containerApps"
 
-                let ingress =
-                    httpContainerApp.SelectToken("properties.configuration.ingress")
+                let ingress = httpContainerApp.SelectToken("properties.configuration.ingress")
 
-                Expect.isTrue
-                    (ingress.SelectToken("external")
-                     |> string
-                     |> bool.Parse)
-                    "Incorrect external ingress"
+                Expect.isTrue (ingress.SelectToken("external") |> string |> bool.Parse) "Incorrect external ingress"
 
                 Expect.equal (ingress.SelectToken("targetPort") |> string |> int) 80 "Incorrect targetPort"
                 Expect.equal (ingress.SelectToken("transport") |> string) "auto" "Incorrect transport"
 
-                let registries =
-                    httpContainerApp.SelectToken("properties.configuration.registries")
+                let registries = httpContainerApp.SelectToken("properties.configuration.registries")
 
                 Expect.hasLength registries 1 "Expected 1 registry"
                 let firstRegistry = registries |> Seq.head
 
                 Expect.equal
-                    (firstRegistry.SelectToken("passwordSecretRef")
-                     |> string)
+                    (firstRegistry.SelectToken("passwordSecretRef") |> string)
                     "myregistry"
                     "Incorrect registry password secretRef"
 
@@ -262,8 +229,7 @@ let tests =
                     "myregistry"
                     "Incorrect registry username"
 
-                let secrets =
-                    httpContainerApp.SelectToken("properties.configuration.secrets")
+                let secrets = httpContainerApp.SelectToken("properties.configuration.secrets")
 
                 Expect.hasLength secrets 2 "Expecting 2 secrets"
                 Expect.equal (secrets.[0].["name"] |> string) "myregistry" "Incorrect name for registry password secret"
@@ -274,13 +240,11 @@ let tests =
                     "Incorrect password parameter for registry password secret"
 
                 Expect.equal
-                    (httpContainerApp.SelectToken("properties.managedEnvironmentId")
-                     |> string)
+                    (httpContainerApp.SelectToken("properties.managedEnvironmentId") |> string)
                     "[resourceId('Microsoft.App/managedEnvironments', 'kubecontainerenv')]"
                     "Incorrect kube environment Id"
 
-                let containers =
-                    httpContainerApp.SelectToken("properties.template.containers")
+                let containers = httpContainerApp.SelectToken("properties.template.containers")
 
                 Expect.hasLength containers 1 "Expected 1 http container"
                 let httpContainer = containers |> Seq.head
@@ -293,48 +257,39 @@ let tests =
                 Expect.equal (httpContainer.["name"] |> string) "http" "Incorrect container name"
 
                 Expect.equal
-                    (httpContainer.SelectToken("resources.cpu")
-                     |> float)
+                    (httpContainer.SelectToken("resources.cpu") |> float)
                     0.25
                     "Incorrect container cpu resources"
 
                 Expect.equal
-                    (httpContainer.SelectToken("resources.memory")
-                     |> string)
+                    (httpContainer.SelectToken("resources.memory") |> string)
                     "0.50Gi"
                     "Incorrect container memory resources"
 
                 Expect.equal
-                    (httpContainer.SelectToken("resources.ephemeralStorage")
-                     |> string)
+                    (httpContainer.SelectToken("resources.ephemeralStorage") |> string)
                     "1.00Gi"
                     "Incorrect container ephemeral storage resources"
 
-                let scale =
-                    httpContainerApp.SelectToken("properties.template.scale")
+                let scale = httpContainerApp.SelectToken("properties.template.scale")
 
                 Expect.isNotNull scale "properties.scale was null"
                 Expect.equal (scale.["minReplicas"] |> int) 1 "Incorrect min replicas"
                 Expect.equal (scale.["maxReplicas"] |> int) 5 "Incorrect max replicas"
 
-                let serviceBusContainerApp =
-                    jobj.SelectToken("resources[?(@.name=='servicebus')]")
+                let serviceBusContainerApp = jobj.SelectToken("resources[?(@.name=='servicebus')]")
 
-                let volumes =
-                    serviceBusContainerApp.SelectToken("properties.template.volumes")
+                let volumes = serviceBusContainerApp.SelectToken("properties.template.volumes")
 
                 Expect.hasLength volumes 2 "Expecting 2 volumes"
 
                 let serviceBusContainer =
-                    serviceBusContainerApp.SelectToken("properties.template.containers")
-                    |> Seq.head
+                    serviceBusContainerApp.SelectToken("properties.template.containers") |> Seq.head
 
-                let serviceBusVolumeMounts =
-                    serviceBusContainer.SelectToken("volumeMounts")
+                let serviceBusVolumeMounts = serviceBusContainer.SelectToken("volumeMounts")
 
                 Expect.equal
-                    (serviceBusVolumeMounts.[1].["volumeName"]
-                     |> string)
+                    (serviceBusVolumeMounts.[1].["volumeName"] |> string)
                     "empty-v"
                     "Incorrect container volume mount"
 
@@ -344,8 +299,7 @@ let tests =
                     "Incorrect container volume mount"
 
                 Expect.equal
-                    (serviceBusVolumeMounts.[0].["volumeName"]
-                     |> string)
+                    (serviceBusVolumeMounts.[0].["volumeName"] |> string)
                     "certs-v"
                     "Incorrect container volume mount"
 
