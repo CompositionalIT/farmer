@@ -1,13 +1,13 @@
 module Network
 
+open System
 open Expecto
+open Newtonsoft.Json.Linq
 open Farmer
+open Farmer.Arm
 open Farmer.Builders
 open Farmer.Network
 open Microsoft.Rest
-open System
-open Farmer.Arm
-open Newtonsoft.Json.Linq
 
 let netClient =
     new Microsoft.Azure.Management.Network.NetworkManagementClient(
@@ -663,5 +663,83 @@ let tests =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Network/publicIPAddresses')]"
 
                 Expect.isNotNull publicIp "Public IP should have been generated for the NAT gateway."
+            }
+            test "Create private endpoint" {
+                let myNet =
+                    vnet {
+                        name "my-net"
+                        add_address_spaces [ "10.40.0.0/16" ]
+
+                        add_subnets
+                            [
+                                subnet {
+                                    name "priv-endpoints"
+                                    prefix "10.40.255.0/24"
+                                    allow_private_endpoints Enabled
+                                }
+                            ]
+                    }
+
+                let existingPrivateLinkId =
+                    { PrivateLink.privateLinkServices.resourceId "pls" with
+                        ResourceGroup = Some "farmer-pls"
+                    }
+
+                let pe1 =
+                    privateEndpoint {
+                        name "pe1"
+                        custom_nic_name "pe1-nic"
+                        link_to_subnet (subnets.resourceId (ResourceName "my-net", ResourceName "priv-endpoints"))
+                        resource (Unmanaged existingPrivateLinkId)
+                    }
+
+                let myDnsZone =
+                    dnsZone {
+                        name "farmer.com"
+                        zone_type Dns.Public
+
+                        add_records
+                            [
+                                Farmer.Builders.Dns.aRecord {
+                                    name "pe1"
+                                    ttl 600
+
+                                    add_ipv4_addresses
+                                        [
+                                            pe1.CustomNicFirstEndpointIP
+                                            |> Option.map ArmExpression.Eval
+                                            |> Option.toObj
+                                        ]
+                                }
+                            ]
+                    }
+
+                let deployment =
+                    arm {
+                        add_resources
+                            [
+                                myNet
+                                pe1
+                                resourceGroup {
+                                    name "[resourceGroup().name]"
+                                    depends_on pe1
+                                    add_resource myDnsZone
+                                }
+                            ]
+                    }
+
+                let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+                let peProps = jobj.SelectToken "resources[?(@.name=='pe1')].properties"
+                Expect.equal (string peProps.["customNetworkInterfaceName"]) "pe1-nic" "Incorrect custom nic name"
+
+                Expect.equal
+                    (string peProps.["subnet"].["id"])
+                    "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'my-net', 'priv-endpoints')]"
+                    "Incorrect subnet id"
+
+                Expect.equal
+                    (string peProps.["privateLinkServiceConnections"].[0].["properties"].["privateLinkServiceId"])
+                    "[resourceId('farmer-pls', 'Microsoft.Network/privateLinkServices', 'pls')]"
+                    "Incorrect private link service ID"
             }
         ]
