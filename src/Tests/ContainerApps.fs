@@ -358,7 +358,7 @@ let tests =
                     "Container app did not have linked ACR's secret"
             }
 
-            ftest "Turns on Dapr" {
+            test "Turns on Dapr" {
                 let containerApp =
                     fullContainerAppDeployment.Template.Resources
                     |> List.find (fun r -> r.ResourceId.Name.Value = "http")
@@ -366,5 +366,4 @@ let tests =
 
                 Expect.isSome containerApp.DaprConfig "Dapr config was not set"
             }
-
         ]
