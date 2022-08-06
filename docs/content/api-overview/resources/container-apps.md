@@ -22,6 +22,7 @@ The Container Environment builder (`containerEnvironment`) defines settings for 
 | Keyword | Purpose |
 |-|-|
 | name | Sets the name of the container environment. |
+| app_insights_instance | Specifies an App Insights instance. All apps will receive the instrumentation key as a setting, and Dapr will be configured to send logs there. |
 | log_analytics_instance | Specifies a Log Analytics workspace where container logs should be sent. If none is provided, one will automatically be created. |
 | internal_load_balancer_state | Sets whether an internal load balancer should be used for load balancing traffic to container app replicas. |
 | add_container | Adds a single container app to the environment. |

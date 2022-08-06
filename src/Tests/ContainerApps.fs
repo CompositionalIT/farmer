@@ -8,9 +8,7 @@ open Farmer.ContainerApp
 open Farmer.Identity
 open Farmer.Arm
 
-let msi =
-    createUserAssignedIdentity "appUser"
-
+let msi = createUserAssignedIdentity "appUser"
 let containerRegistryName = "myregistry"
 let storageAccountName = "storagename"
 

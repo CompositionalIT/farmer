@@ -4,8 +4,7 @@ module Farmer.Arm.App
 open Farmer.ContainerApp
 open Farmer
 
-let containerApps =
-    ResourceType("Microsoft.App/containerApps", "2022-03-01")
+let containerApps = ResourceType("Microsoft.App/containerApps", "2022-03-01")
 
 let managedEnvironments =
     ResourceType("Microsoft.App/managedEnvironments", "2022-03-01")
@@ -38,8 +37,7 @@ type ManagedEnvironmentStorage =
     }
 
     interface IArmResource with
-        member this.ResourceId =
-            storages.resourceId this.Name
+        member this.ResourceId = storages.resourceId this.Name
 
         member this.JsonModel =
             {| storages.Create(
@@ -65,12 +63,7 @@ type ManagedEnvironmentStorage =
                 {
                     Name = ResourceName name
                     Environment = env
-                    Dependencies =
-                        Set.ofList
-                            [
-                                env
-                                Storage.storageAccounts.resourceId accountName.ResourceName
-                            ]
+                    Dependencies = Set.ofList [ env; Storage.storageAccounts.resourceId accountName.ResourceName ]
                     AzureFile =
                         {|
                             ShareName = share
@@ -109,17 +102,14 @@ type ContainerApp =
                 this.Volumes
                 |> Seq.choose (function
                     | KeyValue (name, Volume.AzureFileShare (_)) ->
-                        storages.resourceId (this.Environment.Name, ResourceName name)
-                        |> Some
+                        storages.resourceId (this.Environment.Name, ResourceName name) |> Some
                     | _ -> None)
             yield! this.Identity.Dependencies
         ]
 
-    member private this.ResourceId =
-        containerApps.resourceId this.Name
+    member private this.ResourceId = containerApps.resourceId this.Name
 
-    member this.SystemIdentity =
-        SystemIdentity this.ResourceId
+    member this.SystemIdentity = SystemIdentity this.ResourceId
 
     interface IParameters with
         member this.SecureParameters =
@@ -135,8 +125,7 @@ type ContainerApp =
             ]
 
     interface IArmResource with
-        member this.ResourceId =
-            containerApps.resourceId this.Name
+        member this.ResourceId = containerApps.resourceId this.Name
 
         member this.JsonModel =
             {| containerApps.Create(this.Name, this.Location, this.dependencies) with
@@ -291,14 +280,8 @@ type ContainerApp =
                                     |]
                                 scale =
                                     {|
-                                        minReplicas =
-                                            this.Replicas
-                                            |> Option.map (fun c -> c.Min)
-                                            |> Option.toNullable
-                                        maxReplicas =
-                                            this.Replicas
-                                            |> Option.map (fun c -> c.Max)
-                                            |> Option.toNullable
+                                        minReplicas = this.Replicas |> Option.map (fun c -> c.Min) |> Option.toNullable
+                                        maxReplicas = this.Replicas |> Option.map (fun c -> c.Max) |> Option.toNullable
                                         rules =
                                             [|
                                                 for rule in this.ScaleRules do
@@ -482,8 +465,7 @@ type ManagedEnvironment =
     }
 
     interface IArmResource with
-        member this.ResourceId =
-            managedEnvironments.resourceId this.Name
+        member this.ResourceId = managedEnvironments.resourceId this.Name
 
         member this.JsonModel =
             {| managedEnvironments.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
