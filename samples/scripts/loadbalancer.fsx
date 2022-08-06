@@ -16,6 +16,7 @@ let (lb:LoadBalancer) = {
             Name = ResourceName "LoadBalancerFrontend"
             PublicIp = Some (publicIPAddresses.resourceId "lb-test-pip")
             PrivateIpAllocationMethod = PrivateIpAddress.DynamicPrivateIp
+            Subnet = None
         |}
     ]
     BackendAddressPools = [ ResourceName "containerGroups" ]

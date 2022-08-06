@@ -3,6 +3,7 @@ module Farmer.Arm.Network
 
 open System.Net.Mail
 open Farmer
+open Farmer.Arm
 open Farmer.ExpressRoute
 open Farmer.VirtualNetworkGateway
 
@@ -23,6 +24,9 @@ let networkProfiles =
 let publicIPAddresses =
     ResourceType("Microsoft.Network/publicIPAddresses", "2018-11-01")
 
+let publicIPPrefixes =
+    ResourceType("Microsoft.Network/publicIPPrefixes", "2021-08-01")
+
 let serviceEndpointPolicies =
     ResourceType("Microsoft.Network/serviceEndpointPolicies", "2020-07-01")
 
@@ -37,6 +41,8 @@ let virtualNetworkGateways =
 
 let localNetworkGateways =
     ResourceType("Microsoft.Network/localNetworkGateways", "")
+
+let natGateways = ResourceType("Microsoft.Network/natGateways", "2021-08-01")
 
 let privateEndpoints =
     ResourceType("Microsoft.Network/privateEndpoints", "2021-05-01")
@@ -110,6 +116,44 @@ type PublicIpAddress =
                     |}
             |}
 
+/// If using the IPs in the frontend of a cross-region laod balancer, public IPs and prefixes must be in
+/// the Global tier, otherwise regional IPs are sufficient.
+type PublicIpPrefixTier =
+    | Global
+    | Regional
+
+    member this.ArmValue =
+        match this with
+        | Global -> "Global"
+        | Regional -> "Regional"
+
+/// Public IP Prefix creates a block of contiguous public IP addresses that can be assigned to resources.
+type PublicIpPrefix =
+    {
+        Name: ResourceName
+        Location: Location
+        PrefixLength: int
+        Tier: PublicIpPrefixTier
+        Tags: Map<string, string>
+    }
+
+    interface IArmResource with
+        member this.ResourceId = publicIPPrefixes.resourceId this.Name
+
+        member this.JsonModel =
+            {| publicIPPrefixes.Create(this.Name, this.Location, tags = this.Tags) with
+                sku =
+                    {|
+                        name = "Standard"
+                        tier = this.Tier.ArmValue
+                    |}
+                properties =
+                    {|
+                        prefixLength = this.PrefixLength
+                        publicIPAddressVersion = "IPv4"
+                    |}
+            |}
+
 type SubnetDelegation =
     {
         Name: ResourceName
@@ -123,6 +167,7 @@ type Subnet =
         VirtualNetwork: LinkedResource option
         NetworkSecurityGroup: LinkedResource option
         Delegations: SubnetDelegation list
+        NatGateway: LinkedResource option
         ServiceEndpoints: (Network.EndpointServiceType * Location list) list
         AssociatedServiceEndpointPolicies: ResourceId list
         PrivateEndpointNetworkPolicies: FeatureFlag option
@@ -132,6 +177,10 @@ type Subnet =
     member internal this.JsonModelProperties =
         {|
             addressPrefix = this.Prefix
+            natGateway =
+                this.NatGateway
+                |> Option.map LinkedResource.AsIdObject
+                |> Option.defaultValue Unchecked.defaultof<_>
             networkSecurityGroup =
                 this.NetworkSecurityGroup
                 |> Option.map (fun nsg ->
@@ -211,6 +260,10 @@ type VirtualNetwork =
                 seq {
                     for subnet in this.Subnets do
                         match subnet.NetworkSecurityGroup with
+                        | Some (Managed id) -> id
+                        | _ -> ()
+
+                        match subnet.NatGateway with
                         | Some (Managed id) -> id
                         | _ -> ()
                 }
@@ -505,6 +558,7 @@ type NetworkInterface =
 
 
 
+
                             |})
                 |}
 
@@ -776,5 +830,38 @@ type NetworkPeering =
                                     | Managed id
                                     | Unmanaged id -> id.ArmExpression.Eval()
                             |}
+                    |}
+            |}
+
+type NatGateway =
+    {
+        Name: ResourceName
+        Location: Location
+        IdleTimeout: int<Minutes>
+        PublicIpAddresses: LinkedResource list
+        PublicIpPrefixes: LinkedResource list
+        Tags: Map<string, string>
+    }
+
+    interface IArmResource with
+        member this.ResourceId = natGateways.resourceId this.Name
+
+        member this.JsonModel =
+            let dependencies =
+                seq {
+                    for linkedResource in this.PublicIpAddresses @ this.PublicIpPrefixes do
+                        match linkedResource with
+                        | Managed resId -> resId
+                        | _ -> ()
+                }
+                |> Set.ofSeq
+
+            {| natGateways.Create(this.Name, this.Location, dependsOn = dependencies, tags = this.Tags) with
+                sku = {| name = "Standard" |}
+                properties =
+                    {|
+                        idleTimeoutInMinutes = this.IdleTimeout
+                        publicIpAddresses = this.PublicIpAddresses |> List.map LinkedResource.AsIdObject
+                        publicIpPrefixes = this.PublicIpPrefixes |> List.map LinkedResource.AsIdObject
                     |}
             |}

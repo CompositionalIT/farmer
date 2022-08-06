@@ -18,6 +18,7 @@ type SubnetConfig =
         VirtualNetwork: LinkedResource option
         NetworkSecurityGroup: LinkedResource option
         Delegations: SubnetDelegationService list
+        NatGateway: LinkedResource option
         ServiceEndpoints: (EndpointServiceType * Location list) list
         AssociatedServiceEndpointPolicies: ResourceId list
         AllowPrivateEndpoints: FeatureFlag option
@@ -37,6 +38,7 @@ type SubnetConfig =
                         Name = ResourceName delegation
                         ServiceName = delegation
                     })
+            NatGateway = this.NatGateway
             ServiceEndpoints = this.ServiceEndpoints
             AssociatedServiceEndpointPolicies = this.AssociatedServiceEndpointPolicies
             // PrivateEndpointNetworkPolicies prevents the use of private endpoints so
@@ -65,6 +67,7 @@ type SubnetBuilder() =
             VirtualNetwork = None
             NetworkSecurityGroup = None
             Delegations = []
+            NatGateway = None
             ServiceEndpoints = []
             AssociatedServiceEndpointPolicies = []
             AllowPrivateEndpoints = None
@@ -80,6 +83,38 @@ type SubnetBuilder() =
     member _.Prefix(state: SubnetConfig, prefix) =
         { state with
             Prefix = IPAddressCidr.parse prefix
+        }
+
+    [<CustomOperation "nat_gateway">]
+    member _.NatGateway(state: SubnetConfig, gw: IArmResource) =
+        { state with
+            NatGateway = Some(Managed gw.ResourceId)
+        }
+
+    member _.NatGateway(state: SubnetConfig, resId: ResourceId) =
+        { state with
+            NatGateway = Some(Managed resId)
+        }
+
+    member _.NatGateway(state: SubnetConfig, gw: NatGatewayConfig) =
+        { state with
+            NatGateway = Some(Managed (gw :> IBuilder).ResourceId)
+        }
+
+    [<CustomOperation "link_to_nat_gateway">]
+    member _.LinkToNatGateway(state: SubnetConfig, gw: IArmResource) =
+        { state with
+            NatGateway = Some(Unmanaged gw.ResourceId)
+        }
+
+    member _.LinkToNatGateway(state: SubnetConfig, resId: ResourceId) =
+        { state with
+            NatGateway = Some(Unmanaged resId)
+        }
+
+    member _.LinkToNatGateway(state: SubnetConfig, gw: NatGatewayConfig) =
+        { state with
+            NatGateway = Some(Unmanaged (gw :> IBuilder).ResourceId)
         }
 
     /// Sets the network security group for subnet
@@ -194,6 +229,7 @@ type SubnetBuildSpec =
         Size: int
         NetworkSecurityGroup: LinkedResource option
         Delegations: SubnetDelegationService list
+        NatGateway: LinkedResource option
         ServiceEndpoints: (EndpointServiceType * Location list) list
         AssociatedServiceEndpointPolicies: ResourceId list
         AllowPrivateEndpoints: FeatureFlag option
@@ -207,6 +243,7 @@ let buildSubnet name size =
         Size = size
         NetworkSecurityGroup = None
         Delegations = []
+        NatGateway = None
         ServiceEndpoints = []
         AssociatedServiceEndpointPolicies = []
         AllowPrivateEndpoints = None
@@ -220,6 +257,7 @@ let buildSubnetDelegations name size delegations =
         Size = size
         NetworkSecurityGroup = None
         Delegations = delegations
+        NatGateway = None
         ServiceEndpoints = []
         AssociatedServiceEndpointPolicies = []
         AllowPrivateEndpoints = None
@@ -232,6 +270,7 @@ let buildSubnetAllowPrivateEndpoints name size =
         Size = size
         NetworkSecurityGroup = None
         Delegations = []
+        NatGateway = None
         ServiceEndpoints = []
         AssociatedServiceEndpointPolicies = []
         AllowPrivateEndpoints = None
@@ -245,6 +284,7 @@ type SubnetSpecBuilder() =
             Size = 24
             NetworkSecurityGroup = None
             Delegations = []
+            NatGateway = None
             ServiceEndpoints = []
             AssociatedServiceEndpointPolicies = []
             AllowPrivateEndpoints = None
@@ -258,6 +298,38 @@ type SubnetSpecBuilder() =
     /// Sets the size for the network prefix to build
     [<CustomOperation "size">]
     member _.Size(state: SubnetBuildSpec, size) = { state with Size = size }
+
+    [<CustomOperation "nat_gateway">]
+    member _.NatGateway(state: SubnetBuildSpec, gw: IArmResource) =
+        { state with
+            NatGateway = Some(Managed gw.ResourceId)
+        }
+
+    member _.NatGateway(state: SubnetBuildSpec, resId: ResourceId) =
+        { state with
+            NatGateway = Some(Managed resId)
+        }
+
+    member _.NatGateway(state: SubnetBuildSpec, gw: NatGatewayConfig) =
+        { state with
+            NatGateway = Some(Managed (gw :> IBuilder).ResourceId)
+        }
+
+    [<CustomOperation "link_to_nat_gateway">]
+    member _.LinkToNatGateway(state: SubnetBuildSpec, gw: IArmResource) =
+        { state with
+            NatGateway = Some(Unmanaged gw.ResourceId)
+        }
+
+    member _.LinkToNatGateway(state: SubnetBuildSpec, resId: ResourceId) =
+        { state with
+            NatGateway = Some(Unmanaged resId)
+        }
+
+    member _.LinkToNatGateway(state: SubnetBuildSpec, gw: NatGatewayConfig) =
+        { state with
+            NatGateway = Some(Unmanaged (gw :> IBuilder).ResourceId)
+        }
 
     /// Sets the network security group for subnet
     [<CustomOperation "network_security_group">]
@@ -370,6 +442,7 @@ type AddressSpaceBuilder() =
                 Size = size
                 NetworkSecurityGroup = nsg
                 Delegations = delegations |> Option.defaultValue []
+                NatGateway = None
                 ServiceEndpoints = serviceEndpoints |> Option.defaultValue []
                 AssociatedServiceEndpointPolicies = associatedServiceEndpointPolicies |> Option.defaultValue []
                 AllowPrivateEndpoints = allowPrivateEndpoints
@@ -568,6 +641,7 @@ type VirtualNetworkBuilder() =
                         s.AssociatedServiceEndpointPolicies,
                         s.AllowPrivateEndpoints,
                         s.PrivateLinkServiceNetworkPolicies,
+                        s.NatGateway,
                         s.NetworkSecurityGroup)
                 )
                 |> List.map
@@ -577,6 +651,7 @@ type VirtualNetworkBuilder() =
                            serviceEndpointPolicies,
                            allowPrivateEndpoints,
                            privateLinkServiceNetworkPolicies,
+                           natGateway,
                            nsg),
                           cidr) ->
                         {
@@ -585,6 +660,7 @@ type VirtualNetworkBuilder() =
                             VirtualNetwork = Some(Managed(virtualNetworks.resourceId state.Name))
                             NetworkSecurityGroup = nsg
                             Delegations = delegations
+                            NatGateway = natGateway
                             ServiceEndpoints = serviceEndpoints
                             AssociatedServiceEndpointPolicies = serviceEndpointPolicies
                             AllowPrivateEndpoints = allowPrivateEndpoints

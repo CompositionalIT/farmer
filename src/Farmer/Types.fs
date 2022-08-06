@@ -1,6 +1,7 @@
 namespace Farmer
 
 open System
+open Farmer
 
 /// Common generic functions to support internals
 [<AutoOpen>]
@@ -338,6 +339,9 @@ type LinkedResource =
         function
         | Managed x -> Set.add x
         | _ -> id
+
+    static member internal AsIdObject(linkedResource: LinkedResource) =
+        linkedResource.ResourceId |> ResourceId.AsIdObject
 
 
 /// A reference to another Azure resource that may or may not be created by Farmer.
