@@ -613,7 +613,7 @@ let tests =
                         template.Template |> Writer.toJson |> ignore)
                     "Adding a subnet resource without linking to a vnet is not allowed"
             }
-            ftest "Creates basic NAT gateway" {
+            test "Creates basic NAT gateway" {
                 let deployment =
                     arm {
                         location Location.EastUS
