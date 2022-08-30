@@ -1162,6 +1162,17 @@ module ContainerService =
 module Redis =
     type Sku = Basic | Standard | Premium
 
+    type Standard_WithCapacity = 
+        | ``250 MB`` = 0
+        | ``1 GB`` = 1
+        | ``2.5 GB`` = 2
+        | ``6 GB`` = 3
+        | ``13 GB`` = 4
+
+    type Premium_WithCapacity =
+        | ``6 GB`` = 1
+        | ``13 GB`` = 2
+
 module EventHub =
     /// The SKU of the event hub instance.
     type EventHubSku =

@@ -64,6 +64,12 @@ type RedisBuilder() =
     [<CustomOperation "name">]
     member _.Name(state:RedisConfig, name) = { state with Name = name }
     member this.Name(state:RedisConfig, name) = this.Name(state, ResourceName name)
+    /// Sets the sku of the Redis instance to Standard and configures capacity     
+    [<CustomOperation "sku">]
+    member _.Sku(state:RedisConfig, capacity: Standard_WithCapacity) = { state with Sku = Redis.Standard; Capacity = int capacity }    
+    /// Sets the sku of the Redis instance to Premium and configures capacity     
+    [<CustomOperation "sku">]
+    member _.Sku(state:RedisConfig, capacity: Premium_WithCapacity) = { state with Sku = Redis.Premium; Capacity = int capacity }    
     /// Sets the sku of the Redis instance.
     [<CustomOperation "sku">]
     member _.Sku(state:RedisConfig, sku) = { state with Sku = sku }

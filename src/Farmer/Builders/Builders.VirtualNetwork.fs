@@ -479,6 +479,8 @@ type PrivateEndpointBuilder() =
     member _.PrivateLinkConnection(state:PrivateEndpointConfig, resource:LinkedResource) = 
         let outputResource, groupIds, dependencies =
             match resource.ResourceId.Type.Type with
+            // https://docs.microsoft.com/en-us/azure/private-link/private-endpoint-overview#private-link-resource
+              "Microsoft.Cache/Redis" ->  resource,["redisCache"],[]
             | "Microsoft.Web/sites" -> resource,["sites"],[]
             | "Microsoft.Web/sites/slots" -> 
                 match resource.ResourceId.Segments |> List.tryHead with
