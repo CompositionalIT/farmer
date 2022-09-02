@@ -549,11 +549,15 @@ type NetworkInterface =
                                             |> Option.defaultValue Unchecked.defaultof<_>
                                         subnet =
                                             {|
-                                                id = { this.VirtualNetwork.ResourceId with 
+                                                id =
+                                                    { this.VirtualNetwork.ResourceId with
                                                         Type = subnets
-                                                        Segments = [ipConfig.SubnetName] }.Eval()
+                                                        Segments = [ ipConfig.SubnetName ]
+                                                    }
+                                                        .Eval()
                                             |}
                                     |}
+
 
 
 
