@@ -57,6 +57,21 @@ let tests =
                     (resource.DiagnosticsProfile.BootDiagnostics.Enabled.GetValueOrDefault false)
                     "Boot Diagnostics should be enabled"
             }
+
+            test "By default, VM does not include Priority" {
+                let template =
+                    let myVm =
+                        vm {
+                            name "myvm"
+                            username "me"
+                        }
+
+                    arm { add_resource myVm }
+
+                let jobj = Newtonsoft.Json.Linq.JObject.Parse(template.Template |> Writer.toJson)
+                let vmProperties = jobj.SelectToken("resources[?(@.name=='myvm')].properties") :?> Newtonsoft.Json.Linq.JObject
+                Expect.isNull (vmProperties.Property "priority") "Priority should not be set by default"
+            }
             test "Can create a basic virtual machine with managed boot diagnostics" {
                 let resource =
                     let myVm =
