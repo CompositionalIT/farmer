@@ -25,7 +25,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |diagnostics_support_managed|Turns on diagnostics support using an Azure-managed storage account.|
 |diagnostics_support_external|Turns on diagnostics support using an existing storage account.|
 |vm_size|Sets the size of the VM.|
-|priority|Sets the VM Priority. Only one `spot_instance` or `priority` setting is allowed per VM.|
+|priority|Sets the VM Priority. Only one `spot_instance` or `priority` setting is allowed per VM. No priority is set by default. |
 |spot_instance|Makes the VM a spot instance. Shorthand for `priority (Spot (<EvictionPolicy>, <maxPrice>)`. Only one `spot_instance` or `priority` setting is allowed per VM.|
 |username|Sets the admin username of the VM (note: the password is supplied as a securestring parameter to the generated ARM template).|
 |password_parameter|Sets the name of the parameter which contains the admin password for this VM. defaults to "password-for-<VM-name>"|
