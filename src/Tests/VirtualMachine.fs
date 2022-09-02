@@ -528,7 +528,9 @@ let tests =
             }
 
             test "Link new VM to existing vnet in different resource group" {
-                let myVnet = Arm.Network.virtualNetworks.resourceId("myvnet", groupName="other-group")
+                let myVnet =
+                    Arm.Network.virtualNetworks.resourceId ("myvnet", groupName = "other-group")
+
                 let template =
                     let myVm =
                         vm {
@@ -554,9 +556,13 @@ let tests =
                 let nicDependsOn = (nicResource.["dependsOn"] :?> Newtonsoft.Json.Linq.JArray)
                 Expect.hasLength nicDependsOn 1 "NIC should only have 1 dependency - the public IP"
 
-                let nicSubnetId = nicResource.SelectToken("properties.ipConfigurations[0].properties.subnet.id").ToString();
-                Expect.equal 
-                    nicSubnetId 
+                let nicSubnetId =
+                    nicResource
+                        .SelectToken("properties.ipConfigurations[0].properties.subnet.id")
+                        .ToString()
+
+                Expect.equal
+                    nicSubnetId
                     "[resourceId('other-group', 'Microsoft.Network/virtualNetworks/subnets', 'myvnet', 'default')]"
                     "NIC subnet should repect resource group specified in VM VNet"
 
