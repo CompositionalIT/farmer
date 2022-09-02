@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.7.8
+* VMs: Add support for VNets in other resource groups
 
 ## 1.7.7
 * NAT Gateways: Initial support for NAT Gateways.
