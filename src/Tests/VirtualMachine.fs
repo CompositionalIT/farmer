@@ -69,7 +69,10 @@ let tests =
                     arm { add_resource myVm }
 
                 let jobj = Newtonsoft.Json.Linq.JObject.Parse(template.Template |> Writer.toJson)
-                let vmProperties = jobj.SelectToken("resources[?(@.name=='myvm')].properties") :?> Newtonsoft.Json.Linq.JObject
+
+                let vmProperties =
+                    jobj.SelectToken("resources[?(@.name=='myvm')].properties") :?> Newtonsoft.Json.Linq.JObject
+
                 Expect.isNull (vmProperties.Property "priority") "Priority should not be set by default"
             }
             test "Can create a basic virtual machine with managed boot diagnostics" {
