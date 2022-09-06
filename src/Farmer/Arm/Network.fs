@@ -97,10 +97,18 @@ type SubnetReference =
 
 type HopType =
     | VirtualAppliance
+    | Internet
+    | None
+    | VirtualNetworkGateway
+    | VnetLocal
 with
     member x.ArmValue =
         match x with
         | VirtualAppliance -> "VirtualAppliance"
+        | Internet -> "Internet"
+        | None -> "None"
+        | VirtualNetworkGateway -> "VirtualNetworkGateway"
+        | VnetLocal -> "VnetLocal"
     
 type Route =
     {
@@ -112,9 +120,9 @@ type Route =
     }
     member internal this.JsonModelProperties =
         {|
-            addressPrefix = this.AddressPrefix
+            addressPrefix = IPAddressCidr.format this.AddressPrefix
             nextHopType = this.NextHopType
-            nextHopIpAddress = this.NextHopIpAddress
+            nextHopIpAddress = IPAddressCidr.format this.NextHopIpAddress
             hasBgpOverride = this.HasBgpOverride
         |}
     interface IArmResource with
