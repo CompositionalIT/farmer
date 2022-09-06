@@ -17,7 +17,7 @@ type RouteTableConfig =
     {
         Name: ResourceName
         DisableBGPRoutePropagation: FeatureFlag 
-        Routes: Network.Route list
+        Routes: RouteConfig list
         Tags: Map<string, string>
     }
 
@@ -25,15 +25,24 @@ type RouteTableConfig =
         member this.ResourceId = routeTables.resourceId this.Name
 
         member this.BuildResources location =
-            [
+            let routes: Network.Route list =
+                this.Routes |> List.map
+                    (fun r -> {
+                            Name = r.Name
+                            AddressPrefix = r.AddressPrefix
+                            NextHopType = r.NextHopType.ArmValue
+                            NextHopIpAddress = r.NextHopIpAddress
+                            HasBgpOverride = r.HasBgpOverride.AsBoolean
+                        })
+            let routeTable: Network.RouteTable =
                 {
                     RouteTable.Name = this.Name
                     Location = location
                     DisableBGPRoutePropagation = this.DisableBGPRoutePropagation.AsBoolean
-                    Routes = this.Routes
+                    Routes = routes
                     Tags = this.Tags
                 }
-            ]
+            [ routeTable ]
 
 type RouteTableBuilder() =
     member _.Yield _ =
@@ -48,15 +57,8 @@ type RouteTableBuilder() =
     member _.DisableBGPRoutePropagation(state: RouteTableConfig, flag: bool) = { state with DisableBGPRoutePropagation = FeatureFlag.ofBool flag }
     [<CustomOperation "add_route">]
     member _.AddRoute(state: RouteTableConfig, routeConfig: RouteConfig) =
-        let route: Network.Route = {
-            Name = routeConfig.Name
-            AddressPrefix = routeConfig.AddressPrefix
-            NextHopType = routeConfig.NextHopType
-            NextHopIpAddress = routeConfig.NextHopIpAddress
-            HasBgpOverride = routeConfig.HasBgpOverride.AsBoolean
-        }
         { state with
-            Routes =  [route] @ state.Routes
+            Routes =  [routeConfig] @ state.Routes
         }
     
 

@@ -106,14 +106,14 @@ type Route =
     {
         Name: ResourceName
         AddressPrefix: IPAddressCidr
-        NextHopType: HopType
+        NextHopType: string
         NextHopIpAddress: IPAddressCidr
         HasBgpOverride: bool
     }
     member internal this.JsonModelProperties =
         {|
             addressPrefix = this.AddressPrefix
-            nextHopType = this.NextHopType.ArmValue
+            nextHopType = this.NextHopType
             nextHopIpAddress = this.NextHopIpAddress
             hasBgpOverride = this.HasBgpOverride
         |}
@@ -130,7 +130,7 @@ type RouteTable =
         Location: Location
         Tags: Map<string, string>
         DisableBGPRoutePropagation: bool
-        Routes: seq<Route>
+        Routes: Route list
     }
     member internal this.JsonModelProperties =
         {|
