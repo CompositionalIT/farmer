@@ -50,6 +50,11 @@ let privateEndpoints =
 let virtualNetworkPeering =
     ResourceType("Microsoft.Network/virtualNetworks/virtualNetworkPeerings", "2020-05-01")
 
+let routeTables =
+    ResourceType("Microsoft.Network/routeTables", "2021-01-01")
+let routes = 
+    ResourceType("Microsoft.Network/routeTables/routes", "2021-01-01")
+    
 type SubnetReference =
     | ViaManagedVNet of (ResourceId * ResourceName)
     | Direct of LinkedResource
@@ -89,6 +94,55 @@ type SubnetReference =
             raiseFarmer $"given resource was not of type '{subnets.Type}'."
 
         Direct subnetRef
+
+type HopType =
+    | VirtualAppliance
+with
+    member x.ArmValue =
+        match x with
+        | VirtualAppliance -> "VirtualAppliance"
+    
+type Route =
+    {
+        Name: ResourceName
+        AddressPrefix: IPAddressCidr
+        NextHopType: HopType
+        NextHopIpAddress: IPAddressCidr
+        HasBgpOverride: bool
+    }
+    member internal this.JsonModelProperties =
+        {|
+            addressPrefix = this.AddressPrefix
+            nextHopType = this.NextHopType.ArmValue
+            nextHopIpAddress = this.NextHopIpAddress
+            hasBgpOverride = this.HasBgpOverride
+        |}
+    interface IArmResource with
+        member this.ResourceId = routes.resourceId this.Name
+        member this.JsonModel =
+            {| routes.Create(this.Name) with
+                properties = this.JsonModelProperties
+            |}
+
+type RouteTable =
+    {
+        Name: ResourceName
+        Location: Location
+        Tags: Map<string, string>
+        DisableBGPRoutePropagation: bool
+        Routes: seq<Route>
+    }
+    member internal this.JsonModelProperties =
+        {|
+            disableBgpRoutePropagation = this.DisableBGPRoutePropagation
+            routes = this.Routes |> Seq.map (fun x -> x.JsonModelProperties)
+        |}
+    interface IArmResource with
+        member this.ResourceId = routeTables.resourceId this.Name
+        member this.JsonModel =
+            {| routeTables.Create(this.Name, this.Location, tags = this.Tags) with
+                properties = this.JsonModelProperties
+            |}
 
 type PublicIpAddress =
     {
