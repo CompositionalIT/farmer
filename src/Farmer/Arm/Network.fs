@@ -98,7 +98,7 @@ type SubnetReference =
 type HopType =
     | VirtualAppliance
     | Internet
-    | None
+    | Nothing
     | VirtualNetworkGateway
     | VnetLocal
 with
@@ -106,7 +106,7 @@ with
         match x with
         | VirtualAppliance -> "VirtualAppliance"
         | Internet -> "Internet"
-        | None -> "None"
+        | Nothing -> "None"
         | VirtualNetworkGateway -> "VirtualNetworkGateway"
         | VnetLocal -> "VnetLocal"
     
