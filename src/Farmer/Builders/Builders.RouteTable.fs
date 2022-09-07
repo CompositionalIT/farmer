@@ -29,8 +29,8 @@ type RouteTableConfig =
             let routes: Network.Route list =
                 this.Routes |> List.map
                     (fun r ->
-                        if Option.isNone r.AddressPrefix then raiseFarmer("need address prefix")
-                        if Option.isNone r.NextHopIpAddress then raiseFarmer("need address prefix")
+                        if Option.isNone r.AddressPrefix then raiseFarmer("address prefix is required")
+                        if Option.isNone r.NextHopIpAddress then raiseFarmer("next hop ip address is required")
                         {
                             Name = r.Name
                             AddressPrefix = r.AddressPrefix.Value
@@ -66,6 +66,7 @@ type RouteTableBuilder() =
         { state with
             Routes =  routeConfigs @ state.Routes
         }
+let routeTable = RouteTableBuilder()
 
 type RouteBuilder() =
     member _.Yield _ =
@@ -89,3 +90,5 @@ type RouteBuilder() =
     member _.NextHopIpAddress(state: RouteConfig, ip: string) = { state with NextHopIpAddress = Some (IPAddressCidr.parse ip) }
     [<CustomOperation "hasBgpOverride">]
     member _.HasBgpOverride(state: RouteConfig, flag: bool) = { state with HasBgpOverride = Some( FeatureFlag.ofBool flag) }
+
+let route = RouteBuilder()
