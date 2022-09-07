@@ -55,6 +55,7 @@ let routeTables =
 let routes = 
     ResourceType("Microsoft.Network/routeTables/routes", "2021-01-01")
     
+    
 type SubnetReference =
     | ViaManagedVNet of (ResourceId * ResourceName)
     | Direct of LinkedResource
@@ -94,36 +95,21 @@ type SubnetReference =
             raiseFarmer $"given resource was not of type '{subnets.Type}'."
 
         Direct subnetRef
-
-type HopType =
-    | VirtualAppliance
-    | Internet
-    | Nothing
-    | VirtualNetworkGateway
-    | VnetLocal
-with
-    member x.ArmValue =
-        match x with
-        | VirtualAppliance -> "VirtualAppliance"
-        | Internet -> "Internet"
-        | Nothing -> "None"
-        | VirtualNetworkGateway -> "VirtualNetworkGateway"
-        | VnetLocal -> "VnetLocal"
     
 type Route =
     {
         Name: ResourceName
         AddressPrefix: IPAddressCidr
-        NextHopType: string
+        NextHopType: Route.HopType
         NextHopIpAddress: IPAddressCidr
-        HasBgpOverride: bool
+        HasBgpOverride: FeatureFlag
     }
     member internal this.JsonModelProperties =
         {|
             addressPrefix = IPAddressCidr.format this.AddressPrefix
-            nextHopType = this.NextHopType
+            nextHopType = this.NextHopType.ArmValue
             nextHopIpAddress = IPAddressCidr.format this.NextHopIpAddress
-            hasBgpOverride = this.HasBgpOverride
+            hasBgpOverride = this.HasBgpOverride.AsBoolean
         |}
     interface IArmResource with
         member this.ResourceId = routes.resourceId this.Name
@@ -137,13 +123,13 @@ type RouteTable =
         Name: ResourceName
         Location: Location
         Tags: Map<string, string>
-        DisableBGPRoutePropagation: bool
+        DisableBGPRoutePropagation: FeatureFlag
         Routes: Route list
     }
     member internal this.JsonModelProperties =
         {|
-            disableBgpRoutePropagation = this.DisableBGPRoutePropagation
-            routes = this.Routes |> Seq.map (fun x -> x.JsonModelProperties)
+            disableBgpRoutePropagation = this.DisableBGPRoutePropagation.AsBoolean
+            routes = this.Routes |> Seq.map (fun x -> (x:> IArmResource).JsonModel)
         |}
     interface IArmResource with
         member this.ResourceId = routeTables.resourceId this.Name

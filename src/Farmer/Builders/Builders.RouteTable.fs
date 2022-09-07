@@ -3,20 +3,22 @@ module Farmer.Builders.RouteTable
 
 open Farmer
 open Farmer.Arm
+open Farmer.Route
 
+// todo: can we default next hop type?
 type RouteConfig =
     {
         Name: ResourceName
-        AddressPrefix: IPAddressCidr
-        NextHopType: HopType
-        NextHopIpAddress: IPAddressCidr
-        HasBgpOverride: FeatureFlag
+        AddressPrefix: IPAddressCidr option
+        NextHopType: Route.HopType
+        NextHopIpAddress: IPAddressCidr option
+        HasBgpOverride: FeatureFlag option
     }
 
 type RouteTableConfig =
     {
         Name: ResourceName
-        DisableBGPRoutePropagation: FeatureFlag 
+        DisableBGPRoutePropagation: FeatureFlag option
         Routes: RouteConfig list
         Tags: Map<string, string>
     }
@@ -27,18 +29,21 @@ type RouteTableConfig =
         member this.BuildResources location =
             let routes: Network.Route list =
                 this.Routes |> List.map
-                    (fun r -> {
+                    (fun r ->
+                        if Option.isNone r.AddressPrefix then raiseFarmer("need address prefix")
+                        if Option.isNone r.NextHopIpAddress then raiseFarmer("need address prefix")
+                        {
                             Name = r.Name
-                            AddressPrefix = r.AddressPrefix
-                            NextHopType = r.NextHopType.ArmValue
-                            NextHopIpAddress = r.NextHopIpAddress
-                            HasBgpOverride = r.HasBgpOverride.AsBoolean
-                        })
+                            AddressPrefix = r.AddressPrefix.Value
+                            NextHopType = r.NextHopType
+                            NextHopIpAddress = r.NextHopIpAddress.Value
+                            HasBgpOverride = r.HasBgpOverride |> Option.defaultValue FeatureFlag.Disabled
+                    })
             let routeTable: Network.RouteTable =
                 {
                     RouteTable.Name = this.Name
                     Location = location
-                    DisableBGPRoutePropagation = this.DisableBGPRoutePropagation.AsBoolean
+                    DisableBGPRoutePropagation = this.DisableBGPRoutePropagation |> Option.defaultValue FeatureFlag.Disabled
                     Routes = routes
                     Tags = this.Tags
                 }
@@ -48,17 +53,19 @@ type RouteTableBuilder() =
     member _.Yield _ =
         {
             Name = ResourceName.Empty
+            Routes = []
+            DisableBGPRoutePropagation = None
             Tags = Map.empty
         }
 
     [<CustomOperation "name">]
     member _.Name(state: RouteTableConfig, name: string) = { state with Name = ResourceName name }
     [<CustomOperation "disableBgpRoutePropagation">]
-    member _.DisableBGPRoutePropagation(state: RouteTableConfig, flag: bool) = { state with DisableBGPRoutePropagation = FeatureFlag.ofBool flag }
-    [<CustomOperation "add_route">]
-    member _.AddRoute(state: RouteTableConfig, routeConfig: RouteConfig) =
+    member _.DisableBGPRoutePropagation(state: RouteTableConfig, flag: bool) = { state with DisableBGPRoutePropagation = Some (FeatureFlag.ofBool flag) }
+    [<CustomOperation "add_routes">]
+    member _.AddRoute(state: RouteTableConfig, routeConfigs: RouteConfig list) =
         { state with
-            Routes =  [routeConfig] @ state.Routes
+            Routes =  routeConfigs @ state.Routes
         }
     
 
@@ -68,16 +75,52 @@ type RouteBuilder() =
     member _.Yield _ =
         {
             Name = ResourceName.Empty
-            Tags = Map.empty
+            AddressPrefix =  None 
+            NextHopType = Route.HopType.Nothing
+            NextHopIpAddress = None 
+            HasBgpOverride = None
         }
 
     [<CustomOperation "name">]
     member _.Name(state: RouteConfig, name: string) = { state with Name = ResourceName name }
     [<CustomOperation "addressPrefix">]
-    member _.AddressPrefix(state: RouteConfig, ip: IPAddressCidr) = { state with AddressPrefix = ip }
+    member _.AddressPrefix(state: RouteConfig, ip: IPAddressCidr) = { state with AddressPrefix = Some ip }
+    member _.AddressPrefix(state: RouteConfig, ip: string) = { state with AddressPrefix = Some (IPAddressCidr.parse ip) }
     [<CustomOperation "nextHopType">]
-    member _.NextHopType(state: RouteConfig, ht: HopType) = { state with NextHopType = ht }
+    member _.NextHopType(state: RouteConfig, ht: Route.HopType) = { state with NextHopType = ht }
     [<CustomOperation "nextHopIpAddress">]
-    member _.NextHopIpAddress(state: RouteConfig, ip: IPAddressCidr) = { state with NextHopIpAddress = ip }
+    member _.NextHopIpAddress(state: RouteConfig, ip: IPAddressCidr) = { state with NextHopIpAddress = Some ip }
+    member _.NextHopIpAddress(state: RouteConfig, ip: string) = { state with NextHopIpAddress = Some (IPAddressCidr.parse ip) }
     [<CustomOperation "hasBgpOverride">]
-    member _.HasBgpOverride(state: RouteConfig, flag: FeatureFlag) = { state with HasBgpOverride = flag }
+    member _.HasBgpOverride(state: RouteConfig, flag: bool) = { state with HasBgpOverride = Some( FeatureFlag.ofBool flag) }
+    
+let route =
+    RouteBuilder()
+    
+let myRoute =
+    route {
+        name "myroute"
+        addressPrefix "10.0.0.0/26"
+        nextHopType HopType.Internet
+        nextHopIpAddress "10.0.0.0/26"
+    }
+       
+let myRouteTable =
+    routeTable {
+        name "myroutetable"
+        add_routes [
+            route {
+                name "myroute"
+                addressPrefix "10.0.0.0/26"
+                nextHopType HopType.Internet
+                nextHopIpAddress "10.0.0.0/26"
+            }
+            route {
+                name "myroute2"
+                addressPrefix "10.0.0.0/26"
+                nextHopType HopType.Internet
+                nextHopIpAddress "10.0.0.0/26"
+            }
+        ]
+    }
+   
