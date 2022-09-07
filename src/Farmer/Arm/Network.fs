@@ -101,14 +101,14 @@ type Route =
         Name: ResourceName
         AddressPrefix: IPAddressCidr
         NextHopType: Route.HopType
-        NextHopIpAddress: IPAddressCidr
+        NextHopIpAddress: System.Net.IPAddress
         HasBgpOverride: FeatureFlag
     }
     member internal this.JsonModelProperties =
         {|
             addressPrefix = IPAddressCidr.format this.AddressPrefix
             nextHopType = this.NextHopType.ArmValue
-            nextHopIpAddress = IPAddressCidr.format this.NextHopIpAddress
+            nextHopIpAddress = this.NextHopIpAddress.ToString()
             hasBgpOverride = this.HasBgpOverride.AsBoolean
         |}
     interface IArmResource with

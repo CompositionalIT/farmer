@@ -675,22 +675,21 @@ let tests =
                                     add_routes [
                                         route {
                                             name "myroute"
-                                            addressPrefix "10.0.0.0/26"
+                                            addressPrefix "10.10.90.0/24"
                                             nextHopType Route.HopType.VirtualAppliance
-                                            nextHopIpAddress "10.0.0.0/26"
+                                            nextHopIpAddress "10.10.67.5"
                                         }
                                         route {
                                             name "myroute2"
-                                            addressPrefix "10.0.0.0/26"
-                                            nextHopType Route.HopType.Internet
-                                            nextHopIpAddress "10.0.0.1/26"
+                                            addressPrefix "10.10.80.0/24"
+                                            nextHopType Route.HopType.VirtualAppliance
+                                            nextHopIpAddress "10.10.67.5"
                                         }
                                     ]
                                 }
                             ]
                     }
                 let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
-                printfn $"{(deployment.Template |> Writer.toJson |> string)}"
 
                 let routeTable =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Network/routeTables')]"
@@ -705,8 +704,8 @@ let tests =
                 let routeProps = routes.[0].["properties"]
                 let route2Props = routes.[1].["properties"] 
                 Expect.equal (string routeProps.["nextHopType"]) "VirtualAppliance" "route 1 should have a hop type of 'VirtualAppliance'"
-                Expect.equal (string routeProps.["addressPrefix"]) "10.0.0.0/26" "route 1 should have an address prefix of '10.0.0.0/26'"
-                Expect.equal (string route2Props.["nextHopIpAddress"]) "10.0.0.1/26" "route 2 should have a next hop ip address of '10.0.0.1/26"
+                Expect.equal (string routeProps.["addressPrefix"]) "10.10.90.0/24" "route 1 should have an address prefix of '10.10.90.0/24'"
+                Expect.equal (string route2Props.["nextHopIpAddress"]) "10.10.67.5" "route 2 should have a next hop ip address of '10.10.67.5'"
             }
             test "Create private endpoint" {
                 let myNet =

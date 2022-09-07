@@ -10,7 +10,7 @@ type RouteConfig =
         Name: ResourceName
         AddressPrefix: IPAddressCidr option
         NextHopType: Route.HopType
-        NextHopIpAddress: IPAddressCidr option
+        NextHopIpAddress: System.Net.IPAddress option
         HasBgpOverride: FeatureFlag option
     }
 
@@ -29,14 +29,17 @@ type RouteTableConfig =
             let routes: Network.Route list =
                 this.Routes |> List.map
                     (fun r ->
-                        if Option.isNone r.AddressPrefix then raiseFarmer("address prefix is required")
-                        if Option.isNone r.NextHopIpAddress then raiseFarmer("next hop ip address is required")
-                        {
-                            Name = r.Name
-                            AddressPrefix = r.AddressPrefix.Value
-                            NextHopType = r.NextHopType
-                            NextHopIpAddress = r.NextHopIpAddress.Value
-                            HasBgpOverride = r.HasBgpOverride |> Option.defaultValue FeatureFlag.Disabled
+                        match r.AddressPrefix, r.NextHopIpAddress with
+                        | None, None -> raiseFarmer ("address prefix and next hop ip address are required")
+                        | None, _ -> raiseFarmer("address prefix is required")
+                        | _, None -> raiseFarmer ("next hop ip address is required")
+                        | Some addressPrefix, Some nextHopIp ->
+                            {
+                                Name = r.Name
+                                AddressPrefix = addressPrefix
+                                NextHopType = r.NextHopType
+                                NextHopIpAddress = nextHopIp
+                                HasBgpOverride = r.HasBgpOverride |> Option.defaultValue FeatureFlag.Disabled
                     })
             let routeTable: Network.RouteTable =
                 {
@@ -86,8 +89,8 @@ type RouteBuilder() =
     [<CustomOperation "nextHopType">]
     member _.NextHopType(state: RouteConfig, ht: Route.HopType) = { state with NextHopType = ht }
     [<CustomOperation "nextHopIpAddress">]
-    member _.NextHopIpAddress(state: RouteConfig, ip: IPAddressCidr) = { state with NextHopIpAddress = Some ip }
-    member _.NextHopIpAddress(state: RouteConfig, ip: string) = { state with NextHopIpAddress = Some (IPAddressCidr.parse ip) }
+    member _.NextHopIpAddress(state: RouteConfig, ip: System.Net.IPAddress) = { state with NextHopIpAddress = Some ip }
+    member _.NextHopIpAddress(state: RouteConfig, ip: string) = { state with NextHopIpAddress = Some (System.Net.IPAddress.Parse ip) }
     [<CustomOperation "hasBgpOverride">]
     member _.HasBgpOverride(state: RouteConfig, flag: bool) = { state with HasBgpOverride = Some( FeatureFlag.ofBool flag) }
 
