@@ -5,7 +5,6 @@ open Farmer
 open Farmer.Arm
 open Farmer.Route
 
-// todo: can we default next hop type?
 type RouteConfig =
     {
         Name: ResourceName
@@ -67,9 +66,6 @@ type RouteTableBuilder() =
         { state with
             Routes =  routeConfigs @ state.Routes
         }
-    
-
-let routeTable = RouteTableBuilder()
 
 type RouteBuilder() =
     member _.Yield _ =
@@ -93,6 +89,3 @@ type RouteBuilder() =
     member _.NextHopIpAddress(state: RouteConfig, ip: string) = { state with NextHopIpAddress = Some (IPAddressCidr.parse ip) }
     [<CustomOperation "hasBgpOverride">]
     member _.HasBgpOverride(state: RouteConfig, flag: bool) = { state with HasBgpOverride = Some( FeatureFlag.ofBool flag) }
-    
-let route =
-    RouteBuilder()
