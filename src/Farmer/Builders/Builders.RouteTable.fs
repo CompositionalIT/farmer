@@ -96,31 +96,3 @@ type RouteBuilder() =
     
 let route =
     RouteBuilder()
-    
-let myRoute =
-    route {
-        name "myroute"
-        addressPrefix "10.0.0.0/26"
-        nextHopType HopType.Internet
-        nextHopIpAddress "10.0.0.0/26"
-    }
-       
-let myRouteTable =
-    routeTable {
-        name "myroutetable"
-        add_routes [
-            route {
-                name "myroute"
-                addressPrefix "10.0.0.0/26"
-                nextHopType HopType.Internet
-                nextHopIpAddress "10.0.0.0/26"
-            }
-            route {
-                name "myroute2"
-                addressPrefix "10.0.0.0/26"
-                nextHopType HopType.Internet
-                nextHopIpAddress "10.0.0.0/26"
-            }
-        ]
-    }
-   
