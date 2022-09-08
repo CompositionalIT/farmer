@@ -682,14 +682,13 @@ let tests =
                                         route {
                                             name "myroute2"
                                             addressPrefix "10.10.80.0/24"
-                                            nextHopType Route.HopType.VirtualAppliance
-                                            nextHopIpAddress "10.10.67.5"
                                         }
                                     ]
                                 }
                             ]
                     }
                 let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+                let a = jobj.ToString()
 
                 let routeTable =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Network/routeTables')]"
@@ -705,7 +704,8 @@ let tests =
                 let route2Props = routes.[1].["properties"] 
                 Expect.equal (string routeProps.["nextHopType"]) "VirtualAppliance" "route 1 should have a hop type of 'VirtualAppliance'"
                 Expect.equal (string routeProps.["addressPrefix"]) "10.10.90.0/24" "route 1 should have an address prefix of '10.10.90.0/24'"
-                Expect.equal (string route2Props.["nextHopIpAddress"]) "10.10.67.5" "route 2 should have a next hop ip address of '10.10.67.5'"
+                Expect.isNull route2Props.["nextHopIpAddress"] "route 2 should not have a next hop ip address"
+                Expect.equal (string route2Props.["nextHopType"]) "None" "route 2 should have the default set to None for nextHopType"
             }
             test "Create private endpoint" {
                 let myNet =

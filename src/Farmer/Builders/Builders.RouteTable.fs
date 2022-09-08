@@ -29,16 +29,14 @@ type RouteTableConfig =
             let routes: Network.Route list =
                 this.Routes |> List.map
                     (fun r ->
-                        match r.AddressPrefix, r.NextHopIpAddress with
-                        | None, None -> raiseFarmer ("address prefix and next hop ip address are required")
-                        | None, _ -> raiseFarmer("address prefix is required")
-                        | _, None -> raiseFarmer ("next hop ip address is required")
-                        | Some addressPrefix, Some nextHopIp ->
+                        match r.AddressPrefix with
+                        | None -> raiseFarmer("address prefix is required")
+                        | Some addressPrefix ->
                             {
                                 Name = r.Name
                                 AddressPrefix = addressPrefix
                                 NextHopType = r.NextHopType
-                                NextHopIpAddress = nextHopIp
+                                NextHopIpAddress = r.NextHopIpAddress
                                 HasBgpOverride = r.HasBgpOverride |> Option.defaultValue FeatureFlag.Disabled
                     })
             let routeTable: Network.RouteTable =
