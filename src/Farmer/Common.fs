@@ -153,12 +153,12 @@ module Mb =
 
 module Route =
     type HopType =
-    | VirtualAppliance
-    | Internet
-    | Nothing
-    | VirtualNetworkGateway
-    | VnetLocal
-    with
+        | VirtualAppliance
+        | Internet
+        | Nothing
+        | VirtualNetworkGateway
+        | VnetLocal
+
         member x.ArmValue =
             match x with
             | VirtualAppliance -> "VirtualAppliance"
