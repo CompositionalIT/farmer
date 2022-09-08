@@ -153,7 +153,7 @@ module Mb =
 
 module Route =
     type HopType =
-        | VirtualAppliance
+        | VirtualAppliance of System.Net.IPAddress option
         | Internet
         | Nothing
         | VirtualNetworkGateway
@@ -161,7 +161,7 @@ module Route =
 
         member x.ArmValue =
             match x with
-            | VirtualAppliance -> "VirtualAppliance"
+            | VirtualAppliance _ -> "VirtualAppliance"
             | Internet -> "Internet"
             | Nothing -> "None"
             | VirtualNetworkGateway -> "VirtualNetworkGateway"

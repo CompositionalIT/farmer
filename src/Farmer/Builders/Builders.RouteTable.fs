@@ -10,7 +10,6 @@ type RouteConfig =
         Name: ResourceName
         AddressPrefix: IPAddressCidr option
         NextHopType: Route.HopType
-        NextHopIpAddress: System.Net.IPAddress option
         HasBgpOverride: FeatureFlag option
     }
 
@@ -36,7 +35,6 @@ type RouteTableConfig =
                             Name = r.Name
                             AddressPrefix = addressPrefix
                             NextHopType = r.NextHopType
-                            NextHopIpAddress = r.NextHopIpAddress
                             HasBgpOverride = r.HasBgpOverride |> Option.defaultValue FeatureFlag.Disabled
                         })
 
@@ -84,7 +82,6 @@ type RouteBuilder() =
             Name = ResourceName.Empty
             AddressPrefix = None
             NextHopType = Route.HopType.Nothing
-            NextHopIpAddress = None
             HasBgpOverride = None
         }
 
@@ -105,12 +102,12 @@ type RouteBuilder() =
     [<CustomOperation "nextHopIpAddress">]
     member _.NextHopIpAddress(state: RouteConfig, ip: System.Net.IPAddress) =
         { state with
-            NextHopIpAddress = Some ip
+            NextHopType = VirtualAppliance(Some ip)
         }
 
     member _.NextHopIpAddress(state: RouteConfig, ip: string) =
         { state with
-            NextHopIpAddress = Some(System.Net.IPAddress.Parse ip)
+            NextHopType = VirtualAppliance(Some(System.Net.IPAddress.Parse ip))
         }
 
     [<CustomOperation "hasBgpOverride">]

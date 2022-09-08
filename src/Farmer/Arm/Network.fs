@@ -5,6 +5,7 @@ open System.Net.Mail
 open Farmer
 open Farmer.Arm
 open Farmer.ExpressRoute
+open Farmer.Route
 open Farmer.VirtualNetworkGateway
 
 let connections = ResourceType("Microsoft.Network/connections", "2020-04-01")
@@ -99,7 +100,6 @@ type Route =
         Name: ResourceName
         AddressPrefix: IPAddressCidr
         NextHopType: Route.HopType
-        NextHopIpAddress: System.Net.IPAddress option
         HasBgpOverride: FeatureFlag
     }
 
@@ -108,9 +108,12 @@ type Route =
             addressPrefix = IPAddressCidr.format this.AddressPrefix
             nextHopType = this.NextHopType.ArmValue
             nextHopIpAddress =
-                this.NextHopIpAddress
-                |> Option.map (fun x -> x.ToString())
-                |> Option.defaultValue Unchecked.defaultof<_>
+                match this.NextHopType with
+                | VirtualAppliance ip ->
+                    ip
+                    |> Option.map (fun x -> x.ToString())
+                    |> Option.defaultValue Unchecked.defaultof<_>
+                | _ -> Unchecked.defaultof<_>
             hasBgpOverride = this.HasBgpOverride.AsBoolean
         |}
 
@@ -610,6 +613,7 @@ type NetworkInterface =
                                                         .Eval()
                                             |}
                                     |}
+
 
 
 
