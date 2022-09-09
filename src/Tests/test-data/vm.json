@@ -38,7 +38,6 @@
           "adminUsername": "isaac",
           "computerName": "isaacsVM"
         },
-        "priority": "Regular",
         "storageProfile": {
           "dataDisks": [
             {

@@ -658,7 +658,6 @@
                   "adminUsername": "farmer-admin",
                   "computerName": "farmervm"
                 },
-                "priority": "Regular",
                 "storageProfile": {
                   "dataDisks": [
                     {
