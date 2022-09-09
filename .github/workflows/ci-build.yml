@@ -4,7 +4,9 @@ on:
   push:
     branches: [ master ]
     paths: [ 'src/**', '*.md', '*.png', 'LICENSE', 'Farmer.sln' ]
-
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
 jobs:
   CI:
     strategy:
@@ -27,5 +29,5 @@ jobs:
       - name: Upload NuGet Package
         uses: actions/upload-artifact@v3
         with:
-          name: farmer-package-${{ matrix.dotnet-version }}
+          name: farmer-package
           path: src/Farmer/bin/Release/Farmer*nupkg
