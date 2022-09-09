@@ -1,0 +1,24 @@
+name: Build, test and package
+on:
+  pull_request:
+  push:
+    # branches: [ master ]
+    # paths: [ 'src/**', '*.md', '*.png', 'LICENSE', 'Farmer.sln' ]
+
+jobs:
+  CI:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Restore .NET Tools
+        run: dotnet tool restore
+      - name: Fantomas Syntax Check
+        run: dotnet fantomas src -r --check
+      - name: Build Farmer
+        run: dotnet build -c release
+      - name: Run Tests
+        run: dotnet test -v n -c release -l trx --collect:"XPlat Code Coverage"
