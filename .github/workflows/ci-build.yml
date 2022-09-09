@@ -22,12 +22,10 @@ jobs:
         run: dotnet build -c release
       - name: Run Tests
         run: dotnet test -c release -l trx --collect:"XPlat Code Coverage"
-      - name: Upload Test results
-        uses: actions/upload-artifact@v3
-        with:
-          name: dotnet-results-${{ matrix.dotnet-version }}
-          path: src/Tests/TestResults
-        # Use always() to always run this step to publish test results when there are test failures
-        if: ${{ always() }}
       - name: Create NuGet Package
         run: dotnet pack ./src/Farmer --verbosity minimal --configuration Release
+      - name: Upload NuGet Package
+        uses: actions/upload-artifact@v3
+        with:
+          name: farmer-package-${{ matrix.dotnet-version }}
+          path: src/Farmer/bin/Release/Farmer*nupkg
