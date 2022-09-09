@@ -3,7 +3,7 @@ Release Notes
 
 ## 1.7.8
 * Route Tables: Initial support for Route Tables and Routes
-* VMs: Default to no priority
+* Virtual Machines: Default to no priority
 
 ## 1.7.7
 * NAT Gateways: Initial support for NAT Gateways.
