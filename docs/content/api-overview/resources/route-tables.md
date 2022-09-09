@@ -34,24 +34,39 @@ open Farmer.Builders
 
 arm {
     location Location.EastUS
+
     add_resources
         [
             routeTable {
                 name "myroutetable"
-                add_routes [
-                    route {
-                        name "myroute"
-                        addressPrefix "10.10.90.0/24"
-                        nextHopType Route.HopType.VirtualAppliance
-                        nextHopIpAddress "10.10.67.5"
-                    }
-                    route {
-                        name "myroute2"
-                        addressPrefix "10.10.80.0/24"
-                        nextHopType Route.HopType.VirtualAppliance
-                        nextHopIpAddress "10.10.67.5"
-                    }
-                ]
+
+                add_routes
+                    [
+                        route {
+                            name "myroute"
+                            addressPrefix "10.10.90.0/24"
+                            nextHopIpAddress "10.10.67.5"
+                        }
+                        route {
+                            name "myroute2"
+                            addressPrefix "10.10.80.0/24"
+                        }
+                        route {
+                            name "myroute3"
+                            addressPrefix "10.2.31.0/24"
+                            nextHopType (Route.HopType.VirtualAppliance None)
+                        }
+                        route {
+                            name "myroute4"
+                            addressPrefix "10.2.31.0/24"
+
+                            nextHopType (
+                                Route.HopType.VirtualAppliance(
+                                    Some(System.Net.IPAddress.Parse "10.2.31.2")
+                                )
+                            )
+                        }
+                    ]
             }
         ]
 }
