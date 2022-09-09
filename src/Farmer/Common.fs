@@ -151,6 +151,22 @@ type EnvVar =
 module Mb =
     let toBytes (mb: int<Mb>) = int64 mb * 1024L * 1024L
 
+module Route =
+    type HopType =
+        | VirtualAppliance of System.Net.IPAddress option
+        | Internet
+        | Nothing
+        | VirtualNetworkGateway
+        | VnetLocal
+
+        member x.ArmValue =
+            match x with
+            | VirtualAppliance _ -> "VirtualAppliance"
+            | Internet -> "Internet"
+            | Nothing -> "None"
+            | VirtualNetworkGateway -> "VirtualNetworkGateway"
+            | VnetLocal -> "VnetLocal"
+
 module Vm =
     type VMSize =
         | Basic_A0

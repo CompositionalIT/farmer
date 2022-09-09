@@ -664,6 +664,91 @@ let tests =
 
                 Expect.isNotNull publicIp "Public IP should have been generated for the NAT gateway."
             }
+            test "Creates route table with two routes" {
+                let deployment =
+                    arm {
+                        location Location.EastUS
+
+                        add_resources
+                            [
+                                routeTable {
+                                    name "myroutetable"
+
+                                    add_routes
+                                        [
+                                            route {
+                                                name "myroute"
+                                                addressPrefix "10.10.90.0/24"
+                                                nextHopIpAddress "10.10.67.5"
+                                            }
+                                            route {
+                                                name "myroute2"
+                                                addressPrefix "10.10.80.0/24"
+                                            }
+                                            route {
+                                                name "myroute3"
+                                                addressPrefix "10.2.31.0/24"
+                                                nextHopType (Route.HopType.VirtualAppliance None)
+                                            }
+                                            route {
+                                                name "myroute4"
+                                                addressPrefix "10.2.31.0/24"
+
+                                                nextHopType (
+                                                    Route.HopType.VirtualAppliance(
+                                                        Some(System.Net.IPAddress.Parse "10.2.31.2")
+                                                    )
+                                                )
+                                            }
+                                        ]
+                                }
+                            ]
+                    }
+
+                let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+                let a = jobj.ToString()
+
+                let routeTable =
+                    jobj.SelectToken "resources[?(@.type=='Microsoft.Network/routeTables')]"
+
+                let routeTableProps = routeTable.["properties"]
+
+                let disableBgp: bool =
+                    JToken.op_Explicit routeTableProps.["disableBgpRoutePropagation"]
+
+                Expect.equal disableBgp false "Incorrect default value for disableBgpRoutePropagation"
+                let routes = routeTableProps.["routes"] :?> JArray
+                Expect.isNotNull routes "Routes should have been generated for the route table"
+                Expect.equal (string routes.[0].["name"]) "myroute" "route 1 should be named 'myroute'"
+                Expect.equal (string routes.[1].["name"]) "myroute2" "route 2 should be named 'myroute2'"
+                let routeProps = routes.[0].["properties"]
+                let route2Props = routes.[1].["properties"]
+                let route3Props = routes.[2].["properties"]
+                let route4Props = routes.[3].["properties"]
+
+                Expect.equal
+                    (string routeProps.["nextHopType"])
+                    "VirtualAppliance"
+                    "route 1 should have a hop type of 'VirtualAppliance'"
+
+                Expect.equal
+                    (string routeProps.["addressPrefix"])
+                    "10.10.90.0/24"
+                    "route 1 should have an address prefix of '10.10.90.0/24'"
+
+                Expect.isNull route2Props.["nextHopIpAddress"] "route 2 should not have a next hop ip address"
+                Expect.isNull route3Props.["nextHopIpAddress"] "route 3 should not have a next hop ip address"
+
+                Expect.equal
+                    (string route2Props.["nextHopType"])
+                    "None"
+                    "route 2 should have the default set to None for nextHopType"
+
+                Expect.equal
+                    (string route4Props.["nextHopIpAddress"])
+                    "10.2.31.2"
+                    "route 4 should have the next hop ip address set to 10.2.31.2"
+            }
             test "Create private endpoint" {
                 let myNet =
                     vnet {

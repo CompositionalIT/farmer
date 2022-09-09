@@ -5,6 +5,7 @@ open System.Net.Mail
 open Farmer
 open Farmer.Arm
 open Farmer.ExpressRoute
+open Farmer.Route
 open Farmer.VirtualNetworkGateway
 
 let connections = ResourceType("Microsoft.Network/connections", "2020-04-01")
@@ -50,6 +51,10 @@ let privateEndpoints =
 let virtualNetworkPeering =
     ResourceType("Microsoft.Network/virtualNetworks/virtualNetworkPeerings", "2020-05-01")
 
+let routeTables = ResourceType("Microsoft.Network/routeTables", "2021-01-01")
+let routes = ResourceType("Microsoft.Network/routeTables/routes", "2021-01-01")
+
+
 type SubnetReference =
     | ViaManagedVNet of (ResourceId * ResourceName)
     | Direct of LinkedResource
@@ -89,6 +94,59 @@ type SubnetReference =
             raiseFarmer $"given resource was not of type '{subnets.Type}'."
 
         Direct subnetRef
+
+type Route =
+    {
+        Name: ResourceName
+        AddressPrefix: IPAddressCidr
+        NextHopType: Route.HopType
+        HasBgpOverride: FeatureFlag
+    }
+
+    member internal this.JsonModelProperties =
+        {|
+            addressPrefix = IPAddressCidr.format this.AddressPrefix
+            nextHopType = this.NextHopType.ArmValue
+            nextHopIpAddress =
+                match this.NextHopType with
+                | VirtualAppliance ip ->
+                    ip
+                    |> Option.map (fun x -> x.ToString())
+                    |> Option.defaultValue Unchecked.defaultof<_>
+                | _ -> Unchecked.defaultof<_>
+            hasBgpOverride = this.HasBgpOverride.AsBoolean
+        |}
+
+    interface IArmResource with
+        member this.ResourceId = routes.resourceId this.Name
+
+        member this.JsonModel =
+            {| routes.Create(this.Name) with
+                properties = this.JsonModelProperties
+            |}
+
+type RouteTable =
+    {
+        Name: ResourceName
+        Location: Location
+        Tags: Map<string, string>
+        DisableBGPRoutePropagation: FeatureFlag
+        Routes: Route list
+    }
+
+    member internal this.JsonModelProperties =
+        {|
+            disableBgpRoutePropagation = this.DisableBGPRoutePropagation.AsBoolean
+            routes = this.Routes |> Seq.map (fun x -> (x :> IArmResource).JsonModel)
+        |}
+
+    interface IArmResource with
+        member this.ResourceId = routeTables.resourceId this.Name
+
+        member this.JsonModel =
+            {| routeTables.Create(this.Name, this.Location, tags = this.Tags) with
+                properties = this.JsonModelProperties
+            |}
 
 type PublicIpAddress =
     {
@@ -555,6 +613,8 @@ type NetworkInterface =
                                                         .Eval()
                                             |}
                                     |}
+
+
 
 
 
