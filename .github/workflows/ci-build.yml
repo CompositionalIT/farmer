@@ -2,8 +2,8 @@ name: Build, test and package
 on:
   pull_request:
   push:
-    # branches: [ master ]
-    # paths: [ 'src/**', '*.md', '*.png', 'LICENSE', 'Farmer.sln' ]
+    branches: [ master ]
+    paths: [ 'src/**', '*.md', '*.png', 'LICENSE', 'Farmer.sln' ]
 
 jobs:
   CI:
