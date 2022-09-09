@@ -1,5 +1,6 @@
 Release Notes
 =============
+
 ## 1.7.8
 * Route Tables: Initial support for Route Tables and Routes
 
