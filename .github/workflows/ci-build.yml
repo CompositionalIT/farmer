@@ -30,4 +30,4 @@ jobs:
         # Use always() to always run this step to publish test results when there are test failures
         if: ${{ always() }}
       - name: Create NuGet Package
-        run: dotnet pack .\src\Farmer\ --verbosity minimal --configuration Release
+        run: dotnet pack ./src/Farmer --verbosity minimal --configuration Release
