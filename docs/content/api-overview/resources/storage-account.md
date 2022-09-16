@@ -34,6 +34,8 @@ The Storage Account builder creates storage accounts and their associated contai
 | add_cors_rules | Adds a list of CORS rules to the different storage services |
 | add_policies | Adds a list of Policies to the different storage services |
 | enable_versioning | Enabled versioning for different storage services |
+| restrict_to_ip | Restrict access to a given ip address |
+| restrict_to_subnet | Restrict access to a given virtual network subnet |
 | use_static_website | Activates static website host, and uploads the provided local content as a post-deployment task to the storage with the specified index page |
 | static_website_error_page | Specifies the 404 page to display for static website hosting |
 | enable_data_lake | Enables Azure Data Lake Gen2 support on the storage account |
@@ -63,6 +65,9 @@ open Farmer.Storage
 let storage = storageAccount {
     name "isaacssuperstorage"
     sku Storage.Sku.Premium_LRS
+    restrict_to_ip "11.22.33.44"
+    restrict_to_ip "12.23.45.78"
+    restrict_to_subnet "myvnet" "mysubnet"
     add_public_container "mypubliccontainer"
     add_private_container "myprivatecontainer"
     add_blob_container "myblobcontainer"
