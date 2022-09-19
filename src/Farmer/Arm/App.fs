@@ -1,6 +1,7 @@
 [<AutoOpen>]
 module Farmer.Arm.App
 
+open System
 open Farmer.ContainerApp
 open Farmer.Identity
 open Farmer
@@ -122,6 +123,8 @@ type ContainerApp =
                     match credential with
                     | ImageRegistryAuthentication.Credential credential -> credential.Password
                     | ImageRegistryAuthentication.ListCredentials _ -> ()
+                    | ImageRegistryAuthentication.ManagedIdentityCredential _ -> ()
+
             ]
 
     interface IArmResource with
@@ -161,6 +164,12 @@ type ContainerApp =
                                                             )
                                                             .Eval()
                                                 |}
+                                            | ImageRegistryAuthentication.ManagedIdentityCredential cred ->
+                                                {|
+                                                    name = cred.Server
+                                                    value = if cred.Identity.Dependencies.Length > 0 then cred.Identity.Dependencies.Head.ArmExpression.Eval() else String.Empty
+
+                                                |}
                                         for setting in this.Secrets do
                                             {|
                                                 name = setting.Key.Value
@@ -191,6 +200,12 @@ type ContainerApp =
                                                             )
                                                             .Eval()
                                                     passwordSecretRef = usernameSecretName resourceId
+                                                |}
+                                            | ImageRegistryAuthentication.ManagedIdentityCredential cred ->
+                                                {|
+                                                    server = cred.Server
+                                                    username = null
+                                                    passwordSecretRef = if cred.Identity.Dependencies.Length > 0 then cred.Identity.Dependencies.Head.ArmExpression.Eval() else String.Empty
                                                 |}
                                     |]
                                 ingress =

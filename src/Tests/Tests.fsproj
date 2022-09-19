@@ -72,7 +72,7 @@
     <PackageReference Include="Microsoft.Azure.Management.Dns" Version="3.0.1" />
     <PackageReference Include="Microsoft.Azure.Management.CognitiveServices" Version="7.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.Compute" Version="35.2.0" />
-    <PackageReference Include="Microsoft.Azure.Management.ContainerInstance" Version="3.0.0" />
+    <PackageReference Include="Microsoft.Azure.Management.ContainerInstance" Version="7.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.ContainerService" Version="1.1.0" />
     <PackageReference Include="Microsoft.Azure.Management.DeviceProvisioningServices" Version="1.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.IotHub" Version="2.10.0-preview" />
