@@ -393,7 +393,7 @@ type ContainerGroup =
                                 | ImageRegistryAuthentication.ManagedIdentityCredential cred ->
                                     {|
                                         server = cred.Server
-                                        username = String.Empty
+                                        username = null
                                         password = null
                                         identity = if cred.Identity.Dependencies.Length > 0 then cred.Identity.Dependencies.Head.ArmExpression.Eval() else String.Empty
                                     |})
