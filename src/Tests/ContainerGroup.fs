@@ -314,7 +314,7 @@ let tests =
                 Expect.hasLength group.ImageRegistryCredentials 1 "Expected one image managed identity registry credential"
                 let credentials = group.ImageRegistryCredentials.[0]
                 Expect.equal credentials.Server "my-registry.azurecr.io" "Incorrect container image registry server"
-                Expect.equal credentials.Username null "Container image registry user should be null"
+                Expect.equal credentials.Username String.Empty "Container image registry user should be null"
                 Expect.equal credentials.Identity (managedIdentity.Dependencies.Head.ArmExpression.Eval()) "Incorrect container image registry identity"
                 Expect.equal credentials.Password null "Container image registry password should be null"
             }
@@ -919,16 +919,7 @@ async {
 
                 Expect.equal (string ipConfigName) "ipconfigProfile" "netprofile ipConfiguration has wrong name"
             }
-            // test "Can link a network profile directly to a container group" {
-            //     let profile = networkProfile { name "netprofile" }
-            //
-            //     let template =
-            //         containerGroup {
-            //             name "appWithHttpFrontend"
-            //             network_profile profile
-            //         }
-            //         |> asAzureResource
-            // }
+
             test "Support for additional dependencies" {
                 let storage = storageAccount { name "containerstorage" }
 

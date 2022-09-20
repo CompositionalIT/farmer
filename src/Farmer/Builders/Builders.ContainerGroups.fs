@@ -462,6 +462,7 @@ type ContainerGroupBuilder() =
                 state.ImageRegistryCredentials
                 @ (resourceIds |> List.map ImageRegistryAuthentication.ManagedIdentityCredential)
         }
+
     /// Adds a collection of init containers to this group that run once on startup before other containers in the group.
     [<CustomOperation "add_init_containers">]
     member _.AddInitContainers(state: ContainerGroupConfig, initContainers) =
