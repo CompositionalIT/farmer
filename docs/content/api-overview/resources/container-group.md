@@ -30,6 +30,7 @@ The Container Group builder (`containerGroup`) defines a Container Group.
 | system_identity | Activates the system identity of the container group. |
 | add_registry_credentials | Adds a container image registry credential with a secure parameter for the password. |
 | reference_registry_credentials | References credentials from a container image registry by resource ID. |
+| add_managed_identity_registry_credentials | Adds container image registry managed identity credentials for images in this container group. |
 | add_tcp_port | Adds a TCP port to be externally accessible. |
 | add_udp_port | Adds a UDP port to be externally accessible. |
 | add_volumes | Adds volumes to a container group so they are accessible to containers. |
@@ -151,6 +152,7 @@ let containerGroupUser = userAssignedIdentity {
 }
 
 let containerGroupLoggingWorkspace = logAnalytics { name "webapplogs" }
+let managedIdentity = ManagedIdentity.Empty
 
 let group = containerGroup {
     name "webApp"
@@ -162,7 +164,7 @@ let group = containerGroup {
     add_instances [ nginx ]
     // Add registry credentials as a secure password
     add_registry_credentials [
-        registry "mygregistry.azurecr.io" "registryuser"
+        registry "mygregistry.azurecr.io" "registryuser" managedIdentity
     ]
     // or reference an Azure container registry to pull the credentials directly.
     reference_registry_credentials [
