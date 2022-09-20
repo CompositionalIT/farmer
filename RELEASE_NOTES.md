@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.7.9
+* Container Group: Support for Managed Identity
+* Container App: Support for Managed Identity
 
 ## 1.7.8
 * Route Tables: Initial support for Route Tables and Routes
