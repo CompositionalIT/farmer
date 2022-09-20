@@ -453,14 +453,14 @@ type ContainerGroupBuilder() =
                 state.ImageRegistryCredentials
                 @ (resourceIds |> List.map ImageRegistryAuthentication.ListCredentials)
         }
-        
+
     /// Adds container image registry managed identity credentials for images in this container group.
     [<CustomOperation "add_managed_identity_registry_credentials">]
-    member _.ManagedIdentityRegistryCredentials(state: ContainerGroupConfig, resourceIds) =
+    member _.ManagedIdentityRegistryCredentials(state: ContainerGroupConfig, credentials) =
         { state with
             ImageRegistryCredentials =
                 state.ImageRegistryCredentials
-                @ (resourceIds |> List.map ImageRegistryAuthentication.ManagedIdentityCredential)
+                @ (credentials |> List.map ImageRegistryAuthentication.ManagedIdentityCredential)
         }
 
     /// Adds a collection of init containers to this group that run once on startup before other containers in the group.

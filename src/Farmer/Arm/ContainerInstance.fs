@@ -395,7 +395,11 @@ type ContainerGroup =
                                         server = cred.Server
                                         username = String.Empty
                                         password = null
-                                        identity = if cred.Identity.Dependencies.Length > 0 then cred.Identity.Dependencies.Head.ArmExpression.Eval() else String.Empty
+                                        identity =
+                                            if cred.Identity.Dependencies.Length > 0 then
+                                                cred.Identity.Dependencies.Head.ArmExpression.Eval()
+                                            else
+                                                String.Empty
                                     |})
                         ipAddress =
                             match this.IpAddress with

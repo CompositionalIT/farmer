@@ -267,6 +267,7 @@ let tests =
 
             test "Container group with private registry" {
                 let managedIdentity = ManagedIdentity.Empty
+
                 let group =
                     containerGroup {
                         add_instances [ nginx ]
@@ -284,21 +285,21 @@ let tests =
                     "[parameters('my-registry.azurecr.io-password')]"
                     "Container image registry password should be secure parameter"
             }
-            
+
             test "Container group with managed identity to private registry" {
-                let userAssignedIdentity =  ResourceId.create (
-                                                Arm.ManagedIdentity.userAssignedIdentities,
-                                                ResourceName "user",
-                                                "resourceGroup"
-                                            )
-                                            |> UserAssignedIdentity
+                let userAssignedIdentity =
+                    ResourceId.create (Arm.ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
+                    |> UserAssignedIdentity
+
                 let managedIdentity =
                     { ManagedIdentity.Empty with
                         UserAssigned = [ userAssignedIdentity ]
                     }
+
                 let group =
                     containerGroup {
                         add_instances [ nginx ]
+
                         add_identity (
                             ResourceId.create (
                                 Arm.ManagedIdentity.userAssignedIdentities,
@@ -307,18 +308,29 @@ let tests =
                             )
                             |> UserAssignedIdentity
                         )
-                        add_managed_identity_registry_credentials [ registry "my-registry.azurecr.io" "user" managedIdentity ]
+
+                        add_managed_identity_registry_credentials
+                            [ registry "my-registry.azurecr.io" "user" managedIdentity ]
                     }
                     |> asAzureResource
 
-                Expect.hasLength group.ImageRegistryCredentials 1 "Expected one image managed identity registry credential"
+                Expect.hasLength
+                    group.ImageRegistryCredentials
+                    1
+                    "Expected one image managed identity registry credential"
+
                 let credentials = group.ImageRegistryCredentials.[0]
                 Expect.equal credentials.Server "my-registry.azurecr.io" "Incorrect container image registry server"
                 Expect.equal credentials.Username String.Empty "Container image registry user should be null"
-                Expect.equal credentials.Identity (managedIdentity.Dependencies.Head.ArmExpression.Eval()) "Incorrect container image registry identity"
+
+                Expect.equal
+                    credentials.Identity
+                    (managedIdentity.Dependencies.Head.ArmExpression.Eval())
+                    "Incorrect container image registry identity"
+
                 Expect.equal credentials.Password null "Container image registry password should be null"
             }
-            
+
             test "Container group with reference to private registry" {
                 let group =
                     containerGroup {

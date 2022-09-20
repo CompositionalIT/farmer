@@ -24,6 +24,7 @@ let fullContainerAppDeployment =
 
     let version = "1.0.0"
     let managedIdentity = ManagedIdentity.Empty
+
     let containerEnv =
         containerEnvironment {
             name "kubecontainerenv"
@@ -35,7 +36,9 @@ let fullContainerAppDeployment =
                         name "http"
                         add_identity msi
                         active_revision_mode Single
-                        add_registry_credentials [ registry containerRegistryDomain containerRegistryName managedIdentity ]
+
+                        add_registry_credentials
+                            [ registry containerRegistryDomain containerRegistryName managedIdentity ]
 
                         add_containers
                             [

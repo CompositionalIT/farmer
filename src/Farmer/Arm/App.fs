@@ -167,7 +167,12 @@ type ContainerApp =
                                             | ImageRegistryAuthentication.ManagedIdentityCredential cred ->
                                                 {|
                                                     name = cred.Server
-                                                    value = if cred.Identity.Dependencies.Length > 0 then cred.Identity.Dependencies.Head.ArmExpression.Eval() else String.Empty
+                                                    value =
+                                                        if cred.Identity.Dependencies.Length > 0 then
+                                                            cred.Identity.Dependencies.Head.ArmExpression.Eval()
+                                                        else
+                                                            String.Empty
+
 
                                                 |}
                                         for setting in this.Secrets do
@@ -208,7 +213,11 @@ type ContainerApp =
                                                     server = cred.Server
                                                     username = String.Empty
                                                     passwordSecretRef = null
-                                                    identity = if cred.Identity.Dependencies.Length > 0 then cred.Identity.Dependencies.Head.ArmExpression.Eval() else String.Empty
+                                                    identity =
+                                                        if cred.Identity.Dependencies.Length > 0 then
+                                                            cred.Identity.Dependencies.Head.ArmExpression.Eval()
+                                                        else
+                                                            String.Empty
                                                 |}
                                     |]
                                 ingress =

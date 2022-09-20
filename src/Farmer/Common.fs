@@ -1938,8 +1938,8 @@ type ImageRegistryAuthentication =
     | Credential of ImageRegistryCredential
     /// Credentials for the container registry will be listed by ARM expression.
     | ListCredentials of ResourceId
-    /// Credentials for the container registry are included with the identity as a template parameter.    
-    | ManagedIdentityCredential of ImageRegistryCredential      
+    /// Credentials for the container registry are included with the identity as a template parameter.
+    | ManagedIdentityCredential of ImageRegistryCredential
 
 [<RequireQualifiedAccess>]
 type LogAnalyticsWorkspace =
