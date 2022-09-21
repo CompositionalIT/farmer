@@ -409,6 +409,15 @@ type ContainerAppBuilder() =
                 @ (resourceIds |> List.map ImageRegistryAuthentication.ListCredentials)
         }
 
+    /// Adds container app registry managed identity credentials for images in this container app.
+    [<CustomOperation "add_managed_identity_registry_credentials">]
+    member _.ManagedIdentityRegistryCredentials(state: ContainerAppConfig, credentials) =
+        { state with
+            ImageRegistryCredentials =
+                state.ImageRegistryCredentials
+                @ (credentials |> List.map ImageRegistryAuthentication.ManagedIdentityCredential)
+        }
+
     /// Adds one or more containers to the container app.
     [<CustomOperation "add_containers">]
     member _.AddContainers(state: ContainerAppConfig, containers: ContainerConfig list) =
