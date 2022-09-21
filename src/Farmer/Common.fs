@@ -151,6 +151,22 @@ type EnvVar =
 module Mb =
     let toBytes (mb: int<Mb>) = int64 mb * 1024L * 1024L
 
+module Route =
+    type HopType =
+        | VirtualAppliance of System.Net.IPAddress option
+        | Internet
+        | Nothing
+        | VirtualNetworkGateway
+        | VnetLocal
+
+        member x.ArmValue =
+            match x with
+            | VirtualAppliance _ -> "VirtualAppliance"
+            | Internet -> "Internet"
+            | Nothing -> "None"
+            | VirtualNetworkGateway -> "VirtualNetworkGateway"
+            | VnetLocal -> "VnetLocal"
+
 module Vm =
     type VMSize =
         | Basic_A0
@@ -1876,6 +1892,8 @@ module Identity =
                 UserAssigned = userAssignedIdentity :: managedIdentity.UserAssigned
             }
 
+open Identity
+
 module Containers =
     type DockerImage =
         | PrivateImage of RegistryDomain: string * ContainerName: string * Version: string option
@@ -1911,6 +1929,7 @@ type ImageRegistryCredential =
         Server: string
         Username: string
         Password: SecureParameter
+        Identity: ManagedIdentity
     }
 
 [<RequireQualifiedAccess>]
@@ -1919,6 +1938,8 @@ type ImageRegistryAuthentication =
     | Credential of ImageRegistryCredential
     /// Credentials for the container registry will be listed by ARM expression.
     | ListCredentials of ResourceId
+    /// Credentials for the container registry are included with the identity as a template parameter.
+    | ManagedIdentityCredential of ImageRegistryCredential
 
 [<RequireQualifiedAccess>]
 type LogAnalyticsWorkspace =

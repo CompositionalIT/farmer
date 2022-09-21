@@ -45,6 +45,7 @@ The Container Apps builder (`containerApp`) is used to define one or more contai
 | active_revision_mode | Indicates whether multiple version of a container app can be active at once.|
 | add_registry_credentials | Adds container image registry credentials for images in this container app, which are a list of server and usernames. Passwords are supplied as secure parameters. |
 | reference_registry_credentials | Adds container image registry credentials for images in this container app in the form of a list of Azure resource ids. |
+| add_managed_identity_registry_credentials | Adds container app registry managed identity credentials for images in this container app, which are a list of server and identities. |
 | add_containers | Adds a list of containers to this container app. All containers in the app share resources and scaling. |
 | add_simple_container | Adds a single container that references a public docker image and version. |
 | add_secret_parameter | Adds an application secret to the entire container app. This is passed as a secure parameter to the template, and an environment variable is automatically created which references the secret. |

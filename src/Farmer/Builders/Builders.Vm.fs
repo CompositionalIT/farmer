@@ -87,7 +87,7 @@ type VmConfig =
                     StorageAccount = this.DiagnosticsStorageAccount |> Option.map (fun r -> r.resourceId(this).Name)
                     NetworkInterfaceName = this.NicName.Name
                     Size = this.Size
-                    Priority = this.Priority |> Option.defaultValue Regular
+                    Priority = this.Priority
                     Credentials =
                         match this.Username with
                         | Some username ->

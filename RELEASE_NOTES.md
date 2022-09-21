@@ -1,7 +1,13 @@
 Release Notes
 =============
-## 1.7.8
+## 1.7.9
+* Container Group: Support for Managed Identity
+* Container App: Support for Managed Identity
 * VMs: Add support for VNets in other resource groups
+
+## 1.7.8
+* Route Tables: Initial support for Route Tables and Routes
+* Virtual Machines: Default to no priority
 
 ## 1.7.7
 * NAT Gateways: Initial support for NAT Gateways.

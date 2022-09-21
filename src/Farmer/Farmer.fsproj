@@ -2,7 +2,7 @@
   <PropertyGroup>
     <!-- General -->
     <AssemblyName>Farmer</AssemblyName>
-    <Version>1.7.7</Version>
+    <Version>1.7.8</Version>
     <Description>Farmer makes authoring ARM templates easy!</Description>
     <Copyright>Copyright 2019-2022 Compositional IT Ltd.</Copyright>
     <Company>Compositional IT</Company>
@@ -77,6 +77,7 @@
     <Compile Include="Arm/CommunicationServices.fs" />
     <Compile Include="Arm/BingSearch.fs" />
     <Compile Include="Arm/Dns.fs" />
+    <Compile Include="Arm\AVS.fs" />
     <Compile Include="Arm/Network.fs" />
     <Compile Include="Arm/Bastion.fs" />
     <Compile Include="Arm/Compute.fs" />
@@ -170,6 +171,7 @@
     <Compile Include="Builders/Builders.OperationsManagement.fs" />
     <Compile Include="Builders\Builders.PrivateLink.fs" />
     <Compile Include="Builders\Builders.PrivateEndpoint.fs" />
+    <Compile Include="Builders\Builders.RouteTable.fs" />
     <Compile Include="Aliases.fs" />
   </ItemGroup>
 </Project>

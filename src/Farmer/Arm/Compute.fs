@@ -101,7 +101,7 @@ type VirtualMachine =
         DiagnosticsEnabled: bool option
         StorageAccount: ResourceName option
         Size: VMSize
-        Priority: Priority
+        Priority: Priority option
         Credentials: {| Username: string
                         Password: SecureParameter |}
         CustomData: string option
@@ -137,7 +137,10 @@ type VirtualMachine =
 
             let properties =
                 {|
-                    priority = this.Priority.ArmValue
+                    priority =
+                        match this.Priority with
+                        | Some priority -> priority.ArmValue
+                        | _ -> Unchecked.defaultof<_>
                     hardwareProfile = {| vmSize = this.Size.ArmValue |}
                     osProfile =
                         {|
@@ -260,9 +263,10 @@ type VirtualMachine =
                         this.Identity.ToArmJson
                 properties =
                     match this.Priority with
-                    | Low
-                    | Regular -> box properties
-                    | Spot (evictionPolicy, maxPrice) ->
+                    | None
+                    | Some Low
+                    | Some Regular -> box properties
+                    | Some (Spot (evictionPolicy, maxPrice)) ->
                         {| properties with
                             evictionPolicy = evictionPolicy.ArmValue
                             billingProfile = {| maxPrice = maxPrice |}
