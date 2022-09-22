@@ -608,12 +608,13 @@ type NetworkInterface =
                                         subnet =
                                             {|
                                                 id =
-                                                    subnets
-                                                        .resourceId(this.VirtualNetwork.Name, ipConfig.SubnetName)
+                                                    { this.VirtualNetwork.ResourceId with
+                                                        Type = subnets
+                                                        Segments = [ ipConfig.SubnetName ]
+                                                    }
                                                         .Eval()
                                             |}
                                     |}
-
 
 
 

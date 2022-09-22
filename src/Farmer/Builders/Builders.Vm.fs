@@ -442,6 +442,11 @@ type VirtualMachineBuilder() =
     member this.LinkToVNet(state: VmConfig, vnet: VirtualNetworkConfig) = this.LinkToVNet(state, vnet.Name)
 
     [<CustomOperation "link_to_unmanaged_vnet">]
+    member _.LinkToUnmanagedVNet(state: VmConfig, id: ResourceId) =
+        { state with
+            VNet = LinkedResource(Unmanaged(id))
+        }
+
     member _.LinkToUnmanagedVNet(state: VmConfig, name: ResourceName) =
         { state with
             VNet = LinkedResource(Unmanaged(virtualNetworks.resourceId name))
