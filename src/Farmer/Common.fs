@@ -1833,11 +1833,15 @@ module Identity =
 
     /// Represents a User Assigned Identity, and the ability to create a Principal Id from it.
     type UserAssignedIdentity =
-        | UserAssignedIdentity of ResourceId
+        | UserAssignedIdentity of LinkedResource
 
         member private this.CreateExpression field =
-            let (UserAssignedIdentity resourceId) = this
-
+            let (UserAssignedIdentity linkedResource) = this
+            let resourceId =
+                match linkedResource with
+                | Managed rid -> rid
+                | Unmanaged rid -> rid
+            
             ArmExpression
                 .create($"reference({resourceId.ArmExpression.Value}).%s{field}")
                 .WithOwner(resourceId)
@@ -1847,7 +1851,10 @@ module Identity =
 
         member this.ResourceId =
             match this with
-            | UserAssignedIdentity r -> r
+            | UserAssignedIdentity lrid ->
+                match lrid with
+                | Managed rid -> rid
+                | Unmanaged rid -> rid
 
     type SystemIdentity =
         | SystemIdentity of ResourceId
@@ -1873,7 +1880,11 @@ module Identity =
             UserAssigned: UserAssignedIdentity list
         }
 
-        member this.Dependencies = this.UserAssigned |> List.map (fun u -> u.ResourceId)
+        member this.Dependencies = this.UserAssigned |> List.filter (fun u ->
+            let (UserAssignedIdentity linkedResourceId) = u
+            match linkedResourceId with
+                | Managed _ -> true
+                | Unmanaged _ -> false) |> List.map (fun u -> u.ResourceId)
 
         static member Empty =
             {
@@ -1888,9 +1899,16 @@ module Identity =
             }
 
         static member (+)(managedIdentity, userAssignedIdentity: UserAssignedIdentity) =
-            { managedIdentity with
-                UserAssigned = userAssignedIdentity :: managedIdentity.UserAssigned
-            }
+            let (UserAssignedIdentity linkedResource) = userAssignedIdentity
+            match linkedResource with
+            | Managed rid -> 
+                { managedIdentity with
+                    UserAssigned = userAssignedIdentity :: managedIdentity.UserAssigned
+                }
+            | Unmanaged rid ->
+                { managedIdentity with
+                    UserAssigned = userAssignedIdentity :: managedIdentity.UserAssigned
+                }
 
 open Identity
 

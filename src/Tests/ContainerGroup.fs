@@ -287,9 +287,12 @@ let tests =
             }
 
             test "Container group with managed identity to private registry" {
-                let userAssignedIdentity =
-                    ResourceId.create (Arm.ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
-                    |> UserAssignedIdentity
+                let resourceId = ResourceId.create (
+                                    ManagedIdentity.userAssignedIdentities,
+                                    ResourceName "user",
+                                    "resourceGroup"
+                                )
+                let userAssignedIdentity = UserAssignedIdentity (LinkedResource.Managed resourceId)
 
                 let managedIdentity =
                     { ManagedIdentity.Empty with
@@ -306,9 +309,7 @@ let tests =
                                 ResourceName "user",
                                 "resourceGroup"
                             )
-                            |> UserAssignedIdentity
                         )
-
                         add_managed_identity_registry_credentials
                             [ registry "my-registry.azurecr.io" "user" managedIdentity ]
                     }
@@ -396,7 +397,6 @@ let tests =
                                 ResourceName "user",
                                 "resourceGroup"
                             )
-                            |> UserAssignedIdentity
                         )
                     }
                     |> asAzureResource
@@ -431,7 +431,7 @@ let tests =
                 Expect.equal
                     containerGroup.Identity.UserAssigned.[0]
                     (UserAssignedIdentity(
-                        ResourceId.create (Arm.ManagedIdentity.userAssignedIdentities, ResourceName "aciUser")
+                        ResourceId.create (Arm.ManagedIdentity.userAssignedIdentities, ResourceName "aciUser") |> LinkedResource.Managed
                     ))
                     "Expected user identity named 'aciUser'."
             }
@@ -1220,4 +1220,73 @@ async {
                 Expect.sequenceEqual nameservers [ JValue "8.8.8.8"; JValue "1.1.1.1" ] "Incorrect nameservers."
                 Expect.equal searchDomains (JValue "example.com example.local") "Incorrect search domains."
             }
+            
+            // test "Specify DNS ahmed and search domains" {
+            //     let resourceId = ResourceId.create (Arm.ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
+            //     let userAssignedIdentity =
+            //         resourceId |> LinkedResource.Managed
+            //         |> UserAssignedIdentity
+            //
+            //     let managedIdentity:Identity.ManagedIdentity =
+            //         { ManagedIdentity.Empty with
+            //             UserAssigned = [ userAssignedIdentity ]
+            //         }
+            //     
+            //     let myVnet =
+            //         vnet {
+            //             name "mynetwork"
+            //             add_address_spaces [ "10.30.32.0/20" ]
+            //
+            //             add_subnets
+            //                 [
+            //                     subnet {
+            //                         name "containers"
+            //                         prefix "10.30.41.0/24"
+            //                         add_delegations [ SubnetDelegationService.ContainerGroups ]
+            //                     }
+            //                 ]
+            //         }
+            //     let containerGroup =
+            //         containerGroup {
+            //         // name "container-group-with-custom-dns"
+            //
+            //             add_identity userAssignedIdentity
+            //             add_managed_identity_registry_credentials [ registry "my-registry.azurecr.io" "user" managedIdentity ]
+            //
+            //
+            //             add_instances
+            //                 [
+            //                     containerInstance {
+            //                         name "httpserver"
+            //                         image "nginx:1.17.6-alpine"
+            //                     }
+            //                 ]
+            //             link_to_vnet myVnet.ResourceId
+            //             subnet "containers"
+            //         }
+            //     
+            //
+            //         
+            //     let deployment =
+            //         arm {
+            //             add_resources
+            //                 [
+            //                     containerGroup
+            //
+            //                 ]
+            //         }
+            //         
+            //     System.Console.WriteLine(containerGroup.Dependencies)
+            //
+            //     let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+            //
+            //     let dnsConfig =
+            //         jobj.SelectToken "resources[?(@.name=='container-group-with-custom-dns')].properties.dnsConfig"
+            //
+            //     let nameservers = dnsConfig.SelectToken "nameServers"
+            //     let searchDomains = dnsConfig.SelectToken "searchDomains"
+            //     Expect.sequenceEqual nameservers [ JValue "8.8.8.8"; JValue "1.1.1.1" ] "Incorrect nameservers."
+            //     Expect.equal searchDomains (JValue "example.com example.local") "Incorrect search domains."
+            // }            
+            
         ]

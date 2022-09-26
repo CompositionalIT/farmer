@@ -1,5 +1,6 @@
 ﻿namespace Farmer
 
+open Farmer.Arm
 open Identity
 open Farmer.Arm.ManagedIdentity
 open System
@@ -12,12 +13,27 @@ module ManagedIdentityExtensions =
         static member create(resourceId: ResourceId) =
             {
                 SystemAssigned = Disabled
-                UserAssigned = [ UserAssignedIdentity resourceId ]
+                UserAssigned = [ UserAssignedIdentity (LinkedResource.Managed resourceId) ]
             }
-
+        
+        static member create(linkedResource:LinkedResource) =
+            match linkedResource with
+            | Managed rid ->
+                {
+                    SystemAssigned = Disabled
+                    UserAssigned = [ UserAssignedIdentity (LinkedResource.Managed rid) ]
+                }
+            | Unmanaged rid ->
+                {
+                    SystemAssigned = Disabled
+                    UserAssigned = [ UserAssignedIdentity (LinkedResource.Unmanaged rid) ]
+                }
+                
         /// Creates a resource identity from a resource name
         static member create(name: ResourceName) =
             userAssignedIdentities.resourceId name |> ManagedIdentity.create
+            
+            
 
 module Roles =
     type RoleAssignment =

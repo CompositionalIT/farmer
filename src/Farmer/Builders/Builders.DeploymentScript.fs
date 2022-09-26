@@ -52,7 +52,7 @@ type DeploymentScriptConfig =
 
                 let identity =
                     this.CustomIdentity
-                    |> Option.defaultValue (UserAssignedIdentity generatedIdentityId)
+                    |> Option.defaultValue (UserAssignedIdentity (LinkedResource.Managed generatedIdentityId))
 
                 // Assignment
                 {
