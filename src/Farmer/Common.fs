@@ -1899,16 +1899,9 @@ module Identity =
             }
 
         static member (+)(managedIdentity, userAssignedIdentity: UserAssignedIdentity) =
-            let (UserAssignedIdentity linkedResource) = userAssignedIdentity
-            match linkedResource with
-            | Managed rid -> 
-                { managedIdentity with
-                    UserAssigned = userAssignedIdentity :: managedIdentity.UserAssigned
-                }
-            | Unmanaged rid ->
-                { managedIdentity with
-                    UserAssigned = userAssignedIdentity :: managedIdentity.UserAssigned
-                }
+            { managedIdentity with
+                UserAssigned = userAssignedIdentity :: managedIdentity.UserAssigned
+            }
 
 open Identity
 
