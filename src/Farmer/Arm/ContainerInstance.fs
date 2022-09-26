@@ -399,7 +399,7 @@ type ContainerGroup =
                                             if cred.Identity.Dependencies.Length > 0 then
                                                 cred.Identity.Dependencies.Head.ArmExpression.Eval()
                                             else
-                                                String.Empty
+                                                null
                                     |})
                         ipAddress =
                             match this.IpAddress with

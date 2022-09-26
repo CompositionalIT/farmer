@@ -72,8 +72,6 @@ module Extensions =
             let userAssignedIdentity = (UserAssignedIdentity linkedResource)
             this.Add state (fun current -> current + userAssignedIdentity)
 
-        
-        
         [<CustomOperation "link_to_identity">]
         member this.LinkToIdentity(state: 'TConfig, resourceId: ResourceId) =
             let linkedResource = (LinkedResource.Unmanaged resourceId)
