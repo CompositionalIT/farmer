@@ -1837,11 +1837,12 @@ module Identity =
 
         member private this.CreateExpression field =
             let (UserAssignedIdentity linkedResource) = this
+
             let resourceId =
                 match linkedResource with
                 | Managed rid -> rid
                 | Unmanaged rid -> rid
-            
+
             ArmExpression
                 .create($"reference({resourceId.ArmExpression.Value}).%s{field}")
                 .WithOwner(resourceId)
@@ -1880,11 +1881,15 @@ module Identity =
             UserAssigned: UserAssignedIdentity list
         }
 
-        member this.Dependencies = this.UserAssigned |> List.filter (fun u ->
-            let (UserAssignedIdentity linkedResourceId) = u
-            match linkedResourceId with
+        member this.Dependencies =
+            this.UserAssigned
+            |> List.filter (fun u ->
+                let (UserAssignedIdentity linkedResourceId) = u
+
+                match linkedResourceId with
                 | Managed _ -> true
-                | Unmanaged _ -> false) |> List.map (fun u -> u.ResourceId)
+                | Unmanaged _ -> false)
+            |> List.map (fun u -> u.ResourceId)
 
         static member Empty =
             {

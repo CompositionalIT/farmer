@@ -286,12 +286,10 @@ let tests =
             }
 
             test "Container group with managed identity to private registry" {
-                let resourceId = ResourceId.create (
-                                    ManagedIdentity.userAssignedIdentities,
-                                    ResourceName "user",
-                                    "resourceGroup"
-                                )
-                let userAssignedIdentity = UserAssignedIdentity (LinkedResource.Managed resourceId)
+                let resourceId =
+                    ResourceId.create (ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
+
+                let userAssignedIdentity = UserAssignedIdentity(LinkedResource.Managed resourceId)
 
                 let managedIdentity =
                     { ManagedIdentity.Empty with
@@ -309,6 +307,7 @@ let tests =
                                 "resourceGroup"
                             )
                         )
+
                         add_managed_identity_registry_credentials
                             [ registry "my-registry.azurecr.io" "user" managedIdentity ]
                     }
@@ -330,21 +329,19 @@ let tests =
 
                 Expect.equal credentials.Password null "Container image registry password should be null"
             }
-            
+
             test "Container group with an link_to_identity to private registry" {
-                let resourceId = ResourceId.create (
-                                    ManagedIdentity.userAssignedIdentities,
-                                    ResourceName "user",
-                                    "resourceGroup"
-                                )
-                let userAssignedIdentity = UserAssignedIdentity (LinkedResource.Managed resourceId)
+                let resourceId =
+                    ResourceId.create (ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
+
+                let userAssignedIdentity = UserAssignedIdentity(LinkedResource.Managed resourceId)
 
                 let managedIdentity =
                     { ManagedIdentity.Empty with
                         UserAssigned = [ userAssignedIdentity ]
                     }
 
-                
+
                 let containerGroupConfig =
                     containerGroup {
                         add_instances [ nginx ]
@@ -356,10 +353,11 @@ let tests =
                                 "resourceGroup"
                             )
                         )
+
                         add_managed_identity_registry_credentials
                             [ registry "my-registry.azurecr.io" "user" managedIdentity ]
                     }
-                    
+
                 let group = containerGroupConfig |> asAzureResource
 
                 Expect.hasLength
@@ -375,7 +373,12 @@ let tests =
                     credentials.Identity
                     (managedIdentity.Dependencies.Head.ArmExpression.Eval())
                     "Incorrect container image registry identity"
-                Expect.equal containerGroupConfig.Identity.Dependencies.Length 0 "Container Group Config Identity Dependencies should be 0"
+
+                Expect.equal
+                    containerGroupConfig.Identity.Dependencies.Length
+                    0
+                    "Container Group Config Identity Dependencies should be 0"
+
                 Expect.equal credentials.Password null "Container image registry password should be null"
             }
 
@@ -478,7 +481,8 @@ let tests =
                 Expect.equal
                     containerGroup.Identity.UserAssigned.[0]
                     (UserAssignedIdentity(
-                        ResourceId.create (Arm.ManagedIdentity.userAssignedIdentities, ResourceName "aciUser") |> LinkedResource.Managed
+                        ResourceId.create (Arm.ManagedIdentity.userAssignedIdentities, ResourceName "aciUser")
+                        |> LinkedResource.Managed
                     ))
                     "Expected user identity named 'aciUser'."
             }
@@ -1267,14 +1271,15 @@ async {
                 Expect.sequenceEqual nameservers [ JValue "8.8.8.8"; JValue "1.1.1.1" ] "Incorrect nameservers."
                 Expect.equal searchDomains (JValue "example.com example.local") "Incorrect search domains."
             }
-            
+
             test "Create container group created with a link_to_identity" {
-                let resourceId = ResourceId.create (Arm.ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
+                let resourceId =
+                    ResourceId.create (Arm.ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
+
                 let userAssignedIdentity =
-                    resourceId |> LinkedResource.Managed
-                    |> UserAssignedIdentity
-            
-                let managedIdentity:Identity.ManagedIdentity =
+                    resourceId |> LinkedResource.Managed |> UserAssignedIdentity
+
+                let managedIdentity: Identity.ManagedIdentity =
                     { ManagedIdentity.Empty with
                         UserAssigned = [ userAssignedIdentity ]
                     }
@@ -1283,7 +1288,10 @@ async {
                     containerGroup {
                         name "container-group-with-link-to-identity"
                         link_to_identity resourceId
-                        add_managed_identity_registry_credentials [ registry "my-registry.azurecr.io" "user" managedIdentity ]
+
+                        add_managed_identity_registry_credentials
+                            [ registry "my-registry.azurecr.io" "user" managedIdentity ]
+
                         add_instances
                             [
                                 containerInstance {
@@ -1292,29 +1300,33 @@ async {
                                 }
                             ]
                     }
-                    
+
                 let deployment =
                     arm {
                         add_resources
                             [
                                 containerGroup
-            
+
                             ]
-                    }                    
-            
+                    }
+
                 let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
-                let containerGroupJson = jobj.SelectToken("resources[?(@.name=='container-group-with-link-to-identity')]")
+
+                let containerGroupJson =
+                    jobj.SelectToken("resources[?(@.name=='container-group-with-link-to-identity')]")
+
                 let dependsOn = containerGroupJson.SelectToken("dependsOn") :?> JArray
                 Expect.equal dependsOn.Count 0 "Container group dependsOn list shall be empty"
             }
-            
+
             test "Create container group created with a add_identity" {
-                let resourceId = ResourceId.create (Arm.ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
+                let resourceId =
+                    ResourceId.create (Arm.ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
+
                 let userAssignedIdentity =
-                    resourceId |> LinkedResource.Managed
-                    |> UserAssignedIdentity
-            
-                let managedIdentity:Identity.ManagedIdentity =
+                    resourceId |> LinkedResource.Managed |> UserAssignedIdentity
+
+                let managedIdentity: Identity.ManagedIdentity =
                     { ManagedIdentity.Empty with
                         UserAssigned = [ userAssignedIdentity ]
                     }
@@ -1323,7 +1335,10 @@ async {
                     containerGroup {
                         name "container-group-with-add-identity"
                         add_identity resourceId
-                        add_managed_identity_registry_credentials [ registry "my-registry.azurecr.io" "user" managedIdentity ]
+
+                        add_managed_identity_registry_credentials
+                            [ registry "my-registry.azurecr.io" "user" managedIdentity ]
+
                         add_instances
                             [
                                 containerInstance {
@@ -1332,19 +1347,22 @@ async {
                                 }
                             ]
                     }
-                    
+
                 let deployment =
                     arm {
                         add_resources
                             [
                                 containerGroup
-            
+
                             ]
-                    }                    
-            
+                    }
+
                 let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
-                let containerGroupJson = jobj.SelectToken("resources[?(@.name=='container-group-with-add-identity')]")
+
+                let containerGroupJson =
+                    jobj.SelectToken("resources[?(@.name=='container-group-with-add-identity')]")
+
                 let dependsOn = containerGroupJson.SelectToken("dependsOn") :?> JArray
                 Expect.equal dependsOn.Count 1 "Container group dependsOn list shouldn't be empty"
-            }          
+            }
         ]
