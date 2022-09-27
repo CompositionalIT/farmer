@@ -374,6 +374,10 @@ let tests =
                     (managedIdentity.Dependencies.Head.ArmExpression.Eval())
                     "Incorrect container image registry identity"
 
+                Expect.equal managedIdentity.Dependencies.Length 1 "Managed identity should have at least 1 dependency"
+                Expect.notEqual credentials.Identity null "Identity should not be null"
+                Expect.notEqual credentials.Identity String.Empty "Identity should not be an empty string"
+
                 Expect.equal
                     containerGroupConfig.Identity.Dependencies.Length
                     0
@@ -926,7 +930,7 @@ async {
 
                                     link_to_vnet (
                                         ResourceId.create (
-                                            Arm.Network.virtualNetworks,
+                                            virtualNetworks,
                                             (ResourceName "containerNet"),
                                             group = "other-res-group"
                                         )
@@ -1274,7 +1278,7 @@ async {
 
             test "Create container group created with a link_to_identity" {
                 let resourceId =
-                    ResourceId.create (Arm.ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
+                    ResourceId.create (ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
 
                 let userAssignedIdentity =
                     resourceId |> LinkedResource.Managed |> UserAssignedIdentity
@@ -1321,7 +1325,7 @@ async {
 
             test "Create container group created with a add_identity" {
                 let resourceId =
-                    ResourceId.create (Arm.ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
+                    ResourceId.create (ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
 
                 let userAssignedIdentity =
                     resourceId |> LinkedResource.Managed |> UserAssignedIdentity
