@@ -334,7 +334,7 @@ let tests =
                 let resourceId =
                     ResourceId.create (ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
 
-                let userAssignedIdentity = LinkedUserAssignedIdentity(LinkedResource.Managed resourceId)
+                let userAssignedIdentity = LinkedUserAssignedIdentity resourceId
 
                 let managedIdentity =
                     { ManagedIdentity.Empty with
@@ -371,10 +371,9 @@ let tests =
 
                 Expect.equal
                     credentials.Identity
-                    (managedIdentity.Dependencies.Head.ArmExpression.Eval())
+                    (managedIdentity.UserAssigned.Head.ResourceId.ArmExpression.Eval())
                     "Incorrect container image registry identity"
 
-                Expect.equal managedIdentity.Dependencies.Length 1 "Managed identity should have at least 1 dependency"
                 Expect.notEqual credentials.Identity null "Identity should not be null"
                 Expect.notEqual credentials.Identity String.Empty "Identity should not be an empty string"
 
@@ -1281,7 +1280,7 @@ async {
                     ResourceId.create (ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
 
                 let userAssignedIdentity =
-                    resourceId |> LinkedResource.Managed |> LinkedUserAssignedIdentity
+                    resourceId |> LinkedUserAssignedIdentity
 
                 let managedIdentity: Identity.ManagedIdentity =
                     { ManagedIdentity.Empty with

@@ -21,12 +21,12 @@ module ManagedIdentityExtensions =
             | Managed rid ->
                 {
                     SystemAssigned = Disabled
-                    UserAssigned = [ LinkedUserAssignedIdentity(LinkedResource.Managed rid) ]
+                    UserAssigned = [ LinkedUserAssignedIdentity rid ]
                 }
             | Unmanaged rid ->
                 {
                     SystemAssigned = Disabled
-                    UserAssigned = [ LinkedUserAssignedIdentity(LinkedResource.Unmanaged rid) ]
+                    UserAssigned = [ LinkedUserAssignedIdentity rid ]
                 }
 
         /// Creates a resource identity from a resource name

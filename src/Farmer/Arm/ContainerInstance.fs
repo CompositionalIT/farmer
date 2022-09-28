@@ -396,10 +396,10 @@ type ContainerGroup =
                                         username = String.Empty
                                         password = null
                                         identity =
-                                            if cred.Identity.Dependencies.Length > 0 then
-                                                cred.Identity.Dependencies.Head.ArmExpression.Eval()
-                                            else
-                                                null
+                                            cred.Identity.UserAssigned
+                                            |> List.tryHead
+                                            |> Option.map (fun upn -> upn.ResourceId.ArmExpression.Eval())
+                                            |> Option.defaultValue null
                                     |})
                         ipAddress =
                             match this.IpAddress with
