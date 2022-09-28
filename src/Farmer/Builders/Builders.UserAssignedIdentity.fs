@@ -25,8 +25,7 @@ type UserAssignedIdentityConfig =
 
     member this.ResourceId = userAssignedIdentities.resourceId this.Name
 
-    member this.UserAssignedIdentity =
-        UserAssignedIdentity(LinkedResource.Managed this.ResourceId)
+    member this.UserAssignedIdentity = UserAssignedIdentity this.ResourceId
 
     member this.ClientId = this.UserAssignedIdentity.ClientId
     member this.PrincipalId = this.UserAssignedIdentity.PrincipalId
@@ -68,15 +67,10 @@ module Extensions =
         member this.AddIdentity(state, identity: UserAssignedIdentityConfig) =
             this.AddIdentity(state, identity.UserAssignedIdentity)
 
-        member this.AddIdentity(state, resourceId: ResourceId) =
-            let linkedResource = (LinkedResource.Managed resourceId)
-            let userAssignedIdentity = (UserAssignedIdentity linkedResource)
-            this.Add state (fun current -> current + userAssignedIdentity)
-
         [<CustomOperation "link_to_identity">]
         member this.LinkToIdentity(state: 'TConfig, resourceId: ResourceId) =
             let linkedResource = (LinkedResource.Unmanaged resourceId)
-            let userAssignedIdentity = (UserAssignedIdentity linkedResource)
+            let userAssignedIdentity = (LinkedUserAssignedIdentity linkedResource)
             this.Add state (fun current -> current + userAssignedIdentity)
 
         member this.LinkToIdentity(state, identity: UserAssignedIdentityConfig) =

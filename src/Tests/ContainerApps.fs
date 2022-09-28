@@ -303,7 +303,6 @@ let tests =
                     containerApp.Identity.UserAssigned.[0]
                     (UserAssignedIdentity(
                         ResourceId.create (Arm.ManagedIdentity.userAssignedIdentities, ResourceName "appUser")
-                        |> LinkedResource.Managed
                     ))
                     "Expected user identity named 'appUser'."
             }

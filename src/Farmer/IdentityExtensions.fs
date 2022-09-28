@@ -13,7 +13,7 @@ module ManagedIdentityExtensions =
         static member create(resourceId: ResourceId) =
             {
                 SystemAssigned = Disabled
-                UserAssigned = [ UserAssignedIdentity(LinkedResource.Managed resourceId) ]
+                UserAssigned = [ UserAssignedIdentity resourceId ]
             }
 
         static member create(linkedResource: LinkedResource) =
@@ -21,19 +21,17 @@ module ManagedIdentityExtensions =
             | Managed rid ->
                 {
                     SystemAssigned = Disabled
-                    UserAssigned = [ UserAssignedIdentity(LinkedResource.Managed rid) ]
+                    UserAssigned = [ LinkedUserAssignedIdentity(LinkedResource.Managed rid) ]
                 }
             | Unmanaged rid ->
                 {
                     SystemAssigned = Disabled
-                    UserAssigned = [ UserAssignedIdentity(LinkedResource.Unmanaged rid) ]
+                    UserAssigned = [ LinkedUserAssignedIdentity(LinkedResource.Unmanaged rid) ]
                 }
 
         /// Creates a resource identity from a resource name
         static member create(name: ResourceName) =
             userAssignedIdentities.resourceId name |> ManagedIdentity.create
-
-
 
 module Roles =
     type RoleAssignment =

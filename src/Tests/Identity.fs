@@ -17,18 +17,12 @@ let tests =
 
                 let userOnlyA =
                     { ManagedIdentity.Empty with
-                        UserAssigned =
-                            [
-                                UserAssignedIdentity(LinkedResource.Managed(userAssignedIdentities.resourceId "a"))
-                            ]
+                        UserAssigned = [ UserAssignedIdentity(userAssignedIdentities.resourceId "a") ]
                     }
 
                 let userOnlyB =
                     { ManagedIdentity.Empty with
-                        UserAssigned =
-                            [
-                                UserAssignedIdentity(LinkedResource.Managed(userAssignedIdentities.resourceId "b"))
-                            ]
+                        UserAssigned = [ UserAssignedIdentity(userAssignedIdentities.resourceId "b") ]
                     }
 
                 Expect.isTrue (userOnlyA + systemOnly).SystemAssigned.AsBoolean "Should have System Assigned on"
@@ -36,16 +30,14 @@ let tests =
                 Expect.sequenceEqual
                     (userOnlyA + userOnlyB).UserAssigned
                     [
-                        UserAssignedIdentity(LinkedResource.Managed(userAssignedIdentities.resourceId "a"))
-                        UserAssignedIdentity(LinkedResource.Managed(userAssignedIdentities.resourceId "b"))
+                        UserAssignedIdentity(userAssignedIdentities.resourceId "a")
+                        UserAssignedIdentity(userAssignedIdentities.resourceId "b")
                     ]
                     "User Assigned not added correctly"
 
                 Expect.sequenceEqual
                     (userOnlyA + userOnlyA).UserAssigned
-                    [
-                        UserAssignedIdentity(LinkedResource.Managed(userAssignedIdentities.resourceId "a"))
-                    ]
+                    [ UserAssignedIdentity(userAssignedIdentities.resourceId "a") ]
                     "User Assigned duplicates exist"
             }
             test "Creates ARM JSON correctly" {

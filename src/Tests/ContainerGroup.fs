@@ -286,10 +286,9 @@ let tests =
             }
 
             test "Container group with managed identity to private registry" {
-                let resourceId =
-                    ResourceId.create (ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
-
-                let userAssignedIdentity = UserAssignedIdentity(LinkedResource.Managed resourceId)
+                let userAssignedIdentity =
+                    ResourceId.create (Arm.ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
+                    |> UserAssignedIdentity
 
                 let managedIdentity =
                     { ManagedIdentity.Empty with
@@ -306,6 +305,7 @@ let tests =
                                 ResourceName "user",
                                 "resourceGroup"
                             )
+                            |> UserAssignedIdentity
                         )
 
                         add_managed_identity_registry_credentials
@@ -334,7 +334,7 @@ let tests =
                 let resourceId =
                     ResourceId.create (ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
 
-                let userAssignedIdentity = UserAssignedIdentity(LinkedResource.Managed resourceId)
+                let userAssignedIdentity = LinkedUserAssignedIdentity(LinkedResource.Managed resourceId)
 
                 let managedIdentity =
                     { ManagedIdentity.Empty with
@@ -451,6 +451,7 @@ let tests =
                                 ResourceName "user",
                                 "resourceGroup"
                             )
+                            |> UserAssignedIdentity
                         )
                     }
                     |> asAzureResource
@@ -486,7 +487,6 @@ let tests =
                     containerGroup.Identity.UserAssigned.[0]
                     (UserAssignedIdentity(
                         ResourceId.create (Arm.ManagedIdentity.userAssignedIdentities, ResourceName "aciUser")
-                        |> LinkedResource.Managed
                     ))
                     "Expected user identity named 'aciUser'."
             }
@@ -1281,7 +1281,7 @@ async {
                     ResourceId.create (ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
 
                 let userAssignedIdentity =
-                    resourceId |> LinkedResource.Managed |> UserAssignedIdentity
+                    resourceId |> LinkedResource.Managed |> LinkedUserAssignedIdentity
 
                 let managedIdentity: Identity.ManagedIdentity =
                     { ManagedIdentity.Empty with
@@ -1328,7 +1328,7 @@ async {
                     ResourceId.create (ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
 
                 let userAssignedIdentity =
-                    resourceId |> LinkedResource.Managed |> UserAssignedIdentity
+                    resourceId |> UserAssignedIdentity
 
                 let managedIdentity: Identity.ManagedIdentity =
                     { ManagedIdentity.Empty with
@@ -1338,7 +1338,7 @@ async {
                 let containerGroup =
                     containerGroup {
                         name "container-group-with-add-identity"
-                        add_identity resourceId
+                        add_identity userAssignedIdentity
 
                         add_managed_identity_registry_credentials
                             [ registry "my-registry.azurecr.io" "user" managedIdentity ]

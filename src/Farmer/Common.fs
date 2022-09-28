@@ -1833,15 +1833,15 @@ module Identity =
 
     /// Represents a User Assigned Identity, and the ability to create a Principal Id from it.
     type UserAssignedIdentity =
-        | UserAssignedIdentity of LinkedResource
+        | UserAssignedIdentity of ResourceId
+        | LinkedUserAssignedIdentity of LinkedResource
 
         member private this.CreateExpression field =
-            let (UserAssignedIdentity linkedResource) = this
-
             let resourceId =
-                match linkedResource with
-                | Managed rid -> rid
-                | Unmanaged rid -> rid
+                match this with
+                | UserAssignedIdentity rid -> rid
+                | LinkedUserAssignedIdentity (Managed rid) -> rid
+                | LinkedUserAssignedIdentity (Unmanaged rid) -> rid
 
             ArmExpression
                 .create($"reference({resourceId.ArmExpression.Value}).%s{field}")
@@ -1852,10 +1852,9 @@ module Identity =
 
         member this.ResourceId =
             match this with
-            | UserAssignedIdentity lrid ->
-                match lrid with
-                | Managed rid -> rid
-                | Unmanaged rid -> rid
+            | UserAssignedIdentity rid -> rid
+            | LinkedUserAssignedIdentity (Managed rid) -> rid
+            | LinkedUserAssignedIdentity (Unmanaged rid) -> rid
 
     type SystemIdentity =
         | SystemIdentity of ResourceId
@@ -1883,13 +1882,12 @@ module Identity =
 
         member this.Dependencies =
             this.UserAssigned
-            |> List.filter (fun u ->
-                let (UserAssignedIdentity linkedResourceId) = u
-
-                match linkedResourceId with
-                | Managed _ -> true
-                | Unmanaged _ -> false)
-            |> List.map (fun u -> u.ResourceId)
+            |> List.choose (fun identity ->
+                match identity with
+                | UserAssignedIdentity rid -> Some rid
+                | LinkedUserAssignedIdentity (Managed rid) -> Some rid
+                | LinkedUserAssignedIdentity (Unmanaged _) -> None
+            )
 
         static member Empty =
             {
