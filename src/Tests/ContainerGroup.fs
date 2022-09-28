@@ -334,25 +334,15 @@ let tests =
                 let resourceId =
                     ResourceId.create (ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
 
-                let userAssignedIdentity = LinkedUserAssignedIdentity resourceId
-
                 let managedIdentity =
                     { ManagedIdentity.Empty with
-                        UserAssigned = [ userAssignedIdentity ]
+                        UserAssigned = [ (LinkedUserAssignedIdentity resourceId) ]
                     }
-
 
                 let containerGroupConfig =
                     containerGroup {
                         add_instances [ nginx ]
-
-                        link_to_identity (
-                            ResourceId.create (
-                                ManagedIdentity.userAssignedIdentities,
-                                ResourceName "user",
-                                "resourceGroup"
-                            )
-                        )
+                        link_to_identity resourceId
 
                         add_managed_identity_registry_credentials
                             [ registry "my-registry.azurecr.io" "user" managedIdentity ]
@@ -1279,11 +1269,9 @@ async {
                 let resourceId =
                     ResourceId.create (ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
 
-                let userAssignedIdentity = resourceId |> LinkedUserAssignedIdentity
-
                 let managedIdentity: Identity.ManagedIdentity =
                     { ManagedIdentity.Empty with
-                        UserAssigned = [ userAssignedIdentity ]
+                        UserAssigned = [ (LinkedUserAssignedIdentity resourceId) ]
                     }
 
                 let containerGroup =

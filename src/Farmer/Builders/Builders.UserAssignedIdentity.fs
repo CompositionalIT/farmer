@@ -67,6 +67,10 @@ module Extensions =
         member this.AddIdentity(state, identity: UserAssignedIdentityConfig) =
             this.AddIdentity(state, identity.UserAssignedIdentity)
 
+        member this.AddIdentity(state: 'TConfig, resourceId: ResourceId) =
+            let userAssignedIdentity = UserAssignedIdentity resourceId
+            this.Add state (fun current -> current + userAssignedIdentity)
+            
         [<CustomOperation "link_to_identity">]
         member this.LinkToIdentity(state: 'TConfig, resourceId: ResourceId) =
             let userAssignedIdentity = LinkedUserAssignedIdentity resourceId

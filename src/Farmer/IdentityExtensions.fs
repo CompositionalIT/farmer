@@ -16,17 +16,17 @@ module ManagedIdentityExtensions =
                 UserAssigned = [ UserAssignedIdentity resourceId ]
             }
 
-        static member create(linkedResource: LinkedResource) =
-            match linkedResource with
-            | Managed rid ->
+        static member create(identity: Identity.UserAssignedIdentity) =
+            match identity with
+            | LinkedUserAssignedIdentity rid ->
                 {
                     SystemAssigned = Disabled
                     UserAssigned = [ LinkedUserAssignedIdentity rid ]
                 }
-            | Unmanaged rid ->
+            | UserAssignedIdentity rid ->
                 {
                     SystemAssigned = Disabled
-                    UserAssigned = [ LinkedUserAssignedIdentity rid ]
+                    UserAssigned = [ UserAssignedIdentity rid ]
                 }
 
         /// Creates a resource identity from a resource name
