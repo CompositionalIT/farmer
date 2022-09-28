@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.8.0
+* Identity: Add support for link_to_identity
+
 ## 1.7.9
 * Container Group: Support for Managed Identity
 * Container App: Support for Managed Identity
