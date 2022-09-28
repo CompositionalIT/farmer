@@ -1883,8 +1883,7 @@ module Identity =
             |> List.choose (fun identity ->
                 match identity with
                 | UserAssignedIdentity rid -> Some rid
-                | LinkedUserAssignedIdentity _ -> None
-            )
+                | LinkedUserAssignedIdentity _ -> None)
 
         static member Empty =
             {

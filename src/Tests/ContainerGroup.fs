@@ -1279,8 +1279,7 @@ async {
                 let resourceId =
                     ResourceId.create (ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
 
-                let userAssignedIdentity =
-                    resourceId |> LinkedUserAssignedIdentity
+                let userAssignedIdentity = resourceId |> LinkedUserAssignedIdentity
 
                 let managedIdentity: Identity.ManagedIdentity =
                     { ManagedIdentity.Empty with
@@ -1326,8 +1325,7 @@ async {
                 let resourceId =
                     ResourceId.create (ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
 
-                let userAssignedIdentity =
-                    resourceId |> UserAssignedIdentity
+                let userAssignedIdentity = resourceId |> UserAssignedIdentity
 
                 let managedIdentity: Identity.ManagedIdentity =
                     { ManagedIdentity.Empty with
