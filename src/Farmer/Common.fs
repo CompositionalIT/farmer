@@ -178,15 +178,15 @@ module DedicatedHosts =
             | Basic -> "Basic"
     type HostSku =
         {
-            Capacity: int
+            Capacity: int option
             Name: string
-            Tier: HostTier
+            Tier: HostTier option
         }
         member internal this.JsonModelProperties =
             {|
-                capacity = string this.Capacity
+                capacity = this.Capacity |> Option.map string |> Option.defaultValue Unchecked.defaultof<_>
                 name = this.Name
-                tier = HostTier.Print this.Tier
+                tier = this.Tier |> Option.map HostTier.Print |> Option.defaultValue Unchecked.defaultof<_>
             |}
         
     type HostLicenseType =

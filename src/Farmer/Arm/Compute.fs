@@ -297,6 +297,7 @@ type Host =
             autoReplaceOnFailure = this.AutoReplaceOnFailure.ArmValue
             licenseType = HostLicenseType.Print this.LicenseType
             platformFaultDomain = string this.PlatformFaultDomain
+            publicKey = this.PublicKey |> Option.defaultValue Unchecked.defaultof<_>
             sku = this.Sku.JsonModelProperties
         |}
     interface IArmResource with

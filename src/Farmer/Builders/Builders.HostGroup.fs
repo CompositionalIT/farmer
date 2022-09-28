@@ -75,18 +75,14 @@ type HostConfig =
          member this.ResourceId = hosts.resourceId this.Name
 
          member this.BuildResources location =
-            match this.HostGroupName.Name.Value with
-            | "" -> raiseFarmer "Hosts must have a linked host group"
-            | _ -> 
+            match this.HostGroupName.Name.Value, this.HostSku with
+            | "", _ -> raiseFarmer "Hosts must have a linked host group"
+            | _, None -> raiseFarmer "Hosts must have a sku"
+            | _, Some sku -> 
                  let host: Compute.Host =
                      { Name = this.Name
                        Location = location 
-                       Sku = this.HostSku
-                                |> Option.defaultValue
-                                       { Capacity = 1
-                                         Name = "VSv1-Type3"
-                                         Tier = HostTier.Standard
-                                        }
+                       Sku = sku
                        ParentHostGroupName = this.HostGroupName.ResourceId.Name
                        AutoReplaceOnFailure = FeatureFlag.Enabled
                        LicenseType = HostLicenseType.NoLicense
