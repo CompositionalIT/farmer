@@ -167,6 +167,39 @@ module Route =
             | VirtualNetworkGateway -> "VirtualNetworkGateway"
             | VnetLocal -> "VnetLocal"
 
+module DedicatedHosts =
+    type HostTier =
+    | Standard
+    | Basic
+    with
+        static member Print(x: HostTier) =
+            match x with
+            | Standard -> "Standard"
+            | Basic -> "Basic"
+    type HostSku =
+        {
+            Capacity: int
+            Name: string
+            Tier: HostTier
+        }
+        member internal this.JsonModelProperties =
+            {|
+                capacity = string this.Capacity
+                name = this.Name
+                tier = HostTier.Print this.Tier
+            |}
+        
+    type HostLicenseType =
+        | NoLicense
+        | WindowsHybrid
+        | WindowsPerpetual
+    with
+        static member Print (x: HostLicenseType) =
+            match x with
+            | NoLicense -> "None"
+            | WindowsHybrid -> "Windows_Server_Hybrid"
+            | WindowsPerpetual -> "Windows_Server_Perpetual"
+
 module Vm =
     type VMSize =
         | Basic_A0

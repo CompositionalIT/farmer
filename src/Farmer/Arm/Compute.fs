@@ -1,6 +1,7 @@
 [<AutoOpen>]
 module Farmer.Arm.Compute
 
+open System.ComponentModel
 open Farmer
 open Farmer.Identity
 open Farmer.Vm
@@ -12,6 +13,11 @@ let virtualMachines =
 
 let extensions =
     ResourceType("Microsoft.Compute/virtualMachines/extensions", "2019-12-01")
+
+let hostGroups =
+    ResourceType("Microsoft.Compute/hostGroups", "2021-03-01")
+let hosts =
+    ResourceType("Microsoft.Compute/hostGroups/hosts", "2021-03-01")
 
 type CustomScriptExtension =
     {
@@ -271,4 +277,58 @@ type VirtualMachine =
                             evictionPolicy = evictionPolicy.ArmValue
                             billingProfile = {| maxPrice = maxPrice |}
                         |}
+            |}
+
+open DedicatedHosts
+type Host =
+    {
+        Name: ResourceName
+        Location: Location
+        Sku: HostSku
+        ParentHostGroupName: ResourceName
+        AutoReplaceOnFailure: FeatureFlag
+        LicenseType: HostLicenseType
+        PlatformFaultDomain: int
+        PublicKey: string option
+        Tags: Map<string, string>
+    }
+    member internal this.JsonModelProperties =
+        {|
+            autoReplaceOnFailure = this.AutoReplaceOnFailure.ArmValue
+            licenseType = HostLicenseType.Print this.LicenseType
+            platformFaultDomain = string this.PlatformFaultDomain
+            sku = this.Sku.JsonModelProperties
+        |}
+    interface IArmResource with
+        member this.ResourceId = hosts.resourceId this.Name
+        member this.JsonModel =
+            let dependsOn = 
+                [
+                    hostGroups.resourceId this.ParentHostGroupName
+                ]
+            {| hosts.Create(this.Name, this.Location, dependsOn, tags=this.Tags) with
+                 properties = this.JsonModelProperties
+            |}
+type HostGroup =
+    {
+        Name: ResourceName
+        Location: Location
+        AvailabilityZones: string list
+        SupportAutomaticPlacement: FeatureFlag
+        UltraSSDEnabled: FeatureFlag
+        PlatformFaultDomainCount: int
+        Tags: Map<string, string>
+    }
+    member internal this.JsonModelProperties =
+        {|
+            zones = this.AvailabilityZones
+            supportAutomaticPlacement = this.SupportAutomaticPlacement.ArmValue
+            ultraSsdEnabled = this.UltraSSDEnabled.ArmValue
+            platformFaultDomainCount = string this.PlatformFaultDomainCount
+        |}
+    interface IArmResource with
+        member this.ResourceId = hostGroups.resourceId this.Name
+        member this.JsonModel =
+            {| hostGroups.Create(this.Name, this.Location, tags=this.Tags) with
+                 properties = this.JsonModelProperties
             |}
