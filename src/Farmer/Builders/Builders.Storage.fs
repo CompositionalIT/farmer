@@ -46,7 +46,7 @@ type StorageAccountConfig =
         /// File shares
         FileShares: (StorageResourceName * int<Gb> option) list
         /// Queues
-        Queues: StorageResourceName Set
+        Queues: (StorageResourceName * Metadata option) Set
         /// Network Access Control Lists
         NetworkAcls: NetworkRuleSet option
         /// Tables
@@ -142,7 +142,8 @@ type StorageAccountConfig =
                     }
                 for queue in this.Queues do
                     {
-                        Queues.Queue.Name = queue
+                        Queues.Queue.Name = fst queue
+                        Queues.Queue.Metadata = snd queue
                         Queues.Queue.StorageAccount = this.Name.ResourceName
                     }
                 for table in this.Tables do
@@ -301,13 +302,32 @@ type StorageAccountBuilder() =
     [<CustomOperation "add_queue">]
     member _.AddQueue(state: StorageAccountConfig, name: string) =
         { state with
-            Queues = state.Queues.Add(StorageResourceName.Create(name).OkValue)
+            Queues = state.Queues.Add(StorageResourceName.Create(name).OkValue, None)
+        }
+
+    /// Adds a single queue with metadata to the storage account.
+    [<CustomOperation "add_queue_with_metadata">]
+    member _.AddQueue(state: StorageAccountConfig, name: string, metadata: Metadata) =
+        { state with
+            Queues = state.Queues.Add(StorageResourceName.Create(name).OkValue, Some(metadata))
         }
 
     /// Adds a set of queues to the storage account.
     [<CustomOperation "add_queues">]
     member this.AddQueues(state: StorageAccountConfig, names) =
         (state, names) ||> Seq.fold (fun state name -> this.AddQueue(state, name))
+
+    /// Adds a set of queues with unique metadata to the storage account.
+    [<CustomOperation "add_queues_with_unique_metadata">]
+    member this.AddQueues(state: StorageAccountConfig, queues: (string * Metadata) seq) =
+        (state, queues) ||> Seq.fold (fun state queue -> 
+            this.AddQueue(state, fst queue, snd queue))
+
+    /// Adds a set of queues with same metadata to the storage account.
+    [<CustomOperation "add_queues_with_same_metadata">]
+    member this.AddQueues(state: StorageAccountConfig, names, metadata: Metadata) =
+        (state, names) ||> Seq.fold (fun state name -> 
+            this.AddQueue(state, name, metadata))
 
     /// Adds a single table to the storage account.
     [<CustomOperation "add_table">]

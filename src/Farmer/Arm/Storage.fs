@@ -37,6 +37,8 @@ let managementPolicies =
 let roleAssignments =
     ResourceType("Microsoft.Storage/storageAccounts/providers/roleAssignments", "2018-09-01-preview")
 
+type Metadata = Map<string, string>
+
 [<RequireQualifiedAccess>]
 type NetworkRuleSetBypass =
     | None
@@ -420,6 +422,7 @@ module Queues =
     type Queue =
         {
             Name: StorageResourceName
+            Metadata: Metadata option
             StorageAccount: ResourceName
         }
 
@@ -428,10 +431,16 @@ module Queues =
                 queues.resourceId (this.StorageAccount / "default" / this.Name.ResourceName)
 
             member this.JsonModel =
-                queues.Create(
-                    this.StorageAccount / "default" / this.Name.ResourceName,
-                    dependsOn = [ storageAccounts.resourceId this.StorageAccount ]
-                )
+                let queue = queues.Create(
+                                this.StorageAccount / "default" / this.Name.ResourceName,
+                                dependsOn = [ storageAccounts.resourceId this.StorageAccount ]
+                            )
+                match this.Metadata with
+                    | Some m ->
+                        {| queue with
+                            properties = box {| metadata = m |}
+                        |}
+                    | None -> queue
 
 module ManagementPolicies =
     type ManagementPolicy =
