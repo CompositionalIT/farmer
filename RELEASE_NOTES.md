@@ -1,7 +1,8 @@
 Release Notes
 =============
-## 1.8.0
-* Identity: Add support for link_to_identity
+
+## 1.7.10
+* Container Groups and Container Apps: Support for link_to_identity for ACR managed identities.
 
 ## 1.7.9
 * Container Group: Support for Managed Identity
