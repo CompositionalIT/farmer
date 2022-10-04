@@ -3,6 +3,7 @@ module Farmer.Arm.Compute
 
 open System.ComponentModel
 open Farmer
+open Farmer.DedicatedHosts
 open Farmer.Identity
 open Farmer.Vm
 open System
@@ -288,17 +289,14 @@ type Host =
         ParentHostGroupName: ResourceName
         AutoReplaceOnFailure: FeatureFlag
         LicenseType: HostLicenseType
-        PlatformFaultDomain: int
-        PublicKey: string option
+        PlatformFaultDomain: PlatformFaultDomain
         Tags: Map<string, string>
     }
     member internal this.JsonModelProperties =
         {|
             autoReplaceOnFailure = this.AutoReplaceOnFailure.ArmValue
             licenseType = HostLicenseType.Print this.LicenseType
-            platformFaultDomain = string this.PlatformFaultDomain
-            publicKey = this.PublicKey |> Option.defaultValue Unchecked.defaultof<_>
-            sku = this.Sku.JsonModelProperties
+            platformFaultDomain = PlatformFaultDomain.ToArmValue this.PlatformFaultDomain
         |}
     interface IArmResource with
         member this.ResourceId = hosts.resourceId this.Name
@@ -308,13 +306,14 @@ type Host =
                     hostGroups.resourceId this.ParentHostGroupName
                 ]
             {| hosts.Create(this.Name, this.Location, dependsOn, tags=this.Tags) with
-                 properties = this.JsonModelProperties
+                sku = HostSku.Print this.Sku
+                properties = this.JsonModelProperties
             |}
 type HostGroup =
     {
         Name: ResourceName
         Location: Location
-        AvailabilityZones: string list
+        AvailabilityZones: AvailabilityZone list
         SupportAutomaticPlacement: FeatureFlag
         UltraSSDEnabled: FeatureFlag
         PlatformFaultDomainCount: int
@@ -322,7 +321,6 @@ type HostGroup =
     }
     member internal this.JsonModelProperties =
         {|
-            zones = this.AvailabilityZones
             supportAutomaticPlacement = this.SupportAutomaticPlacement.ArmValue
             ultraSsdEnabled = this.UltraSSDEnabled.ArmValue
             platformFaultDomainCount = string this.PlatformFaultDomainCount
@@ -331,5 +329,6 @@ type HostGroup =
         member this.ResourceId = hostGroups.resourceId this.Name
         member this.JsonModel =
             {| hostGroups.Create(this.Name, this.Location, tags=this.Tags) with
+                 zones = this.AvailabilityZones |> List.map (AvailabilityZone.ToArmValue)
                  properties = this.JsonModelProperties
             |}
