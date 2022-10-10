@@ -11,8 +11,7 @@ type HostGroupConfig =
         Name: ResourceName
         AvailabilityZones: AvailabilityZone list option
         SupportAutomaticPlacement: FeatureFlag option
-        UltraSSDEnabled: FeatureFlag option
-        PlatformFaultDomainCount: int option
+        PlatformFaultDomainCount: PlatformFaultDomainCount option
         Tags: Map<string, string>
     }
     interface IBuilder with
@@ -24,8 +23,7 @@ type HostGroupConfig =
                     Location = location
                     AvailabilityZones = this.AvailabilityZones |> (Option.defaultValue List.Empty)
                     SupportAutomaticPlacement = this.SupportAutomaticPlacement |> (Option.defaultValue FeatureFlag.Disabled)
-                    UltraSSDEnabled = this.UltraSSDEnabled |> (Option.defaultValue FeatureFlag.Disabled)
-                    PlatformFaultDomainCount = this.PlatformFaultDomainCount |> (Option.defaultValue 0)
+                    PlatformFaultDomainCount = this.PlatformFaultDomainCount |> (Option.defaultValue PlatformFaultDomainCount.One)
                     Tags = this.Tags
                 }
             [ hostGroup ]
@@ -36,7 +34,6 @@ type HostGroupBuilder() =
             Name = ResourceName.Empty
             AvailabilityZones = None
             SupportAutomaticPlacement = None
-            UltraSSDEnabled = None
             PlatformFaultDomainCount = None
             Tags = Map.empty
         }
@@ -56,12 +53,15 @@ type HostGroupBuilder() =
     [<CustomOperation "supportAutomaticPlacement">]
     member _.SupportAutomaticPlacement(state: HostGroupConfig, flag: FeatureFlag) =
         { state with SupportAutomaticPlacement = Some flag }
-    [<CustomOperation "enableUltraSsd">]
-    member _.EnableUltraSSD(state: HostGroupConfig, flag: FeatureFlag) =
-        { state with UltraSSDEnabled = Some flag }
+    [<CustomOperation "supportAutomaticPlacement">]
+    member _.SupportAutomaticPlacement(state: HostGroupConfig, flag: bool) =
+        { state with SupportAutomaticPlacement = Some (FeatureFlag.ofBool flag) }
     [<CustomOperation "platformFaultDomainCount">]
     member _.PlatformFaultDomainCount(state: HostGroupConfig, domainCount: int) =
-        { state with PlatformFaultDomainCount = Some domainCount }
+        { state with PlatformFaultDomainCount = Some (PlatformFaultDomainCount.Parse domainCount)}
+    [<CustomOperation "platformFaultDomainCount">]
+    member _.PlatformFaultDomainCount(state: HostGroupConfig, domainCount: PlatformFaultDomainCount) =
+        { state with PlatformFaultDomainCount = Some domainCount}
         
 let hostGroup = HostGroupBuilder()
     

@@ -179,7 +179,11 @@ module DedicatedHosts =
     
     type HostSku = HostSku of string
     with 
-        static member Print (x: HostSku) = string x
+        static member Print (HostSku x) = x
+        member this.JsonProperties =
+            {|
+              name = HostSku.Print this
+            |}
         
     type PlatformFaultDomain =
         | Zero
@@ -196,6 +200,23 @@ module DedicatedHosts =
             | 1 -> One
             | 2 -> Two
             | 0 -> Zero
+            | _ -> raiseFarmer "Platform Fault Domain can only be 0, 1, or 2"
+            
+    type PlatformFaultDomainCount =
+        | One
+        | Two
+        | Three
+    with
+        static member ToArmValue (x: PlatformFaultDomainCount) =
+            match x with
+            | One -> 1
+            | Two -> 2
+            | Three -> 3
+        static member Parse (i: int) =
+            match i with
+            | 1 -> One
+            | 2 -> Two
+            | 3 -> Three
             | _ -> raiseFarmer "Platform Fault Domain can only be 0, 1, or 2"
         
     type AvailabilityZone =

@@ -280,7 +280,6 @@ type VirtualMachine =
                         |}
             |}
 
-open DedicatedHosts
 type Host =
     {
         Name: ResourceName
@@ -294,7 +293,7 @@ type Host =
     }
     member internal this.JsonModelProperties =
         {|
-            autoReplaceOnFailure = this.AutoReplaceOnFailure.ArmValue
+            autoReplaceOnFailure = this.AutoReplaceOnFailure.AsBoolean
             licenseType = HostLicenseType.Print this.LicenseType
             platformFaultDomain = PlatformFaultDomain.ToArmValue this.PlatformFaultDomain
         |}
@@ -305,8 +304,9 @@ type Host =
                 [
                     hostGroups.resourceId this.ParentHostGroupName
                 ]
-            {| hosts.Create(this.Name, this.Location, dependsOn, tags=this.Tags) with
-                sku = HostSku.Print this.Sku
+            let hostResourceName = ResourceName ($"{this.ParentHostGroupName.Value}/{this.Name.Value}")
+            {| hosts.Create(hostResourceName, this.Location, dependsOn, tags=this.Tags) with
+                sku = this.Sku.JsonProperties
                 properties = this.JsonModelProperties
             |}
 type HostGroup =
@@ -315,15 +315,13 @@ type HostGroup =
         Location: Location
         AvailabilityZones: AvailabilityZone list
         SupportAutomaticPlacement: FeatureFlag
-        UltraSSDEnabled: FeatureFlag
-        PlatformFaultDomainCount: int
+        PlatformFaultDomainCount: PlatformFaultDomainCount
         Tags: Map<string, string>
     }
     member internal this.JsonModelProperties =
         {|
-            supportAutomaticPlacement = this.SupportAutomaticPlacement.ArmValue
-            ultraSsdEnabled = this.UltraSSDEnabled.ArmValue
-            platformFaultDomainCount = string this.PlatformFaultDomainCount
+            supportAutomaticPlacement = this.SupportAutomaticPlacement.AsBoolean
+            platformFaultDomainCount = PlatformFaultDomainCount.ToArmValue this.PlatformFaultDomainCount 
         |}
     interface IArmResource with
         member this.ResourceId = hostGroups.resourceId this.Name
