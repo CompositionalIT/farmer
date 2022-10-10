@@ -1915,9 +1915,13 @@ module Identity =
     /// Represents a User Assigned Identity, and the ability to create a Principal Id from it.
     type UserAssignedIdentity =
         | UserAssignedIdentity of ResourceId
+        | LinkedUserAssignedIdentity of ResourceId
 
         member private this.CreateExpression field =
-            let (UserAssignedIdentity resourceId) = this
+            let resourceId =
+                match this with
+                | UserAssignedIdentity rid -> rid
+                | LinkedUserAssignedIdentity rid -> rid
 
             ArmExpression
                 .create($"reference({resourceId.ArmExpression.Value}).%s{field}")
@@ -1928,7 +1932,8 @@ module Identity =
 
         member this.ResourceId =
             match this with
-            | UserAssignedIdentity r -> r
+            | UserAssignedIdentity rid -> rid
+            | LinkedUserAssignedIdentity rid -> rid
 
     type SystemIdentity =
         | SystemIdentity of ResourceId
@@ -1954,7 +1959,12 @@ module Identity =
             UserAssigned: UserAssignedIdentity list
         }
 
-        member this.Dependencies = this.UserAssigned |> List.map (fun u -> u.ResourceId)
+        member this.Dependencies =
+            this.UserAssigned
+            |> List.choose (fun identity ->
+                match identity with
+                | UserAssignedIdentity rid -> Some rid
+                | LinkedUserAssignedIdentity _ -> None)
 
         static member Empty =
             {

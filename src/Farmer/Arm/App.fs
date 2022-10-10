@@ -174,6 +174,7 @@ type ContainerApp =
                                                             String.Empty
 
 
+
                                                 |}
                                         for setting in this.Secrets do
                                             {|
