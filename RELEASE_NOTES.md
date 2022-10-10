@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.7.10
+* Dedicated Hosts: Support for Host Groups and Hosts
+
 ## 1.7.9
 * Container Group: Support for Managed Identity
 * Container App: Support for Managed Identity
