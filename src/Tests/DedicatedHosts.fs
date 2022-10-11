@@ -30,10 +30,10 @@ let tests =
                 let hostGroup =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Compute/hostGroups')]"
 
-                let hostGroupProps = hostGroup.["properties"]
+                let hostGroupProps = hostGroup["properties"]
 
                 let supportAutomaticPlacement: bool =
-                    JToken.op_Explicit hostGroupProps.["supportAutomaticPlacement"]
+                    JToken.op_Explicit hostGroupProps["supportAutomaticPlacement"]
 
                 Expect.equal supportAutomaticPlacement false "Incorrect default value for supportAutomaticPlacement"
             }
@@ -60,10 +60,10 @@ let tests =
                 let host =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Compute/hostGroups/hosts')]"
 
-                let hostProps = host.["properties"]
-                let dependsOn = host.["dependsOn"] :?> JArray |> Seq.map string
-                let licenseType: string = JToken.op_Explicit hostProps.["licenseType"]
-                let platformFaultDomain: int = JToken.op_Explicit hostProps.["platformFaultDomain"]
+                let hostProps = host["properties"]
+                let dependsOn = host["dependsOn"] :?> JArray |> Seq.map string
+                let licenseType: string = JToken.op_Explicit hostProps["licenseType"]
+                let platformFaultDomain: int = JToken.op_Explicit hostProps["platformFaultDomain"]
 
                 Expect.equal
                     licenseType
@@ -75,15 +75,11 @@ let tests =
                     (PlatformFaultDomain.ToArmValue PlatformFaultDomain.Zero)
                     "Default fault domain should be 0"
 
-                let parentResourceId =
-                    Arm.Compute.hostGroups.resourceId (ResourceName parentHostGroupName)
-
                 Expect.hasLength dependsOn 1 "Should only depend on one resource, the host group"
-
                 Expect.contains
                     dependsOn
-                    (string parentResourceId)
-                    $"Parent host group is incorrect, should be {parentHostGroupName}"
+                    """[resourceId('Microsoft.Compute/hostGroups', 'myhostGroup')]"""
+                    "Parent host group is incorrect"
 
                 ()
             }
@@ -109,19 +105,18 @@ let tests =
                     }
 
                 let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
-                let a = jobj.ToString()
 
                 let hostGroup =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Compute/hostGroups')]"
 
-                let hostGroupProps = hostGroup.["properties"]
-                let zones = hostGroup.["zones"] :?> JArray |> Seq.map string
+                let hostGroupProps = hostGroup["properties"]
+                let zones = hostGroup["zones"] :?> JArray |> Seq.map string
 
                 let platformFaultDomainCount: int =
-                    JToken.op_Explicit hostGroupProps.["platformFaultDomainCount"]
+                    JToken.op_Explicit hostGroupProps["platformFaultDomainCount"]
 
                 let supportAutomaticPlacement: bool =
-                    JToken.op_Explicit hostGroupProps.["supportAutomaticPlacement"]
+                    JToken.op_Explicit hostGroupProps["supportAutomaticPlacement"]
 
                 Expect.equal platformFaultDomainCount 2 "Platform fault domain count should be two"
                 Expect.equal supportAutomaticPlacement true "Automatic placement should be true"
