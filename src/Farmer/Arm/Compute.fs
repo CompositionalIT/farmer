@@ -15,10 +15,8 @@ let virtualMachines =
 let extensions =
     ResourceType("Microsoft.Compute/virtualMachines/extensions", "2019-12-01")
 
-let hostGroups =
-    ResourceType("Microsoft.Compute/hostGroups", "2021-03-01")
-let hosts =
-    ResourceType("Microsoft.Compute/hostGroups/hosts", "2021-03-01")
+let hostGroups = ResourceType("Microsoft.Compute/hostGroups", "2021-03-01")
+let hosts = ResourceType("Microsoft.Compute/hostGroups/hosts", "2021-03-01")
 
 type CustomScriptExtension =
     {
@@ -291,24 +289,28 @@ type Host =
         PlatformFaultDomain: PlatformFaultDomain
         Tags: Map<string, string>
     }
+
     member internal this.JsonModelProperties =
         {|
             autoReplaceOnFailure = this.AutoReplaceOnFailure.AsBoolean
             licenseType = HostLicenseType.Print this.LicenseType
             platformFaultDomain = PlatformFaultDomain.ToArmValue this.PlatformFaultDomain
         |}
+
     interface IArmResource with
         member this.ResourceId = hosts.resourceId this.Name
+
         member this.JsonModel =
-            let dependsOn = 
-                [
-                    hostGroups.resourceId this.ParentHostGroupName
-                ]
-            let hostResourceName = ResourceName ($"{this.ParentHostGroupName.Value}/{this.Name.Value}")
-            {| hosts.Create(hostResourceName, this.Location, dependsOn, tags=this.Tags) with
+            let dependsOn = [ hostGroups.resourceId this.ParentHostGroupName ]
+
+            let hostResourceName =
+                ResourceName($"{this.ParentHostGroupName.Value}/{this.Name.Value}")
+
+            {| hosts.Create(hostResourceName, this.Location, dependsOn, tags = this.Tags) with
                 sku = this.Sku.JsonProperties
                 properties = this.JsonModelProperties
             |}
+
 type HostGroup =
     {
         Name: ResourceName
@@ -318,15 +320,18 @@ type HostGroup =
         PlatformFaultDomainCount: PlatformFaultDomainCount
         Tags: Map<string, string>
     }
+
     member internal this.JsonModelProperties =
         {|
             supportAutomaticPlacement = this.SupportAutomaticPlacement.AsBoolean
-            platformFaultDomainCount = PlatformFaultDomainCount.ToArmValue this.PlatformFaultDomainCount 
+            platformFaultDomainCount = PlatformFaultDomainCount.ToArmValue this.PlatformFaultDomainCount
         |}
+
     interface IArmResource with
         member this.ResourceId = hostGroups.resourceId this.Name
+
         member this.JsonModel =
-            {| hostGroups.Create(this.Name, this.Location, tags=this.Tags) with
-                 zones = this.AvailabilityZones |> List.map (AvailabilityZone.ToArmValue)
-                 properties = this.JsonModelProperties
+            {| hostGroups.Create(this.Name, this.Location, tags = this.Tags) with
+                zones = this.AvailabilityZones |> List.map (AvailabilityZone.ToArmValue)
+                properties = this.JsonModelProperties
             |}

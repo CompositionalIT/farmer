@@ -169,80 +169,81 @@ module Route =
 
 module DedicatedHosts =
     type HostTier =
-    | Standard
-    | Basic
-    with
+        | Standard
+        | Basic
+
         static member Print(x: HostTier) =
             match x with
             | Standard -> "Standard"
             | Basic -> "Basic"
-    
-    type HostSku = HostSku of string
-    with 
-        static member Print (HostSku x) = x
-        member this.JsonProperties =
-            {|
-              name = HostSku.Print this
-            |}
-        
+
+    type HostSku =
+        | HostSku of string
+
+        static member Print(HostSku x) = x
+        member this.JsonProperties = {| name = HostSku.Print this |}
+
     type PlatformFaultDomain =
         | Zero
         | One
         | Two
-    with
-        static member ToArmValue (x: PlatformFaultDomain) =
+
+        static member ToArmValue(x: PlatformFaultDomain) =
             match x with
             | Zero -> 0
             | One -> 1
             | Two -> 2
-        static member Parse (i: int) =
+
+        static member Parse(i: int) =
             match i with
             | 1 -> One
             | 2 -> Two
             | 0 -> Zero
             | _ -> raiseFarmer "Platform Fault Domain can only be 0, 1, or 2"
-            
+
     type PlatformFaultDomainCount =
         | One
         | Two
         | Three
-    with
-        static member ToArmValue (x: PlatformFaultDomainCount) =
+
+        static member ToArmValue(x: PlatformFaultDomainCount) =
             match x with
             | One -> 1
             | Two -> 2
             | Three -> 3
-        static member Parse (i: int) =
+
+        static member Parse(i: int) =
             match i with
             | 1 -> One
             | 2 -> Two
             | 3 -> Three
             | _ -> raiseFarmer "Platform Fault Domain can only be 0, 1, or 2"
-        
+
     type AvailabilityZone =
-    | One
-    | Two
-    | Three
-    with 
-        static member ToArmValue (x: AvailabilityZone) =
-            match x with 
+        | One
+        | Two
+        | Three
+
+        static member ToArmValue(x: AvailabilityZone) =
+            match x with
             | One -> "1"
             | Two -> "2"
             | Three -> "3"
-        static member Parse (str: string) =
+
+        static member Parse(str: string) =
             match str with
             | "1" -> One
             | "2" -> Two
             | "3" -> Three
             | _ -> raiseFarmer "Availability Zone can only be '1', '2', or '3'"
-    
-        
+
+
     type HostLicenseType =
         | NoLicense
         | WindowsHybrid
         | WindowsPerpetual
-    with
-        static member Print (x: HostLicenseType) =
+
+        static member Print(x: HostLicenseType) =
             match x with
             | NoLicense -> "None"
             | WindowsHybrid -> "Windows_Server_Hybrid"

@@ -175,6 +175,7 @@ type ContainerApp =
 
 
 
+
                                                 |}
                                         for setting in this.Secrets do
                                             {|
