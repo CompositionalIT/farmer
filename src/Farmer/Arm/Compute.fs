@@ -302,7 +302,8 @@ type Host =
         member this.ResourceId = hosts.resourceId this.Name
 
         member this.JsonModel =
-            let dependsOn = [ hostGroups.resourceId this.ParentHostGroupName ] @ (List.ofSeq this.DependsOn)
+            let dependsOn =
+                [ hostGroups.resourceId this.ParentHostGroupName ] @ (List.ofSeq this.DependsOn)
 
             let hostResourceName =
                 ResourceName($"{this.ParentHostGroupName.Value}/{this.Name.Value}")

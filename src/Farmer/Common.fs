@@ -179,11 +179,15 @@ module DedicatedHosts =
 
     type PlatformFaultDomainCount =
         | PlatformFaultDomainCount of int
-        static member Parse(i: int): PlatformFaultDomainCount =
-            if i < 0 || i > 5 then raiseFarmer "Platform fault domain count must be between 0 and 5, inclusive"
-            else (PlatformFaultDomainCount i)
-        static member ToArmValue (PlatformFaultDomainCount p) = p
-                
+
+        static member Parse(i: int) : PlatformFaultDomainCount =
+            if i < 0 || i > 5 then
+                raiseFarmer "Platform fault domain count must be between 0 and 5, inclusive"
+            else
+                (PlatformFaultDomainCount i)
+
+        static member ToArmValue(PlatformFaultDomainCount p) = p
+
     type HostSku =
         | HostSku of string
 

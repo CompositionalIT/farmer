@@ -72,10 +72,11 @@ let tests =
 
                 Expect.equal
                     platformFaultDomain
-                    (PlatformFaultDomainCount.ToArmValue (PlatformFaultDomainCount 1))
+                    (PlatformFaultDomainCount.ToArmValue(PlatformFaultDomainCount 1))
                     "Default fault domain should be 0"
 
                 Expect.hasLength dependsOn 1 "Should only depend on one resource, the host group"
+
                 Expect.contains
                     dependsOn
                     """[resourceId('Microsoft.Compute/hostGroups', 'myhostGroup')]"""
@@ -106,7 +107,7 @@ let tests =
 
                 let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
                 let a: string = deployment.ToString()
-                
+
                 let hostGroup =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Compute/hostGroups')]"
 
@@ -122,10 +123,7 @@ let tests =
                 Expect.equal supportAutomaticPlacement true "Automatic placement should be true"
                 Expect.hasLength zones 1 "The host group should have one availability zone"
 
-                Expect.contains
-                    zones
-                    "1"
-                    "The zones should contain zone 1"
+                Expect.contains zones "1" "The zones should contain zone 1"
                 ()
             }
         ]

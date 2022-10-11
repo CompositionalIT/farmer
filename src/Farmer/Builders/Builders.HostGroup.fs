@@ -24,11 +24,15 @@ type HostGroupConfig =
                 {
                     Name = this.Name
                     Location = location
-                    AvailabilityZone = this.AvailabilityZone |> Option.map (fun zone -> [zone]) |> Option.defaultValue []
+                    AvailabilityZone =
+                        this.AvailabilityZone
+                        |> Option.map (fun zone -> [ zone ])
+                        |> Option.defaultValue []
                     SupportAutomaticPlacement =
                         this.SupportAutomaticPlacement |> Option.defaultValue FeatureFlag.Disabled
                     PlatformFaultDomainCount =
-                        this.PlatformFaultDomainCount |> Option.defaultValue (PlatformFaultDomainCount 1)
+                        this.PlatformFaultDomainCount
+                        |> Option.defaultValue (PlatformFaultDomainCount 1)
                     DependsOn = this.DependsOn
                     Tags = this.Tags
                 }
@@ -72,7 +76,7 @@ type HostGroupBuilder() =
         { state with
             PlatformFaultDomainCount = Some(PlatformFaultDomainCount.Parse domainCount)
         }
-        
+
     interface IDependable<HostGroupConfig> with
         member _.Add state resIds =
             { state with
@@ -110,7 +114,8 @@ type HostConfig =
                         AutoReplaceOnFailure = FeatureFlag.Enabled
                         LicenseType = HostLicenseType.NoLicense
                         DependsOn = this.DependsOn
-                        PlatformFaultDomain = this.PlatformFaultDomain |> Option.defaultValue (PlatformFaultDomainCount 1)
+                        PlatformFaultDomain =
+                            this.PlatformFaultDomain |> Option.defaultValue (PlatformFaultDomainCount 1)
                         Tags = this.Tags
                     }
 
@@ -168,7 +173,7 @@ type HostBuilder() =
         { state with
             HostGroupName = Unmanaged(ResourceId.create (hostGroups, hostGroupName))
         }
-        
+
     interface IDependable<HostConfig> with
         member _.Add state resIds =
             { state with
