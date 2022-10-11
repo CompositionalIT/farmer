@@ -49,8 +49,8 @@ let tests =
                                 hostGroup { name parentHostGroupName }
                                 host {
                                     name "myhost"
-                                    parentHostGroup (ResourceName parentHostGroupName)
-                                    sku "VSv1-Type3"
+                                    parent_host_group (ResourceName parentHostGroupName)
+                                    sku "Fsv2-Type2"
                                 }
                             ]
                     }
@@ -72,7 +72,7 @@ let tests =
 
                 Expect.equal
                     platformFaultDomain
-                    (PlatformFaultDomain.ToArmValue PlatformFaultDomain.Zero)
+                    (PlatformFaultDomainCount.ToArmValue (PlatformFaultDomainCount 1))
                     "Default fault domain should be 0"
 
                 Expect.hasLength dependsOn 1 "Should only depend on one resource, the host group"
@@ -83,7 +83,7 @@ let tests =
 
                 ()
             }
-            test "Can create a host group with a few availability zones and a valid domain count" {
+            test "Can create a host group with an and a valid domain count" {
                 let deployment =
                     arm {
                         location Location.EastUS
@@ -92,20 +92,21 @@ let tests =
                             [
                                 hostGroup {
                                     name "myhostgroup"
-                                    supportAutomaticPlacement true
-                                    add_availability_zones [ AvailabilityZone.One; AvailabilityZone.Two ]
-                                    platformFaultDomainCount 2
+                                    support_automatic_placement true
+                                    add_availability_zone "1"
+                                    platform_fault_domain_count 2
                                 }
                                 host {
                                     name "myhost"
-                                    parentHostGroup (ResourceName "myHostGroup")
-                                    sku "VSv1-Type3"
+                                    parent_host_group (ResourceName "myHostGroup")
+                                    sku "Fsv2-Type2"
                                 }
                             ]
                     }
 
                 let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
-
+                let a: string = deployment.ToString()
+                
                 let hostGroup =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Compute/hostGroups')]"
 
@@ -118,20 +119,13 @@ let tests =
                 let supportAutomaticPlacement: bool =
                     JToken.op_Explicit hostGroupProps["supportAutomaticPlacement"]
 
-                Expect.equal platformFaultDomainCount 2 "Platform fault domain count should be two"
                 Expect.equal supportAutomaticPlacement true "Automatic placement should be true"
-                Expect.hasLength zones 2 "The host group should have 2 availability zones"
+                Expect.hasLength zones 1 "The host group should have one availability zone"
 
                 Expect.contains
                     zones
-                    (AvailabilityZone.ToArmValue AvailabilityZone.One)
+                    "1"
                     "The zones should contain zone 1"
-
-                Expect.contains
-                    zones
-                    (AvailabilityZone.ToArmValue AvailabilityZone.Two)
-                    "The zones should contain zone 2"
-
                 ()
             }
         ]

@@ -286,22 +286,23 @@ type Host =
         ParentHostGroupName: ResourceName
         AutoReplaceOnFailure: FeatureFlag
         LicenseType: HostLicenseType
-        PlatformFaultDomain: PlatformFaultDomain
+        PlatformFaultDomain: PlatformFaultDomainCount
         Tags: Map<string, string>
+        DependsOn: Set<ResourceId>
     }
 
     member internal this.JsonModelProperties =
         {|
             autoReplaceOnFailure = this.AutoReplaceOnFailure.AsBoolean
             licenseType = HostLicenseType.Print this.LicenseType
-            platformFaultDomain = PlatformFaultDomain.ToArmValue this.PlatformFaultDomain
+            platformFaultDomain = PlatformFaultDomainCount.ToArmValue this.PlatformFaultDomain
         |}
 
     interface IArmResource with
         member this.ResourceId = hosts.resourceId this.Name
 
         member this.JsonModel =
-            let dependsOn = [ hostGroups.resourceId this.ParentHostGroupName ]
+            let dependsOn = [ hostGroups.resourceId this.ParentHostGroupName ] @ (List.ofSeq this.DependsOn)
 
             let hostResourceName =
                 ResourceName($"{this.ParentHostGroupName.Value}/{this.Name.Value}")
@@ -315,10 +316,11 @@ type HostGroup =
     {
         Name: ResourceName
         Location: Location
-        AvailabilityZones: AvailabilityZone list
+        AvailabilityZone: string list
         SupportAutomaticPlacement: FeatureFlag
         PlatformFaultDomainCount: PlatformFaultDomainCount
         Tags: Map<string, string>
+        DependsOn: Set<ResourceId>
     }
 
     member internal this.JsonModelProperties =
@@ -331,7 +333,7 @@ type HostGroup =
         member this.ResourceId = hostGroups.resourceId this.Name
 
         member this.JsonModel =
-            {| hostGroups.Create(this.Name, this.Location, tags = this.Tags) with
-                zones = this.AvailabilityZones |> List.map (AvailabilityZone.ToArmValue)
+            {| hostGroups.Create(this.Name, this.Location, tags = this.Tags, dependsOn = this.DependsOn) with
+                zones = this.AvailabilityZone
                 properties = this.JsonModelProperties
             |}
