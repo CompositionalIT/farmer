@@ -615,14 +615,6 @@ type NetworkInterface =
                                                         .Eval()
                                             |}
                                     |}
-
-
-
-
-
-
-
-
                             |})
                 |}
 
