@@ -4,7 +4,7 @@ module Farmer.Arm.Storage
 open Farmer
 open Farmer.Storage
 
-let storageAccounts = ResourceType ("Microsoft.Storage/storageAccounts", "2019-06-01")
+let storageAccounts = ResourceType ("Microsoft.Storage/storageAccounts", "2022-05-01")
 
 let blobServices = ResourceType ("Microsoft.Storage/storageAccounts/blobServices", "2019-06-01")
 let containers = ResourceType ("Microsoft.Storage/storageAccounts/blobServices/containers", "2018-03-01-preview")
@@ -72,6 +72,7 @@ type StorageAccount =
       NetworkAcls : NetworkRuleSet option
       StaticWebsite : {| IndexPage : string; ErrorPage : string option; ContentPath : string |} option
       MinTlsVersion : TlsVersion option
+      DnsZoneType : string
       Tags: Map<string,string> }
     interface IArmResource with
         member this.ResourceId = storageAccounts.resourceId this.Name.ResourceName
@@ -136,6 +137,7 @@ type StorageAccount =
                         | Some Tls11 -> "TLS1_1"
                         | Some Tls12 -> "TLS1_2"
                         | None -> null
+                       dnsEndpointType = this.DnsZoneType
                     |}
             |}
     interface IPostDeploy with

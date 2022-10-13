@@ -57,7 +57,9 @@ type StorageAccountConfig =
       /// Minimum TLS version
       MinTlsVersion : TlsVersion option
       /// Tags to apply to the storage account
-      Tags: Map<string,string> }
+      Tags: Map<string,string> 
+      /// DNS endpoint type
+      DnsZoneType: string }
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = StorageAccount.getConnectionString(this.Name)
     /// Gets the Primary endpoint for static website (if enabled)
@@ -93,6 +95,7 @@ type StorageAccountConfig =
               NetworkAcls = this.NetworkAcls
               StaticWebsite = this.StaticWebsite
               MinTlsVersion = this.MinTlsVersion
+              DnsZoneType = this.DnsZoneType
               Tags = this.Tags }
             for name, access in this.Containers do
                 { Name = name
@@ -194,6 +197,7 @@ type StorageAccountBuilder() =
         IsVersioningEnabled = []
         MinTlsVersion = None
         Tags = Map.empty
+        DnsZoneType = "Standard"
     }
     member _.Run state =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Storage Account name has been set."
@@ -356,8 +360,12 @@ type StorageAccountBuilder() =
     [<CustomOperation "min_tls_version">]
     member _.SetMinTlsVersion(state:StorageAccountConfig, minTlsVersion) =
         { state with MinTlsVersion = Some minTlsVersion }
+    /// Set DNS Endpoint type
+    [<CustomOperation "use_azure_dns_zone">]
+    member _.SetDnsEndpointType(state:StorageAccountConfig) =
+        { state with DnsZoneType = "AzureDnsZone" }
     interface ITaggable<StorageAccountConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
-
+    
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with
     member this.Origin(state:EndpointConfig, storage:StorageAccountConfig) =

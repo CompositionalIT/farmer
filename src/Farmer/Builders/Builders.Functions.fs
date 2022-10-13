@@ -304,7 +304,8 @@ type FunctionsConfig =
                   StaticWebsite = None
                   EnableHierarchicalNamespace = None
                   MinTlsVersion = None
-                  Tags = this.Tags }
+                  Tags = this.Tags
+                  DnsZoneType = "Standard" }
             | _ ->
                 ()
 
