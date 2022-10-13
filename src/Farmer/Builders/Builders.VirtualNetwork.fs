@@ -481,6 +481,16 @@ type PrivateEndpointBuilder() =
             match resource.ResourceId.Type.Type with
             // https://docs.microsoft.com/en-us/azure/private-link/private-endpoint-overview#private-link-resource
             | "Microsoft.Cache/Redis" ->  resource,["redisCache"],[]
+            | "Microsoft.Sql/servers" ->  resource,["sqlServer"],[]
+            | "Microsoft.Storage/storageAccounts" ->
+                resource,
+                [
+                    "blob"; "blob_secondary";
+                    "table"; "table_secondary";
+                    "queue"; "queue_secondary";
+                    "file"; "file_secondary";
+                    "dfs"; "dfs_secondary";
+                ],[]
             | "Microsoft.Web/sites" -> resource,["sites"],[]
             | "Microsoft.Web/sites/slots" -> 
                 match resource.ResourceId.Segments |> List.tryHead with
