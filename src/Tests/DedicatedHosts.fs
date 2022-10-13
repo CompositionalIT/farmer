@@ -73,7 +73,7 @@ let tests =
                 Expect.equal
                     platformFaultDomain
                     (PlatformFaultDomainCount.ToArmValue(PlatformFaultDomainCount 1))
-                    "Default fault domain should be 0"
+                    "Default fault domain should be 1"
 
                 Expect.hasLength dependsOn 1 "Should only depend on one resource, the host group"
 
@@ -121,7 +121,9 @@ let tests =
                     JToken.op_Explicit hostGroupProps["supportAutomaticPlacement"]
 
                 Expect.equal supportAutomaticPlacement true "Automatic placement should be true"
+                Expect.equal platformFaultDomainCount 2 $"Platform fault domain count should equal 2, it is {platformFaultDomainCount}"
                 Expect.hasLength zones 1 "The host group should have one availability zone"
+
 
                 Expect.contains zones "1" "The zones should contain zone 1"
                 ()
