@@ -121,7 +121,12 @@ let tests =
                     JToken.op_Explicit hostGroupProps["supportAutomaticPlacement"]
 
                 Expect.equal supportAutomaticPlacement true "Automatic placement should be true"
-                Expect.equal platformFaultDomainCount 2 $"Platform fault domain count should equal 2, it is {platformFaultDomainCount}"
+
+                Expect.equal
+                    platformFaultDomainCount
+                    2
+                    $"Platform fault domain count should equal 2, it is {platformFaultDomainCount}"
+
                 Expect.hasLength zones 1 "The host group should have one availability zone"
 
 
