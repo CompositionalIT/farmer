@@ -155,7 +155,8 @@ type VmConfig =
                   StaticWebsite = None
                   EnableHierarchicalNamespace = None
                   MinTlsVersion = None
-                  Tags = this.Tags }
+                  Tags = this.Tags
+                  DnsZoneType = "Standard" }
             | Some _
             | None ->
                 ()

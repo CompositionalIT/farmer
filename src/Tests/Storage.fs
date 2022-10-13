@@ -201,7 +201,7 @@ let tests = testList "Storage Tests" [
     test "WebsitePrimaryEndpoint creation" {
         let builder = storageAccount { name "foo" }
 
-        Expect.equal builder.WebsitePrimaryEndpoint.Value "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2019-06-01').primaryEndpoints.web" "Zone names are not fixed and should be related to a storage account name"
+        Expect.equal builder.WebsitePrimaryEndpoint.Value "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2022-05-01').primaryEndpoints.web" "Zone names are not fixed and should be related to a storage account name"
     }
     test "Creates different SKU kinds correctly" {
         let account = storageAccount { name "storage"; sku (Blobs (BlobReplication.LRS, Some DefaultAccessTier.Hot)) }
@@ -374,6 +374,33 @@ let tests = testList "Storage Tests" [
             }
             arm { add_resource account } |> getStorageResource
         Expect.equal resource.MinimumTlsVersion "TLS1_2" "Min TLS version is wrong"
+    }
+
+    test "dnsEndpointType is standard by default" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
+            }
+            arm { add_resource account }
+
+        let jsn = resource.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        
+        Expect.equal (jobj.SelectToken("resources[0].properties.dnsEndpointType").ToString()) "Standard" "dnsEndpointType should be standard by default"
+    }
+    
+    test "dnsEndpointType can be set to AzureDnsZone" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
+                use_azure_dns_zone
+            }
+            arm { add_resource account }
+
+        let jsn = resource.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        
+        Expect.equal (jobj.SelectToken("resources[0].properties.dnsEndpointType").ToString()) "AzureDnsZone" "dnsEndpointType should AzureDnsZone"
     }
 
     test "Must set a storage account name" {

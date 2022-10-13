@@ -452,7 +452,7 @@ let tests = testList "Network Tests" [
         let armPe = resources[0] :?> Arm.Network.PrivateEndpoint
         
         Expect.equal ["sites-slotName"] armPe.GroupIds "private endpoint groupIds should match slot name"
-        Expect.equal (Arm.Web.sites.resourceId (ResourceName "webApp") |> Unmanaged) armPe.Resource "private endpoint resource should match parent site name"
+        Expect.equal (Arm.Web.sites.resourceId (ResourceName "webApp") |> Unmanaged) armPe.Resource "private endpoint should link to correct resource"
     }
     test "Can create private endpoint for Redis" {
         let peConfig = 
@@ -466,6 +466,20 @@ let tests = testList "Network Tests" [
         let armPe = resources[0] :?> Arm.Network.PrivateEndpoint
         
         Expect.equal ["redisCache"] armPe.GroupIds "redisCache"
-        Expect.equal (Arm.Cache.redis.resourceId (ResourceName "redisCacheName") |> Unmanaged) armPe.Resource "private endpoint resource should match parent site name"
+        Expect.equal (Arm.Cache.redis.resourceId (ResourceName "redisCacheName") |> Unmanaged) armPe.Resource "private endpoint should link to correct resource"
+    }
+    test "Can create private endpoint for SqlServer" {
+        let peConfig = 
+          privateEndpoint {
+              name "privateendpoint"
+              subnet (subnets.resourceId "some-subnet" |> Unmanaged |> SubnetReference.create)
+              link_to_resource (Arm.Sql.servers.resourceId(ResourceName "sqlServerName") |> Unmanaged)
+              link_to_private_dns_zone (Farmer.Arm.Dns.zones.resourceId("dnsZone") |> Unmanaged)
+          } :> IBuilder
+        let resources = peConfig.BuildResources Location.NorthEurope
+        let armPe = resources[0] :?> Arm.Network.PrivateEndpoint
+        
+        Expect.equal ["sqlServer"] armPe.GroupIds "sqlServer"
+        Expect.equal (Arm.Sql.servers.resourceId (ResourceName "sqlServerName") |> Unmanaged) armPe.Resource "private endpoint resource should link to correct resource"
     }
 ]
