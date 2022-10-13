@@ -490,6 +490,7 @@ type PrivateEndpointBuilder() =
             | _ -> raiseFarmer $"Invalid resource type. Cannot link private endpoint to type %s{resource.ResourceId.Type.Type}"
         { state with PrivateLinkServiceConnection = Some { Resource = outputResource; GroupIds = groupIds; Dependencies = Set.ofList dependencies } }
 
+    [<CustomOperation "link_to_resource">]
     member _.PrivateLinkConnection(state:PrivateEndpointConfig, resource:LinkedResource, subresource:string list, dependencies:ResourceId list) = 
         { state with PrivateLinkServiceConnection = Some { Resource = resource; GroupIds = subresource; Dependencies = Set.ofList dependencies } }
 
