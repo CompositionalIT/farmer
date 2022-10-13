@@ -480,25 +480,18 @@ type PrivateEndpointBuilder() =
         let outputResource, groupIds, dependencies =
             match resource.ResourceId.Type.Type with
             // https://docs.microsoft.com/en-us/azure/private-link/private-endpoint-overview#private-link-resource
-            | "Microsoft.Cache/Redis" ->  resource,["redisCache"],[]
-            | "Microsoft.Sql/servers" ->  resource,["sqlServer"],[]
-            | "Microsoft.Storage/storageAccounts" ->
-                resource,
-                [
-                    "blob"; "blob_secondary";
-                    "table"; "table_secondary";
-                    "queue"; "queue_secondary";
-                    "file"; "file_secondary";
-                    "dfs"; "dfs_secondary";
-                ],[]
+            | "Microsoft.Cache/Redis" -> resource,["redisCache"],[]
+            | "Microsoft.Sql/servers" -> resource,["sqlServer"],[]
             | "Microsoft.Web/sites" -> resource,["sites"],[]
             | "Microsoft.Web/sites/slots" -> 
                 match resource.ResourceId.Segments |> List.tryHead with
                 | Some slotName -> resource.Map(fun id->{id with Type = Arm.Web.sites; Segments = []}),[$"sites-%s{slotName.Value}"],[resource.ResourceId]
                 | None -> raiseFarmer $"Invalid private endpoint configuration. Slots must have a slot name %s{resource.ResourceId.Type.Type}"
             | _ -> raiseFarmer $"Invalid resource type. Cannot link private endpoint to type %s{resource.ResourceId.Type.Type}"
-
         { state with PrivateLinkServiceConnection = Some { Resource = outputResource; GroupIds = groupIds; Dependencies = Set.ofList dependencies } }
+
+    member _.PrivateLinkConnection(state:PrivateEndpointConfig, resource:LinkedResource, subresource:string list, dependencies:ResourceId list) = 
+        { state with PrivateLinkServiceConnection = Some { Resource = resource; GroupIds = subresource; Dependencies = Set.ofList dependencies } }
 
     [<CustomOperation "link_to_private_dns_zone">]
     member _.LinkToDnsZone(state:PrivateEndpointConfig, zone:DnsZoneConfig) = { state with PrivateDnsZone = Some (Managed (zone:> IBuilder).ResourceId) }
