@@ -375,6 +375,7 @@ let tests = testList "Storage Tests" [
             arm { add_resource account } |> getStorageResource
         Expect.equal resource.MinimumTlsVersion "TLS1_2" "Min TLS version is wrong"
     }
+
     test "dnsEndpointType is standard by default" {
         let resource =
             let account = storageAccount {
@@ -387,6 +388,7 @@ let tests = testList "Storage Tests" [
         
         Expect.equal (jobj.SelectToken("resources[0].properties.dnsEndpointType").ToString()) "Standard" "dnsEndpointType should be standard by default"
     }
+    
     test "dnsEndpointType can be set to AzureDnsZone" {
         let resource =
             let account = storageAccount {
