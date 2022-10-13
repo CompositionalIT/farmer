@@ -5,12 +5,14 @@
   "parameters": {},
   "resources": [
     {
-      "apiVersion": "2019-06-01",
+      "apiVersion": "2022-05-01",
       "dependsOn": [],
       "kind": "StorageV2",
       "location": "northeurope",
       "name": "isaacsuperdata",
-      "properties": {},
+      "properties": {
+        "dnsEndpointType": "Standard"
+      },
       "sku": {
         "name": "Standard_LRS"
       },
