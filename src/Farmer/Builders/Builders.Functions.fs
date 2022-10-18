@@ -305,7 +305,8 @@ type FunctionsConfig =
                   EnableHierarchicalNamespace = None
                   MinTlsVersion = None
                   Tags = this.Tags
-                  DnsZoneType = "Standard" }
+                  DnsZoneType = "Standard"
+                  DisablePublicNetworkAccess = FeatureFlag.Disabled }
             | _ ->
                 ()
 

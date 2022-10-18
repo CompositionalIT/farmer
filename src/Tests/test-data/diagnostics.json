@@ -11,7 +11,8 @@
       "location": "northeurope",
       "name": "isaacsuperdata",
       "properties": {
-        "dnsEndpointType": "Standard"
+        "dnsEndpointType": "Standard",
+        "publicNetworkAccess": "Enabled"
       },
       "sku": {
         "name": "Standard_LRS"

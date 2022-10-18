@@ -406,4 +406,32 @@ let tests = testList "Storage Tests" [
     test "Must set a storage account name" {
         Expect.throws (fun () -> storageAccount { sku Sku.Standard_ZRS } |> ignore) "Must set a name on a storage account"
     }
+
+    test "Public network access is enabled by default" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
+            }
+            arm { add_resource account }
+
+        let jsn = resource.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        
+        Expect.equal (jobj.SelectToken("resources[0].properties.publicNetworkAccess").ToString()) "Enabled" "public network access should be enabled by default"
+    }
+
+    test "Public network access can be disabled" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
+                disable_public_network_access
+            }
+            arm { add_resource account }
+
+        let jsn = resource.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        
+        Expect.equal (jobj.SelectToken("resources[0].properties.publicNetworkAccess").ToString()) "Disabled" "public network access should be disabled"
+        Expect.equal (jobj.SelectToken("resources[0].properties.networkAcls.defaultAction").ToString()) "Deny" "network acl should deny traffic when public network access is disabled"
+    }
 ]
