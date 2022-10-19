@@ -348,6 +348,25 @@ type StorageAccountBuilder() =
                         IpRules = allowIp :: existingAcl.IpRules
                     } |> Some
             }
+    /// Restrict access to this storage account to the private endpoints and azure services.
+    [<CustomOperation "restrict_to_azure_services">]
+    member _.RestrictToAzureServices(state:StorageAccountConfig, bypass:NetworkRuleSetBypass list) =
+        match state.NetworkAcls with
+        | None ->
+            { state with
+                NetworkAcls =
+                    { Bypass = set bypass
+                      VirtualNetworkRules = []
+                      IpRules = []
+                      DefaultAction = RuleAction.Deny } |> Some
+            }
+        | Some existingAcl ->
+            { state with
+                NetworkAcls =
+                    { existingAcl with
+                        Bypass = set bypass
+                    } |> Some
+            }
     /// Adds a set of CORS rules to the storage account.
     [<CustomOperation "add_cors_rules">]
     member _.AddCorsRules(state:StorageAccountConfig, rules) =
