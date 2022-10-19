@@ -432,6 +432,22 @@ let tests = testList "Storage Tests" [
         let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
         
         Expect.equal (jobj.SelectToken("resources[0].properties.publicNetworkAccess").ToString()) "Disabled" "public network access should be disabled"
-        Expect.equal (jobj.SelectToken("resources[0].properties.networkAcls.defaultAction").ToString()) "Deny" "network acl should deny traffic when public network access is disabled"
+    }
+
+    test "restrict_to_azure_services adds correct network acl" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
+                restrict_to_azure_services [Farmer.Arm.Storage.NetworkRuleSetBypass.AzureServices; Farmer.Arm.Storage.NetworkRuleSetBypass.Metrics]
+            }
+            arm { add_resource account }
+
+        let jsn = resource.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        
+        Expect.equal (jobj.SelectToken("resources[0].properties.networkAcls.defaultAction").ToString()) "Deny" "network acl should deny traffic when restricting to azure services + private link"
+        Expect.equal (jobj.SelectToken("resources[0].properties.networkAcls.bypass").ToString()) "AzureServices,Metrics" "network acl should allow bypass for selected services"
+        Expect.isEmpty (jobj.SelectToken("resources[0].properties.networkAcls.ipRules").Values<string>()) "network acl should not define ip restrictions"
+        Expect.isEmpty (jobj.SelectToken("resources[0].properties.networkAcls.virtualNetworkRules").Values<string>()) "network acl should not define vnet restrictions"
     }
 ]
