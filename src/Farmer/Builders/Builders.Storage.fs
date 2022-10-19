@@ -374,9 +374,20 @@ type StorageAccountBuilder() =
     member _.DisablePublicNetworkAccess(state:StorageAccountConfig) =
         { state with
               NetworkAcls =
-                  { Bypass = set [ NetworkRuleSetBypass.AzureServices ]
+                  { Bypass = set []
                     VirtualNetworkRules = []
-                    IpRules = [ ]
+                    IpRules = []
+                    DefaultAction = RuleAction.Deny } |> Some
+              DisablePublicNetworkAccess = FeatureFlag.Enabled
+        }
+
+    [<CustomOperation "disable_public_network_access">]
+    member _.DisablePublicNetworkAccess(state:StorageAccountConfig, bypass:NetworkRuleSetBypass list) =
+        { state with
+              NetworkAcls =
+                  { Bypass = set bypass
+                    VirtualNetworkRules = []
+                    IpRules = []
                     DefaultAction = RuleAction.Deny } |> Some
               DisablePublicNetworkAccess = FeatureFlag.Enabled
         }
