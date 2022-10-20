@@ -433,6 +433,7 @@ let tests = testList "Storage Tests" [
         
         Expect.equal (jobj.SelectToken("resources[0].properties.publicNetworkAccess").ToString()) "Disabled" "public network access should be disabled"
         Expect.equal (jobj.SelectToken("resources[0].properties.networkAcls.defaultAction").ToString()) "Deny" "network acl should deny traffic when disabling public network access"
+        Expect.equal (jobj.SelectToken("resources[0].properties.networkAcls.bypass").ToString()) "None" "network acl should not allow bypass by default"
     }
 
     test "restrict_to_azure_services adds correct network acl" {
