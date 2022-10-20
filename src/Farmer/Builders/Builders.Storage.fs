@@ -394,7 +394,7 @@ type StorageAccountBuilder() =
         { state with
             DisablePublicNetworkAccess = FeatureFlag.Enabled
             NetworkAcls =
-                { Bypass = set []
+                { Bypass = set [ NetworkRuleSetBypass.None ]
                   VirtualNetworkRules = []
                   IpRules = []
                   DefaultAction = RuleAction.Deny } |> Some
