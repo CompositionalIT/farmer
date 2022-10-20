@@ -432,6 +432,7 @@ let tests = testList "Storage Tests" [
         let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
         
         Expect.equal (jobj.SelectToken("resources[0].properties.publicNetworkAccess").ToString()) "Disabled" "public network access should be disabled"
+        Expect.equal (jobj.SelectToken("resources[0].properties.networkAcls.defaultAction").ToString()) "Deny" "network acl should deny traffic when disabling public network access"
     }
 
     test "restrict_to_azure_services adds correct network acl" {

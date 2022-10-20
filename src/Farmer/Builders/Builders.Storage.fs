@@ -391,7 +391,14 @@ type StorageAccountBuilder() =
     /// Disable public network access, all access must be through a private endpoint.
     [<CustomOperation "disable_public_network_access">]
     member _.DisablePublicNetworkAccess(state:StorageAccountConfig) =
-        { state with DisablePublicNetworkAccess = FeatureFlag.Enabled }
+        { state with
+            DisablePublicNetworkAccess = FeatureFlag.Enabled
+            NetworkAcls =
+                { Bypass = set []
+                  VirtualNetworkRules = []
+                  IpRules = []
+                  DefaultAction = RuleAction.Deny } |> Some
+        }
 
     interface ITaggable<StorageAccountConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     
