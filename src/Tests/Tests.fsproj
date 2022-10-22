@@ -63,6 +63,7 @@
     <Compile Include="Types.fs" />
     <Compile Include="TrafficManager.fs" />
     <Compile Include="Dashboards.fs" />
+    <Compile Include="DedicatedHosts.fs" />
     <Compile Include="AllTests.fs" />
   </ItemGroup>
 

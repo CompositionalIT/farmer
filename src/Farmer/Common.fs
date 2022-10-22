@@ -167,6 +167,44 @@ module Route =
             | VirtualNetworkGateway -> "VirtualNetworkGateway"
             | VnetLocal -> "VnetLocal"
 
+module DedicatedHosts =
+    type HostTier =
+        | Standard
+        | Basic
+
+        static member Print(x: HostTier) =
+            match x with
+            | Standard -> "Standard"
+            | Basic -> "Basic"
+
+    type PlatformFaultDomainCount =
+        | PlatformFaultDomainCount of int
+
+        static member Parse(i: int) : PlatformFaultDomainCount =
+            if i < 0 || i > 5 then
+                raiseFarmer "Platform fault domain count must be between 0 and 5, inclusive"
+            else
+                (PlatformFaultDomainCount i)
+
+        static member ToArmValue(PlatformFaultDomainCount p) = p
+
+    type HostSku =
+        | HostSku of string
+
+        static member Print(HostSku x) = x
+        member this.JsonProperties = {| name = HostSku.Print this |}
+
+    type HostLicenseType =
+        | NoLicense
+        | WindowsHybrid
+        | WindowsPerpetual
+
+        static member Print(x: HostLicenseType) =
+            match x with
+            | NoLicense -> "None"
+            | WindowsHybrid -> "Windows_Server_Hybrid"
+            | WindowsPerpetual -> "Windows_Server_Perpetual"
+
 module Vm =
     type VMSize =
         | Basic_A0

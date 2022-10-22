@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.7.11
+* Dedicated Hosts: Support for Host Groups and Hosts
 
 ## 1.7.10
 * Container Groups and Container Apps: Support for link_to_identity for ACR managed identities.

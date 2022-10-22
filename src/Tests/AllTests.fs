@@ -36,6 +36,7 @@ let allTests =
                     ContainerService.tests
                     Cosmos.tests
                     Databricks.tests
+                    DedicatedHosts.tests
                     DeploymentScript.tests
                     DiagnosticSettings.tests
                     Dns.tests
