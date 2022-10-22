@@ -172,9 +172,6 @@ type ContainerApp =
                                                             cred.Identity.Dependencies.Head.ArmExpression.Eval()
                                                         else
                                                             String.Empty
-
-
-
                                                 |}
                                         for setting in this.Secrets do
                                             {|

@@ -1,7 +1,9 @@
 Release Notes
 =============
+
 ## 1.7.11
-* Added support for Node 14, 16 and 18
+* Dedicated Hosts: Support for Host Groups and Hosts
+* WebApps: Added support for Node 14, 16 and 18
 
 ## 1.7.10
 * Container Groups and Container Apps: Support for link_to_identity for ACR managed identities.

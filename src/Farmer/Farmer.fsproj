@@ -172,6 +172,7 @@
     <Compile Include="Builders\Builders.PrivateLink.fs" />
     <Compile Include="Builders\Builders.PrivateEndpoint.fs" />
     <Compile Include="Builders\Builders.RouteTable.fs" />
+    <Compile Include="Builders\Builders.HostGroup.fs" />
     <Compile Include="Aliases.fs" />
   </ItemGroup>
 </Project>
