@@ -33,7 +33,7 @@ type SignalRConfig =
     member this.Key = this.GetKeyExpr "primaryKey"
     member this.ConnectionString = this.GetKeyExpr "primaryConnectionString"
     member this.ConnectionStringInResourceGroup rg = 
-        let expr = $"listKeys(resourceId('{rg}', 'Microsoft.SignalRService/SignalR', '{this.Name.Value}'), providers('Microsoft.SignalRService', 'SignalR').apiVersions[0]).{primaryConnectionString}"
+        let expr = $"listKeys(resourceId('{rg}', 'Microsoft.SignalRService/SignalR', '{this.Name.Value}'), providers('Microsoft.SignalRService', 'SignalR').apiVersions[0]).primaryConnectionString"
         ArmExpression.create(expr, this.ResourceId)
 
 type SignalRBuilder() =
