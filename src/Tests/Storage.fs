@@ -440,7 +440,8 @@ let tests = testList "Storage Tests" [
         let resource =
             let account = storageAccount {
                 name "mystorage123"
-                restrict_to_azure_services [Farmer.Arm.Storage.NetworkRuleSetBypass.AzureServices; Farmer.Arm.Storage.NetworkRuleSetBypass.Metrics]
+                restrict_to_azure_services [Farmer.Arm.Storage.NetworkRuleSetBypass.AzureServices]
+                restrict_to_azure_services [Farmer.Arm.Storage.NetworkRuleSetBypass.Metrics]
             }
             arm { add_resource account }
 

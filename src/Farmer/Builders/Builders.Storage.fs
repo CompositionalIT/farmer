@@ -364,7 +364,7 @@ type StorageAccountBuilder() =
             { state with
                 NetworkAcls =
                     { existingAcl with
-                        Bypass = set bypass
+                        Bypass = Set.union (set bypass) existingAcl.Bypass
                     } |> Some
             }
     /// Adds a set of CORS rules to the storage account.
