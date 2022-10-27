@@ -73,6 +73,7 @@ type StorageAccount =
       StaticWebsite : {| IndexPage : string; ErrorPage : string option; ContentPath : string |} option
       MinTlsVersion : TlsVersion option
       DnsZoneType : string
+      DisablePublicNetworkAccess: FeatureFlag
       Tags: Map<string,string> }
     interface IArmResource with
         member this.ResourceId = storageAccounts.resourceId this.Name.ResourceName
@@ -138,6 +139,10 @@ type StorageAccount =
                         | Some Tls12 -> "TLS1_2"
                         | None -> null
                        dnsEndpointType = this.DnsZoneType
+                       publicNetworkAccess =
+                         match this.DisablePublicNetworkAccess with
+                           | FeatureFlag.Disabled -> "Enabled"
+                           | FeatureFlag.Enabled -> "Disabled"
                     |}
             |}
     interface IPostDeploy with

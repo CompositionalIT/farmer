@@ -59,7 +59,9 @@ type StorageAccountConfig =
       /// Tags to apply to the storage account
       Tags: Map<string,string> 
       /// DNS endpoint type
-      DnsZoneType: string }
+      DnsZoneType: string
+      /// Disable Public Network Acccess
+      DisablePublicNetworkAccess: FeatureFlag }
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = StorageAccount.getConnectionString(this.Name)
     /// Gets the Primary endpoint for static website (if enabled)
@@ -96,6 +98,7 @@ type StorageAccountConfig =
               StaticWebsite = this.StaticWebsite
               MinTlsVersion = this.MinTlsVersion
               DnsZoneType = this.DnsZoneType
+              DisablePublicNetworkAccess = this.DisablePublicNetworkAccess
               Tags = this.Tags }
             for name, access in this.Containers do
                 { Name = name
@@ -198,7 +201,8 @@ type StorageAccountBuilder() =
         MinTlsVersion = None
         Tags = Map.empty
         DnsZoneType = "Standard"
-    }
+        DisablePublicNetworkAccess = FeatureFlag.Disabled
+        }
     member _.Run state =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Storage Account name has been set."
         state
@@ -344,6 +348,25 @@ type StorageAccountBuilder() =
                         IpRules = allowIp :: existingAcl.IpRules
                     } |> Some
             }
+    /// Restrict access to this storage account to the private endpoints and azure services.
+    [<CustomOperation "restrict_to_azure_services">]
+    member _.RestrictToAzureServices(state:StorageAccountConfig, bypass:NetworkRuleSetBypass list) =
+        match state.NetworkAcls with
+        | None ->
+            { state with
+                NetworkAcls =
+                    { Bypass = set bypass
+                      VirtualNetworkRules = []
+                      IpRules = []
+                      DefaultAction = RuleAction.Deny } |> Some
+            }
+        | Some existingAcl ->
+            { state with
+                NetworkAcls =
+                    { existingAcl with
+                        Bypass = Set.union (set bypass) existingAcl.Bypass
+                    } |> Some
+            }
     /// Adds a set of CORS rules to the storage account.
     [<CustomOperation "add_cors_rules">]
     member _.AddCorsRules(state:StorageAccountConfig, rules) =
@@ -364,6 +387,19 @@ type StorageAccountBuilder() =
     [<CustomOperation "use_azure_dns_zone">]
     member _.SetDnsEndpointType(state:StorageAccountConfig) =
         { state with DnsZoneType = "AzureDnsZone" }
+
+    /// Disable public network access, all access must be through a private endpoint.
+    [<CustomOperation "disable_public_network_access">]
+    member _.DisablePublicNetworkAccess(state:StorageAccountConfig) =
+        { state with
+            DisablePublicNetworkAccess = FeatureFlag.Enabled
+            NetworkAcls =
+                { Bypass = set [ NetworkRuleSetBypass.None ]
+                  VirtualNetworkRules = []
+                  IpRules = []
+                  DefaultAction = RuleAction.Deny } |> Some
+        }
+
     interface ITaggable<StorageAccountConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     
 /// Allow adding storage accounts directly to CDNs

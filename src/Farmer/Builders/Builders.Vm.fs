@@ -156,7 +156,8 @@ type VmConfig =
                   EnableHierarchicalNamespace = None
                   MinTlsVersion = None
                   Tags = this.Tags
-                  DnsZoneType = "Standard" }
+                  DnsZoneType = "Standard"
+                  DisablePublicNetworkAccess = FeatureFlag.Disabled }
             | Some _
             | None ->
                 ()

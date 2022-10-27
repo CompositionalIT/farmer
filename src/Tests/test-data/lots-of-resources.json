@@ -89,7 +89,8 @@
       "location": "northeurope",
       "name": "farmerstorage1979",
       "properties": {
-        "dnsEndpointType": "Standard"
+        "dnsEndpointType": "Standard",
+        "publicNetworkAccess": "Enabled"
       },
       "sku": {
         "name": "Standard_LRS"
@@ -231,7 +232,8 @@
       "location": "northeurope",
       "name": "farmerfuncs1979storage",
       "properties": {
-        "dnsEndpointType": "Standard"
+        "dnsEndpointType": "Standard",
+        "publicNetworkAccess": "Enabled"
       },
       "sku": {
         "name": "Standard_LRS"
@@ -790,7 +792,8 @@
       "location": "northeurope",
       "name": "dockerfuncstorage",
       "properties": {
-        "dnsEndpointType": "Standard"
+        "dnsEndpointType": "Standard",
+        "publicNetworkAccess": "Enabled"
       },
       "sku": {
         "name": "Standard_LRS"
