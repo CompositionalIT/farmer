@@ -180,7 +180,7 @@ let tests =
 
                 Expect.equal
                     (kubeEnvLogAnalyticsCustomerId.["customerId"] |> string)
-                    "[reference(resourceId('Microsoft.OperationalInsights/workspaces', 'containerlogs'), '2020-03-01-preview').customerId]"
+                    "[reference(resourceId('Microsoft.OperationalInsights/workspaces', 'containerlogs'), '2022-10-01').customerId]"
                     "Incorrect log analytics customerId reference"
             }
 

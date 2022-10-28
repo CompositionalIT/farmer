@@ -1,4 +1,4 @@
-{
+    {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "outputs": {},
@@ -12,7 +12,7 @@
   },
   "resources": [
     {
-      "apiVersion": "2019-06-01-preview",
+      "apiVersion": "2021-11-01",
       "location": "northeurope",
       "name": "farmersql1979",
       "properties": {
@@ -26,7 +26,7 @@
       "type": "Microsoft.Sql/servers"
     },
     {
-      "apiVersion": "2019-06-01-preview",
+      "apiVersion": "2021-11-01",
       "dependsOn": [
         "[resourceId('Microsoft.Sql/servers', 'farmersql1979')]",
         "[resourceId('Microsoft.Sql/servers/elasticPools', 'farmersql1979', 'farmersql1979-pool')]"
@@ -55,7 +55,7 @@
       "type": "Microsoft.Sql/servers/databases/transparentDataEncryption"
     },
     {
-      "apiVersion": "2014-04-01",
+      "apiVersion": "2021-11-01",
       "dependsOn": [
         "[resourceId('Microsoft.Sql/servers', 'farmersql1979')]"
       ],
@@ -68,7 +68,7 @@
       "type": "Microsoft.Sql/servers/firewallrules"
     },
     {
-      "apiVersion": "2017-10-01-preview",
+      "apiVersion": "2021-11-01",
       "dependsOn": [
         "[resourceId('Microsoft.Sql/servers', 'farmersql1979')]"
       ],
@@ -83,7 +83,7 @@
       "type": "Microsoft.Sql/servers/elasticPools"
     },
     {
-      "apiVersion": "2019-06-01",
+      "apiVersion": "2022-05-01",
       "dependsOn": [],
       "kind": "StorageV2",
       "location": "northeurope",
@@ -96,7 +96,7 @@
       "type": "Microsoft.Storage/storageAccounts"
     },
     {
-      "apiVersion": "2014-04-01",
+      "apiVersion": "2015-05-01",
       "dependsOn": [],
       "kind": "web",
       "location": "northeurope",
@@ -114,7 +114,7 @@
       "type": "Microsoft.Insights/components"
     },
     {
-      "apiVersion": "2018-02-01",
+      "apiVersion": "2022-03-01",
       "location": "northeurope",
       "name": "farmerwebapp1979-farm",
       "properties": {
@@ -157,7 +157,7 @@
           "appSettings": [
             {
               "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
-              "value": "[reference(resourceId('Microsoft.Insights/components', 'farmerwebapp1979-ai'), '2014-04-01').InstrumentationKey]"
+              "value": "[reference(resourceId('Microsoft.Insights/components', 'farmerwebapp1979-ai'), '2015-05-01').InstrumentationKey]"
             },
             {
               "name": "APPINSIGHTS_PROFILERFEATURE_VERSION",
@@ -205,7 +205,7 @@
       "type": "Microsoft.Web/sites"
     },
     {
-      "apiVersion": "2018-02-01",
+      "apiVersion": "2022-03-01",
       "location": "northeurope",
       "name": "farmerfuncs1979-farm",
       "properties": {
@@ -223,7 +223,7 @@
       "type": "Microsoft.Web/serverfarms"
     },
     {
-      "apiVersion": "2019-06-01",
+      "apiVersion": "2022-05-01",
       "dependsOn": [],
       "kind": "StorageV2",
       "location": "northeurope",
@@ -236,7 +236,7 @@
       "type": "Microsoft.Storage/storageAccounts"
     },
     {
-      "apiVersion": "2014-04-01",
+      "apiVersion": "2015-05-01",
       "dependsOn": [],
       "kind": "web",
       "location": "northeurope",
@@ -271,15 +271,15 @@
           "appSettings": [
             {
               "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
-              "value": "[reference(resourceId('Microsoft.Insights/components', 'farmerfuncs1979-ai'), '2014-04-01').InstrumentationKey]"
+              "value": "[reference(resourceId('Microsoft.Insights/components', 'farmerfuncs1979-ai'), '2015-05-01').InstrumentationKey]"
             },
             {
               "name": "AzureWebJobsDashboard",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=farmerfuncs1979storage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'farmerfuncs1979storage'), '2017-10-01').keys[0].value)]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=farmerfuncs1979storage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'farmerfuncs1979storage'), '2022-05-01').keys[0].value)]"
             },
             {
               "name": "AzureWebJobsStorage",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=farmerfuncs1979storage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'farmerfuncs1979storage'), '2017-10-01').keys[0].value)]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=farmerfuncs1979storage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'farmerfuncs1979storage'), '2022-05-01').keys[0].value)]"
             },
             {
               "name": "FUNCTIONS_EXTENSION_VERSION",
@@ -291,7 +291,7 @@
             },
             {
               "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=farmerfuncs1979storage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'farmerfuncs1979storage'), '2017-10-01').keys[0].value)]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=farmerfuncs1979storage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'farmerfuncs1979storage'), '2022-05-01').keys[0].value)]"
             },
             {
               "name": "WEBSITE_CONTENTSHARE",
@@ -409,12 +409,12 @@
         "isHttpAllowed": true,
         "isHttpsAllowed": true,
         "optimizationType": "GeneralWebDelivery",
-        "originHostHeader": "[replace(replace(reference(resourceId('Microsoft.Storage/storageAccounts', 'farmerstorage1979'), '2019-06-01').primaryEndpoints.web, 'https://', ''), '/', '')]",
+        "originHostHeader": "[replace(replace(reference(resourceId('Microsoft.Storage/storageAccounts', 'farmerstorage1979'), '2022-05-01').primaryEndpoints.web, 'https://', ''), '/', '')]",
         "origins": [
           {
             "name": "origin",
             "properties": {
-              "hostName": "[replace(replace(reference(resourceId('Microsoft.Storage/storageAccounts', 'farmerstorage1979'), '2019-06-01').primaryEndpoints.web, 'https://', ''), '/', '')]"
+              "hostName": "[replace(replace(reference(resourceId('Microsoft.Storage/storageAccounts', 'farmerstorage1979'), '2022-05-01').primaryEndpoints.web, 'https://', ''), '/', '')]"
             }
           }
         ],
@@ -761,7 +761,7 @@
       "type": "Microsoft.Resources/deployments"
     },
     {
-      "apiVersion": "2018-02-01",
+      "apiVersion": "2022-03-01",
       "location": "northeurope",
       "name": "docker-func-farm",
       "properties": {
@@ -779,7 +779,7 @@
       "type": "Microsoft.Web/serverfarms"
     },
     {
-      "apiVersion": "2019-06-01",
+      "apiVersion": "2022-05-01",
       "dependsOn": [],
       "kind": "StorageV2",
       "location": "northeurope",
@@ -809,11 +809,11 @@
           "appSettings": [
             {
               "name": "AzureWebJobsDashboard",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=dockerfuncstorage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage'), '2017-10-01').keys[0].value)]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=dockerfuncstorage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage'), '2022-05-01').keys[0].value)]"
             },
             {
               "name": "AzureWebJobsStorage",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=dockerfuncstorage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage'), '2017-10-01').keys[0].value)]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=dockerfuncstorage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage'), '2022-05-01').keys[0].value)]"
             },
             {
               "name": "DOCKER_REGISTRY_SERVER_PASSWORD",
@@ -837,7 +837,7 @@
             },
             {
               "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=dockerfuncstorage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage'), '2017-10-01').keys[0].value)]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=dockerfuncstorage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage'), '2022-05-01').keys[0].value)]"
             },
             {
               "name": "WEBSITE_CONTENTSHARE",

@@ -20,7 +20,7 @@ let tests =
 
                 Expect.equal
                     ai.InstrumentationKey.Value
-                    ("reference(resourceId('Microsoft.Insights/components', 'foo'), '2014-04-01').InstrumentationKey")
+                    ("reference(resourceId('Microsoft.Insights/components', 'foo'), '2015-05-01').InstrumentationKey")
                     "Incorrect Value"
             }
 
@@ -28,7 +28,7 @@ let tests =
                 let deployment = arm { add_resource (appInsights { name "foo" }) }
                 let json = deployment.Template |> Writer.toJson |> JObject.Parse
                 let version = json.SelectToken("resources[?(@.name=='foo')].apiVersion").ToString()
-                Expect.equal version "2014-04-01" "Incorrect API version"
+                Expect.equal version "2015-05-01" "Incorrect API version"
             }
 
             test "Create generated keys correctly" {
@@ -39,7 +39,7 @@ let tests =
 
                 Expect.equal
                     generatedKey.Value
-                    "reference(resourceId('group', 'Microsoft.Insights/components', 'foo'), '2014-04-01').InstrumentationKey"
+                    "reference(resourceId('group', 'Microsoft.Insights/components', 'foo'), '2015-05-01').InstrumentationKey"
                     "Incorrect generated key"
             }
 

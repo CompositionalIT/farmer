@@ -27,7 +27,7 @@ let tests =
                         add_tags [ "a", "1"; "b", "2" ]
                     }
 
-                let model: Models.CognitiveServicesAccount = service |> getResourceAtIndex 0
+                let model: Models.Account = service |> getResourceAtIndex 0
 
                 Expect.equal model.Name "test" "Name is wrong"
                 Expect.equal model.Kind "TextAnalytics" "Kind is wrong"

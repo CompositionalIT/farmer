@@ -5,10 +5,10 @@ open Farmer
 open EventGrid
 
 let systemTopics =
-    ResourceType("Microsoft.EventGrid/systemTopics", "2020-04-01-preview")
+    ResourceType("Microsoft.EventGrid/systemTopics", "2022-06-15")
 
 let eventSubscriptions =
-    ResourceType("Microsoft.EventGrid/systemTopics/eventSubscriptions", "2020-04-01-preview")
+    ResourceType("Microsoft.EventGrid/systemTopics/eventSubscriptions", "2022-06-15")
 
 type TopicType =
     | TopicType of ResourceType * topic: string

@@ -59,7 +59,7 @@ let tests =
                             ]
                     }
 
-                let encryptionModel: Models.TransparentDataEncryption =
+                let encryptionModel: Models.ManagedTransparentDataEncryption =
                     sql |> getResourceAtIndex client.SerializationSettings 2
 
                 Expect.equal encryptionModel.Name "server/db/current" "Should always equal to current"

@@ -273,12 +273,12 @@ let tests =
                     StorageAccount.getConnectionString (StorageAccountName.Create("account").OkValue, "rg")
 
                 Expect.equal
-                    "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value)"
+                    "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2022-05-01').keys[0].value)"
                     strongConn.Value
                     "Strong connection string"
 
                 Expect.equal
-                    "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('rg', 'Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value)"
+                    "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('rg', 'Microsoft.Storage/storageAccounts', 'account'), '2022-05-01').keys[0].value)"
                     rgConn.Value
                     "Complex connection string"
             }
@@ -316,7 +316,7 @@ let tests =
 
                 Expect.equal
                     builder.WebsitePrimaryEndpoint.Value
-                    "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2019-06-01').primaryEndpoints.web"
+                    "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2022-05-01').primaryEndpoints.web"
                     "Zone names are not fixed and should be related to a storage account name"
             }
             test "Creates different SKU kinds correctly" {

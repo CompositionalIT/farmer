@@ -5,16 +5,16 @@ open Farmer
 open Farmer.Sql
 open System.Net
 
-let servers = ResourceType("Microsoft.Sql/servers", "2019-06-01-preview")
+let servers = ResourceType("Microsoft.Sql/servers", "2021-11-01")
 
 let elasticPools =
-    ResourceType("Microsoft.Sql/servers/elasticPools", "2017-10-01-preview")
+    ResourceType("Microsoft.Sql/servers/elasticPools", "2021-11-01")
 
 let firewallRules =
-    ResourceType("Microsoft.Sql/servers/firewallrules", "2014-04-01")
+    ResourceType("Microsoft.Sql/servers/firewallrules", "2021-11-01")
 
 let databases =
-    ResourceType("Microsoft.Sql/servers/databases", "2019-06-01-preview")
+    ResourceType("Microsoft.Sql/servers/databases", "2021-11-01")
 
 let transparentDataEncryption =
     ResourceType("Microsoft.Sql/servers/databases/transparentDataEncryption", "2014-04-01-preview")

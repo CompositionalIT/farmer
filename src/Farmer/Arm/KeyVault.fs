@@ -5,13 +5,13 @@ open Farmer
 open Farmer.KeyVault
 open System
 
-let secrets = ResourceType("Microsoft.KeyVault/vaults/secrets", "2019-09-01")
+let secrets = ResourceType("Microsoft.KeyVault/vaults/secrets", "2022-07-01")
 
 let accessPolicies =
-    ResourceType("Microsoft.KeyVault/vaults/accessPolicies", "2019-09-01")
+    ResourceType("Microsoft.KeyVault/vaults/accessPolicies", "2022-07-01")
 
-let vaults = ResourceType("Microsoft.KeyVault/vaults", "2019-09-01")
-let keys = ResourceType("Microsoft.keyVault/vaults/keys", "2019-09-01")
+let vaults = ResourceType("Microsoft.KeyVault/vaults", "2022-07-01")
+let keys = ResourceType("Microsoft.keyVault/vaults/keys", "2022-07-01")
 
 module Vaults =
     type Secret =

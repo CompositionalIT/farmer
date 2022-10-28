@@ -71,7 +71,7 @@ type ManagedEnvironmentStorage =
                             ShareName = share
                             AccountName = accountName
                             AccountKey =
-                                $"[listKeys('Microsoft.Storage/storageAccounts/{accountName.ResourceName.Value}', '2018-07-01').keys[0].value]"
+                                $"[listKeys('Microsoft.Storage/storageAccounts/{accountName.ResourceName.Value}', '2022-05-01').keys[0].value]"
                             AccessMode = accessMode
                         |}
                 }

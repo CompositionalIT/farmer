@@ -633,7 +633,7 @@ async {
 
                 Expect.equal
                     (firstEnvVar.["secureValue"] |> string)
-                    "[concat('DefaultEndpointsProtocol=https;AccountName=containerdata1234;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'containerdata1234'), '2017-10-01').keys[0].value)]"
+                    "[concat('DefaultEndpointsProtocol=https;AccountName=containerdata1234;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'containerdata1234'), '2022-05-01').keys[0].value)]"
                     "Incorrect env var expression value"
             }
             test "Container with liveness and readiness probes" {
@@ -1102,12 +1102,12 @@ async {
 
                 Expect.equal
                     (string workspaceId)
-                    "[reference(resourceId('Microsoft.OperationalInsights/workspaces', 'containergrouplogs1234'), '2020-03-01-preview').customerId]"
+                    "[reference(resourceId('Microsoft.OperationalInsights/workspaces', 'containergrouplogs1234'), '2022-10-01').customerId]"
                     "Incorrect value for workspaceId"
 
                 Expect.equal
                     (string workspaceKey)
-                    "[listkeys(resourceId('Microsoft.OperationalInsights/workspaces', 'containergrouplogs1234'), '2020-03-01-preview').primarySharedKey]"
+                    "[listkeys(resourceId('Microsoft.OperationalInsights/workspaces', 'containergrouplogs1234'), '2022-10-01').primarySharedKey]"
                     "Incorrect value for workspaceKey"
 
                 Expect.equal (string logType) "ContainerInstanceLogs" "Incorrect value for workspaceId"
@@ -1153,12 +1153,12 @@ async {
 
                 Expect.equal
                     (string workspaceId)
-                    "[reference(resourceId('Microsoft.OperationalInsights/workspaces', 'my-log-analytics-workspace'), '2020-03-01-preview').customerId]"
+                    "[reference(resourceId('Microsoft.OperationalInsights/workspaces', 'my-log-analytics-workspace'), '2022-10-01').customerId]"
                     "Incorrect value for workspaceId"
 
                 Expect.equal
                     (string workspaceKey)
-                    "[listkeys(resourceId('Microsoft.OperationalInsights/workspaces', 'my-log-analytics-workspace'), '2020-03-01-preview').primarySharedKey]"
+                    "[listkeys(resourceId('Microsoft.OperationalInsights/workspaces', 'my-log-analytics-workspace'), '2022-10-01').primarySharedKey]"
                     "Incorrect value for workspaceKey"
 
                 Expect.equal (string logType) "ContainerInstanceLogs" "Incorrect value for workspaceId"

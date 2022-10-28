@@ -67,33 +67,33 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="expecto" Version="9.0.0" />
+    <PackageReference Include="expecto" Version="9.0.4" />
     <PackageReference Include="Microsoft.Azure.Management.Cdn" Version="6.1.0" />
     <PackageReference Include="Microsoft.Azure.Management.Dns" Version="3.0.1" />
-    <PackageReference Include="Microsoft.Azure.Management.CognitiveServices" Version="7.0.0" />
-    <PackageReference Include="Microsoft.Azure.Management.Compute" Version="35.2.0" />
+    <PackageReference Include="Microsoft.Azure.Management.CognitiveServices" Version="8.3.0" />
+    <PackageReference Include="Microsoft.Azure.Management.Compute" Version="59.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.ContainerInstance" Version="7.0.0" />
-    <PackageReference Include="Microsoft.Azure.Management.ContainerService" Version="1.1.0" />
-    <PackageReference Include="Microsoft.Azure.Management.DeviceProvisioningServices" Version="1.0.0" />
-    <PackageReference Include="Microsoft.Azure.Management.IotHub" Version="2.10.0-preview" />
+    <PackageReference Include="Microsoft.Azure.Management.ContainerService" Version="1.2.0" />
+    <PackageReference Include="Microsoft.Azure.Management.DeviceProvisioningServices" Version="4.0.0" />
+    <PackageReference Include="Microsoft.Azure.Management.IotHub" Version="4.2.0" />
     <PackageReference Include="Microsoft.Azure.Management.Logic" Version="4.1.0" />
     <PackageReference Include="Microsoft.Azure.Management.Maps" Version="1.0.2" />
-    <PackageReference Include="Microsoft.Azure.Management.Monitor" Version="0.25.3-preview" />
-    <PackageReference Include="Microsoft.Azure.Management.Network" Version="19.20.0-preview" />
-    <PackageReference Include="Microsoft.Azure.Management.OperationalInsights" Version="0.21.0-preview" />
-    <PackageReference Include="Microsoft.Azure.Management.ResourceManager" Version="3.10.1-preview" />
-    <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="2.1.0" />
-    <PackageReference Include="Microsoft.Azure.Management.SignalR" Version="1.0.1" />
-    <PackageReference Include="Microsoft.Azure.Management.Sql" Version="1.43.0-preview" />
-    <PackageReference Include="Microsoft.Azure.Management.Storage" Version="21.0.0" />
-    <PackageReference Include="Microsoft.Azure.Management.TrafficManager" Version="2.5.3" />
-    <PackageReference Include="Microsoft.Azure.Management.WebSites" Version="3.1.1" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
-    <PackageReference Include="coverlet.collector" Version="3.1.0">
+    <PackageReference Include="Microsoft.Azure.Management.Monitor" Version="0.28.0-preview" />
+    <PackageReference Include="Microsoft.Azure.Management.Network" Version="24.0.0" />
+    <PackageReference Include="Microsoft.Azure.Management.OperationalInsights" Version="0.25.0-preview" />
+    <PackageReference Include="Microsoft.Azure.Management.ResourceManager" Version="3.17.4-preview" />
+    <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Azure.Management.SignalR" Version="1.1.2-preview" />
+    <PackageReference Include="Microsoft.Azure.Management.Sql" Version="3.1.0-preview" />
+    <PackageReference Include="Microsoft.Azure.Management.Storage" Version="25.0.0" />
+    <PackageReference Include="Microsoft.Azure.Management.TrafficManager" Version="2.5.4" />
+    <PackageReference Include="Microsoft.Azure.Management.WebSites" Version="4.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0-preview-20221003-04" />
+    <PackageReference Include="coverlet.collector" Version="3.1.2">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.9.1" />
+    <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.13.3" />
     <PackageReference Update="FSharp.Core" Version="5.0.0" />
   </ItemGroup>
 
