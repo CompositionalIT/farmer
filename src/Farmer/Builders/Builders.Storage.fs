@@ -414,26 +414,20 @@ type StorageAccountBuilder() =
 
     /// Disable blob public access
     [<CustomOperation "disable_blob_public_access">]
-    member _.DisableBlobPublicAccess(state:StorageAccountConfig) =
-        { state with DisableBlobPublicAccess = FeatureFlag.Enabled }
-    [<CustomOperation "disable_blob_public_access">]
-    member _.DisableBlobPublicAccess(state:StorageAccountConfig, flag:FeatureFlag) =
+    member _.DisableBlobPublicAccess(state:StorageAccountConfig, ?flag:FeatureFlag) =
+        let flag = defaultArg flag FeatureFlag.Enabled
         { state with DisableBlobPublicAccess = flag }
 
     /// Disable shared key access
     [<CustomOperation "disable_shared_key_access">]
-    member _.DisableSharedKeyAccess(state:StorageAccountConfig) =
-        { state with DisableSharedKeyAccess = FeatureFlag.Enabled }
-    [<CustomOperation "disable_shared_key_access">]
-    member _.DisableSharedKeyAccess(state:StorageAccountConfig, flag:FeatureFlag) =
+    member _.DisableSharedKeyAccess(state:StorageAccountConfig, ?flag:FeatureFlag) =
+        let flag = defaultArg flag FeatureFlag.Enabled
         { state with DisableSharedKeyAccess = flag }
 
     /// Default to Azure Active Directory authorization in the Azure portal
     [<CustomOperation "default_to_oauth_authentication">]
-    member _.DefaultToOAuthAuthentication(state:StorageAccountConfig) =
-        { state with DefaultToOAuthAuthentication = FeatureFlag.Enabled }
-    [<CustomOperation "default_to_oauth_authentication">]
-    member _.DefaultToOAuthAuthentication(state:StorageAccountConfig, flag:FeatureFlag) =
+    member _.DefaultToOAuthAuthentication(state:StorageAccountConfig, ?flag:FeatureFlag) =
+        let flag = defaultArg flag FeatureFlag.Enabled
         { state with DefaultToOAuthAuthentication = flag }
 
     interface ITaggable<StorageAccountConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
