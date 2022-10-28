@@ -101,6 +101,9 @@ type Mbps
 type Seconds
 
 [<Measure>]
+type Minutes
+
+[<Measure>]
 type Hours
 
 [<Measure>]
@@ -147,6 +150,60 @@ type EnvVar =
 
 module Mb =
     let toBytes (mb: int<Mb>) = int64 mb * 1024L * 1024L
+
+module Route =
+    type HopType =
+        | VirtualAppliance of System.Net.IPAddress option
+        | Internet
+        | Nothing
+        | VirtualNetworkGateway
+        | VnetLocal
+
+        member x.ArmValue =
+            match x with
+            | VirtualAppliance _ -> "VirtualAppliance"
+            | Internet -> "Internet"
+            | Nothing -> "None"
+            | VirtualNetworkGateway -> "VirtualNetworkGateway"
+            | VnetLocal -> "VnetLocal"
+
+module DedicatedHosts =
+    type HostTier =
+        | Standard
+        | Basic
+
+        static member Print(x: HostTier) =
+            match x with
+            | Standard -> "Standard"
+            | Basic -> "Basic"
+
+    type PlatformFaultDomainCount =
+        | PlatformFaultDomainCount of int
+
+        static member Parse(i: int) : PlatformFaultDomainCount =
+            if i < 0 || i > 5 then
+                raiseFarmer "Platform fault domain count must be between 0 and 5, inclusive"
+            else
+                (PlatformFaultDomainCount i)
+
+        static member ToArmValue(PlatformFaultDomainCount p) = p
+
+    type HostSku =
+        | HostSku of string
+
+        static member Print(HostSku x) = x
+        member this.JsonProperties = {| name = HostSku.Print this |}
+
+    type HostLicenseType =
+        | NoLicense
+        | WindowsHybrid
+        | WindowsPerpetual
+
+        static member Print(x: HostLicenseType) =
+            match x with
+            | NoLicense -> "None"
+            | WindowsHybrid -> "Windows_Server_Hybrid"
+            | WindowsPerpetual -> "Windows_Server_Perpetual"
 
 module Vm =
     type VMSize =
@@ -1815,9 +1872,13 @@ module Identity =
     /// Represents a User Assigned Identity, and the ability to create a Principal Id from it.
     type UserAssignedIdentity =
         | UserAssignedIdentity of ResourceId
+        | LinkedUserAssignedIdentity of ResourceId
 
         member private this.CreateExpression field =
-            let (UserAssignedIdentity resourceId) = this
+            let resourceId =
+                match this with
+                | UserAssignedIdentity rid -> rid
+                | LinkedUserAssignedIdentity rid -> rid
 
             ArmExpression
                 .create($"reference({resourceId.ArmExpression.Value}).%s{field}")
@@ -1828,7 +1889,8 @@ module Identity =
 
         member this.ResourceId =
             match this with
-            | UserAssignedIdentity r -> r
+            | UserAssignedIdentity rid -> rid
+            | LinkedUserAssignedIdentity rid -> rid
 
     type SystemIdentity =
         | SystemIdentity of ResourceId
@@ -1854,7 +1916,12 @@ module Identity =
             UserAssigned: UserAssignedIdentity list
         }
 
-        member this.Dependencies = this.UserAssigned |> List.map (fun u -> u.ResourceId)
+        member this.Dependencies =
+            this.UserAssigned
+            |> List.choose (fun identity ->
+                match identity with
+                | UserAssignedIdentity rid -> Some rid
+                | LinkedUserAssignedIdentity _ -> None)
 
         static member Empty =
             {
@@ -1872,6 +1939,8 @@ module Identity =
             { managedIdentity with
                 UserAssigned = userAssignedIdentity :: managedIdentity.UserAssigned
             }
+
+open Identity
 
 module Containers =
     type DockerImage =
@@ -1908,6 +1977,7 @@ type ImageRegistryCredential =
         Server: string
         Username: string
         Password: SecureParameter
+        Identity: ManagedIdentity
     }
 
 [<RequireQualifiedAccess>]
@@ -1916,6 +1986,8 @@ type ImageRegistryAuthentication =
     | Credential of ImageRegistryCredential
     /// Credentials for the container registry will be listed by ARM expression.
     | ListCredentials of ResourceId
+    /// Credentials for the container registry are included with the identity as a template parameter.
+    | ManagedIdentityCredential of ImageRegistryCredential
 
 [<RequireQualifiedAccess>]
 type LogAnalyticsWorkspace =

@@ -2,6 +2,7 @@
 module Farmer.Builders.ContainerGroups
 
 open Farmer
+open Farmer.Arm
 open Farmer.Builders
 open Farmer.ContainerGroup
 open Farmer.Identity
@@ -453,6 +454,15 @@ type ContainerGroupBuilder() =
                 @ (resourceIds |> List.map ImageRegistryAuthentication.ListCredentials)
         }
 
+    /// Adds container image registry managed identity credentials for images in this container group.
+    [<CustomOperation "add_managed_identity_registry_credentials">]
+    member _.ManagedIdentityRegistryCredentials(state: ContainerGroupConfig, credentials) =
+        { state with
+            ImageRegistryCredentials =
+                state.ImageRegistryCredentials
+                @ (credentials |> List.map ImageRegistryAuthentication.ManagedIdentityCredential)
+        }
+
     /// Adds a collection of init containers to this group that run once on startup before other containers in the group.
     [<CustomOperation "add_init_containers">]
     member _.AddInitContainers(state: ContainerGroupConfig, initContainers) =
@@ -610,11 +620,12 @@ type ContainerGroupBuilder() =
             }
 
 /// Creates an image registry credential with a generated SecureParameter for the password.
-let registry (server: string) (username: string) =
+let registry (server: string) (username: string) (managedIdentity: ManagedIdentity) =
     {
         Server = server
         Username = username
         Password = SecureParameter $"{server}-password"
+        Identity = managedIdentity
     }
 
 type ContainerInstanceBuilder() =

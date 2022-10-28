@@ -57,6 +57,24 @@ let tests =
                     (resource.DiagnosticsProfile.BootDiagnostics.Enabled.GetValueOrDefault false)
                     "Boot Diagnostics should be enabled"
             }
+
+            test "By default, VM does not include Priority" {
+                let template =
+                    let myVm =
+                        vm {
+                            name "myvm"
+                            username "me"
+                        }
+
+                    arm { add_resource myVm }
+
+                let jobj = Newtonsoft.Json.Linq.JObject.Parse(template.Template |> Writer.toJson)
+
+                let vmProperties =
+                    jobj.SelectToken("resources[?(@.name=='myvm')].properties") :?> Newtonsoft.Json.Linq.JObject
+
+                Expect.isNull (vmProperties.Property "priority") "Priority should not be set by default"
+            }
             test "Can create a basic virtual machine with managed boot diagnostics" {
                 let resource =
                     let myVm =
@@ -520,6 +538,51 @@ let tests =
                 let nicResource = jobj.SelectToken("resources[?(@.name=='myvm-nic')]")
                 let nicDependsOn = (nicResource.["dependsOn"] :?> Newtonsoft.Json.Linq.JArray)
                 Expect.hasLength nicDependsOn 1 "NIC should only have 1 dependency - the public IP"
+
+                Expect.sequenceEqual
+                    nicDependsOn
+                    (Newtonsoft.Json.Linq.JArray [ "[resourceId('Microsoft.Network/publicIPAddresses', 'myvm-ip')]" ])
+                    $"NIC should only depend on its public IP, not also the vnet: {nicDependsOn}"
+            }
+
+            test "Link new VM to existing vnet in different resource group" {
+                let myVnet =
+                    Arm.Network.virtualNetworks.resourceId ("myvnet", groupName = "other-group")
+
+                let template =
+                    let myVm =
+                        vm {
+                            name "myvm"
+                            username "azureuser"
+                            link_to_unmanaged_vnet myVnet
+                            subnet_name "default"
+                        }
+
+                    arm { add_resource myVm }
+
+                let jobj = Newtonsoft.Json.Linq.JObject.Parse(template.Template |> Writer.toJson)
+                let vmResource = jobj.SelectToken("resources[?(@.name=='myvm')]")
+                let vmDependsOn = (vmResource.["dependsOn"] :?> Newtonsoft.Json.Linq.JArray)
+                Expect.hasLength vmDependsOn 1 "Incorrect number of VM dependencies"
+
+                Expect.sequenceEqual
+                    vmDependsOn
+                    (Newtonsoft.Json.Linq.JArray [ "[resourceId('Microsoft.Network/networkInterfaces', 'myvm-nic')]" ])
+                    $"VM should only depend on its NIC, not also the vnet: {vmDependsOn}"
+
+                let nicResource = jobj.SelectToken("resources[?(@.name=='myvm-nic')]")
+                let nicDependsOn = (nicResource.["dependsOn"] :?> Newtonsoft.Json.Linq.JArray)
+                Expect.hasLength nicDependsOn 1 "NIC should only have 1 dependency - the public IP"
+
+                let nicSubnetId =
+                    nicResource
+                        .SelectToken("properties.ipConfigurations[0].properties.subnet.id")
+                        .ToString()
+
+                Expect.equal
+                    nicSubnetId
+                    "[resourceId('other-group', 'Microsoft.Network/virtualNetworks/subnets', 'myvnet', 'default')]"
+                    "NIC subnet should repect resource group specified in VM VNet"
 
                 Expect.sequenceEqual
                     nicDependsOn

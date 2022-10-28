@@ -1,7 +1,9 @@
 [<AutoOpen>]
 module Farmer.Arm.Compute
 
+open System.ComponentModel
 open Farmer
+open Farmer.DedicatedHosts
 open Farmer.Identity
 open Farmer.Vm
 open System
@@ -12,6 +14,9 @@ let virtualMachines =
 
 let extensions =
     ResourceType("Microsoft.Compute/virtualMachines/extensions", "2019-12-01")
+
+let hostGroups = ResourceType("Microsoft.Compute/hostGroups", "2021-03-01")
+let hosts = ResourceType("Microsoft.Compute/hostGroups/hosts", "2021-03-01")
 
 type CustomScriptExtension =
     {
@@ -101,7 +106,7 @@ type VirtualMachine =
         DiagnosticsEnabled: bool option
         StorageAccount: ResourceName option
         Size: VMSize
-        Priority: Priority
+        Priority: Priority option
         Credentials: {| Username: string
                         Password: SecureParameter |}
         CustomData: string option
@@ -137,7 +142,10 @@ type VirtualMachine =
 
             let properties =
                 {|
-                    priority = this.Priority.ArmValue
+                    priority =
+                        match this.Priority with
+                        | Some priority -> priority.ArmValue
+                        | _ -> Unchecked.defaultof<_>
                     hardwareProfile = {| vmSize = this.Size.ArmValue |}
                     osProfile =
                         {|
@@ -260,11 +268,73 @@ type VirtualMachine =
                         this.Identity.ToArmJson
                 properties =
                     match this.Priority with
-                    | Low
-                    | Regular -> box properties
-                    | Spot (evictionPolicy, maxPrice) ->
+                    | None
+                    | Some Low
+                    | Some Regular -> box properties
+                    | Some (Spot (evictionPolicy, maxPrice)) ->
                         {| properties with
                             evictionPolicy = evictionPolicy.ArmValue
                             billingProfile = {| maxPrice = maxPrice |}
                         |}
+            |}
+
+type Host =
+    {
+        Name: ResourceName
+        Location: Location
+        Sku: HostSku
+        ParentHostGroupName: ResourceName
+        AutoReplaceOnFailure: FeatureFlag
+        LicenseType: HostLicenseType
+        PlatformFaultDomain: PlatformFaultDomainCount
+        Tags: Map<string, string>
+        DependsOn: Set<ResourceId>
+    }
+
+    member internal this.JsonModelProperties =
+        {|
+            autoReplaceOnFailure = this.AutoReplaceOnFailure.AsBoolean
+            licenseType = HostLicenseType.Print this.LicenseType
+            platformFaultDomain = PlatformFaultDomainCount.ToArmValue this.PlatformFaultDomain
+        |}
+
+    interface IArmResource with
+        member this.ResourceId = hosts.resourceId this.Name
+
+        member this.JsonModel =
+            let dependsOn =
+                [ hostGroups.resourceId this.ParentHostGroupName ] @ (List.ofSeq this.DependsOn)
+
+            let hostResourceName =
+                ResourceName($"{this.ParentHostGroupName.Value}/{this.Name.Value}")
+
+            {| hosts.Create(hostResourceName, this.Location, dependsOn, tags = this.Tags) with
+                sku = this.Sku.JsonProperties
+                properties = this.JsonModelProperties
+            |}
+
+type HostGroup =
+    {
+        Name: ResourceName
+        Location: Location
+        AvailabilityZone: string list
+        SupportAutomaticPlacement: FeatureFlag
+        PlatformFaultDomainCount: PlatformFaultDomainCount
+        Tags: Map<string, string>
+        DependsOn: Set<ResourceId>
+    }
+
+    member internal this.JsonModelProperties =
+        {|
+            supportAutomaticPlacement = this.SupportAutomaticPlacement.AsBoolean
+            platformFaultDomainCount = PlatformFaultDomainCount.ToArmValue this.PlatformFaultDomainCount
+        |}
+
+    interface IArmResource with
+        member this.ResourceId = hostGroups.resourceId this.Name
+
+        member this.JsonModel =
+            {| hostGroups.Create(this.Name, this.Location, tags = this.Tags, dependsOn = this.DependsOn) with
+                zones = this.AvailabilityZone
+                properties = this.JsonModelProperties
             |}

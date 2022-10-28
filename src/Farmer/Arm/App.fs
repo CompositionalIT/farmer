@@ -1,6 +1,7 @@
 [<AutoOpen>]
 module Farmer.Arm.App
 
+open System
 open Farmer.ContainerApp
 open Farmer
 
@@ -122,6 +123,8 @@ type ContainerApp =
                     match credential with
                     | ImageRegistryAuthentication.Credential credential -> credential.Password
                     | ImageRegistryAuthentication.ListCredentials _ -> ()
+                    | ImageRegistryAuthentication.ManagedIdentityCredential _ -> ()
+
             ]
 
     interface IArmResource with
@@ -164,6 +167,15 @@ type ContainerApp =
                                                             )
                                                             .Eval()
                                                 |}
+                                            | ImageRegistryAuthentication.ManagedIdentityCredential cred ->
+                                                {|
+                                                    name = cred.Server
+                                                    value =
+                                                        if cred.Identity.Dependencies.Length > 0 then
+                                                            cred.Identity.Dependencies.Head.ArmExpression.Eval()
+                                                        else
+                                                            String.Empty
+                                                |}
                                         for setting in this.Secrets do
                                             {|
                                                 name = setting.Key.Value
@@ -183,6 +195,7 @@ type ContainerApp =
                                                     server = cred.Server
                                                     username = cred.Username
                                                     passwordSecretRef = cred.Username
+                                                    identity = null
                                                 |}
                                             | ImageRegistryAuthentication.ListCredentials resourceId ->
                                                 {|
@@ -204,6 +217,18 @@ type ContainerApp =
                                                                 $"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username"
                                                             )
                                                             .Eval()
+                                                    identity = null
+                                                |}
+                                            | ImageRegistryAuthentication.ManagedIdentityCredential cred ->
+                                                {|
+                                                    server = cred.Server
+                                                    username = String.Empty
+                                                    passwordSecretRef = null
+                                                    identity =
+                                                        if cred.Identity.Dependencies.Length > 0 then
+                                                            cred.Identity.Dependencies.Head.ArmExpression.Eval()
+                                                        else
+                                                            String.Empty
                                                 |}
                                     |]
                                 ingress =

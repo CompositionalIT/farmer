@@ -207,6 +207,7 @@ type ContainerGroup =
                     match credential with
                     | ImageRegistryAuthentication.Credential credential -> credential.Password
                     | ImageRegistryAuthentication.ListCredentials _ -> ()
+                    | ImageRegistryAuthentication.ManagedIdentityCredential _ -> ()
                 for container in this.ContainerInstances do
                     for envVar in container.EnvironmentVariables do
                         match envVar.Value with
@@ -365,6 +366,7 @@ type ContainerGroup =
                                         server = cred.Server
                                         username = cred.Username
                                         password = cred.Password.ArmExpression.Eval()
+                                        identity = null
                                     |}
                                 | ImageRegistryAuthentication.ListCredentials resourceId ->
                                     {|
@@ -386,6 +388,18 @@ type ContainerGroup =
                                                     $"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').passwords[0].value"
                                                 )
                                                 .Eval()
+                                        identity = null
+                                    |}
+                                | ImageRegistryAuthentication.ManagedIdentityCredential cred ->
+                                    {|
+                                        server = cred.Server
+                                        username = String.Empty
+                                        password = null
+                                        identity =
+                                            cred.Identity.UserAssigned
+                                            |> List.tryHead
+                                            |> Option.map (fun upn -> upn.ResourceId.ArmExpression.Eval())
+                                            |> Option.defaultValue null
                                     |})
                         ipAddress =
                             match this.IpAddress with

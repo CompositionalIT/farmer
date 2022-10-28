@@ -5,7 +5,24 @@ Release Notes
 * Container Apps: Support for collections of env vars, fix ACR credentials linking.
 * Container Apps: Add Dapr / App Insights integration.
 
+## 1.7.11
+* Dedicated Hosts: Support for Host Groups and Hosts
+* WebApps: Added support for Node 14, 16 and 18
+
+## 1.7.10
+* Container Groups and Container Apps: Support for link_to_identity for ACR managed identities.
+
+## 1.7.9
+* Container Group: Support for Managed Identity
+* Container App: Support for Managed Identity
+* VMs: Add support for VNets in other resource groups
+
+## 1.7.8
+* Route Tables: Initial support for Route Tables and Routes
+* Virtual Machines: Default to no priority
+
 ## 1.7.7
+* NAT Gateways: Initial support for NAT Gateways.
 * Private Endpoints: Adds `privateEndpoint` builder and option to set custom network interface name.
 
 ## 1.7.6
