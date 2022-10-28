@@ -453,4 +453,46 @@ let tests = testList "Storage Tests" [
         Expect.isEmpty (jobj.SelectToken("resources[0].properties.networkAcls.ipRules").Values<string>()) "network acl should not define ip restrictions"
         Expect.isEmpty (jobj.SelectToken("resources[0].properties.networkAcls.virtualNetworkRules").Values<string>()) "network acl should not define vnet restrictions"
     }
+
+    test "Blob public access is enabled by default" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
+            }
+            arm { add_resource account }
+
+        let jsn = resource.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        
+        Expect.equal (jobj.SelectToken("resources[0].properties.allowBlobPublicAccess").ToString()) "true" "blob public access should be enabled by default"
+    }
+
+    test "Blob public access can be disabled" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
+                disable_blob_public_access
+            }
+            arm { add_resource account }
+
+        let jsn = resource.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        
+        Expect.equal (jobj.SelectToken("resources[0].properties.allowBlobPublicAccess").ToString()) "false" "blob public access should be disabled"
+    }
+
+    test "Blob public access can be toggled" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
+                disable_blob_public_access
+                disable_blob_public_access FeatureFlag.Disabled
+            }
+            arm { add_resource account }
+
+        let jsn = resource.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        
+        Expect.equal (jobj.SelectToken("resources[0].properties.allowBlobPublicAccess").ToString()) "true" "blob public access should be enabled"
+    }
 ]

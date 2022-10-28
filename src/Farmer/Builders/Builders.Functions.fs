@@ -306,7 +306,8 @@ type FunctionsConfig =
                   MinTlsVersion = None
                   Tags = this.Tags
                   DnsZoneType = "Standard"
-                  DisablePublicNetworkAccess = FeatureFlag.Disabled }
+                  DisablePublicNetworkAccess = FeatureFlag.Disabled
+                  DisableBlobPublicAccess = FeatureFlag.Disabled }
             | _ ->
                 ()
 

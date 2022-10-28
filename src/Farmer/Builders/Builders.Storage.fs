@@ -61,7 +61,9 @@ type StorageAccountConfig =
       /// DNS endpoint type
       DnsZoneType: string
       /// Disable Public Network Acccess
-      DisablePublicNetworkAccess: FeatureFlag }
+      DisablePublicNetworkAccess: FeatureFlag
+      /// Disable blob public access
+      DisableBlobPublicAccess : FeatureFlag }
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = StorageAccount.getConnectionString(this.Name)
     /// Gets the Primary endpoint for static website (if enabled)
@@ -99,6 +101,7 @@ type StorageAccountConfig =
               MinTlsVersion = this.MinTlsVersion
               DnsZoneType = this.DnsZoneType
               DisablePublicNetworkAccess = this.DisablePublicNetworkAccess
+              DisableBlobPublicAccess = this.DisableBlobPublicAccess
               Tags = this.Tags }
             for name, access in this.Containers do
                 { Name = name
@@ -202,6 +205,7 @@ type StorageAccountBuilder() =
         Tags = Map.empty
         DnsZoneType = "Standard"
         DisablePublicNetworkAccess = FeatureFlag.Disabled
+        DisableBlobPublicAccess = FeatureFlag.Disabled
         }
     member _.Run state =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Storage Account name has been set."
@@ -399,6 +403,14 @@ type StorageAccountBuilder() =
                   IpRules = []
                   DefaultAction = RuleAction.Deny } |> Some
         }
+
+    /// Disable blob public access
+    [<CustomOperation "disable_blob_public_access">]
+    member _.DisableBlobPublicAccess(state:StorageAccountConfig) =
+        { state with DisableBlobPublicAccess = FeatureFlag.Enabled }
+    [<CustomOperation "disable_blob_public_access">]
+    member _.DisableBlobPublicAccess(state:StorageAccountConfig, flag:FeatureFlag) =
+        { state with DisableBlobPublicAccess = flag }
 
     interface ITaggable<StorageAccountConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     

@@ -74,6 +74,7 @@ type StorageAccount =
       MinTlsVersion : TlsVersion option
       DnsZoneType : string
       DisablePublicNetworkAccess: FeatureFlag
+      DisableBlobPublicAccess: FeatureFlag
       Tags: Map<string,string> }
     interface IArmResource with
         member this.ResourceId = storageAccounts.resourceId this.Name.ResourceName
@@ -143,6 +144,10 @@ type StorageAccount =
                          match this.DisablePublicNetworkAccess with
                            | FeatureFlag.Disabled -> "Enabled"
                            | FeatureFlag.Enabled -> "Disabled"
+                       allowBlobPublicAccess = 
+                         match this.DisableBlobPublicAccess with
+                           | FeatureFlag.Disabled -> "true"
+                           | FeatureFlag.Enabled -> "false"
                     |}
             |}
     interface IPostDeploy with

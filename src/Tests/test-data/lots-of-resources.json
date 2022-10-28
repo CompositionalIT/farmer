@@ -89,6 +89,7 @@
       "location": "northeurope",
       "name": "farmerstorage1979",
       "properties": {
+        "allowBlobPublicAccess": "true",
         "dnsEndpointType": "Standard",
         "publicNetworkAccess": "Enabled"
       },
@@ -232,6 +233,7 @@
       "location": "northeurope",
       "name": "farmerfuncs1979storage",
       "properties": {
+        "allowBlobPublicAccess": "true",
         "dnsEndpointType": "Standard",
         "publicNetworkAccess": "Enabled"
       },
@@ -792,6 +794,7 @@
       "location": "northeurope",
       "name": "dockerfuncstorage",
       "properties": {
+        "allowBlobPublicAccess": "true",
         "dnsEndpointType": "Standard",
         "publicNetworkAccess": "Enabled"
       },

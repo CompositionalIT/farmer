@@ -150,6 +150,7 @@
       "location": "northeurope",
       "name": "isaacsvmstorage",
       "properties": {
+        "allowBlobPublicAccess": "true",
         "dnsEndpointType": "Standard",
         "publicNetworkAccess": "Enabled"
       },

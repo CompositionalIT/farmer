@@ -11,6 +11,7 @@
       "location": "northeurope",
       "name": "isaacsuperdata",
       "properties": {
+        "allowBlobPublicAccess": "true",
         "dnsEndpointType": "Standard",
         "publicNetworkAccess": "Enabled"
       },
