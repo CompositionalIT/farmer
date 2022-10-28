@@ -151,6 +151,8 @@
       "name": "isaacsvmstorage",
       "properties": {
         "allowBlobPublicAccess": "true",
+        "allowSharedKeyAccess": "true",
+        "defaultToOAuthAuthentication": "false",
         "dnsEndpointType": "Standard",
         "publicNetworkAccess": "Enabled"
       },

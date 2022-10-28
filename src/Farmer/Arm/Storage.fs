@@ -75,6 +75,8 @@ type StorageAccount =
       DnsZoneType : string
       DisablePublicNetworkAccess: FeatureFlag
       DisableBlobPublicAccess: FeatureFlag
+      DisableSharedKeyAccess : FeatureFlag 
+      DefaultToOAuthAuthentication : FeatureFlag
       Tags: Map<string,string> }
     interface IArmResource with
         member this.ResourceId = storageAccounts.resourceId this.Name.ResourceName
@@ -148,6 +150,14 @@ type StorageAccount =
                          match this.DisableBlobPublicAccess with
                            | FeatureFlag.Disabled -> "true"
                            | FeatureFlag.Enabled -> "false"
+                       allowSharedKeyAccess = 
+                         match this.DisableSharedKeyAccess with
+                           | FeatureFlag.Disabled -> "true"
+                           | FeatureFlag.Enabled -> "false"
+                       defaultToOAuthAuthentication = 
+                         match this.DefaultToOAuthAuthentication with
+                           | FeatureFlag.Disabled -> "false"
+                           | FeatureFlag.Enabled -> "true"
                     |}
             |}
     interface IPostDeploy with

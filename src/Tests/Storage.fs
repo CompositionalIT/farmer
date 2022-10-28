@@ -495,4 +495,88 @@ let tests = testList "Storage Tests" [
         
         Expect.equal (jobj.SelectToken("resources[0].properties.allowBlobPublicAccess").ToString()) "true" "blob public access should be enabled"
     }
+
+    test "Shared key access is enabled by default" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
+            }
+            arm { add_resource account }
+
+        let jsn = resource.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        
+        Expect.equal (jobj.SelectToken("resources[0].properties.allowSharedKeyAccess").ToString()) "true" "shared key access should be enabled by default"
+    }
+
+    test "Shared key access can be disabled" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
+                disable_shared_key_access
+            }
+            arm { add_resource account }
+
+        let jsn = resource.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        
+        Expect.equal (jobj.SelectToken("resources[0].properties.allowSharedKeyAccess").ToString()) "false" "shared key access should be disabled"
+    }
+
+    test "Shared key access can be toggled" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
+                disable_shared_key_access
+                disable_shared_key_access FeatureFlag.Disabled
+            }
+            arm { add_resource account }
+
+        let jsn = resource.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        
+        Expect.equal (jobj.SelectToken("resources[0].properties.allowSharedKeyAccess").ToString()) "true" "shared key access should be enabled"
+    }
+
+    test "Default to OAuth is enabled by default" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
+            }
+            arm { add_resource account }
+
+        let jsn = resource.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        
+        Expect.equal (jobj.SelectToken("resources[0].properties.defaultToOAuthAuthentication").ToString()) "false" "default to OAuth should be disabled by default"
+    }
+
+    test "Default to OAuth can be disabled" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
+                default_to_oauth_authentication
+            }
+            arm { add_resource account }
+
+        let jsn = resource.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        
+        Expect.equal (jobj.SelectToken("resources[0].properties.defaultToOAuthAuthentication").ToString()) "true" "default to OAuth should be enabled"
+    }
+
+    test "Default to OAuth can be toggled" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
+                default_to_oauth_authentication
+                default_to_oauth_authentication FeatureFlag.Disabled
+            }
+            arm { add_resource account }
+
+        let jsn = resource.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        
+        Expect.equal (jobj.SelectToken("resources[0].properties.defaultToOAuthAuthentication").ToString()) "false" "default to OAuth should be disabled"
+    }
 ]

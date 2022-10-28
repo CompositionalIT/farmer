@@ -90,6 +90,8 @@
       "name": "farmerstorage1979",
       "properties": {
         "allowBlobPublicAccess": "true",
+        "allowSharedKeyAccess": "true",
+        "defaultToOAuthAuthentication": "false",
         "dnsEndpointType": "Standard",
         "publicNetworkAccess": "Enabled"
       },
@@ -234,6 +236,8 @@
       "name": "farmerfuncs1979storage",
       "properties": {
         "allowBlobPublicAccess": "true",
+        "allowSharedKeyAccess": "true",
+        "defaultToOAuthAuthentication": "false",
         "dnsEndpointType": "Standard",
         "publicNetworkAccess": "Enabled"
       },
@@ -795,6 +799,8 @@
       "name": "dockerfuncstorage",
       "properties": {
         "allowBlobPublicAccess": "true",
+        "allowSharedKeyAccess": "true",
+        "defaultToOAuthAuthentication": "false",
         "dnsEndpointType": "Standard",
         "publicNetworkAccess": "Enabled"
       },

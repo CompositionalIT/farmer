@@ -12,6 +12,8 @@
       "name": "isaacsuperdata",
       "properties": {
         "allowBlobPublicAccess": "true",
+        "allowSharedKeyAccess": "true",
+        "defaultToOAuthAuthentication": "false",
         "dnsEndpointType": "Standard",
         "publicNetworkAccess": "Enabled"
       },
