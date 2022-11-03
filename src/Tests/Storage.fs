@@ -316,7 +316,7 @@ let tests =
 
                 Expect.equal
                     builder.WebsitePrimaryEndpoint.Value
-                    "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2019-06-01').primaryEndpoints.web"
+                    "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2022-05-01').primaryEndpoints.web"
                     "Zone names are not fixed and should be related to a storage account name"
             }
             test "Creates different SKU kinds correctly" {
@@ -598,9 +598,285 @@ let tests =
                 Expect.equal resource.MinimumTlsVersion "TLS1_2" "Min TLS version is wrong"
             }
 
+            test "dnsEndpointType is standard by default" {
+                let resource =
+                    let account = storageAccount { name "mystorage123" }
+                    arm { add_resource account }
+
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                Expect.equal
+                    (jobj.SelectToken("resources[0].properties.dnsEndpointType").ToString())
+                    "Standard"
+                    "dnsEndpointType should be standard by default"
+            }
+
+            test "dnsEndpointType can be set to AzureDnsZone" {
+                let resource =
+                    let account =
+                        storageAccount {
+                            name "mystorage123"
+                            use_azure_dns_zone
+                        }
+
+                    arm { add_resource account }
+
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                Expect.equal
+                    (jobj.SelectToken("resources[0].properties.dnsEndpointType").ToString())
+                    "AzureDnsZone"
+                    "dnsEndpointType should AzureDnsZone"
+            }
+
             test "Must set a storage account name" {
                 Expect.throws
                     (fun () -> storageAccount { sku Sku.Standard_ZRS } |> ignore)
                     "Must set a name on a storage account"
+            }
+
+            test "Public network access is enabled by default" {
+                let resource =
+                    let account = storageAccount { name "mystorage123" }
+                    arm { add_resource account }
+
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                Expect.equal
+                    (jobj.SelectToken("resources[0].properties.publicNetworkAccess").ToString())
+                    "Enabled"
+                    "public network access should be enabled by default"
+            }
+
+            test "Public network access can be disabled" {
+                let resource =
+                    let account =
+                        storageAccount {
+                            name "mystorage123"
+                            disable_public_network_access
+                        }
+
+                    arm { add_resource account }
+
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                Expect.equal
+                    (jobj.SelectToken("resources[0].properties.publicNetworkAccess").ToString())
+                    "Disabled"
+                    "public network access should be disabled"
+
+                Expect.equal
+                    (jobj.SelectToken("resources[0].properties.networkAcls.defaultAction").ToString())
+                    "Deny"
+                    "network acl should deny traffic when disabling public network access"
+
+                Expect.equal
+                    (jobj.SelectToken("resources[0].properties.networkAcls.bypass").ToString())
+                    "None"
+                    "network acl should not allow bypass by default"
+            }
+
+            test "restrict_to_azure_services adds correct network acl" {
+                let resource =
+                    let account =
+                        storageAccount {
+                            name "mystorage123"
+                            restrict_to_azure_services [ Farmer.Arm.Storage.NetworkRuleSetBypass.AzureServices ]
+                            restrict_to_azure_services [ Farmer.Arm.Storage.NetworkRuleSetBypass.Metrics ]
+                        }
+
+                    arm { add_resource account }
+
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                Expect.equal
+                    (jobj.SelectToken("resources[0].properties.networkAcls.defaultAction").ToString())
+                    "Deny"
+                    "network acl should deny traffic when restricting to azure services + private link"
+
+                Expect.equal
+                    (jobj.SelectToken("resources[0].properties.networkAcls.bypass").ToString())
+                    "AzureServices,Metrics"
+                    "network acl should allow bypass for selected services"
+
+                Expect.isEmpty
+                    (jobj.SelectToken("resources[0].properties.networkAcls.ipRules").Values<string>())
+                    "network acl should not define ip restrictions"
+
+                Expect.isEmpty
+                    (jobj
+                        .SelectToken("resources[0].properties.networkAcls.virtualNetworkRules")
+                        .Values<string>())
+                    "network acl should not define vnet restrictions"
+            }
+
+            test "Blob public access is enabled by default" {
+                let resource =
+                    let account = storageAccount { name "mystorage123" }
+                    arm { add_resource account }
+
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                Expect.equal
+                    (jobj.SelectToken("resources[0].properties.allowBlobPublicAccess").ToString())
+                    "true"
+                    "blob public access should be enabled by default"
+            }
+
+            test "Blob public access can be disabled" {
+                let resource =
+                    let account =
+                        storageAccount {
+                            name "mystorage123"
+                            disable_blob_public_access
+                        }
+
+                    arm { add_resource account }
+
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                Expect.equal
+                    (jobj.SelectToken("resources[0].properties.allowBlobPublicAccess").ToString())
+                    "false"
+                    "blob public access should be disabled"
+            }
+
+            test "Blob public access can be toggled" {
+                let resource =
+                    let account =
+                        storageAccount {
+                            name "mystorage123"
+                            disable_blob_public_access
+                            disable_blob_public_access FeatureFlag.Disabled
+                        }
+
+                    arm { add_resource account }
+
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                Expect.equal
+                    (jobj.SelectToken("resources[0].properties.allowBlobPublicAccess").ToString())
+                    "true"
+                    "blob public access should be enabled"
+            }
+
+            test "Shared key access is enabled by default" {
+                let resource =
+                    let account = storageAccount { name "mystorage123" }
+                    arm { add_resource account }
+
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                Expect.equal
+                    (jobj.SelectToken("resources[0].properties.allowSharedKeyAccess").ToString())
+                    "true"
+                    "shared key access should be enabled by default"
+            }
+
+            test "Shared key access can be disabled" {
+                let resource =
+                    let account =
+                        storageAccount {
+                            name "mystorage123"
+                            disable_shared_key_access
+                        }
+
+                    arm { add_resource account }
+
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                Expect.equal
+                    (jobj.SelectToken("resources[0].properties.allowSharedKeyAccess").ToString())
+                    "false"
+                    "shared key access should be disabled"
+            }
+
+            test "Shared key access can be toggled" {
+                let resource =
+                    let account =
+                        storageAccount {
+                            name "mystorage123"
+                            disable_shared_key_access
+                            disable_shared_key_access FeatureFlag.Disabled
+                        }
+
+                    arm { add_resource account }
+
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                Expect.equal
+                    (jobj.SelectToken("resources[0].properties.allowSharedKeyAccess").ToString())
+                    "true"
+                    "shared key access should be enabled"
+            }
+
+            test "Default to OAuth is enabled by default" {
+                let resource =
+                    let account = storageAccount { name "mystorage123" }
+                    arm { add_resource account }
+
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                Expect.equal
+                    (jobj
+                        .SelectToken("resources[0].properties.defaultToOAuthAuthentication")
+                        .ToString())
+                    "false"
+                    "default to OAuth should be disabled by default"
+            }
+
+            test "Default to OAuth can be disabled" {
+                let resource =
+                    let account =
+                        storageAccount {
+                            name "mystorage123"
+                            default_to_oauth_authentication
+                        }
+
+                    arm { add_resource account }
+
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                Expect.equal
+                    (jobj
+                        .SelectToken("resources[0].properties.defaultToOAuthAuthentication")
+                        .ToString())
+                    "true"
+                    "default to OAuth should be enabled"
+            }
+
+            test "Default to OAuth can be toggled" {
+                let resource =
+                    let account =
+                        storageAccount {
+                            name "mystorage123"
+                            default_to_oauth_authentication
+                            default_to_oauth_authentication FeatureFlag.Disabled
+                        }
+
+                    arm { add_resource account }
+
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                Expect.equal
+                    (jobj
+                        .SelectToken("resources[0].properties.defaultToOAuthAuthentication")
+                        .ToString())
+                    "false"
+                    "default to OAuth should be disabled"
             }
         ]

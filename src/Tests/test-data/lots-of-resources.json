@@ -83,12 +83,18 @@
       "type": "Microsoft.Sql/servers/elasticPools"
     },
     {
-      "apiVersion": "2019-06-01",
+      "apiVersion": "2022-05-01",
       "dependsOn": [],
       "kind": "StorageV2",
       "location": "northeurope",
       "name": "farmerstorage1979",
-      "properties": {},
+      "properties": {
+        "allowBlobPublicAccess": "true",
+        "allowSharedKeyAccess": "true",
+        "defaultToOAuthAuthentication": "false",
+        "dnsEndpointType": "Standard",
+        "publicNetworkAccess": "Enabled"
+      },
       "sku": {
         "name": "Standard_LRS"
       },
@@ -223,12 +229,18 @@
       "type": "Microsoft.Web/serverfarms"
     },
     {
-      "apiVersion": "2019-06-01",
+      "apiVersion": "2022-05-01",
       "dependsOn": [],
       "kind": "StorageV2",
       "location": "northeurope",
       "name": "farmerfuncs1979storage",
-      "properties": {},
+      "properties": {
+        "allowBlobPublicAccess": "true",
+        "allowSharedKeyAccess": "true",
+        "defaultToOAuthAuthentication": "false",
+        "dnsEndpointType": "Standard",
+        "publicNetworkAccess": "Enabled"
+      },
       "sku": {
         "name": "Standard_LRS"
       },
@@ -409,12 +421,12 @@
         "isHttpAllowed": true,
         "isHttpsAllowed": true,
         "optimizationType": "GeneralWebDelivery",
-        "originHostHeader": "[replace(replace(reference(resourceId('Microsoft.Storage/storageAccounts', 'farmerstorage1979'), '2019-06-01').primaryEndpoints.web, 'https://', ''), '/', '')]",
+        "originHostHeader": "[replace(replace(reference(resourceId('Microsoft.Storage/storageAccounts', 'farmerstorage1979'), '2022-05-01').primaryEndpoints.web, 'https://', ''), '/', '')]",
         "origins": [
           {
             "name": "origin",
             "properties": {
-              "hostName": "[replace(replace(reference(resourceId('Microsoft.Storage/storageAccounts', 'farmerstorage1979'), '2019-06-01').primaryEndpoints.web, 'https://', ''), '/', '')]"
+              "hostName": "[replace(replace(reference(resourceId('Microsoft.Storage/storageAccounts', 'farmerstorage1979'), '2022-05-01').primaryEndpoints.web, 'https://', ''), '/', '')]"
             }
           }
         ],
@@ -779,12 +791,18 @@
       "type": "Microsoft.Web/serverfarms"
     },
     {
-      "apiVersion": "2019-06-01",
+      "apiVersion": "2022-05-01",
       "dependsOn": [],
       "kind": "StorageV2",
       "location": "northeurope",
       "name": "dockerfuncstorage",
-      "properties": {},
+      "properties": {
+        "allowBlobPublicAccess": "true",
+        "allowSharedKeyAccess": "true",
+        "defaultToOAuthAuthentication": "false",
+        "dnsEndpointType": "Standard",
+        "publicNetworkAccess": "Enabled"
+      },
       "sku": {
         "name": "Standard_LRS"
       },

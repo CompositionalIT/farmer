@@ -5,12 +5,18 @@
   "parameters": {},
   "resources": [
     {
-      "apiVersion": "2019-06-01",
+      "apiVersion": "2022-05-01",
       "dependsOn": [],
       "kind": "StorageV2",
       "location": "northeurope",
       "name": "isaacgriddevprac",
-      "properties": {},
+      "properties": {
+        "allowBlobPublicAccess": "true",
+        "allowSharedKeyAccess": "true",
+        "defaultToOAuthAuthentication": "false",
+        "dnsEndpointType": "Standard",
+        "publicNetworkAccess": "Enabled"
+      },
       "sku": {
         "name": "Standard_LRS"
       },

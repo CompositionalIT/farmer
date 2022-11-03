@@ -5,7 +5,7 @@ open Farmer
 open Farmer.Storage
 
 let storageAccounts =
-    ResourceType("Microsoft.Storage/storageAccounts", "2019-06-01")
+    ResourceType("Microsoft.Storage/storageAccounts", "2022-05-01")
 
 let blobServices =
     ResourceType("Microsoft.Storage/storageAccounts/blobServices", "2019-06-01")
@@ -106,6 +106,11 @@ type StorageAccount =
                           ErrorPage: string option
                           ContentPath: string |} option
         MinTlsVersion: TlsVersion option
+        DnsZoneType: string
+        DisablePublicNetworkAccess: FeatureFlag
+        DisableBlobPublicAccess: FeatureFlag
+        DisableSharedKeyAccess: FeatureFlag
+        DefaultToOAuthAuthentication: FeatureFlag
         Tags: Map<string, string>
     }
 
@@ -186,6 +191,23 @@ type StorageAccount =
                             | Some Tls11 -> "TLS1_1"
                             | Some Tls12 -> "TLS1_2"
                             | None -> null
+                        dnsEndpointType = this.DnsZoneType
+                        publicNetworkAccess =
+                            match this.DisablePublicNetworkAccess with
+                            | FeatureFlag.Disabled -> "Enabled"
+                            | FeatureFlag.Enabled -> "Disabled"
+                        allowBlobPublicAccess =
+                            match this.DisableBlobPublicAccess with
+                            | FeatureFlag.Disabled -> "true"
+                            | FeatureFlag.Enabled -> "false"
+                        allowSharedKeyAccess =
+                            match this.DisableSharedKeyAccess with
+                            | FeatureFlag.Disabled -> "true"
+                            | FeatureFlag.Enabled -> "false"
+                        defaultToOAuthAuthentication =
+                            match this.DefaultToOAuthAuthentication with
+                            | FeatureFlag.Disabled -> "false"
+                            | FeatureFlag.Enabled -> "true"
                     |}
             |}
 

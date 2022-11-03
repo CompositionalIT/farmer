@@ -68,6 +68,16 @@ type StorageAccountConfig =
         MinTlsVersion: TlsVersion option
         /// Tags to apply to the storage account
         Tags: Map<string, string>
+        /// DNS endpoint type
+        DnsZoneType: string
+        /// Disable Public Network Acccess
+        DisablePublicNetworkAccess: FeatureFlag
+        /// Disable blob public access
+        DisableBlobPublicAccess: FeatureFlag
+        /// Disable Shared Key Access
+        DisableSharedKeyAccess: FeatureFlag
+        /// Default to Azure Active Directory authorization in the Azure portal
+        DefaultToOAuthAuthentication: FeatureFlag
     }
 
     /// Gets the ARM expression path to the key of this storage account.
@@ -111,6 +121,11 @@ type StorageAccountConfig =
                     NetworkAcls = this.NetworkAcls
                     StaticWebsite = this.StaticWebsite
                     MinTlsVersion = this.MinTlsVersion
+                    DnsZoneType = this.DnsZoneType
+                    DisablePublicNetworkAccess = this.DisablePublicNetworkAccess
+                    DisableBlobPublicAccess = this.DisableBlobPublicAccess
+                    DisableSharedKeyAccess = this.DisableSharedKeyAccess
+                    DefaultToOAuthAuthentication = this.DefaultToOAuthAuthentication
                     Tags = this.Tags
                 }
                 for name, access in this.Containers do
@@ -221,6 +236,11 @@ type StorageAccountBuilder() =
             IsVersioningEnabled = []
             MinTlsVersion = None
             Tags = Map.empty
+            DnsZoneType = "Standard"
+            DisablePublicNetworkAccess = FeatureFlag.Disabled
+            DisableBlobPublicAccess = FeatureFlag.Disabled
+            DisableSharedKeyAccess = FeatureFlag.Disabled
+            DefaultToOAuthAuthentication = FeatureFlag.Disabled
         }
 
     member _.Run state =
@@ -512,6 +532,30 @@ type StorageAccountBuilder() =
                     |> Some
             }
 
+    /// Restrict access to this storage account to the private endpoints and azure services.
+    [<CustomOperation "restrict_to_azure_services">]
+    member _.RestrictToAzureServices(state: StorageAccountConfig, bypass: NetworkRuleSetBypass list) =
+        match state.NetworkAcls with
+        | None ->
+            { state with
+                NetworkAcls =
+                    {
+                        Bypass = set bypass
+                        VirtualNetworkRules = []
+                        IpRules = []
+                        DefaultAction = RuleAction.Deny
+                    }
+                    |> Some
+            }
+        | Some existingAcl ->
+            { state with
+                NetworkAcls =
+                    { existingAcl with
+                        Bypass = Set.union (set bypass) existingAcl.Bypass
+                    }
+                    |> Some
+            }
+
     /// Adds a set of CORS rules to the storage account.
     [<CustomOperation "add_cors_rules">]
     member _.AddCorsRules(state: StorageAccountConfig, rules) =
@@ -538,6 +582,55 @@ type StorageAccountBuilder() =
     member _.SetMinTlsVersion(state: StorageAccountConfig, minTlsVersion) =
         { state with
             MinTlsVersion = Some minTlsVersion
+        }
+
+    /// Set DNS Endpoint type
+    [<CustomOperation "use_azure_dns_zone">]
+    member _.SetDnsEndpointType(state: StorageAccountConfig) =
+        { state with
+            DnsZoneType = "AzureDnsZone"
+        }
+
+    /// Disable public network access, all access must be through a private endpoint.
+    [<CustomOperation "disable_public_network_access">]
+    member _.DisablePublicNetworkAccess(state: StorageAccountConfig) =
+        { state with
+            DisablePublicNetworkAccess = FeatureFlag.Enabled
+            NetworkAcls =
+                {
+                    Bypass = set [ NetworkRuleSetBypass.None ]
+                    VirtualNetworkRules = []
+                    IpRules = []
+                    DefaultAction = RuleAction.Deny
+                }
+                |> Some
+        }
+
+    /// Disable blob public access
+    [<CustomOperation "disable_blob_public_access">]
+    member _.DisableBlobPublicAccess(state: StorageAccountConfig, ?flag: FeatureFlag) =
+        let flag = defaultArg flag FeatureFlag.Enabled
+
+        { state with
+            DisableBlobPublicAccess = flag
+        }
+
+    /// Disable shared key access
+    [<CustomOperation "disable_shared_key_access">]
+    member _.DisableSharedKeyAccess(state: StorageAccountConfig, ?flag: FeatureFlag) =
+        let flag = defaultArg flag FeatureFlag.Enabled
+
+        { state with
+            DisableSharedKeyAccess = flag
+        }
+
+    /// Default to Azure Active Directory authorization in the Azure portal
+    [<CustomOperation "default_to_oauth_authentication">]
+    member _.DefaultToOAuthAuthentication(state: StorageAccountConfig, ?flag: FeatureFlag) =
+        let flag = defaultArg flag FeatureFlag.Enabled
+
+        { state with
+            DefaultToOAuthAuthentication = flag
         }
 
     interface ITaggable<StorageAccountConfig> with

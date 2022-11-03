@@ -191,6 +191,11 @@ type VmConfig =
                         EnableHierarchicalNamespace = None
                         MinTlsVersion = None
                         Tags = this.Tags
+                        DnsZoneType = "Standard"
+                        DisablePublicNetworkAccess = FeatureFlag.Disabled
+                        DisableBlobPublicAccess = FeatureFlag.Disabled
+                        DisableSharedKeyAccess = FeatureFlag.Disabled
+                        DefaultToOAuthAuthentication = FeatureFlag.Disabled
                     }
                 | Some _
                 | None -> ()
