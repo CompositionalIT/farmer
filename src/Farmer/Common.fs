@@ -1838,6 +1838,7 @@ module DeliveryPolicy =
         | NotLessThanOrEquals
         | NotGreaterThan
         | NotGreaterThanOrEquals
+        | Wildcard
         interface IOperator with
             member this.AsOperator =
                 match this with
@@ -1859,6 +1860,7 @@ module DeliveryPolicy =
                 | NotGreaterThan -> "GreaterThan"
                 | GreaterThanOrEquals
                 | NotGreaterThanOrEquals -> "GreaterThanOrEqual"
+                | Wildcard -> "Wildcard"
 
             member this.AsNegateCondition =
                 match this with
