@@ -43,7 +43,7 @@
       "type": "Microsoft.Sql/servers/databases"
     },
     {
-      "apiVersion": "2014-04-01-preview",
+      "apiVersion": "2021-11-01",
       "comments": "Transparent Data Encryption",
       "dependsOn": [
         "[resourceId('Microsoft.Sql/servers/databases', 'farmersql1979', 'farmertestdb')]"

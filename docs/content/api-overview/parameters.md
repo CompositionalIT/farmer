@@ -41,7 +41,7 @@ This will generate an ARM template which looks as follows (irrelevant content is
   },
   "resources": [
     {
-      "apiVersion": "2014-04-01-preview",
+      "apiVersion": "2021-11-01",
       "name": "myserver",
       "properties": {
         "administratorLogin": "mradmin",

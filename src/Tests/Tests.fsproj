@@ -88,7 +88,7 @@
     <PackageReference Include="Microsoft.Azure.Management.Storage" Version="25.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.TrafficManager" Version="2.5.4" />
     <PackageReference Include="Microsoft.Azure.Management.WebSites" Version="4.0.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0-preview-20221003-04" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.2" />
     <PackageReference Include="coverlet.collector" Version="3.1.2">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>

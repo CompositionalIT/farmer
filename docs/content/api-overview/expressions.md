@@ -32,7 +32,7 @@ This will be written to the ARM template file as follows:
           "appSettings": [
             {
               "name": "storageKey",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=myStorageAccount;AccountKey=', listKeys('myStorageAccount', '2017-10-01').keys[0].value)]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=myStorageAccount;AccountKey=', listKeys('myStorageAccount', '2022-05-01').keys[0].value)]"
             }
 ```
 

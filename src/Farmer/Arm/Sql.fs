@@ -17,7 +17,7 @@ let databases =
     ResourceType("Microsoft.Sql/servers/databases", "2021-11-01")
 
 let transparentDataEncryption =
-    ResourceType("Microsoft.Sql/servers/databases/transparentDataEncryption", "2014-04-01-preview")
+    ResourceType("Microsoft.Sql/servers/databases/transparentDataEncryption", "2021-11-01")
 
 type DbKind =
     | Standalone of DbPurchaseModel

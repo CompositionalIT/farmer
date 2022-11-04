@@ -48,6 +48,6 @@ Your resource you create will have a [type of service](https://docs.microsoft.co
 ### Where can I find docs on ARM templates schemas themselves?
 There are three good sources to learning about specific ARM resources and what parts need to be used in creating an equivalent Farmer resource:
 
-* **Reference Docs**: The reference documentation contains details on the schema for every resource and every version e.g. [Container Registry](https://docs.microsoft.com/en-us/azure/templates/microsoft.containerregistry/2017-10-01/registries) reference.
+* **Reference Docs**: The reference documentation contains details on the schema for every resource and every version e.g. [Container Registry](https://docs.microsoft.com/en-us/azure/templates/microsoft.containerregistry/2021-09-01/registries) reference.
 * **Sample Template**: The Azure Quickstart Templates github repository contains many examples of real-world ARM templates e.g. [Container Registry with Geo Replication](https://github.com/Azure/azure-quickstart-templates/tree/master/quickstarts/microsoft.containerregistry/container-registry-geo-replication) sample.
 * **Reverse engineer**: You can manually create a required resource in Azure, and then use Azure's [export ARM template](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/export-template-portal) functionality to create an ARM template. It's important that you test out the exported template yourself before porting it to Farmer, because Azure sometimes exports invalid templates!
