@@ -7,14 +7,12 @@ open System.Net
 
 let servers = ResourceType("Microsoft.Sql/servers", "2021-11-01")
 
-let elasticPools =
-    ResourceType("Microsoft.Sql/servers/elasticPools", "2021-11-01")
+let elasticPools = ResourceType("Microsoft.Sql/servers/elasticPools", "2021-11-01")
 
 let firewallRules =
     ResourceType("Microsoft.Sql/servers/firewallrules", "2021-11-01")
 
-let databases =
-    ResourceType("Microsoft.Sql/servers/databases", "2021-11-01")
+let databases = ResourceType("Microsoft.Sql/servers/databases", "2021-11-01")
 
 let transparentDataEncryption =
     ResourceType("Microsoft.Sql/servers/databases/transparentDataEncryption", "2021-11-01")
