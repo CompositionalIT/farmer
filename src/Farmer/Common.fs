@@ -3,9 +3,14 @@
 open System
 
 type NonEmptyList<'T> =
-    private | NonEmptyList of List<'T>
+    private
+    | NonEmptyList of List<'T>
+
     /// Unwraps the inner List contents.
-    member this.Value = match this with NonEmptyList list -> list
+    member this.Value =
+        match this with
+        | NonEmptyList list -> list
+
 module NonEmptyList =
     let create list =
         match list with
@@ -16,12 +21,13 @@ module NonEmptyList =
 module internal DuHelpers =
     let makeAll<'TUnion> =
         Reflection.FSharpType.GetUnionCases(typeof<'TUnion>)
-        |> Array.map(fun t -> Reflection.FSharpValue.MakeUnion(t, null) :?> 'TUnion)
+        |> Array.map (fun t -> Reflection.FSharpValue.MakeUnion(t, null) :?> 'TUnion)
         |> Array.toList
 
 [<AutoOpen>]
 module LocationExtensions =
     type Location with
+
         static member EastAsia = Location "EastAsia"
         static member SoutheastAsia = Location "SoutheastAsia"
         static member CentralUS = Location "CentralUS"
@@ -67,6 +73,7 @@ module LocationExtensions =
 [<AutoOpen>]
 module DataLocationExtensions =
     type DataLocation with
+
         static member AsiaPacific = DataLocation "Asia Pacific"
         static member Australia = DataLocation "Australia"
         static member Europe = DataLocation "Europe"
@@ -74,22 +81,53 @@ module DataLocationExtensions =
         static member UnitedStates = DataLocation "United States"
 
 
-type OS = Windows | Linux
+type OS =
+    | Windows
+    | Linux
 
-type [<Measure>] Gb
-type [<Measure>] Mb
-type [<Measure>] Kb
-type [<Measure>] Mbps
-type [<Measure>] Seconds
-type [<Measure>] Hours
-type [<Measure>] Days
-type [<Measure>] VCores
+[<Measure>]
+type Gb
+
+[<Measure>]
+type Mb
+
+[<Measure>]
+type Kb
+
+[<Measure>]
+type Mbps
+
+[<Measure>]
+type Seconds
+
+[<Measure>]
+type Hours
+
+[<Measure>]
+type Days
+
+[<Measure>]
+type VCores
+
 type IsoDateTime =
     | IsoDateTime of string
-    static member OfTimeSpan (d:TimeSpan) = d |> System.Xml.XmlConvert.ToString |> IsoDateTime
-    member this.Value = match this with IsoDateTime value -> value
-type TransmissionProtocol = TCP | UDP
-type TlsVersion = Tls10 | Tls11 | Tls12
+
+    static member OfTimeSpan(d: TimeSpan) =
+        d |> System.Xml.XmlConvert.ToString |> IsoDateTime
+
+    member this.Value =
+        match this with
+        | IsoDateTime value -> value
+
+type TransmissionProtocol =
+    | TCP
+    | UDP
+
+type TlsVersion =
+    | Tls10
+    | Tls11
+    | Tls12
+
 /// Represents an environment variable that can be set, typically on Docker container services.
 type EnvVar =
     /// Use for non-secret environment variables. These will be stored in cleartext in the ARM template.
@@ -98,12 +136,18 @@ type EnvVar =
     | SecureEnvValue of SecureParameter
     /// Use for secret environment variables that get their value from an ARM Expression. These will be an ARM expression in the template, but value used in a secure context.
     | SecureEnvExpression of ArmExpression
-    static member create (name:string) (value:string) = name, EnvValue value
-    static member createSecure (name:string) (paramName:string) = name, SecureEnvValue (SecureParameter paramName)
-    static member createSecureExpression (name:string) (armExpression:ArmExpression) = name, SecureEnvExpression armExpression
+
+    static member create (name: string) (value: string) = name, EnvValue value
+
+    static member createSecure (name: string) (paramName: string) =
+        name, SecureEnvValue(SecureParameter paramName)
+
+    static member createSecureExpression (name: string) (armExpression: ArmExpression) =
+        name, SecureEnvExpression armExpression
 
 module Mb =
-    let toBytes (mb:int<Mb>) = int64 mb * 1024L * 1024L
+    let toBytes (mb: int<Mb>) = int64 mb * 1024L * 1024L
+
 module Vm =
     type VMSize =
         | Basic_A0
@@ -273,16 +317,49 @@ module Vm =
         | Standard_NV12
         | Standard_NV24
         | CustomImage of string
-        member this.ArmValue = match this with CustomImage c -> c | _ -> this.ToString()
-    type Offer = Offer of string member this.ArmValue = match this with Offer o -> o
-    type Publisher = Publisher of string member this.ArmValue = match this with Publisher p -> p
-    type VmImageSku = ImageSku of string member this.ArmValue = match this with ImageSku i -> i
+
+        member this.ArmValue =
+            match this with
+            | CustomImage c -> c
+            | _ -> this.ToString()
+
+    type Offer =
+        | Offer of string
+
+        member this.ArmValue =
+            match this with
+            | Offer o -> o
+
+    type Publisher =
+        | Publisher of string
+
+        member this.ArmValue =
+            match this with
+            | Publisher p -> p
+
+    type VmImageSku =
+        | ImageSku of string
+
+        member this.ArmValue =
+            match this with
+            | ImageSku i -> i
+
     type ImageDefinition =
-        { Offer : Offer
-          Publisher : Publisher
-          Sku : VmImageSku
-          OS : OS }
-    let makeVm os offer publisher sku = { Offer = Offer offer; Publisher = Publisher publisher; OS = os; Sku = ImageSku sku }
+        {
+            Offer: Offer
+            Publisher: Publisher
+            Sku: VmImageSku
+            OS: OS
+        }
+
+    let makeVm os offer publisher sku =
+        {
+            Offer = Offer offer
+            Publisher = Publisher publisher
+            OS = os
+            Sku = ImageSku sku
+        }
+
     let makeWindowsVm = makeVm Windows "WindowsServer" "MicrosoftWindowsServer"
     let makeLinuxVm = makeVm Linux
 
@@ -300,25 +377,36 @@ module Vm =
     let WindowsServer_2012Datacenter = makeWindowsVm "2012-Datacenter"
     let WindowsServer_2008R2SP1 = makeWindowsVm "2008-R2-SP1"
     let Windows10Pro = makeVm Windows "Windows-10" "MicrosoftWindowsDesktop" "20h2-pro"
+
     /// The type of disk to use.
     type DiskType =
         | StandardSSD_LRS
         | Standard_LRS
         | Premium_LRS
-        member this.ArmValue = match this with x -> x.ToString()
+
+        member this.ArmValue =
+            match this with
+            | x -> x.ToString()
 
     /// Represents a disk in a VM.
-    type DiskInfo = { Size : int; DiskType : DiskType }
+    type DiskInfo = { Size: int; DiskType: DiskType }
+
     type EvictionPolicy =
         | Deallocate
         | Delete
-        member this.ArmValue = match this with | Deallocate -> "Deallocate" | Delete -> "Delete"
-    type BillingProfile =
-        { MaxPrice: decimal }
+
+        member this.ArmValue =
+            match this with
+            | Deallocate -> "Deallocate"
+            | Delete -> "Delete"
+
+    type BillingProfile = { MaxPrice: decimal }
+
     type Priority =
         | Low
         | Regular
-        | Spot of evictionPolicy:EvictionPolicy * maxPrice:decimal
+        | Spot of evictionPolicy: EvictionPolicy * maxPrice: decimal
+
         member this.ArmValue =
             match this with
             | Low -> "Low"
@@ -330,43 +418,100 @@ module internal Validation =
     let (<+>) a b v = a v && b v
     /// ORs two validation rules
     let (<|>) a b v = a v || b v
+
     /// Combines two validation rules. Both OK -> OK, otherwise Error.
     let (<!>) a b e s =
         match a e s, b e s with
-        | Ok _, Ok _ -> Ok ()
+        | Ok _, Ok _ -> Ok()
         | Error x, _
         | _, Error x -> Error x
 
-    let isNonEmpty entity s = if String.IsNullOrWhiteSpace s then Error $"%s{entity} cannot be empty" else Ok()
+    let isNonEmpty entity s =
+        if String.IsNullOrWhiteSpace s then
+            Error $"%s{entity} cannot be empty"
+        else
+            Ok()
+
     let isNotAGuid entity (s: string) =
         match Guid.TryParse s with
         | true, _ -> Error $"%s{entity} cannot be a GUID"
         | false, _ -> Ok()
-    let notLongerThan max entity (s:string) = if s.Length > max then Error $"%s{entity} max length is %d{max}, but here is {s.Length}" else Ok()
-    let notShorterThan min entity (s:string) = if s.Length < min then Error $"%s{entity} min length is %d{min}, but here is {s.Length}" else Ok()
-    let lengthBetween min max entity (s:string) = s |> notLongerThan max entity |> Result.bind (fun _ -> s |> notShorterThan min entity)
-    let containsOnly (message, predicate) entity (s:string) = if s |> Seq.exists (predicate >> not) then Error $"%s{entity} can only contain %s{message}" else Ok()
-    let cannotContain (message, predicate) entity (s:string) = if s |> Seq.exists predicate then Error $"%s{entity} do not allow %s{message}" else Ok()
-    let startsWith (message, predicate) entity (s:string) = if not (predicate s.[0]) then Error $"%s{entity} must start with %s{message}" else Ok()
-    let endsWith (message, predicate) entity (s:string) = if not (predicate s.[s.Length - 1]) then Error $"%s{entity} must end with %s{message}" else Ok()
-    let cannotStartWith (message, predicate) entity (s:string) = if predicate s.[0] then Error $"%s{entity} cannot start with %s{message}" else Ok()
-    let cannotEndWith (message, predicate) entity (s:string) = if predicate s.[s.Length - 1] then Error $"%s{entity} cannot end with %s{message}" else Ok()
-    let cannotEndsWith (predicate: (string * string) seq) entity (s:string) =
+
+    let notLongerThan max entity (s: string) =
+        if s.Length > max then
+            Error $"%s{entity} max length is %d{max}, but here is {s.Length}"
+        else
+            Ok()
+
+    let notShorterThan min entity (s: string) =
+        if s.Length < min then
+            Error $"%s{entity} min length is %d{min}, but here is {s.Length}"
+        else
+            Ok()
+
+    let lengthBetween min max entity (s: string) =
+        s
+        |> notLongerThan max entity
+        |> Result.bind (fun _ -> s |> notShorterThan min entity)
+
+    let containsOnly (message, predicate) entity (s: string) =
+        if s |> Seq.exists (predicate >> not) then
+            Error $"%s{entity} can only contain %s{message}"
+        else
+            Ok()
+
+    let cannotContain (message, predicate) entity (s: string) =
+        if s |> Seq.exists predicate then
+            Error $"%s{entity} do not allow %s{message}"
+        else
+            Ok()
+
+    let startsWith (message, predicate) entity (s: string) =
+        if not (predicate s.[0]) then
+            Error $"%s{entity} must start with %s{message}"
+        else
+            Ok()
+
+    let endsWith (message, predicate) entity (s: string) =
+        if not (predicate s.[s.Length - 1]) then
+            Error $"%s{entity} must end with %s{message}"
+        else
+            Ok()
+
+    let cannotStartWith (message, predicate) entity (s: string) =
+        if predicate s.[0] then
+            Error $"%s{entity} cannot start with %s{message}"
+        else
+            Ok()
+
+    let cannotEndWith (message, predicate) entity (s: string) =
+        if predicate s.[s.Length - 1] then
+            Error $"%s{entity} cannot end with %s{message}"
+        else
+            Ok()
+
+    let cannotEndsWith (predicate: (string * string) seq) entity (s: string) =
         let matches =
             predicate
             |> Seq.filter (fun (_, postfix) -> s.EndsWith(postfix, StringComparison.Ordinal))
             |> Seq.map fst
             |> Seq.toList
+
         match matches with
         | [] -> Ok()
         | predicatesThatFailes ->
             let message = System.String.Join(", ", predicatesThatFailes)
             Error $"%s{entity} cannot end with %s{message}"
-    let arb (message, predicate) entity s = if predicate s then Error $"%s{entity} %s{message}" else Ok()
+
+    let arb (message, predicate) entity s =
+        if predicate s then
+            Error $"%s{entity} %s{message}"
+        else
+            Ok()
+
     let containsOnlyM containers =
-        containers
-        |> List.map containsOnly
-        |> List.reduce (<!>)
+        containers |> List.map containsOnly |> List.reduce (<!>)
+
     let nonEmptyLengthBetween a b = isNonEmpty <!> lengthBetween a b
 
     let lowercaseLetters = "lowercase letters", Char.IsLetter >> not <|> Char.IsLower
@@ -375,8 +520,13 @@ module internal Validation =
     let letters = "letters", Char.IsLetter
     let dash = "a dash (-)", ((=) '-')
     let dot = "a dash (.)", ((=) '.')
-    let lettersNumbersOrDash = "alphanumeric characters or the dash (-)", Char.IsLetterOrDigit <|> (snd dash)
-    let lettersNumbersDashOrDot = "alphanumeric characters, a dash (-) or a dot (.)", Char.IsLetterOrDigit <|> (snd dash) <|> (snd dot)
+
+    let lettersNumbersOrDash =
+        "alphanumeric characters or the dash (-)", Char.IsLetterOrDigit <|> (snd dash)
+
+    let lettersNumbersDashOrDot =
+        "alphanumeric characters, a dash (-) or a dot (.)", Char.IsLetterOrDigit <|> (snd dash) <|> (snd dot)
+
     let validate entity inputValue rules =
         rules
         |> Seq.choose (fun rule ->
@@ -384,63 +534,87 @@ module internal Validation =
             | Error msg -> Some msg
             | Ok _ -> None)
         |> Seq.tryHead
-        |> Option.map(fun errorMessage ->
+        |> Option.map (fun errorMessage ->
             let inputValueDescription =
-                if String.IsNullOrWhiteSpace inputValue then ""
-                else $". The invalid value is '{inputValue}'"
+                if String.IsNullOrWhiteSpace inputValue then
+                    ""
+                else
+                    $". The invalid value is '{inputValue}'"
+
             Error $"{errorMessage}{inputValueDescription}")
         |> Option.defaultValue (Ok inputValue)
 
 module CosmosDbValidation =
     open Validation
+
     type CosmosDbName =
-        private | CosmosDbName of ResourceName
+        private
+        | CosmosDbName of ResourceName
+
         static member Create name =
-            [ nonEmptyLengthBetween 3 44
-              containsOnlyM [ lowercaseLetters; lettersNumbersOrDash ]
+            [
+                nonEmptyLengthBetween 3 44
+                containsOnlyM [ lowercaseLetters; lettersNumbersOrDash ]
             ]
             |> validate "CosmosDb account names" name
             |> Result.map (ResourceName >> CosmosDbName)
 
-        static member Create (ResourceName name) = CosmosDbName.Create name
-        member this.ResourceName = match this with CosmosDbName name -> name
+        static member Create(ResourceName name) = CosmosDbName.Create name
+
+        member this.ResourceName =
+            match this with
+            | CosmosDbName name -> name
 
 // https://docs.microsoft.com/en-us/rest/api/servicebus/create-namespace
 module ServiceBusValidation =
     open Validation
+
     type ServiceBusName =
-        private | ServiceBusName of ResourceName
-        static member Create (name: string) =
-            [ nonEmptyLengthBetween 6 50
-              containsOnly lettersNumbersOrDash
-              startsWith letters
-              isNotAGuid
-              cannotEndsWith [ ("a dash", "-"); ("a sb postfix", "-sb"); ("a management postfix", "-mgmt") ]
+        private
+        | ServiceBusName of ResourceName
+
+        static member Create(name: string) =
+            [
+                nonEmptyLengthBetween 6 50
+                containsOnly lettersNumbersOrDash
+                startsWith letters
+                isNotAGuid
+                cannotEndsWith [ ("a dash", "-"); ("a sb postfix", "-sb"); ("a management postfix", "-mgmt") ]
             ]
             |> validate "ServiceBus namespace" name
             |> Result.map (ResourceName >> ServiceBusName)
 
-        member this.ResourceName = match this with ServiceBusName name -> name
+        member this.ResourceName =
+            match this with
+            | ServiceBusName name -> name
 
 module ContainerAppValidation =
     open Validation
+
     type ContainerAppSettingKey =
-        private | ContainerAppSettingKey of string
-        static member Create (name:string) =
-            [ containsOnly lettersNumbersDashOrDot
-              startsWith aLetterOrNumber
-              endsWith aLetterOrNumber
-              containsOnly lowercaseLetters
+        private
+        | ContainerAppSettingKey of string
+
+        static member Create(name: string) =
+            [
+                containsOnly lettersNumbersDashOrDot
+                startsWith aLetterOrNumber
+                endsWith aLetterOrNumber
+                containsOnly lowercaseLetters
             ]
             |> validate "Container App Setting Key" name
             |> Result.map ContainerAppSettingKey
-        member this.Value = match this with ContainerAppSettingKey value -> value
+
+        member this.Value =
+            match this with
+            | ContainerAppSettingKey value -> value
 
 module Insights =
 
     /// https://docs.microsoft.com/en-us/azure/azure-monitor/essentials/metrics-supported
     type MetricsName =
-    | MetricsName of string
+        | MetricsName of string
+
         static member PercentageCPU = MetricsName "Percentage CPU"
         static member DiskReadOperationsPerSec = MetricsName "Disk Read Operations/Sec"
         static member DiskWriteOperationsPerSec = MetricsName "Disk Write Operations/Sec"
@@ -454,59 +628,99 @@ module Insights =
 
 module Storage =
     open Validation
+
     type StorageAccountName =
-        private | StorageAccountName of ResourceName
+        private
+        | StorageAccountName of ResourceName
+
         static member Create name =
-            [ nonEmptyLengthBetween 3 24
-              containsOnlyM [ lowercaseLetters; lettersOrNumbers ]
+            [
+                nonEmptyLengthBetween 3 24
+                containsOnlyM [ lowercaseLetters; lettersOrNumbers ]
             ]
             |> validate "Storage account names" name
             |> Result.map (ResourceName >> StorageAccountName)
 
         static member internal Empty = StorageAccountName ResourceName.Empty
-        static member Create (ResourceName name) = StorageAccountName.Create name
-        member this.ResourceName = match this with StorageAccountName name -> name
+        static member Create(ResourceName name) = StorageAccountName.Create name
+
+        member this.ResourceName =
+            match this with
+            | StorageAccountName name -> name
 
     type StorageResourceName =
-        private | StorageResourceName of ResourceName
+        private
+        | StorageResourceName of ResourceName
+
         static member Create name =
-            [ nonEmptyLengthBetween 3 63
-              startsWith aLetterOrNumber
-              endsWith aLetterOrNumber
-              containsOnlyM [ lettersNumbersOrDash; lowercaseLetters ]
-              arb ("do not allow consecutive dashes", fun s -> s.Contains "--") ]
+            [
+                nonEmptyLengthBetween 3 63
+                startsWith aLetterOrNumber
+                endsWith aLetterOrNumber
+                containsOnlyM [ lettersNumbersOrDash; lowercaseLetters ]
+                arb ("do not allow consecutive dashes", (fun s -> s.Contains "--"))
+            ]
             |> validate "Storage resource names" name
             |> Result.map (ResourceName >> StorageResourceName)
 
-        static member Create (ResourceName name) = StorageResourceName.Create name
-        member this.ResourceName = match this with StorageResourceName name -> name
+        static member Create(ResourceName name) = StorageResourceName.Create name
 
-    type DefaultAccessTier = Hot | Cool
+        member this.ResourceName =
+            match this with
+            | StorageResourceName name -> name
+
+    type DefaultAccessTier =
+        | Hot
+        | Cool
+
     type StoragePerformance =
-        | Standard | Premium
-        member this.ArmValue = match this with Standard -> "Standard" | Premium -> "Premium"
+        | Standard
+        | Premium
+
+        member this.ArmValue =
+            match this with
+            | Standard -> "Standard"
+            | Premium -> "Premium"
+
     type BasicReplication =
-        | LRS | ZRS
+        | LRS
+        | ZRS
+
         member this.ReplicationModelDescription =
             match this with
             | LRS -> "LRS"
             | ZRS -> "ZRS"
+
     type BlobReplication =
-        | LRS | GRS | RAGRS
+        | LRS
+        | GRS
+        | RAGRS
+
         member this.ReplicationModelDescription =
             match this with
             | LRS -> "LRS"
             | GRS -> "GRS"
             | RAGRS -> "RAGRS"
+
     type V1Replication =
-        | LRS of StoragePerformance | GRS | RAGRS
+        | LRS of StoragePerformance
+        | GRS
+        | RAGRS
+
         member this.ReplicationModelDescription =
             match this with
             | LRS _ -> "LRS"
             | GRS -> "GRS"
             | RAGRS -> "RAGRS"
+
     type V2Replication =
-        | LRS of StoragePerformance | GRS | ZRS | GZRS | RAGRS | RAGZRS
+        | LRS of StoragePerformance
+        | GRS
+        | ZRS
+        | GZRS
+        | RAGRS
+        | RAGZRS
+
         member this.ReplicationModelDescription =
             match this with
             | LRS _ -> "LRS"
@@ -516,26 +730,30 @@ module Storage =
             | RAGRS -> "RAGRS"
             | RAGZRS -> "RAGZRS"
 
-    type GeneralPurpose = V1 of V1Replication | V2 of V2Replication * DefaultAccessTier option
+    type GeneralPurpose =
+        | V1 of V1Replication
+        | V2 of V2Replication * DefaultAccessTier option
+
     type Sku =
         | GeneralPurpose of GeneralPurpose
         | Blobs of BlobReplication * DefaultAccessTier option
         | BlockBlobs of BasicReplication
         | Files of BasicReplication
+
         /// General Purpose V2 Standard LRS with no default access tier.
-        static member Standard_LRS = GeneralPurpose (V2 (LRS Standard, None))
+        static member Standard_LRS = GeneralPurpose(V2(LRS Standard, None))
         /// General Purpose V2 Premium LRS with no default access tier.
-        static member Premium_LRS = GeneralPurpose (V2 (LRS Premium, None))
+        static member Premium_LRS = GeneralPurpose(V2(LRS Premium, None))
         /// General Purpose V2 Standard GRS with no default access tier.
-        static member Standard_GRS = GeneralPurpose (V2 (GRS, None))
+        static member Standard_GRS = GeneralPurpose(V2(GRS, None))
         /// General Purpose V2 Standard RAGRS with no default access tier.
-        static member Standard_RAGRS = GeneralPurpose (V2 (RAGRS, None))
+        static member Standard_RAGRS = GeneralPurpose(V2(RAGRS, None))
         /// General Purpose V2 Standard ZRS with no default access tier.
-        static member Standard_ZRS = GeneralPurpose (V2 (ZRS, None))
+        static member Standard_ZRS = GeneralPurpose(V2(ZRS, None))
         /// General Purpose V2 Standard GZRS with no default access tier.
-        static member Standard_GZRS = GeneralPurpose (V2 (GZRS, None))
+        static member Standard_GZRS = GeneralPurpose(V2(GZRS, None))
         /// General Purpose V2 Standard RAGZRS with no default access tier.
-        static member Standard_RAGZRS = GeneralPurpose (V2 (RAGZRS, None))
+        static member Standard_RAGZRS = GeneralPurpose(V2(RAGZRS, None))
 
     type StorageContainerAccess =
         | Private
@@ -550,55 +768,82 @@ module Storage =
         | DeleteSnapshotAfter of int<Days>
 
     /// Represents no filters for a lifecycle rule
-    let NoRuleFilters : string list = []
+    let NoRuleFilters: string list = []
 
     type AllOrSpecific<'T> =
         | All
         | Specific of 'T list
 
     type HttpMethod =
-        | DELETE | GET | HEAD | MERGE | POST | OPTIONS | PUT | PATCH
-        static member All = NonEmptyList.create [ DELETE; GET; HEAD; MERGE; POST; OPTIONS; PUT; PATCH ]
+        | DELETE
+        | GET
+        | HEAD
+        | MERGE
+        | POST
+        | OPTIONS
+        | PUT
+        | PATCH
+
+        static member All =
+            NonEmptyList.create [ DELETE; GET; HEAD; MERGE; POST; OPTIONS; PUT; PATCH ]
+
         member this.ArmValue =
             match this with
-            | DELETE -> "DELETE" | GET -> "GET" | HEAD -> "HEAD" | MERGE -> "MERGE"
-            | POST -> "POST" | OPTIONS -> "OPTIONS" | PUT -> "PUT" | PATCH -> "PATCH"
+            | DELETE -> "DELETE"
+            | GET -> "GET"
+            | HEAD -> "HEAD"
+            | MERGE -> "MERGE"
+            | POST -> "POST"
+            | OPTIONS -> "OPTIONS"
+            | PUT -> "PUT"
+            | PATCH -> "PATCH"
+
     type CorsRule =
-        { AllowedOrigins : AllOrSpecific<Uri>
-          AllowedMethods : HttpMethod NonEmptyList
-          MaxAgeInSeconds : int
-          ExposedHeaders : AllOrSpecific<string>
-          AllowedHeaders : AllOrSpecific<string> }
+        {
+            AllowedOrigins: AllOrSpecific<Uri>
+            AllowedMethods: HttpMethod NonEmptyList
+            MaxAgeInSeconds: int
+            ExposedHeaders: AllOrSpecific<string>
+            AllowedHeaders: AllOrSpecific<string>
+        }
+
         static member AllowAll =
-            { AllowedOrigins = All
-              AllowedMethods = HttpMethod.All
-              MaxAgeInSeconds = 0
-              ExposedHeaders = All
-              AllowedHeaders = All }
+            {
+                AllowedOrigins = All
+                AllowedMethods = HttpMethod.All
+                MaxAgeInSeconds = 0
+                ExposedHeaders = All
+                AllowedHeaders = All
+            }
+
         /// Creates a new CORS rule with
-        static member create (?allowedOrigins, ?allowedMethods, ?maxAgeInSeconds, ?exposedHeaders, ?allowedHeaders) =
-            let mapDefault mapper defaultValue = Option.map mapper >> Option.defaultValue defaultValue
-            { AllowedOrigins = allowedOrigins |> mapDefault (List.map Uri >> Specific) CorsRule.AllowAll.AllowedOrigins
-              AllowedMethods = allowedMethods |> mapDefault NonEmptyList.create CorsRule.AllowAll.AllowedMethods
-              MaxAgeInSeconds = defaultArg maxAgeInSeconds CorsRule.AllowAll.MaxAgeInSeconds
-              ExposedHeaders = exposedHeaders |> mapDefault Specific CorsRule.AllowAll.ExposedHeaders
-              AllowedHeaders = allowedHeaders |> mapDefault Specific CorsRule.AllowAll.AllowedHeaders }
-    type DeleteRetentionPolicy = {
-        Enabled : bool
-        Days : int
-    }
+        static member create(?allowedOrigins, ?allowedMethods, ?maxAgeInSeconds, ?exposedHeaders, ?allowedHeaders) =
+            let mapDefault mapper defaultValue =
+                Option.map mapper >> Option.defaultValue defaultValue
+
+            {
+                AllowedOrigins =
+                    allowedOrigins
+                    |> mapDefault (List.map Uri >> Specific) CorsRule.AllowAll.AllowedOrigins
+                AllowedMethods =
+                    allowedMethods
+                    |> mapDefault NonEmptyList.create CorsRule.AllowAll.AllowedMethods
+                MaxAgeInSeconds = defaultArg maxAgeInSeconds CorsRule.AllowAll.MaxAgeInSeconds
+                ExposedHeaders = exposedHeaders |> mapDefault Specific CorsRule.AllowAll.ExposedHeaders
+                AllowedHeaders = allowedHeaders |> mapDefault Specific CorsRule.AllowAll.AllowedHeaders
+            }
+
+    type DeleteRetentionPolicy = { Enabled: bool; Days: int }
 
     type RestorePolicy = DeleteRetentionPolicy
 
-    type LastAccessTimeTrackingPolicy = {
-        Enabled : bool
-        TrackingGranularityInDays : int
-    }
+    type LastAccessTimeTrackingPolicy =
+        {
+            Enabled: bool
+            TrackingGranularityInDays: int
+        }
 
-    type ChangeFeed = {
-        Enabled : bool
-        RetentionInDays : int
-    }
+    type ChangeFeed = { Enabled: bool; RetentionInDays: int }
 
     type Policy =
         | DeleteRetention of DeleteRetentionPolicy
@@ -608,69 +853,107 @@ module Storage =
         | ChangeFeed of ChangeFeed
 
     [<RequireQualifiedAccess>]
-    type StorageService = Blobs | Tables | Files | Queues
+    type StorageService =
+        | Blobs
+        | Tables
+        | Files
+        | Queues
 
 /// A network represented by an IP address and CIDR prefix.
-type public IPAddressCidr =
-    { Address : Net.IPAddress
-      Prefix : int }
+type public IPAddressCidr = { Address: Net.IPAddress; Prefix: int }
 
 /// Functions for IP networks and CIDR notation.
 module IPAddressCidr =
-    let parse (s:string) : IPAddressCidr =
-        match s.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) with
+    let parse (s: string) : IPAddressCidr =
+        match s.Split([| '/' |], StringSplitOptions.RemoveEmptyEntries) with
         | [| ip; prefix |] ->
-            { Address = Net.IPAddress.Parse (ip.Trim())
-              Prefix = int prefix }
+            {
+                Address = Net.IPAddress.Parse(ip.Trim())
+                Prefix = int prefix
+            }
         | [| ip |] ->
-            { Address = Net.IPAddress.Parse (ip.Trim())
-              Prefix = 32 }
+            {
+                Address = Net.IPAddress.Parse(ip.Trim())
+                Prefix = 32
+            }
         | _ -> raise (ArgumentOutOfRangeException "Malformed CIDR, expecting an IP and prefix separated by '/'")
-    let safeParse (s:string) : Result<IPAddressCidr, Exception> =
-        try parse s |> Ok
-        with ex -> Error ex
-    let format (cidr:IPAddressCidr) = $"{cidr.Address}/{cidr.Prefix}"
+
+    let safeParse (s: string) : Result<IPAddressCidr, Exception> =
+        try
+            parse s |> Ok
+        with ex ->
+            Error ex
+
+    let format (cidr: IPAddressCidr) = $"{cidr.Address}/{cidr.Prefix}"
+
     /// Gets uint32 representation of an IP address.
-    let private num (ip:Net.IPAddress) =
-        ip.GetAddressBytes() |> Array.rev |> fun bytes -> BitConverter.ToUInt32 (bytes, 0)
+    let private num (ip: Net.IPAddress) =
+        ip.GetAddressBytes()
+        |> Array.rev
+        |> fun bytes -> BitConverter.ToUInt32(bytes, 0)
+
     /// Gets IP address from uint32 representations
-    let private ofNum (num:uint32) =
+    let private ofNum (num: uint32) =
         num |> BitConverter.GetBytes |> Array.rev |> Net.IPAddress
-    let private ipRangeNums (cidr:IPAddressCidr) =
+
+    let private ipRangeNums (cidr: IPAddressCidr) =
         let ipNumber = cidr.Address |> num
         let mask = 0xffffffffu <<< (32 - cidr.Prefix)
         ipNumber &&& mask, ipNumber ||| (mask ^^^ 0xffffffffu)
+
     /// Indicates if one CIDR block can fit entirely within another CIDR block
-    let contains (inner:IPAddressCidr) (outer:IPAddressCidr) =
+    let contains (inner: IPAddressCidr) (outer: IPAddressCidr) =
         // outer |> IPAddressCidr.contains inner
         let innerStart, innerFinish = ipRangeNums inner
         let outerStart, outerFinish = ipRangeNums outer
         outerStart <= innerStart && outerFinish >= innerFinish
+
     /// Calculates a range of IP addresses from an CIDR block.
-    let ipRange (cidr:IPAddressCidr) =
+    let ipRange (cidr: IPAddressCidr) =
         let first, last = ipRangeNums cidr
         first |> ofNum, last |> ofNum
+
     /// Sequence of IP addresses for a CIDR block.
-    let addresses (cidr:IPAddressCidr) =
+    let addresses (cidr: IPAddressCidr) =
         let first, last = ipRangeNums cidr
-        seq { for i in first..last do ofNum i }
+
+        seq {
+            for i in first..last do
+                ofNum i
+        }
+
     /// Carve a subnet out of an address space.
-    let carveAddressSpace (addressSpace:IPAddressCidr) (subnetSizes:int list) = [
-        let addressSpaceStart, addressSpaceEnd = addressSpace |> ipRangeNums
-        let mutable startAddress = addressSpaceStart |> ofNum
-        let mutable index = 0
-        for size in subnetSizes do
+    let carveAddressSpace (addressSpace: IPAddressCidr) (subnetSizes: int list) =
+        [
+            let addressSpaceStart, addressSpaceEnd = addressSpace |> ipRangeNums
+            let mutable startAddress = addressSpaceStart |> ofNum
+            let mutable index = 0
+
+            for size in subnetSizes do
                 index <- index + 1
-                let cidr = { Address = startAddress; Prefix = size }
+
+                let cidr =
+                    {
+                        Address = startAddress
+                        Prefix = size
+                    }
+
                 let first, last = cidr |> ipRangeNums
                 let overlapping = first < (startAddress |> num)
+
                 let last, cidr =
                     if overlapping then
-                        let cidr = { Address = ofNum (last + 1u); Prefix = size }
+                        let cidr =
+                            {
+                                Address = ofNum (last + 1u)
+                                Prefix = size
+                            }
+
                         let _, last = cidr |> ipRangeNums
                         last, cidr
                     else
                         last, cidr
+
                 if last <= addressSpaceEnd then
                     startAddress <- (last + 1u) |> ofNum
                     cidr
@@ -680,15 +963,23 @@ module IPAddressCidr =
 
     /// The first two addresses are the network address and gateway address
     /// so not assignable.
-    let assignable (cidr:IPAddressCidr) =
+    let assignable (cidr: IPAddressCidr) =
         if cidr.Prefix < 31 then // only has 2 addresses
             cidr |> addresses |> Seq.skip 2
         else
             Seq.empty
 
 module WebApp =
-    type WorkerSize = Small | Medium | Large | Serverless
-    type Cors = AllOrigins | SpecificOrigins of origins : Uri list * allowCredentials : bool option
+    type WorkerSize =
+        | Small
+        | Medium
+        | Large
+        | Serverless
+
+    type Cors =
+        | AllOrigins
+        | SpecificOrigins of origins: Uri list * allowCredentials: bool option
+
     type Sku =
         | Shared
         | Free
@@ -700,6 +991,7 @@ module WebApp =
         | ElasticPremium of string
         | Isolated of string
         | Dynamic
+
         static member D1 = Shared
         static member F1 = Free
         static member B1 = Basic "B1"
@@ -724,29 +1016,60 @@ module WebApp =
         static member I2 = Isolated "I2"
         static member I3 = Isolated "I3"
         static member Y1 = Dynamic
-    type ConnectionStringKind = MySql | SQLServer | SQLAzure | Custom | NotificationHub | ServiceBus | EventHub | ApiHub | DocDb | RedisCache | PostgreSQL
+
+    type ConnectionStringKind =
+        | MySql
+        | SQLServer
+        | SQLAzure
+        | Custom
+        | NotificationHub
+        | ServiceBus
+        | EventHub
+        | ApiHub
+        | DocDb
+        | RedisCache
+        | PostgreSQL
+
     type ExtensionName = ExtensionName of string
-    type Bitness = Bits32 | Bits64
+
+    type Bitness =
+        | Bits32
+        | Bits64
+
     type IpSecurityAction =
         | Allow
         | Deny
+
     type IpSecurityRestriction =
-        { Name: string
-          IpAddressCidr: IPAddressCidr
-          Action: IpSecurityAction }
+        {
+            Name: string
+            IpAddressCidr: IPAddressCidr
+            Action: IpSecurityAction
+        }
+
         static member Create name cidr action =
-            { Name = name
-              IpAddressCidr = cidr
-              Action = action }
+            {
+                Name = name
+                IpAddressCidr = cidr
+                Action = action
+            }
+
     type VirtualApplication =
-        { PhysicalPath: string
-          PreloadEnabled: bool option }
+        {
+            PhysicalPath: string
+            PreloadEnabled: bool option
+        }
+
     module Extensions =
         /// The Microsoft.AspNetCore.AzureAppServices logging extension.
         let Logging = ExtensionName "Microsoft.AspNetCore.AzureAppServices.SiteExtension"
+
     open Validation
+
     type WebAppName =
-        private | WebAppName of ResourceName
+        private
+        | WebAppName of ResourceName
+
         static member Create name =
             [
                 nonEmptyLengthBetween 2 60
@@ -756,9 +1079,13 @@ module WebApp =
             ]
             |> validate "Web App site names" name
             |> Result.map (ResourceName >> WebAppName)
+
         static member internal Empty = WebAppName ResourceName.Empty
-        static member Create (ResourceName name) = WebAppName.Create name
-        member this.ResourceName = match this with WebAppName name -> name
+        static member Create(ResourceName name) = WebAppName.Create name
+
+        member this.ResourceName =
+            match this with
+            | WebAppName name -> name
 
 module CognitiveServices =
     /// Type of SKU. See https://docs.microsoft.com/en-us/rest/api/cognitiveservices/accountmanagement/resourceskus/list
@@ -777,12 +1104,14 @@ module CognitiveServices =
         | CognitiveServices
         | ComputerVision
         | ContentModerator
-        | CustomVision_Prediction | CustomVision_Training
+        | CustomVision_Prediction
+        | CustomVision_Training
         | Face
         | FormRecognizer
         | ImmersiveReader
         | InkRecognizer
-        | LUIS | LUIS_Authoring
+        | LUIS
+        | LUIS_Authoring
         | Personalizer
         | QnAMaker
         | SpeakerRecognition
@@ -815,20 +1144,27 @@ module ContainerRegistry =
 
 module ContainerRegistryValidation =
     open Validation
+
     type ContainerRegistryName =
-        private | ContainerRegistryName of ResourceName
+        private
+        | ContainerRegistryName of ResourceName
+
         static member Create name =
-            [ containsOnly lettersOrNumbers
-              nonEmptyLengthBetween 5 50
-            ]
+            [ containsOnly lettersOrNumbers; nonEmptyLengthBetween 5 50 ]
             |> validate "Container Registry Name" name
             |> Result.map (ResourceName >> ContainerRegistryName)
 
-        static member Create (ResourceName name) = ContainerRegistryName.Create name
-        member this.ResourceName = match this with ContainerRegistryName name -> name
+        static member Create(ResourceName name) = ContainerRegistryName.Create name
+
+        member this.ResourceName =
+            match this with
+            | ContainerRegistryName name -> name
 
 module Search =
-    type HostingMode = Default | HighDensity
+    type HostingMode =
+        | Default
+        | HighDensity
+
     /// The SKU of the search service you want to create. E.g. free or standard.
     type Sku =
         | Free
@@ -840,7 +1176,8 @@ module Search =
         | StorageOptimisedL2
 
 module Sql =
-    [<Measure>] type DTU
+    [<Measure>]
+    type DTU
 
     type Gen5Series =
         | Gen5_2
@@ -858,7 +1195,10 @@ module Sql =
         | Gen5_40
         | Gen5_80
         | S_Gen5 of CapacityMin: int * CapacityMax: int
-        member this.Name = Reflection.FSharpValue.GetUnionFields(this, typeof<Gen5Series>) |> fun (v,_) -> v.Name
+
+        member this.Name =
+            Reflection.FSharpValue.GetUnionFields(this, typeof<Gen5Series>)
+            |> fun (v, _) -> v.Name
 
     type FSeries =
         | Fsv2_8
@@ -872,7 +1212,10 @@ module Sql =
         | Fsv2_32
         | Fsv2_36
         | Fsv2_72
-        member this.Name = Reflection.FSharpValue.GetUnionFields(this, typeof<FSeries>) |> fun (v,_) -> v.Name
+
+        member this.Name =
+            Reflection.FSharpValue.GetUnionFields(this, typeof<FSeries>)
+            |> fun (v, _) -> v.Name
 
     type MSeries =
         | M_8
@@ -886,7 +1229,10 @@ module Sql =
         | M_32
         | M_64
         | M_128
-        member this.Name = Reflection.FSharpValue.GetUnionFields(this, typeof<MSeries>) |> fun (v,_) -> v.Name
+
+        member this.Name =
+            Reflection.FSharpValue.GetUnionFields(this, typeof<MSeries>)
+            |> fun (v, _) -> v.Name
 
     type VCoreSku =
         | MemoryIntensive of MSeries
@@ -894,12 +1240,16 @@ module Sql =
         | GeneralPurpose of Gen5Series
         | BusinessCritical of Gen5Series
         | Hyperscale of Gen5Series
+
         member this.Edition =
             match this with
-            | GeneralPurpose _ | CpuIntensive _ -> "GeneralPurpose"
-            | BusinessCritical _ | MemoryIntensive _ -> "BusinessCritical"
+            | GeneralPurpose _
+            | CpuIntensive _ -> "GeneralPurpose"
+            | BusinessCritical _
+            | MemoryIntensive _ -> "BusinessCritical"
             | Hyperscale _ -> "Hyperscale"
-         member this.Name =
+
+        member this.Name =
             match this with
             | GeneralPurpose g -> "GP_" + g.Name
             | BusinessCritical b -> "BC_" + b.Name
@@ -912,6 +1262,7 @@ module Sql =
         | Basic
         | Standard of string
         | Premium of string
+
         static member S0 = Standard "S0"
         static member S1 = Standard "S1"
         static member S2 = Standard "S2"
@@ -927,13 +1278,15 @@ module Sql =
         static member P6 = Premium "P6"
         static member P11 = Premium "P11"
         static member P15 = Premium "P15"
+
         member this.Edition =
             match this with
             | Free -> "Free"
             | Basic -> "Basic"
             | Standard _ -> "Standard"
             | Premium _ -> "Premium"
-         member this.Name =
+
+        member this.Name =
             match this with
             | Free -> "Free"
             | Basic -> "Basic"
@@ -943,17 +1296,31 @@ module Sql =
     type SqlLicense =
         | AzureHybridBenefit
         | LicenseRequired
-        member this.ArmValue = match this with AzureHybridBenefit -> "BasePrice" | LicenseRequired -> "LicenseIncluded"
+
+        member this.ArmValue =
+            match this with
+            | AzureHybridBenefit -> "BasePrice"
+            | LicenseRequired -> "LicenseIncluded"
+
     type DbPurchaseModel =
         | DTU of DtuSku
         | VCore of VCoreSku * SqlLicense
-        member this.Edition = match this with DTU d -> d.Edition | VCore (v, _) -> v.Edition
-        member this.Name = match this with DTU d -> d.Name | VCore (v, _) -> v.Name
+
+        member this.Edition =
+            match this with
+            | DTU d -> d.Edition
+            | VCore (v, _) -> v.Edition
+
+        member this.Name =
+            match this with
+            | DTU d -> d.Name
+            | VCore (v, _) -> v.Name
 
     type PoolSku =
         | BasicPool of int
         | StandardPool of int
         | PremiumPool of int
+
         static member Standard50 = StandardPool 50
         static member Standard100 = StandardPool 100
         static member Standard200 = StandardPool 200
@@ -983,125 +1350,175 @@ module Sql =
         static member Basic800 = BasicPool 800
         static member Basic1200 = BasicPool 1200
         static member Basic1600 = BasicPool 1600
+
         member this.Name =
             match this with
             | BasicPool _ -> "BasicPool"
             | StandardPool _ -> "StandardPool"
             | PremiumPool _ -> "PremiumPool"
+
         member this.Edition =
             match this with
             | BasicPool _ -> "Basic"
             | StandardPool _ -> "Standard"
             | PremiumPool _ -> "Premium"
+
         member this.Capacity =
             match this with
             | BasicPool c
             | StandardPool c
-            | PremiumPool c ->
-                c
+            | PremiumPool c -> c
+
     open Validation
+
     type SqlAccountName =
-        private | SqlAccountName of ResourceName
+        private
+        | SqlAccountName of ResourceName
+
         static member Create name =
-            [ nonEmptyLengthBetween 1 63
-              cannotStartWith dash
-              cannotEndWith dash
-              containsOnlyM [ lowercaseLetters; lettersNumbersOrDash ]
+            [
+                nonEmptyLengthBetween 1 63
+                cannotStartWith dash
+                cannotEndWith dash
+                containsOnlyM [ lowercaseLetters; lettersNumbersOrDash ]
             ]
             |> validate "SQL account names" name
             |> Result.map (ResourceName >> SqlAccountName)
 
         static member internal Empty = SqlAccountName ResourceName.Empty
-        static member Create (ResourceName name) = SqlAccountName.Create name
-        member this.ResourceName = match this with SqlAccountName name -> name
+        static member Create(ResourceName name) = SqlAccountName.Create name
 
-    type GeoReplicationSettings = {
-        /// Suffix name for server and database name
-        NameSuffix : string
-        /// Replication location, different from the original one
-        Location : Farmer.Location
-        /// Override database Skus
-        DbSku : DtuSku option
-    }
+        member this.ResourceName =
+            match this with
+            | SqlAccountName name -> name
+
+    type GeoReplicationSettings =
+        {
+            /// Suffix name for server and database name
+            NameSuffix: string
+            /// Replication location, different from the original one
+            Location: Farmer.Location
+            /// Override database Skus
+            DbSku: DtuSku option
+        }
 
 /// Represents a role that can be granted to an identity.
 type RoleId =
-    | RoleId of {| Name:string; Id : Guid |}
+    | RoleId of {| Name: string; Id: Guid |}
+
     member this.ArmValue =
         match this with
         | RoleId roleId ->
             $"concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '{roleId.Id}')"
             |> ArmExpression.create
-    member this.Name = match this with (RoleId v) -> v.Name
-    member this.Id = match this with (RoleId v) -> v.Id
+
+    member this.Name =
+        match this with
+        | (RoleId v) -> v.Name
+
+    member this.Id =
+        match this with
+        | (RoleId v) -> v.Id
 
 module Identity =
 
     /// Represents a User Assigned Identity, and the ability to create a Principal Id from it.
     type UserAssignedIdentity =
         | UserAssignedIdentity of ResourceId
+
         member private this.CreateExpression field =
             let (UserAssignedIdentity resourceId) = this
+
             ArmExpression
                 .create($"reference({resourceId.ArmExpression.Value}).%s{field}")
                 .WithOwner(resourceId)
+
         member this.PrincipalId = this.CreateExpression "principalId" |> PrincipalId
         member this.ClientId = this.CreateExpression "clientId"
-        member this.ResourceId = match this with UserAssignedIdentity r -> r
+
+        member this.ResourceId =
+            match this with
+            | UserAssignedIdentity r -> r
 
     type SystemIdentity =
         | SystemIdentity of ResourceId
-        member this.ResourceId = match this with SystemIdentity r -> r
+
+        member this.ResourceId =
+            match this with
+            | SystemIdentity r -> r
+
         member private this.CreateExpression field =
             let identity = this.ResourceId.ArmExpression.Value
+
             ArmExpression
                 .create($"reference({identity}, '{this.ResourceId.Type.ApiVersion}', 'full').identity.%s{field}")
                 .WithOwner(this.ResourceId)
+
         member this.PrincipalId = this.CreateExpression "principalId" |> PrincipalId
         member this.ClientId = this.CreateExpression "clientId"
 
     /// Represents an identity that can be assigned to a resource for impersonation.
     type ManagedIdentity =
-        { SystemAssigned : FeatureFlag
-          UserAssigned : UserAssignedIdentity list }
-        member this.Dependencies = this.UserAssigned |> List.map(fun u -> u.ResourceId)
-        static member Empty = { SystemAssigned = Disabled; UserAssigned = [] }
-        static member (+) (a, b) =
-            { SystemAssigned = (a.SystemAssigned.AsBoolean || b.SystemAssigned.AsBoolean) |> FeatureFlag.ofBool
-              UserAssigned = a.UserAssigned @ b.UserAssigned |> List.distinct }
-        static member (+) (managedIdentity, userAssignedIdentity:UserAssignedIdentity) =
-            { managedIdentity with UserAssigned = userAssignedIdentity :: managedIdentity.UserAssigned }
+        {
+            SystemAssigned: FeatureFlag
+            UserAssigned: UserAssignedIdentity list
+        }
+
+        member this.Dependencies = this.UserAssigned |> List.map (fun u -> u.ResourceId)
+
+        static member Empty =
+            {
+                SystemAssigned = Disabled
+                UserAssigned = []
+            }
+
+        static member (+)(a, b) =
+            {
+                SystemAssigned = (a.SystemAssigned.AsBoolean || b.SystemAssigned.AsBoolean) |> FeatureFlag.ofBool
+                UserAssigned = a.UserAssigned @ b.UserAssigned |> List.distinct
+            }
+
+        static member (+)(managedIdentity, userAssignedIdentity: UserAssignedIdentity) =
+            { managedIdentity with
+                UserAssigned = userAssignedIdentity :: managedIdentity.UserAssigned
+            }
 
 module Containers =
     type DockerImage =
-        | PrivateImage of RegistryDomain : string * ContainerName : string *  Version:string option
-        | PublicImage of ContainerName:string * Version:string option
-            member this.ImageTag =
-                match this with
-                | PrivateImage (registry, container, version) ->
-                    let version = version |> Option.defaultValue "latest"
-                    $"{registry}/{container}:{version}"
-                | PublicImage (container, version) ->
-                    let version = version |> Option.defaultValue "latest"
-                    $"{container}:{version}"
+        | PrivateImage of RegistryDomain: string * ContainerName: string * Version: string option
+        | PublicImage of ContainerName: string * Version: string option
+
+        member this.ImageTag =
+            match this with
+            | PrivateImage (registry, container, version) ->
+                let version = version |> Option.defaultValue "latest"
+                $"{registry}/{container}:{version}"
+            | PublicImage (container, version) ->
+                let version = version |> Option.defaultValue "latest"
+                $"{container}:{version}"
+
         /// Parses an image tag into a DockerImage record.
-        static member Parse (tag:string) =
-            match tag.Split([|':'|], StringSplitOptions.RemoveEmptyEntries) with
+        static member Parse(tag: string) =
+            match tag.Split([| ':' |], StringSplitOptions.RemoveEmptyEntries) with
             | [| repo; version |] ->
-                match repo.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) |> List.ofArray with
-                | first::rest when (first.Contains ".") -> DockerImage.PrivateImage(first, (rest |> String.concat "/"), Version=Some version)
-                | _ -> DockerImage.PublicImage(repo, Version=Some version)
+                match repo.Split([| '/' |], StringSplitOptions.RemoveEmptyEntries) |> List.ofArray with
+                | first :: rest when (first.Contains ".") ->
+                    DockerImage.PrivateImage(first, (rest |> String.concat "/"), Version = Some version)
+                | _ -> DockerImage.PublicImage(repo, Version = Some version)
             | [| repo |] ->
-                match repo.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) |> List.ofArray with
-                | first::rest when (first.Contains ".") -> DockerImage.PrivateImage(first, (rest |> String.concat "/"), None)
+                match repo.Split([| '/' |], StringSplitOptions.RemoveEmptyEntries) |> List.ofArray with
+                | first :: rest when (first.Contains ".") ->
+                    DockerImage.PrivateImage(first, (rest |> String.concat "/"), None)
                 | _ -> DockerImage.PublicImage(repo, None)
             | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of version segments: '{tag}'"
 
 /// Credential for accessing an image registry.
 type ImageRegistryCredential =
-    { Server : string
-      Username : string
-      Password : SecureParameter }
+    {
+        Server: string
+        Username: string
+        Password: SecureParameter
+    }
 
 [<RequireQualifiedAccess>]
 type ImageRegistryAuthentication =
@@ -1113,34 +1530,44 @@ type ImageRegistryAuthentication =
 [<RequireQualifiedAccess>]
 type LogAnalyticsWorkspace =
     | WorkspaceResourceId of LinkedResource
-    | WorkspaceKey of WorkspaceId:string * WorkspaceKey:string
+    | WorkspaceKey of WorkspaceId: string * WorkspaceKey: string
 
 
 module ContainerGroup =
-    type PortAccess = PublicPort | InternalPort
-    type RestartPolicy = NeverRestart | AlwaysRestart | RestartOnFailure
+    type PortAccess =
+        | PublicPort
+        | InternalPort
+
+    type RestartPolicy =
+        | NeverRestart
+        | AlwaysRestart
+        | RestartOnFailure
+
     type IpAddressType =
         | PublicAddress
-        | PublicAddressWithDns of DnsName:string
+        | PublicAddressWithDns of DnsName: string
         | PrivateAddress
+
     type LogType =
         | ContainerInstanceLogs
         | ContainerInsights
+
     /// A secret file that will be attached to a container group.
     type SecretFile =
         /// A secret file which will be encoded as base64 data.
-        | SecretFileContents of Name:string * Secret:byte array
+        | SecretFileContents of Name: string * Secret: byte array
         /// A secret file which will provided by an ARM parameter at runtime.
-        | SecretFileParameter of Name:string * Secret:SecureParameter
+        | SecretFileParameter of Name: string * Secret: SecureParameter
+
     /// A container group volume.
     [<RequireQualifiedAccess>]
     type Volume =
         /// Mounts an empty directory on the container group.
         | EmptyDirectory
         /// Mounts an Azure File Share in the same resource group, performing a key lookup.
-        | AzureFileShare of ShareName:ResourceName * StorageAccountName:Storage.StorageAccountName
+        | AzureFileShare of ShareName: ResourceName * StorageAccountName: Storage.StorageAccountName
         /// A git repo volume, clonable by public HTTPS access.
-        | GitRepo of Repository:Uri * Directory:string option * Revision:string option
+        | GitRepo of Repository: Uri * Directory: string option * Revision: string option
         /// Mounts a volume containing secret files.
         | Secret of SecretFile list
 
@@ -1154,15 +1581,19 @@ module ContainerService =
     type NetworkPlugin =
         | Kubenet
         | AzureCni
+
         member this.ArmValue =
             match this with
             | Kubenet -> "kubenet"
             | AzureCni -> "azure"
 
 module Redis =
-    type Sku = Basic | Standard | Premium
+    type Sku =
+        | Basic
+        | Standard
+        | Premium
 
-    type Standard_WithCapacity = 
+    type Standard_WithCapacity =
         | ``250 MB`` = 0
         | ``1 GB`` = 1
         | ``2.5 GB`` = 2
@@ -1179,21 +1610,104 @@ module EventHub =
         | Basic
         | Standard
         | Premium
-    type InflateSetting = ManualInflate | AutoInflate of maxThroughput:int
-    type AuthorizationRuleRight = Manage | Send | Listen
+
+    type InflateSetting =
+        | ManualInflate
+        | AutoInflate of maxThroughput: int
+
+    type AuthorizationRuleRight =
+        | Manage
+        | Send
+        | Listen
 
 module KeyVault =
-    type Bypass = AzureServices | NoTraffic
-    type SoftDeletionMode = SoftDeleteWithPurgeProtection | SoftDeletionOnly
-    type DefaultAction = Allow | Deny
-    type Key = Encrypt | Decrypt | WrapKey | UnwrapKey | Sign | Verify | Get | List | Create | Update | Import | Delete | Backup | Restore | Recover | Purge static member All = makeAll<Key>
-    type Secret = Get | List | Set | Delete | Backup | Restore | Recover | Purge static member All = makeAll<Secret> static member ReadSecrets = [ Get; List ]
-    type Certificate = Get | List | Delete | Create | Import | Update | ManageContacts | GetIssuers | ListIssuers | SetIssuers | DeleteIssuers | ManageIssuers | Recover | Purge | Backup | Restore static member All = makeAll<Certificate>
-    type Storage = Get | List | Delete | Set | Update | RegenerateKey | Recover | Purge | Backup | Restore | SetSas | ListSas | GetSas | DeleteSas static member All = makeAll<Storage>
+    type Bypass =
+        | AzureServices
+        | NoTraffic
+
+    type SoftDeletionMode =
+        | SoftDeleteWithPurgeProtection
+        | SoftDeletionOnly
+
+    type DefaultAction =
+        | Allow
+        | Deny
+
+    type Key =
+        | Encrypt
+        | Decrypt
+        | WrapKey
+        | UnwrapKey
+        | Sign
+        | Verify
+        | Get
+        | List
+        | Create
+        | Update
+        | Import
+        | Delete
+        | Backup
+        | Restore
+        | Recover
+        | Purge
+
+        static member All = makeAll<Key>
+
+    type Secret =
+        | Get
+        | List
+        | Set
+        | Delete
+        | Backup
+        | Restore
+        | Recover
+        | Purge
+
+        static member All = makeAll<Secret>
+        static member ReadSecrets = [ Get; List ]
+
+    type Certificate =
+        | Get
+        | List
+        | Delete
+        | Create
+        | Import
+        | Update
+        | ManageContacts
+        | GetIssuers
+        | ListIssuers
+        | SetIssuers
+        | DeleteIssuers
+        | ManageIssuers
+        | Recover
+        | Purge
+        | Backup
+        | Restore
+
+        static member All = makeAll<Certificate>
+
+    type Storage =
+        | Get
+        | List
+        | Delete
+        | Set
+        | Update
+        | RegenerateKey
+        | Recover
+        | Purge
+        | Backup
+        | Restore
+        | SetSas
+        | ListSas
+        | GetSas
+        | DeleteSas
+
+        static member All = makeAll<Storage>
 
     type Sku =
-    | Standard
-    | Premium
+        | Standard
+        | Premium
+
         member this.ArmValue =
             match this with
             | Standard -> "standard"
@@ -1204,58 +1718,81 @@ module KeyVault =
         | P256K
         | P384
         | P521
-        static member ArmValue = function
-          | P256 -> "P-256"
-          | P256K -> "P-256K"
-          | P384 -> "P-384"
-          | P521 -> "P-521"
+
+        static member ArmValue =
+            function
+            | P256 -> "P-256"
+            | P256K -> "P-256K"
+            | P384 -> "P-384"
+            | P521 -> "P-521"
+
     type RsaKeyLength = RsaKeyLength of int
+
     type KeyType =
         | EC of KeyCurveName
         | ECHSM of KeyCurveName
         | RSA of RsaKeyLength
         | RSAHSM of RsaKeyLength
-        static member ArmValue = function
-          | EC _ -> "EC"
-          | ECHSM _ -> "EC-HSM"
-          | RSA _ -> "RSA"
-          | RSAHSM _ -> "RSA-HSM"
-        static member RSA_2048 = RSA (RsaKeyLength 2048)
-        static member  RSA_3072 = RSA (RsaKeyLength 3072)
-        static member  RSA_4096 = RSA (RsaKeyLength 4096)
-        static member  EC_P256 = EC P256
-        static member  EC_P384 = EC P384
-        static member  EC_P521 = EC P521
-        static member  EC_P256K = EC P256K
+
+        static member ArmValue =
+            function
+            | EC _ -> "EC"
+            | ECHSM _ -> "EC-HSM"
+            | RSA _ -> "RSA"
+            | RSAHSM _ -> "RSA-HSM"
+
+        static member RSA_2048 = RSA(RsaKeyLength 2048)
+        static member RSA_3072 = RSA(RsaKeyLength 3072)
+        static member RSA_4096 = RSA(RsaKeyLength 4096)
+        static member EC_P256 = EC P256
+        static member EC_P384 = EC P384
+        static member EC_P521 = EC P521
+        static member EC_P256K = EC P256K
 
     type KeyOperation =
-       | Encrypt
-       | Decrypt
-       | WrapKey
-       | UnwrapKey
-       | Sign
-       | Verify
-        static member ArmValue = function
-           | Encrypt -> "encrypt"
-           | Decrypt -> "decrypt"
-           | WrapKey -> "wrapKey"
-           | UnwrapKey -> "unwrapKey"
-           | Sign -> "sign"
-           | Verify -> "verify"
+        | Encrypt
+        | Decrypt
+        | WrapKey
+        | UnwrapKey
+        | Sign
+        | Verify
+
+        static member ArmValue =
+            function
+            | Encrypt -> "encrypt"
+            | Decrypt -> "decrypt"
+            | WrapKey -> "wrapKey"
+            | UnwrapKey -> "unwrapKey"
+            | Sign -> "sign"
+            | Verify -> "verify"
 
 module ExpressRoute =
-    type Tier = Standard | Premium
-    type Family = UnlimitedData | MeteredData
-    type PeeringType = AzurePrivatePeering | MicrosoftPeering member this.Value = this.ToString()
+    type Tier =
+        | Standard
+        | Premium
+
+    type Family =
+        | UnlimitedData
+        | MeteredData
+
+    type PeeringType =
+        | AzurePrivatePeering
+        | MicrosoftPeering
+
+        member this.Value = this.ToString()
 
 [<AutoOpen>]
 module PrivateIpAddress =
-    type AllocationMethod = DynamicPrivateIp | StaticPrivateIp of System.Net.IPAddress
+    type AllocationMethod =
+        | DynamicPrivateIp
+        | StaticPrivateIp of System.Net.IPAddress
 
 module LoadBalancer =
     [<RequireQualifiedAccess>]
     type Sku =
-        | Basic | Standard
+        | Basic
+        | Standard
+
         member this.ArmValue =
             match this with
             | Basic -> "Basic"
@@ -1263,18 +1800,22 @@ module LoadBalancer =
 
     [<RequireQualifiedAccess>]
     type Tier =
-        | Regional | Global
+        | Regional
+        | Global
+
         member this.ArmValue =
             match this with
             | Regional -> "Regional"
             | Global -> "Global"
-    type LoadBalancerSku = {
-        Name : Sku
-        Tier : Tier
-    }
+
+    type LoadBalancerSku = { Name: Sku; Tier: Tier }
+
     [<RequireQualifiedAccess>]
     type LoadDistributionPolicy =
-        | Default | SourceIP | SourceIPProtocol
+        | Default
+        | SourceIP
+        | SourceIPProtocol
+
         member this.ArmValue =
             match this with
             | Default -> "Default"
@@ -1283,7 +1824,10 @@ module LoadBalancer =
 
     [<RequireQualifiedAccess>]
     type LoadBalancerProbeProtocol =
-        | TCP | HTTP | HTTPS
+        | TCP
+        | HTTP
+        | HTTPS
+
         member this.ArmValue =
             match this with
             | TCP -> "Tcp"
@@ -1297,6 +1841,7 @@ module ApplicationGateway =
         | Standard_v2
         | WAF
         | WAF_v2
+
         member this.ArmValue =
             match this with
             | Standard -> "Standard"
@@ -1313,6 +1858,7 @@ module ApplicationGateway =
         | WAF_Large
         | WAF_Medium
         | WAF_v2
+
         member this.ArmValue =
             match this with
             | Standard_Large -> "Standard_Large"
@@ -1323,11 +1869,12 @@ module ApplicationGateway =
             | WAF_Medium -> "WAF_Medium"
             | WAF_v2 -> "WAF_v2"
 
-    type ApplicationGatewaySku = {
-        Name : Sku
-        Capacity : int option
-        Tier: Tier
-    }
+    type ApplicationGatewaySku =
+        {
+            Name: Sku
+            Capacity: int option
+            Tier: Tier
+        }
 
     [<RequireQualifiedAccess>]
     type BackendAddress =
@@ -1338,15 +1885,19 @@ module ApplicationGateway =
     type HttpStatusCode =
         | HttpStatus403
         | HttpStatus502
-        static member toString = function
+
+        static member toString =
+            function
             | HttpStatus403 -> "HttpStatus403"
             | HttpStatus502 -> "HttpStatus502"
+
         member this.ArmValue = HttpStatusCode.toString this
 
     [<RequireQualifiedAccess>]
     type RuleType =
         | Basic
         | PathBasedRouting
+
         member this.ArmValue =
             match this with
             | Basic -> "Basic"
@@ -1356,14 +1907,18 @@ module ApplicationGateway =
     type FirewallMode =
         | Detection
         | Prevention
-        static member toString = function
+
+        static member toString =
+            function
             | Detection -> "Detection"
             | Prevention -> "Prevention"
+
         member this.ArmValue = FirewallMode.toString this
 
     [<RequireQualifiedAccess>]
     type RuleSetType =
         | OWASP
+
         member this.ArmValue =
             match this with
             | OWASP -> "OWASP"
@@ -1398,7 +1953,9 @@ module ApplicationGateway =
         | TLS_RSA_WITH_AES_256_CBC_SHA
         | TLS_RSA_WITH_AES_256_CBC_SHA256
         | TLS_RSA_WITH_AES_256_GCM_SHA384
-        static member toString = function
+
+        static member toString =
+            function
             | TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA -> "TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA"
             | TLS_DHE_DSS_WITH_AES_128_CBC_SHA -> "TLS_DHE_DSS_WITH_AES_128_CBC_SHA"
             | TLS_DHE_DSS_WITH_AES_128_CBC_SHA256 -> "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256"
@@ -1427,6 +1984,7 @@ module ApplicationGateway =
             | TLS_RSA_WITH_AES_256_CBC_SHA -> "TLS_RSA_WITH_AES_256_CBC_SHA"
             | TLS_RSA_WITH_AES_256_CBC_SHA256 -> "TLS_RSA_WITH_AES_256_CBC_SHA256"
             | TLS_RSA_WITH_AES_256_GCM_SHA384 -> "TLS_RSA_WITH_AES_256_GCM_SHA384"
+
         member this.ArmValue = CipherSuite.toString this
 
 
@@ -1435,10 +1993,13 @@ module ApplicationGateway =
         | TLSv1_0
         | TLSv1_1
         | TLSv1_2
-        static member toString = function
+
+        static member toString =
+            function
             | TLSv1_0 -> "TLSv1_0"
             | TLSv1_1 -> "TLSv1_1"
             | TLSv1_2 -> "TLSv1_2"
+
         member this.ArmValue = SslProtocol.toString this
 
     [<RequireQualifiedAccess>]
@@ -1447,17 +2008,21 @@ module ApplicationGateway =
         | AppGwSslPolicy20150501
         | AppGwSslPolicy20170401
         | AppGwSslPolicy20170401S
-        static member toString this = function
+
+        static member toString this =
+            function
             | Custom name -> name
             | AppGwSslPolicy20150501 -> "AppGwSslPolicy20150501"
             | AppGwSslPolicy20170401 -> "AppGwSslPolicy20170401"
             | AppGwSslPolicy20170401S -> "AppGwSslPolicy20170401S"
+
         member this.ArmValue = PolicyName.toString this
 
     [<RequireQualifiedAccess>]
     type PolicyType =
         | Custom
         | Predefined
+
         member this.ArmValue =
             match this with
             | Custom -> "Custom"
@@ -1467,6 +2032,7 @@ module ApplicationGateway =
     type Protocol =
         | Http
         | Https
+
         member this.ArmValue =
             match this with
             | Http -> "Http"
@@ -1478,6 +2044,7 @@ module ApplicationGateway =
         | Moved
         | TemporaryRedirect
         | PermanentRedirect
+
         member this.ArmValue =
             match this with
             | Found -> "Found"
@@ -1495,6 +2062,7 @@ module VirtualNetworkGateway =
         | ErGw1AZ
         | ErGw2AZ
         | ErGw3AZ
+
         member this.ArmValue =
             match this with
             | Standard -> "Standard"
@@ -1503,6 +2071,7 @@ module VirtualNetworkGateway =
             | ErGw1AZ -> "ErGw1AZ"
             | ErGw2AZ -> "ErGw2AZ"
             | ErGw3AZ -> "ErGw3AZ"
+
     [<RequireQualifiedAccess>]
     type VpnGatewaySku =
         | Basic
@@ -1516,6 +2085,7 @@ module VirtualNetworkGateway =
         | VpnGw4AZ
         | VpnGw5
         | VpnGw5AZ
+
         member this.ArmValue =
             match this with
             | Basic -> "Basic"
@@ -1529,71 +2099,109 @@ module VirtualNetworkGateway =
             | VpnGw4AZ -> "VpnGw4AZ"
             | VpnGw5 -> "VpnGw5"
             | VpnGw5AZ -> "VpnGw5AZ"
+
     [<RequireQualifiedAccess>]
     type VpnType =
         | PolicyBased
         | RouteBased
+
         member this.ArmValue =
             match this with
             | PolicyBased -> "PolicyBased"
-            | RouteBased-> "RouteBased"
+            | RouteBased -> "RouteBased"
+
     [<RequireQualifiedAccess>]
     type GatewayType =
         | ExpressRoute of ErGatewaySku
         | Vpn of VpnGatewaySku
+
         member this.ArmValue =
             match this with
             | ExpressRoute _ -> "ExpressRoute"
             | Vpn _ -> "Vpn"
+
     [<RequireQualifiedAccess>]
     type ConnectionType =
         | ExpressRoute
         | IPsec
         | Vnet2Vnet
+
         member this.ArmValue =
             match this with
             | ExpressRoute _ -> "ExpressRoute"
             | IPsec -> "IPsec"
             | Vnet2Vnet -> "Vnet2Vnet"
+
 module ServiceBus =
-    type MessagingUnits = OneUnit | TwoUnits | FourUnits
+    type MessagingUnits =
+        | OneUnit
+        | TwoUnits
+        | FourUnits
+
     type Sku =
         | Basic
         | Standard
         | Premium of MessagingUnits
+
         member this.NameArmValue =
-                match this with
-                | Basic -> "Basic"
-                | Standard -> "Standard"
-                | Premium OneUnit
-                | Premium TwoUnits
-                | Premium FourUnits -> "Premium"
+            match this with
+            | Basic -> "Basic"
+            | Standard -> "Standard"
+            | Premium OneUnit
+            | Premium TwoUnits
+            | Premium FourUnits -> "Premium"
+
         member this.TierArmValue = this.NameArmValue
+
     type Rule =
-        | SqlFilter of ResourceName * SqlExpression : string
-        | CorrelationFilter of Name : ResourceName * CorrelationId : string option * Properties : Map<string, string>
+        | SqlFilter of ResourceName * SqlExpression: string
+        | CorrelationFilter of Name: ResourceName * CorrelationId: string option * Properties: Map<string, string>
+
         member this.Name =
             match this with
             | SqlFilter (name, _)
-            | CorrelationFilter(name, _, _) -> name
-        static member CreateCorrelationFilter (name, properties, ?correlationId) =
-            CorrelationFilter (ResourceName name, correlationId, Map properties)
-        static member CreateSqlFilter (name, expression) =
-            SqlFilter (ResourceName name, expression)
-    type AuthorizationRuleRight = Manage | Send | Listen
+            | CorrelationFilter (name, _, _) -> name
+
+        static member CreateCorrelationFilter(name, properties, ?correlationId) =
+            CorrelationFilter(ResourceName name, correlationId, Map properties)
+
+        static member CreateSqlFilter(name, expression) =
+            SqlFilter(ResourceName name, expression)
+
+    type AuthorizationRuleRight =
+        | Manage
+        | Send
+        | Listen
 
 module CosmosDb =
     /// The consistency policy of a CosmosDB account.
-    type ConsistencyPolicy = Eventual | ConsistentPrefix | Session | BoundedStaleness of maxStaleness:int * maxIntervalSeconds : int | Strong
+    type ConsistencyPolicy =
+        | Eventual
+        | ConsistentPrefix
+        | Session
+        | BoundedStaleness of maxStaleness: int * maxIntervalSeconds: int
+        | Strong
+
     /// The failover policy of a CosmosDB account.
-    type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:Location | MultiMaster of secondaryLocation:Location
+    type FailoverPolicy =
+        | NoFailover
+        | AutoFailover of secondaryLocation: Location
+        | MultiMaster of secondaryLocation: Location
+
     /// The kind of index to use on a CosmoDB container.
-    type IndexKind = Hash | Range
+    type IndexKind =
+        | Hash
+        | Range
+
     /// The datatype for the key of index to use on a CosmoDB container.
-    type IndexDataType = Number | String
+    type IndexDataType =
+        | Number
+        | String
+
     /// A request unit.
     [<Measure>]
     type RU
+
     /// The throughput for CosmosDB account
     type Throughput =
         | Provisioned of int<RU>
@@ -1604,17 +2212,36 @@ module PostgreSQL =
         | Basic
         | GeneralPurpose
         | MemoryOptimized
+
         member this.Name =
             match this with
             | Basic -> "B"
             | GeneralPurpose -> "GP"
             | MemoryOptimized -> "MO"
-    type Version = VS_9_5 | VS_9_6 | VS_10 | VS_11
+
+    type Version =
+        | VS_9_5
+        | VS_9_6
+        | VS_10
+        | VS_11
 
 module IotHub =
-    type Sku = F1 | B1 | B2 | B3 | S1 | S2 | S3
+    type Sku =
+        | F1
+        | B1
+        | B2
+        | B3
+        | S1
+        | S2
+        | S3
+
     type Policy =
-        | IotHubOwner | Service | Device | RegistryRead | RegistryReadWrite
+        | IotHubOwner
+        | Service
+        | Device
+        | RegistryRead
+        | RegistryReadWrite
+
         member this.Index =
             match this with
             | IotHubOwner -> 0
@@ -1624,25 +2251,34 @@ module IotHub =
             | RegistryReadWrite -> 4
 
 module Maps =
-    type Sku = S0 | S1
+    type Sku =
+        | S0
+        | S1
 
 module SignalR =
-    type Sku = Free | Standard
-    type ServiceMode = Default | Serverless | Classic
+    type Sku =
+        | Free
+        | Standard
+
+    type ServiceMode =
+        | Default
+        | Serverless
+        | Classic
 
 module DataLake =
     type Sku =
-    | Consumption
-    | Commitment_1TB
-    | Commitment_10TB
-    | Commitment_100TB
-    | Commitment_500TB
-    | Commitment_1PB
-    | Commitment_5PB
+        | Consumption
+        | Commitment_1TB
+        | Commitment_10TB
+        | Commitment_100TB
+        | Commitment_500TB
+        | Commitment_1PB
+        | Commitment_5PB
 
 module Network =
-    type SubnetDelegationService = SubnetDelegationService of string
-    with
+    type SubnetDelegationService =
+        | SubnetDelegationService of string
+
         /// Microsoft.ApiManagement/service
         static member ApiManagementService = SubnetDelegationService "Microsoft.ApiManagement/service"
         /// Microsoft.AzureCosmosDB/clusters
@@ -1653,23 +2289,33 @@ module Network =
         static member BareMetalCrayServers = SubnetDelegationService "Microsoft.BareMetal/CrayServers"
         /// Microsoft.Batch/batchAccounts
         static member BatchAccounts = SubnetDelegationService "Microsoft.Batch/batchAccounts"
+
         /// Microsoft.ContainerInstance/containerGroups
-        static member ContainerGroups = SubnetDelegationService "Microsoft.ContainerInstance/containerGroups"
+        static member ContainerGroups =
+            SubnetDelegationService "Microsoft.ContainerInstance/containerGroups"
+
         /// Microsoft.Databricks/workspaces
         static member DatabricksWorkspaces = SubnetDelegationService "Microsoft.Databricks/workspaces"
+
         /// Microsoft.MachineLearningServices/workspaces
-        static member MachineLearningWorkspaces = SubnetDelegationService "Microsoft.MachineLearningServices/workspaces"
+        static member MachineLearningWorkspaces =
+            SubnetDelegationService "Microsoft.MachineLearningServices/workspaces"
+
         /// Microsoft.Netapp/volumes
         static member NetappVolumes = SubnetDelegationService "Microsoft.Netapp/volumes"
+
         /// Microsoft.ServiceFabricMesh/networks
-        static member ServiceFabricMeshNetworks = SubnetDelegationService "Microsoft.ServiceFabricMesh/networks"
+        static member ServiceFabricMeshNetworks =
+            SubnetDelegationService "Microsoft.ServiceFabricMesh/networks"
+
         /// Microsoft.Sql/managedInstances
         static member SqlManagedInstances = SubnetDelegationService "Microsoft.Sql/managedInstances"
         /// Microsoft.Web/serverFarms
         static member WebServerFarms = SubnetDelegationService "Microsoft.Web/serverFarms"
 
-    type EndpointServiceType = EndpointServiceType of string
-    with
+    type EndpointServiceType =
+        | EndpointServiceType of string
+
         /// Microsoft.AzureActiveDirectory
         static member AzureActiveDirectory = EndpointServiceType "Microsoft.AzureActiveDirectory"
         /// Microsoft.AzureCosmosDB
@@ -1694,85 +2340,108 @@ module Network =
 
 module NetworkSecurity =
     type Operation =
-    | Allow
-    | Deny
+        | Allow
+        | Deny
+
     module Operation =
-        let ArmValue = function
-        | Allow -> "Allow"
-        | Deny -> "Deny"
+        let ArmValue =
+            function
+            | Allow -> "Allow"
+            | Deny -> "Deny"
+
     type Operation with
+
         member this.ArmValue = this |> Operation.ArmValue
 
     /// Network protocol supported in network security group rules.
     type NetworkProtocol =
-    /// Any protocol
-    | AnyProtocol
-    /// Transmission Control Protocol
-    | TCP
-    /// User Datagram Protocol
-    | UDP
-    /// Internet Control Message Protocol
-    | ICMP
-    /// Authentication Header (IPSec)
-    | AH
-    /// Encapsulating Security Payload (IPSec)
-    | ESP
+        /// Any protocol
+        | AnyProtocol
+        /// Transmission Control Protocol
+        | TCP
+        /// User Datagram Protocol
+        | UDP
+        /// Internet Control Message Protocol
+        | ICMP
+        /// Authentication Header (IPSec)
+        | AH
+        /// Encapsulating Security Payload (IPSec)
+        | ESP
+
     module NetworkProtocol =
-        let ArmValue = function
+        let ArmValue =
+            function
             | AnyProtocol -> "*"
             | TCP -> "Tcp"
             | UDP -> "Udp"
             | ICMP -> "Icmp"
             | AH -> "Ah"
             | ESP -> "Esp"
+
     type NetworkProtocol with
+
         member this.ArmValue = this |> NetworkProtocol.ArmValue
 
     type Port =
         | Port of uint16
-        | Range of First:uint16 * Last:uint16
+        | Range of First: uint16 * Last: uint16
         | AnyPort
+
         member this.ArmValue =
             match this with
             | Port num -> num |> string
-            | Range (first,last) -> $"{first}-{last}"
+            | Range (first, last) -> $"{first}-{last}"
             | AnyPort -> "*"
+
     module Port =
-        let ArmValue (port:Port) = port.ArmValue
+        let ArmValue (port: Port) = port.ArmValue
 
     type Endpoint =
         | Host of Net.IPAddress
         | Network of IPAddressCidr
         | Tag of string
         | AnyEndpoint
+
         member this.ArmValue =
             match this with
             | Host ip -> string ip
             | Network cidr -> cidr |> IPAddressCidr.format
             | Tag tag -> tag
             | AnyEndpoint -> "*"
+
     module Endpoint =
-        let ArmValue (endpoint:Endpoint) = endpoint.ArmValue
+        let ArmValue (endpoint: Endpoint) = endpoint.ArmValue
 
-    type NetworkService = NetworkService of name:string * Port
+    type NetworkService = NetworkService of name: string * Port
 
-    type TrafficDirection = Inbound | Outbound
+    type TrafficDirection =
+        | Inbound
+        | Outbound
+
     module TrafficDirection =
-        let ArmValue = function | Inbound -> "Inbound" | Outbound -> "Outbound"
+        let ArmValue =
+            function
+            | Inbound -> "Inbound"
+            | Outbound -> "Outbound"
+
     type TrafficDirection with
+
         member this.ArmValue = this |> TrafficDirection.ArmValue
 
 module PublicIpAddress =
     type AllocationMethod =
         | Dynamic
         | Static
+
         member this.ArmValue =
             match this with
             | Dynamic -> "Dynamic"
             | Static -> "Static"
+
     type Sku =
         | Basic
         | Standard
+
         member this.ArmValue =
             match this with
             | Basic -> "Basic"
@@ -1780,37 +2449,38 @@ module PublicIpAddress =
 
 module Cdn =
     type Sku =
-    | Custom_Verizon
-    | Premium_Verizon
-    | Premium_ChinaCdn
-    | Standard_Akamai
-    | Standard_ChinaCdn
-    | Standard_Microsoft
-    | Standard_Verizon
-    | Premium_AzureFrontDoor
-    | Standard_AzureFrontDoor
+        | Custom_Verizon
+        | Premium_Verizon
+        | Premium_ChinaCdn
+        | Standard_Akamai
+        | Standard_ChinaCdn
+        | Standard_Microsoft
+        | Standard_Verizon
+        | Premium_AzureFrontDoor
+        | Standard_AzureFrontDoor
 
     type QueryStringCachingBehaviour =
-    | IgnoreQueryString
-    | BypassCaching
-    | UseQueryString
-    | NotSet
+        | IgnoreQueryString
+        | BypassCaching
+        | UseQueryString
+        | NotSet
 
     type OptimizationType =
-    | GeneralWebDelivery
-    | GeneralMediaStreaming
-    | VideoOnDemandMediaStreaming
-    | LargeFileDownload
-    | DynamicSiteAcceleration
+        | GeneralWebDelivery
+        | GeneralMediaStreaming
+        | VideoOnDemandMediaStreaming
+        | LargeFileDownload
+        | DynamicSiteAcceleration
 
 module DeliveryPolicy =
     type IOperator =
-            abstract member AsOperator : string
-            abstract member AsNegateCondition : bool
+        abstract member AsOperator: string
+        abstract member AsNegateCondition: bool
 
     type EqualityOperator =
         | Equals
         | NotEquals
+
         interface IOperator with
             member this.AsOperator = "Equal"
 
@@ -1839,6 +2509,7 @@ module DeliveryPolicy =
         | NotGreaterThan
         | NotGreaterThanOrEquals
         | Wildcard
+
         interface IOperator with
             member this.AsOperator =
                 match this with
@@ -1882,6 +2553,7 @@ module DeliveryPolicy =
         | NotAny
         | NotGeoMatch
         | NotIPMatch
+
         interface IOperator with
             member this.AsOperator =
                 match this with
@@ -1902,6 +2574,7 @@ module DeliveryPolicy =
     type DeviceType =
         | Mobile
         | Desktop
+
         member this.ArmValue =
             match this with
             | Desktop -> "Desktop"
@@ -1912,6 +2585,7 @@ module DeliveryPolicy =
         | Version11
         | Version10
         | Version09
+
         member this.ArmValue =
             match this with
             | Version20 -> "2.0"
@@ -1927,6 +2601,7 @@ module DeliveryPolicy =
         | Head
         | Options
         | Trace
+
         member this.ArmValue =
             match this with
             | Get -> "GET"
@@ -1940,6 +2615,7 @@ module DeliveryPolicy =
     type Protocol =
         | Http
         | Https
+
         member this.ArmValue =
             match this with
             | Http -> "HTTP"
@@ -1949,6 +2625,7 @@ module DeliveryPolicy =
         | Http
         | Https
         | MatchRequest
+
         member this.ArmValue =
             match this with
             | Http -> "Http"
@@ -1959,6 +2636,7 @@ module DeliveryPolicy =
         | NoTransform
         | ToLowercase
         | ToUppercase
+
         member this.ArmValue =
             match this with
             | NoTransform -> []
@@ -1969,23 +2647,31 @@ module DeliveryPolicy =
         | Override of TimeSpan
         | BypassCache
         | SetIfMissing of TimeSpan
+
         member this.ArmValue =
             match this with
             | Override t ->
-                             {| Behaviour = "Override"
-                                CacheDuration = Some t |}
+                {|
+                    Behaviour = "Override"
+                    CacheDuration = Some t
+                |}
             | BypassCache ->
-                             {| Behaviour = "BypassCache"
-                                CacheDuration = None |}
+                {|
+                    Behaviour = "BypassCache"
+                    CacheDuration = None
+                |}
             | SetIfMissing t ->
-                             {| Behaviour = "SetIfMissing"
-                                CacheDuration = Some t |}
+                {|
+                    Behaviour = "SetIfMissing"
+                    CacheDuration = Some t
+                |}
 
     type QueryStringCacheBehavior =
         | Include
         | IncludeAll
         | Exclude
         | ExcludeAll
+
         member this.ArmValue =
             match this with
             | Include -> "Include"
@@ -1997,6 +2683,7 @@ module DeliveryPolicy =
         | Append
         | Overwrite
         | Delete
+
         member this.ArmValue =
             match this with
             | Append -> "Append"
@@ -2008,6 +2695,7 @@ module DeliveryPolicy =
         | Moved
         | TemporaryRedirect
         | PermanentRedirect
+
         member this.ArmValue =
             match this with
             | Found -> "Found"
@@ -2017,26 +2705,38 @@ module DeliveryPolicy =
 
 
 module EventGrid =
-    [<Struct>] type EventGridEvent<'T> = EventGridEvent of string member this.Value = match this with EventGridEvent s -> s
+    [<Struct>]
+    type EventGridEvent<'T> =
+        | EventGridEvent of string
+
+        member this.Value =
+            match this with
+            | EventGridEvent s -> s
 
 /// Built in Azure roles (https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles)
 module Dns =
-    type DnsZoneType = Public | Private
+    type DnsZoneType =
+        | Public
+        | Private
 
     type SrvRecord =
-        { Priority : int option
-          Weight : int option
-          Port : int option
-          Target : string option }
+        {
+            Priority: int option
+            Weight: int option
+            Port: int option
+            Target: string option
+        }
 
     type SoaRecord =
-        { Host : string option
-          Email : string option
-          SerialNumber : int64 option
-          RefreshTime : int64 option
-          RetryTime : int64 option
-          ExpireTime : int64 option
-          MinimumTTL : int64 option }
+        {
+            Host: string option
+            Email: string option
+            SerialNumber: int64 option
+            RefreshTime: int64 option
+            RetryTime: int64 option
+            ExpireTime: int64 option
+            MinimumTTL: int64 option
+        }
 
     [<RequireQualifiedAccess>]
     type NsRecords =
@@ -2044,19 +2744,34 @@ module Dns =
         | SourceZone of ResourceId
 
     type DnsRecordType =
-        | A of TargetResource : ResourceId option * ARecords : string list
-        | AAAA of TargetResource : ResourceId option * AaaaRecords : string list
-        | CName of TargetResource : ResourceId option * CNameRecord : string option
+        | A of TargetResource: ResourceId option * ARecords: string list
+        | AAAA of TargetResource: ResourceId option * AaaaRecords: string list
+        | CName of TargetResource: ResourceId option * CNameRecord: string option
         | NS of NsRecords
-        | PTR of PtrRecords : string list
-        | TXT of TxtRecords : string list
-        | MX of {| Preference : int; Exchange : string |} list
+        | PTR of PtrRecords: string list
+        | TXT of TxtRecords: string list
+        | MX of {| Preference: int; Exchange: string |} list
         | SRV of SrvRecord list
         | SOA of SoaRecord
 
 module Databricks =
-    type KeySource = Databricks | KeyVault member this.ArmValue = match this with Databricks -> "Default" | KeyVault -> "MicrosoftKeyVault"
-    type Sku = Standard | Premium member this.ArmValue = match this with Standard -> "standard" | Premium -> "premium"
+    type KeySource =
+        | Databricks
+        | KeyVault
+
+        member this.ArmValue =
+            match this with
+            | Databricks -> "Default"
+            | KeyVault -> "MicrosoftKeyVault"
+
+    type Sku =
+        | Standard
+        | Premium
+
+        member this.ArmValue =
+            match this with
+            | Standard -> "standard"
+            | Premium -> "premium"
 
 module TrafficManager =
     type RoutingMethod =
@@ -2065,24 +2780,29 @@ module TrafficManager =
         | Priority
         | Geographic
         | Subnet
+
         member this.ArmValue = this.ToString()
 
     type MonitorProtocol =
         | Http
         | Https
+
         member this.ArmValue = this.ToString().ToUpperInvariant()
 
     type MonitorConfig =
-        { Protocol : MonitorProtocol
-          Port: int
-          Path: string
-          IntervalInSeconds: int<Seconds>
-          ToleratedNumberOfFailures: int
-          TimeoutInSeconds: int<Seconds> }
+        {
+            Protocol: MonitorProtocol
+            Port: int
+            Path: string
+            IntervalInSeconds: int<Seconds>
+            ToleratedNumberOfFailures: int
+            TimeoutInSeconds: int<Seconds>
+        }
 
     type EndpointTarget =
         | Website of ResourceName
         | External of (string * Location)
+
         member this.ArmValue =
             match this with
             | Website name -> name.Value
@@ -2097,16 +2817,24 @@ module Serialization =
             WriteIndented = true,
             IgnoreNullValues = true,
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-            PropertyNameCaseInsensitive = true)
-    let toJson x = JsonSerializer.Serialize(x, jsonSerializerOptions)
-    let ofJson<'T> (x:string) = JsonSerializer.Deserialize<'T>(x, jsonSerializerOptions)
+            PropertyNameCaseInsensitive = true
+        )
+
+    let toJson x =
+        JsonSerializer.Serialize(x, jsonSerializerOptions)
+
+    let ofJson<'T> (x: string) =
+        JsonSerializer.Deserialize<'T>(x, jsonSerializerOptions)
 
 module Resource =
     /// Creates a unique IArmResource from an arbitrary object.
     let ofObj armObject =
         { new IArmResource with
-                member _.ResourceId = ResourceId.create (ResourceType("", ""), ResourceName (System.Guid.NewGuid().ToString()))
-                member _.JsonModel = armObject }
+            member _.ResourceId =
+                ResourceId.create (ResourceType("", ""), ResourceName(System.Guid.NewGuid().ToString()))
+
+            member _.JsonModel = armObject
+        }
 
     /// Creates a unique IArmResource from a JSON string containing the output you want.
     let ofJson = Serialization.ofJson >> ofObj
@@ -2124,6 +2852,7 @@ module AzureFirewall =
     type SkuName =
         | AZFW_VNet
         | AZFW_Hub
+
         member this.ArmValue =
             match this with
             | AZFW_VNet -> "AZFW_VNet"
@@ -2132,6 +2861,7 @@ module AzureFirewall =
     type SkuTier =
         | Standard
         | Premium
+
         member this.ArmValue =
             match this with
             | Standard -> "Standard"
@@ -2140,6 +2870,7 @@ module AzureFirewall =
 module VirtualHub =
     type Sku =
         | Standard
+
         member this.ArmValue =
             match this with
             | Standard -> "Standard"
@@ -2147,21 +2878,23 @@ module VirtualHub =
     module HubRouteTable =
         type Destination =
             | CidrDestination of IPAddressCidr list
+
             member this.DestinationTypeArmValue =
                 match this with
                 | CidrDestination _ -> "CIDR"
+
             member this.DestinationsArmValue =
                 match this with
-                | CidrDestination destinations ->
-                    destinations
-                    |> List.map IPAddressCidr.format
+                | CidrDestination destinations -> destinations |> List.map IPAddressCidr.format
 
         [<RequireQualifiedAccess>]
         type NextHop =
             | ResourceId of Farmer.LinkedResource
+
             member this.NextHopTypeArmValue =
                 match this with
                 | ResourceId _ -> "ResourceId"
+
             member this.NextHopArmValue =
                 match this with
                 | ResourceId linkedResource ->
@@ -2172,14 +2905,15 @@ module VirtualHub =
 module AvailabilityTest =
     /// Availability test types: WebsiteUrl or CustomWebtestXml
     type WebTestType =
-    /// Raw Visual Stuido WebTest XML
-    | CustomWebtestXml of string
-    /// URL of website that the test will ping
-    | WebsiteUrl of System.Uri
+        /// Raw Visual Stuido WebTest XML
+        | CustomWebtestXml of string
+        /// URL of website that the test will ping
+        | WebsiteUrl of System.Uri
 
     /// Availability test sites, from where the webtest is run
     type TestSiteLocation =
-    | AvailabilityTestSite of Farmer.Location
+        | AvailabilityTestSite of Farmer.Location
+
         static member NorthCentralUS = Farmer.Location "us-il-ch1-azr" |> AvailabilityTestSite
         static member WestEurope = Farmer.Location "emea-nl-ams-azr" |> AvailabilityTestSite
         static member SoutheastAsia = Farmer.Location "apac-sg-sin-azr" |> AvailabilityTestSite
@@ -2199,13 +2933,39 @@ module AvailabilityTest =
 
 module ContainerApp =
     //type SecretRef = SecretRef of string
-    type EventHubScaleRule = { ConsumerGroup : string; UnprocessedEventThreshold: int; CheckpointBlobContainerName: string; EventHubConnectionSecretRef : string; StorageConnectionSecretRef : string }
-    type ServiceBusScaleRule = { QueueName : string; MessageCount: int; SecretRef : string }
-    type HttpScaleRule = { ConcurrentRequests : int }
-    type StorageQueueScaleRule = { QueueName : string; QueueLength: int; StorageConnectionSecretRef : string; AccountName : string }
-    type UtilisationRule = { Utilisation : int }
-    type AverageValueRule = { AverageValue : int }
-    type MetricScaleRule = Utilisation of UtilisationRule | AverageValue of AverageValueRule
+    type EventHubScaleRule =
+        {
+            ConsumerGroup: string
+            UnprocessedEventThreshold: int
+            CheckpointBlobContainerName: string
+            EventHubConnectionSecretRef: string
+            StorageConnectionSecretRef: string
+        }
+
+    type ServiceBusScaleRule =
+        {
+            QueueName: string
+            MessageCount: int
+            SecretRef: string
+        }
+
+    type HttpScaleRule = { ConcurrentRequests: int }
+
+    type StorageQueueScaleRule =
+        {
+            QueueName: string
+            QueueLength: int
+            StorageConnectionSecretRef: string
+            AccountName: string
+        }
+
+    type UtilisationRule = { Utilisation: int }
+    type AverageValueRule = { AverageValue: int }
+
+    type MetricScaleRule =
+        | Utilisation of UtilisationRule
+        | AverageValue of AverageValueRule
+
     [<RequireQualifiedAccess>]
     type ScaleRule =
         | EventHub of EventHubScaleRule
@@ -2215,19 +2975,32 @@ module ContainerApp =
         | Memory of MetricScaleRule
         | StorageQueue of StorageQueueScaleRule
         | Custom of obj
-    type Transport = HTTP1 | HTTP2 | Auto
-    type IngressMode = External of port:uint16 * Transport option | InternalOnly
-    type ActiveRevisionsMode = Single | Multiple
-    
-    type StorageAccessMode = ReadOnly | ReadWrite
-    with member this.ArmValue = this.ToString()
+
+    type Transport =
+        | HTTP1
+        | HTTP2
+        | Auto
+
+    type IngressMode =
+        | External of port: uint16 * Transport option
+        | InternalOnly
+
+    type ActiveRevisionsMode =
+        | Single
+        | Multiple
+
+    type StorageAccessMode =
+        | ReadOnly
+        | ReadWrite
+
+        member this.ArmValue = this.ToString()
 
     [<RequireQualifiedAccess>]
     type Volume =
         /// Mounts an empty directory on the container group.
         | EmptyDirectory
         /// Mounts an Azure File Share in the same resource group, performing a key lookup.
-        | AzureFileShare of ShareName:ResourceName * StorageAccountName:Storage.StorageAccountName * StorageAccessMode
+        | AzureFileShare of ShareName: ResourceName * StorageAccountName: Storage.StorageAccountName * StorageAccessMode
 
 namespace Farmer.DiagnosticSettings
 
@@ -2242,40 +3015,63 @@ module private Helpers =
         else InBounds days
 
 [<Struct>]
-type LogCategory = LogCategory of string member this.Value = match this with LogCategory v -> v
+type LogCategory =
+    | LogCategory of string
+
+    member this.Value =
+        match this with
+        | LogCategory v -> v
 
 type RetentionPolicy =
-    { Enabled : bool
-      RetentionPeriod : int<Days> }
-    static member Create (retentionPeriod, ?enabled) =
+    {
+        Enabled: bool
+        RetentionPeriod: int<Days>
+    }
+
+    static member Create(retentionPeriod, ?enabled) =
         match retentionPeriod with
         | OutOfBounds days ->
             raiseFarmer $"The retention period must be between 1 and 365 days. It is currently {days}."
         | InBounds _ ->
-            { Enabled = defaultArg enabled true
-              RetentionPeriod = retentionPeriod }
+            {
+                Enabled = defaultArg enabled true
+                RetentionPeriod = retentionPeriod
+            }
 
 type MetricSetting =
-    { Category : string
-      TimeGrain : TimeSpan option
-      Enabled : bool
-      RetentionPolicy : RetentionPolicy option }
-    static member Create (category, ?retentionPeriod, ?timeGrain) =
-        { Category = category
-          TimeGrain = timeGrain
-          Enabled = true
-          RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create (days, true)) }
+    {
+        Category: string
+        TimeGrain: TimeSpan option
+        Enabled: bool
+        RetentionPolicy: RetentionPolicy option
+    }
+
+    static member Create(category, ?retentionPeriod, ?timeGrain) =
+        {
+            Category = category
+            TimeGrain = timeGrain
+            Enabled = true
+            RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create(days, true))
+        }
 
 type LogSetting =
-    { Category : LogCategory
-      Enabled : bool
-      RetentionPolicy : RetentionPolicy option }
-    static member Create (category, ?retentionPeriod) =
-        { Category = category
-          Enabled = true
-          RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create (days, true)) }
-    static member Create (category, ?retentionPeriod) =
+    {
+        Category: LogCategory
+        Enabled: bool
+        RetentionPolicy: RetentionPolicy option
+    }
+
+    static member Create(category, ?retentionPeriod) =
+        {
+            Category = category
+            Enabled = true
+            RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create(days, true))
+        }
+
+    static member Create(category, ?retentionPeriod) =
         LogSetting.Create(LogCategory category, ?retentionPeriod = retentionPeriod)
 
 /// Represents the kind of destination for log analytics
-type LogAnalyticsDestination = AzureDiagnostics | Dedicated
+type LogAnalyticsDestination =
+    | AzureDiagnostics
+    | Dedicated

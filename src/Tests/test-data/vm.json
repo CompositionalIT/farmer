@@ -150,7 +150,11 @@
       "location": "northeurope",
       "name": "isaacsvmstorage",
       "properties": {
-        "dnsEndpointType": "Standard"
+        "allowBlobPublicAccess": "true",
+        "allowSharedKeyAccess": "true",
+        "defaultToOAuthAuthentication": "false",
+        "dnsEndpointType": "Standard",
+        "publicNetworkAccess": "Enabled"
       },
       "sku": {
         "name": "Standard_LRS"
