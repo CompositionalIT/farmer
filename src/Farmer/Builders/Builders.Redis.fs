@@ -5,47 +5,62 @@ open Farmer
 open Farmer.Redis
 open Farmer.Arm.Cache
 
-let internal buildRedisKey (resourceId:ResourceId) =
-    let expr = $"concat('{resourceId.Name.Value}.redis.cache.windows.net,abortConnect=false,ssl=true,password=', listKeys('{resourceId.Name.Value}', '2015-08-01').primaryKey)"
+let internal buildRedisKey (resourceId: ResourceId) =
+    let expr =
+        $"concat('{resourceId.Name.Value}.redis.cache.windows.net,abortConnect=false,ssl=true,password=', listKeys('{resourceId.Name.Value}', '2015-08-01').primaryKey)"
+
     ArmExpression.create(expr, resourceId).WithOwner(resourceId)
 
 type RedisConfig =
-    { Name : ResourceName
-      Sku : Sku
-      Capacity : int
-      RedisConfiguration : Map<string, string>
-      NonSslEnabled : bool option
-      ShardCount : int option
-      MinimumTlsVersion : TlsVersion option
-      Tags: Map<string,string> }
+    {
+        Name: ResourceName
+        Sku: Sku
+        Capacity: int
+        RedisConfiguration: Map<string, string>
+        NonSslEnabled: bool option
+        ShardCount: int option
+        MinimumTlsVersion: TlsVersion option
+        Tags: Map<string, string>
+    }
+
     member this.Key = buildRedisKey this.ResourceId
     member private this.ResourceId = redis.resourceId this.Name
+
     interface IBuilder with
         member this.ResourceId = this.ResourceId
-        member this.BuildResources location = [
-            { Name = this.Name
-              Location = location
-              Sku =
-                {| Sku = this.Sku
-                   Capacity = this.Capacity |}
-              RedisConfiguration = this.RedisConfiguration
-              NonSslEnabled = this.NonSslEnabled
-              ShardCount = this.ShardCount
-              MinimumTlsVersion = this.MinimumTlsVersion
-              Tags = this.Tags }
-        ]
+
+        member this.BuildResources location =
+            [
+                {
+                    Name = this.Name
+                    Location = location
+                    Sku =
+                        {|
+                            Sku = this.Sku
+                            Capacity = this.Capacity
+                        |}
+                    RedisConfiguration = this.RedisConfiguration
+                    NonSslEnabled = this.NonSslEnabled
+                    ShardCount = this.ShardCount
+                    MinimumTlsVersion = this.MinimumTlsVersion
+                    Tags = this.Tags
+                }
+            ]
 
 type RedisBuilder() =
     member _.Yield _ =
-        { Name = ResourceName.Empty
-          Sku = Basic
-          Capacity = 1
-          RedisConfiguration = Map.empty
-          NonSslEnabled = None
-          ShardCount = None
-          MinimumTlsVersion = None
-          Tags = Map.empty }
-    member _.Run (state:RedisConfig) =
+        {
+            Name = ResourceName.Empty
+            Sku = Basic
+            Capacity = 1
+            RedisConfiguration = Map.empty
+            NonSslEnabled = None
+            ShardCount = None
+            MinimumTlsVersion = None
+            Tags = Map.empty
+        }
+
+    member _.Run(state: RedisConfig) =
         { state with
             Capacity =
                 match state with
@@ -56,43 +71,81 @@ type RedisBuilder() =
                 | _ -> state.Capacity
             ShardCount =
                 match state with
-                | { Sku = Premium; ShardCount = Some shards } when shards > 10 -> Some 10
+                | {
+                      Sku = Premium
+                      ShardCount = Some shards
+                  } when shards > 10 -> Some 10
                 | { Sku = Premium; ShardCount = shards } -> shards
                 | _ -> None
         }
+
     /// Sets the name of the Redis instance.
     [<CustomOperation "name">]
-    member _.Name(state:RedisConfig, name) = { state with Name = name }
-    member this.Name(state:RedisConfig, name) = this.Name(state, ResourceName name)
-    /// Sets the sku of the Redis instance to Standard and configures capacity     
+    member _.Name(state: RedisConfig, name) = { state with Name = name }
+
+    member this.Name(state: RedisConfig, name) = this.Name(state, ResourceName name)
+
+    /// Sets the sku of the Redis instance to Standard and configures capacity
     [<CustomOperation "sku">]
-    member _.Sku(state:RedisConfig, capacity: Standard_WithCapacity) = { state with Sku = Redis.Standard; Capacity = int capacity }    
-    /// Sets the sku of the Redis instance to Premium and configures capacity     
+    member _.Sku(state: RedisConfig, capacity: Standard_WithCapacity) =
+        { state with
+            Sku = Redis.Standard
+            Capacity = int capacity
+        }
+
+    /// Sets the sku of the Redis instance to Premium and configures capacity
     [<CustomOperation "sku">]
-    member _.Sku(state:RedisConfig, capacity: Premium_WithCapacity) = { state with Sku = Redis.Premium; Capacity = int capacity }    
+    member _.Sku(state: RedisConfig, capacity: Premium_WithCapacity) =
+        { state with
+            Sku = Redis.Premium
+            Capacity = int capacity
+        }
+
     /// Sets the sku of the Redis instance.
     [<CustomOperation "sku">]
-    member _.Sku(state:RedisConfig, sku) = { state with Sku = sku }
+    member _.Sku(state: RedisConfig, sku) = { state with Sku = sku }
+
     /// Sets the capacity of the Redis instance.
     [<CustomOperation "capacity">]
-    member _.Capacity(state:RedisConfig, capacity) =
-        { state with Capacity = capacity }
+    member _.Capacity(state: RedisConfig, capacity) = { state with Capacity = capacity }
+
     /// Adds a custom setting to the Redis configuration
     [<CustomOperation "setting">]
-    member _.AddSetting(state:RedisConfig, key, value) = { state with RedisConfiguration = state.RedisConfiguration.Add(key, value) }
-    member this.AddSetting(state:RedisConfig, key, value:int) = this.AddSetting(state, key, string value)
+    member _.AddSetting(state: RedisConfig, key, value) =
+        { state with
+            RedisConfiguration = state.RedisConfiguration.Add(key, value)
+        }
+
+    member this.AddSetting(state: RedisConfig, key, value: int) =
+        this.AddSetting(state, key, string value)
+
     /// Adds a list of custom settings in the form "key" "value" to the Redis configuration.
     [<CustomOperation "settings">]
-    member this.AddSettings(state:RedisConfig, settings: (string*int) list) =
+    member this.AddSettings(state: RedisConfig, settings: (string * int) list) =
         settings
-        |> List.fold (fun state (key,value) -> this.AddSetting(state, key, value)) state
+        |> List.fold (fun state (key, value) -> this.AddSetting(state, key, value)) state
+
     /// Specifies whether the non-ssl Redis server port (6379) is enabled.
     [<CustomOperation "enable_non_ssl_port">]
-    member _.EnableNonSsl(state:RedisConfig) = { state with NonSslEnabled = Some true }
+    member _.EnableNonSsl(state: RedisConfig) =
+        { state with NonSslEnabled = Some true }
+
     [<CustomOperation "shard_count">]
-    member _.ShardCount(state:RedisConfig, shardCount) = { state with ShardCount = Some shardCount }
+    member _.ShardCount(state: RedisConfig, shardCount) =
+        { state with
+            ShardCount = Some shardCount
+        }
+
     [<CustomOperation "minimum_tls_version">]
-    member _.MinimumTlsVersion(state:RedisConfig, tlsVersion) = { state with MinimumTlsVersion = Some tlsVersion }
-    interface ITaggable<RedisConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+    member _.MinimumTlsVersion(state: RedisConfig, tlsVersion) =
+        { state with
+            MinimumTlsVersion = Some tlsVersion
+        }
+
+    interface ITaggable<RedisConfig> with
+        member _.Add state tags =
+            { state with
+                Tags = state.Tags |> Map.merge tags
+            }
 
 let redis = RedisBuilder()
