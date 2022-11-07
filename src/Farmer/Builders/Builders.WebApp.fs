@@ -746,6 +746,7 @@ type WebAppConfig =
                             |> Option.map (fun (path, slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot)
                         HealthCheckPath = this.CommonWebConfig.HealthCheckPath
                         IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
+                        ApplyIPSecurityRestrictionsToScm = this.CommonWebConfig.ApplyIPSecurityRestrictionsToScm
                         LinkToSubnet = this.CommonWebConfig.IntegratedSubnet
                         PostDeployActions = []
                         VirtualApplications = this.VirtualApplications

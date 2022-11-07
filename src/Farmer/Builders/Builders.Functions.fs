@@ -348,6 +348,7 @@ type FunctionsConfig =
                         WorkerProcess = this.CommonWebConfig.WorkerProcess
                         HealthCheckPath = this.CommonWebConfig.HealthCheckPath
                         IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
+                        ApplyIPSecurityRestrictionsToScm = this.CommonWebConfig.ApplyIPSecurityRestrictionsToScm
                         LinkToSubnet = this.CommonWebConfig.IntegratedSubnet
                         VirtualApplications = Map []
                     }
