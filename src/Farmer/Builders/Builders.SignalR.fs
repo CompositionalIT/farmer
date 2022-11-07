@@ -7,6 +7,14 @@ open Farmer.Builders
 open Farmer.Helpers
 open Farmer.SignalR
 
+type SignalRUpstreamConfig =
+    {
+        UrlTemplate: string
+        HubPattern: string
+        CategoryPattern: string
+        EventPattern: string
+    }
+
 type SignalRConfig =
     {
         Name: ResourceName
@@ -15,6 +23,7 @@ type SignalRConfig =
         AllowedOrigins: string list
         ServiceMode: ServiceMode
         Tags: Map<string, string>
+        UpstreamConfigs: SignalRUpstreamConfig[]
     }
 
     member this.ResourceId = signalR.resourceId this.Name
@@ -91,6 +100,11 @@ type SignalRBuilder() =
     [<CustomOperation("service_mode")>]
     member _.ServiceMode(state: SignalRConfig, serviceMode) =
         { state with ServiceMode = serviceMode }
+
+    /// Sets any upstream settings on the Azure SignalR instance
+    [<CustomOperation("upstream_configs")>]
+    member _.UpstreamConfigs(state: SignalRConfig, SignalRUpstreamConfig[] configs) =
+        { state with UpstreamConfigs = configs}
 
     interface ITaggable<SignalRConfig> with
         member _.Add state tags =
