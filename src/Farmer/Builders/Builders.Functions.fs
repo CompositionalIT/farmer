@@ -467,6 +467,7 @@ type FunctionsBuilder() =
                     IpSecurityRestrictions = []
                     IntegratedSubnet = None
                     PrivateEndpoints = Set.empty
+                    ApplyIPSecurityRestrictionsToScm = false
                 }
             StorageAccount =
                 derived (fun config ->
