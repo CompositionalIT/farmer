@@ -890,4 +890,32 @@ let tests =
                 let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection>
                 Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
             }
+            test "IP restrictions are not applied to SCM site by default" {
+                let ip = IPAddressCidr.parse "1.2.3.4/32"
+
+                let resources =
+                    functions {
+                        name "test"
+                        add_allowed_ip_restriction "test-rule" ip
+                    }
+                    |> getResources
+
+                let site = resources |> getResource<Web.Site> |> List.head
+
+                Expect.isFalse site.ApplyIPSecurityRestrictionsToScm "ip security restrictions should not be applied to scm by default"
+            }
+            test "IP restrictions can be applied to SCM site" {
+                let ip = IPAddressCidr.parse "1.2.3.4/32"
+
+                let resources =
+                    functions {
+                        name "test"
+                        add_allowed_ip_restriction "test-rule" ip true
+                    }
+                    |> getResources
+
+                let site = resources |> getResource<Web.Site> |> List.head
+
+                Expect.isTrue site.ApplyIPSecurityRestrictionsToScm "ip security restrictions should be applied to scm site"
+            }
         ]
