@@ -670,6 +670,18 @@ let tests =
                 Expect.equal site.Metadata.Head ("CURRENT_STACK", "dotnet") "Stack should be dotnet"
             }
 
+            test "Supports .NET 7" {
+                let app =
+                    webApp {
+                        name "net7"
+                        runtime_stack Runtime.DotNet70
+                    }
+
+                let site = app |> getResources |> getResource<Web.Site> |> List.head
+                Expect.equal site.NetFrameworkVersion.Value "v7.0" "Wrong dotnet version"
+                Expect.equal site.Metadata.Head ("CURRENT_STACK", "dotnet") "Stack should be dotnet"
+            }
+
             test "Supports .NET 5 on Linux" {
                 let app =
                     webApp {

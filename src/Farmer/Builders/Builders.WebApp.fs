@@ -71,6 +71,7 @@ type Runtime =
     static member Java8Tomcat85 = Java(Java8, JavaHost.Tomcat85)
     static member DotNet50 = DotNet "5.0"
     static member DotNet60 = DotNet "6.0"
+    static member DotNet70 = DotNet "7.0"
     static member AspNet47 = AspNet "4.0"
     static member AspNet35 = AspNet "2.0"
     static member Python27 = Python("2.7", "2.7")
@@ -705,7 +706,7 @@ type WebAppConfig =
                             match this.Runtime with
                             | AspNet version
                             | DotNet ("5.0" as version)
-                            | DotNet ("6.0" as version) -> Some $"v{version}"
+                            | DotNet version -> Some $"v{version}"
                             | _ -> None
                         JavaVersion =
                             match this.Runtime, this.CommonWebConfig.OperatingSystem with
