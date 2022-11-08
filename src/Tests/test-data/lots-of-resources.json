@@ -204,7 +204,8 @@
               "name": "CURRENT_STACK",
               "value": "dotnetcore"
             }
-          ]
+          ],
+          "scmIpSecurityRestrictionsUseMain": false
         }
       },
       "tags": {},
@@ -315,7 +316,8 @@
             }
           ],
           "connectionStrings": [],
-          "metadata": []
+          "metadata": [],
+          "scmIpSecurityRestrictionsUseMain": false
         }
       },
       "tags": {},
@@ -868,7 +870,8 @@
             }
           ],
           "connectionStrings": [],
-          "metadata": []
+          "metadata": [],
+          "scmIpSecurityRestrictionsUseMain": false
         }
       },
       "tags": {},
