@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.7.12
+* WebApps: Added support for .NET 7.
+
 ## 1.7.11
 * Dedicated Hosts: Support for Host Groups and Hosts
 * WebApps: Added support for Node 14, 16 and 18
