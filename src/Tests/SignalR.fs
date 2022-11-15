@@ -90,4 +90,33 @@ let tests =
                     (mySignalR.ConnectionString.Eval())
                     "Connection String is incorrect"
             }
+
+            test "Can create a SignalR account with upstream configuration" {
+                let resource =
+                    let mySignalR =
+                        signalR {
+                            name "my-signalr~@"
+                            sku Standard
+                            capacity 10
+                            upstream_configs [
+                                {
+                                    urlTemplate = "test-url-template"
+                                    hubPattern = "test-hub-pattern"
+                                    categoryPattern = "test-category-pattern"
+                                    eventPattern = "test-event-pattern"
+                                }
+                            ]
+                        }
+
+                    arm { add_resource mySignalR }
+                    |> findAzureResources<SignalRResource> client.SerializationSettings
+                    |> List.head
+
+                resource.Validate()
+                Expect.hasLength resource.UpstreamConfigs 1 "Should have one upstream config"
+                Expect.equal resource.UpstreamConfigs.[0].urlTemplate "test-url-template" "Url Template does not match"
+                Expect.equal resource.UpstreamConfigs.[0].hubPattern "test-hub-pattern" "Hub Pattern does not match"
+                Expect.equal resource.UpstreamConfigs.[0].categoryPattern "test-category-pattern" "Category Pattern does not match"
+                Expect.equal resource.UpstreamConfigs.[0].eventPattern "test-event-pattern" "Event Pattern does not match"
+            }
         ]
