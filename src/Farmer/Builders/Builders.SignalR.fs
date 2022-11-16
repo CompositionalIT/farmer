@@ -7,14 +7,6 @@ open Farmer.Builders
 open Farmer.Helpers
 open Farmer.SignalR
 
-type UpstreamConfig =
-    {
-        UrlTemplate: string
-        HubPattern: string
-        CategoryPattern: string
-        EventPattern: string
-    }
-
 type SignalRConfig =
     {
         Name: ResourceName
