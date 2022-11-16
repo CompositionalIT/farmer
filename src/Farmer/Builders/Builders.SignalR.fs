@@ -97,7 +97,7 @@ type SignalRBuilder() =
 
     /// Sets any upstream settings on the Azure SignalR instance
     [<CustomOperation("upstream_configs")>]
-    member _.UpstreamConfigs(state: SignalRConfig, UpstreamConfig list configs) =
+    member _.UpstreamConfigs(state: SignalRConfig, upstreamConfigs) =
         { state with UpstreamConfigs = configs}
 
     interface ITaggable<SignalRConfig> with
