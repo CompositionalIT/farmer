@@ -99,7 +99,7 @@ let tests =
                             sku Standard
                             capacity 10
                             upstream_configs [
-                                {
+                                upstreamConfig {
                                     urlTemplate = "test-url-template"
                                     hubPattern = "test-hub-pattern"
                                     categoryPattern = "test-category-pattern"
