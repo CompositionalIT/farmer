@@ -6,7 +6,7 @@ open Farmer.SignalR
 
 let signalR = ResourceType("Microsoft.SignalRService/signalR", "2022-02-01")
 
-type UpstreamConfig =
+type UpstreamTemplate =
     {
         UrlTemplate: string
         HubPattern: string
@@ -23,7 +23,7 @@ type SignalR =
         AllowedOrigins: string list
         ServiceMode: ServiceMode
         Tags: Map<string, string>
-        UpstreamConfigs: UpstreamConfig list
+        UpstreamTemplates: UpstreamTemplate list
     }
 
     interface IArmResource with
@@ -59,7 +59,7 @@ type SignalR =
                 upstream = 
                     {| 
                         templates = 
-                            this.UpstreamConfigs
+                            this.UpstreamTemplates
                             |> List.map(fun config ->
                                 {|
                                     categoryPattern = config.CategoryPattern
