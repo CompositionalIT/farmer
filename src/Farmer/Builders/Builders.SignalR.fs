@@ -41,10 +41,10 @@ type SignalRConfig =
                     AllowedOrigins = this.AllowedOrigins
                     ServiceMode = this.ServiceMode
                     Tags = this.Tags
-                    UpstreamTemplateConfigs = 
+                    UpstreamTemplates = 
                         this.UpstreamTemplateConfigs
                         |> List.map(fun config ->
-                            UpstreamTemplate {
+                            {
                                 CategoryPattern = config.CategoryPattern
                                 eventPattern = config.EventPattern
                                 hubPattern = config.HubPattern
