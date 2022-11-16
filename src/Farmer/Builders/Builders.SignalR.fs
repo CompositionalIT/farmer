@@ -23,7 +23,7 @@ type SignalRConfig =
         AllowedOrigins: string list
         ServiceMode: ServiceMode
         Tags: Map<string, string>
-        UpstreamConfigs: SignalRUpstreamConfig[]
+        UpstreamConfigs: SignalRUpstreamConfig list
     }
 
     member this.ResourceId = signalR.resourceId this.Name
