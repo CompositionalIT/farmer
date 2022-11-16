@@ -7,6 +7,14 @@ open Farmer.Builders
 open Farmer.Helpers
 open Farmer.SignalR
 
+type UpstreamConfig =
+    {
+        UrlTemplate: string
+        HubPattern: string
+        CategoryPattern: string
+        EventPattern: string
+    }
+
 type SignalRConfig =
     {
         Name: ResourceName
@@ -97,7 +105,7 @@ type SignalRBuilder() =
 
     /// Sets any upstream settings on the Azure SignalR instance
     [<CustomOperation("upstream_configs")>]
-    member _.UpstreamConfigs(state: SignalRConfig, upstreamConfigs) =
+    member _.UpstreamConfigs(state: SignalRConfig, upstreamConfigs: UpstreamConfig list) =
         { state with UpstreamConfigs = state.UpstreamConfigs @ upstreamConfigs}
 
     interface ITaggable<SignalRConfig> with
@@ -106,4 +114,31 @@ type SignalRBuilder() =
                 Tags = state.Tags |> Map.merge tags
             }
 
+type UpstreamBuilder() =
+    member _.Yield _ : UpstreamConfig =
+        {
+            UrlTemplate = ""
+            HubPattern = ""
+            CategoryPattern = ""
+            EventPattern = ""
+        }
+
+    [<CustomOperation "url_template">]
+    member _.UrlTemplate(state: UpstreamConfig, urlTemplate: string) =
+        { state with UrlTemplate = urlTemplate }
+
+    [<CustomOperation "hub_pattern">]
+    member _.HubPattern(state: UpstreamConfig, hubPattern: string) =
+        { state with HubPattern = hubPattern }
+
+    [<CustomOperation "category_pattern">]
+    member _.CategoryPattern(state: UpstreamConfig, categoryPattern: string) =
+        { state with CategoryPattern = categoryPattern }
+
+    [<CustomOperation "event_pattern">]
+    member _.EventPattern(state: UpstreamConfig, eventPattern: string) =
+        { state with EventPattern = eventPattern }
+
 let signalR = SignalRBuilder()
+
+let upstreamConfig = UpstreamBuilder()

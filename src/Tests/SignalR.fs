@@ -100,10 +100,10 @@ let tests =
                             capacity 10
                             upstream_configs [
                                 upstreamConfig {
-                                    urlTemplate = "test-url-template"
-                                    hubPattern = "test-hub-pattern"
-                                    categoryPattern = "test-category-pattern"
-                                    eventPattern = "test-event-pattern"
+                                    url_template = "test-url-template"
+                                    hub_pattern = "test-hub-pattern"
+                                    category_pattern = "test-category-pattern"
+                                    event_pattern = "test-event-pattern"
                                 }
                             ]
                         }
