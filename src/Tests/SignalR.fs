@@ -114,9 +114,9 @@ let tests =
 
                 resource.Validate()
                 Expect.hasLength resource.UpstreamConfigs 1 "Should have one upstream config"
-                Expect.equal resource.UpstreamConfigs.[0].urlTemplate "test-url-template" "Url Template does not match"
-                Expect.equal resource.UpstreamConfigs.[0].hubPattern "test-hub-pattern" "Hub Pattern does not match"
-                Expect.equal resource.UpstreamConfigs.[0].categoryPattern "test-category-pattern" "Category Pattern does not match"
-                Expect.equal resource.UpstreamConfigs.[0].eventPattern "test-event-pattern" "Event Pattern does not match"
+                Expect.equal resource.UpstreamConfigs.[0].UrlTemplate "test-url-template" "Url Template does not match"
+                Expect.equal resource.UpstreamConfigs.[0].HubPattern "test-hub-pattern" "Hub Pattern does not match"
+                Expect.equal resource.UpstreamConfigs.[0].CategoryPattern "test-category-pattern" "Category Pattern does not match"
+                Expect.equal resource.UpstreamConfigs.[0].EventPattern "test-event-pattern" "Event Pattern does not match"
             }
         ]
