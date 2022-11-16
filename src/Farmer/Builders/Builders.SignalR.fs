@@ -46,9 +46,9 @@ type SignalRConfig =
                         |> List.map(fun config ->
                             {
                                 CategoryPattern = config.CategoryPattern
-                                eventPattern = config.EventPattern
-                                hubPattern = config.HubPattern
-                                urlTemplate = config.UrlTemplate
+                                EventPattern = config.EventPattern
+                                HubPattern = config.HubPattern
+                                UrlTemplate = config.UrlTemplate
                             })    
                 }                            
             ]
