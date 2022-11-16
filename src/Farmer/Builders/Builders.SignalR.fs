@@ -41,6 +41,7 @@ type SignalRConfig =
                     AllowedOrigins = this.AllowedOrigins
                     ServiceMode = this.ServiceMode
                     Tags = this.Tags
+                    UpstreamConfigs = this.UpstreamConfigs
                 }
             ]
 
