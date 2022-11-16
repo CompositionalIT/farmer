@@ -44,12 +44,12 @@ type SignalRConfig =
                     UpstreamTemplateConfigs = 
                         this.UpstreamTemplateConfigs
                         |> List.map(fun config ->
-                            {|
+                            UpstreamTemplate {
                                 CategoryPattern = config.CategoryPattern
                                 eventPattern = config.EventPattern
                                 hubPattern = config.HubPattern
                                 urlTemplate = config.UrlTemplate
-                            |})    
+                            })    
                 }                            
             ]
 
