@@ -100,10 +100,10 @@ let tests =
                             capacity 10
                             upstream_configs [
                                 upstreamTemplateConfig {
-                                    url_template = "test-url-template"
-                                    hub_pattern = "test-hub-pattern"
-                                    category_pattern = "test-category-pattern"
-                                    event_pattern = "test-event-pattern"
+                                    url_template "test-url-template"
+                                    hub_pattern "test-hub-pattern"
+                                    category_pattern "test-category-pattern"
+                                    event_pattern "test-event-pattern"
                                 }
                             ]
                         }
@@ -113,10 +113,10 @@ let tests =
                     |> List.head
 
                 resource.Validate()
-                Expect.hasLength resource.UpstreamTemplates 1 "Should have one upstream config"
-                Expect.equal resource.UpstreamTemplates.[0].UrlTemplate "test-url-template" "Url Template does not match"
-                Expect.equal resource.UpstreamTemplates.[0].HubPattern "test-hub-pattern" "Hub Pattern does not match"
-                Expect.equal resource.UpstreamTemplates.[0].CategoryPattern "test-category-pattern" "Category Pattern does not match"
-                Expect.equal resource.UpstreamTemplates.[0].EventPattern "test-event-pattern" "Event Pattern does not match"
+                Expect.hasLength resource.upstream.templates 1 "Should have one upstream config"
+                Expect.equal resource.upstream.templates.[0].UrlTemplate "test-url-template" "Url Template does not match"
+                Expect.equal resource.upstream.templates.[0].HubPattern "test-hub-pattern" "Hub Pattern does not match"
+                Expect.equal resource.upstream.templates.[0].CategoryPattern "test-category-pattern" "Category Pattern does not match"
+                Expect.equal resource.upstream.templates.[0].EventPattern "test-event-pattern" "Event Pattern does not match"
             }
         ]
