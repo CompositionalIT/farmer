@@ -6,12 +6,16 @@ open Farmer.SignalR
 
 let signalR = ResourceType("Microsoft.SignalRService/signalR", "2022-02-01")
 
+type SignalRFilterPattern =
+    | Any
+    | List of string list
+
 type UpstreamTemplate =
     {
         UrlTemplate: string
-        HubPattern: string
-        CategoryPattern: string
-        EventPattern: string
+        HubPattern: SignalRFilterPattern
+        CategoryPattern: SignalRFilterPattern
+        EventPattern: SignalRFilterPattern
     }
 
 type SignalR =
@@ -55,17 +59,17 @@ type SignalR =
                                     value = this.ServiceMode.ToString()
                                 |}
                             ]
-                    |}
-                upstream = 
-                    {| 
-                        templates = 
-                            this.UpstreamTemplates
-                            |> List.map(fun config ->
-                                {|
-                                    categoryPattern = config.CategoryPattern
-                                    eventPattern = config.EventPattern
-                                    hubPattern = config.HubPattern
-                                    urlTemplate = config.UrlTemplate
-                                |})    
+                        upstream = 
+                            {| 
+                                templates = 
+                                    this.UpstreamTemplates
+                                    |> List.map(fun config ->
+                                        {|
+                                            urlTemplate = config.UrlTemplate
+                                            hubPattern = config.HubPattern |> function | Any -> "*" | List values -> String.concat "," values
+                                            categoryPattern = config.CategoryPattern |> function | Any -> "*" | List values -> String.concat "," values
+                                            eventPattern = config.EventPattern |> function | Any -> "*" | List values -> String.concat "," values
+                                        |})    
+                            |}
                     |}
             |}

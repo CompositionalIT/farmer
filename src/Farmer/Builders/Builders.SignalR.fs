@@ -7,14 +7,6 @@ open Farmer.Builders
 open Farmer.Helpers
 open Farmer.SignalR
 
-type UpstreamTemplateConfig =
-    {
-        UrlTemplate: string
-        HubPattern: string
-        CategoryPattern: string
-        EventPattern: string
-    }
-
 type SignalRConfig =
     {
         Name: ResourceName
@@ -23,7 +15,7 @@ type SignalRConfig =
         AllowedOrigins: string list
         ServiceMode: ServiceMode
         Tags: Map<string, string>
-        UpstreamTemplateConfigs: UpstreamTemplateConfig list
+        UpstreamTemplates: UpstreamTemplate list
     }
 
     member this.ResourceId = signalR.resourceId this.Name
@@ -41,15 +33,7 @@ type SignalRConfig =
                     AllowedOrigins = this.AllowedOrigins
                     ServiceMode = this.ServiceMode
                     Tags = this.Tags
-                    UpstreamTemplates = 
-                        this.UpstreamTemplateConfigs
-                        |> List.map(fun config ->
-                            {
-                                CategoryPattern = config.CategoryPattern
-                                EventPattern = config.EventPattern
-                                HubPattern = config.HubPattern
-                                UrlTemplate = config.UrlTemplate
-                            })    
+                    UpstreamTemplates = this.UpstreamTemplates |> List.rev
                 }                            
             ]
 
@@ -77,7 +61,7 @@ type SignalRBuilder() =
             AllowedOrigins = []
             ServiceMode = Default
             Tags = Map.empty
-            UpstreamTemplateConfigs = []
+            UpstreamTemplates = []
         }
 
     member _.Run(state: SignalRConfig) =
@@ -111,10 +95,14 @@ type SignalRBuilder() =
     member _.ServiceMode(state: SignalRConfig, serviceMode) =
         { state with ServiceMode = serviceMode }
 
-    /// Sets any upstream settings on the Azure SignalR instance
-    [<CustomOperation("upstream_configs")>]
-    member _.UpstreamConfigs(state: SignalRConfig, upstreamTemplateConfigs: UpstreamTemplateConfig list) =
-        { state with UpstreamTemplateConfigs = state.UpstreamTemplateConfigs @ upstreamTemplateConfigs}
+    /// Add an upstream setting to the Azure SignalR instance
+    [<CustomOperation("add_upstream")>]
+    member _.UpstreamConfigs(state: SignalRConfig, urlTemplate, hubPattern, categoryPattern, eventPattern) =
+        { state with UpstreamTemplates = { UrlTemplate = urlTemplate; HubPattern = hubPattern; CategoryPattern = categoryPattern; EventPattern = eventPattern } :: state.UpstreamTemplates }
+
+    /// Add an upstream setting to the Azure SignalR instance
+    [<CustomOperation("add_upstream")>]
+    member this.UpstreamConfigs(state: SignalRConfig, urlTemplate) = this.UpstreamConfigs(state, urlTemplate, Any, Any, Any)
 
     interface ITaggable<SignalRConfig> with
         member _.Add state tags =
@@ -122,31 +110,4 @@ type SignalRBuilder() =
                 Tags = state.Tags |> Map.merge tags
             }
 
-type UpstreamTemplateBuilder() =
-    member _.Yield _ : UpstreamTemplateConfig =
-        {
-            UrlTemplate = ""
-            HubPattern = ""
-            CategoryPattern = ""
-            EventPattern = ""
-        }
-
-    [<CustomOperation "url_template">]
-    member _.UrlTemplate(state: UpstreamTemplateConfig, urlTemplate: string) =
-        { state with UrlTemplate = urlTemplate }
-
-    [<CustomOperation "hub_pattern">]
-    member _.HubPattern(state: UpstreamTemplateConfig, hubPattern: string) =
-        { state with HubPattern = hubPattern }
-
-    [<CustomOperation "category_pattern">]
-    member _.CategoryPattern(state: UpstreamTemplateConfig, categoryPattern: string) =
-        { state with CategoryPattern = categoryPattern }
-
-    [<CustomOperation "event_pattern">]
-    member _.EventPattern(state: UpstreamTemplateConfig, eventPattern: string) =
-        { state with EventPattern = eventPattern }
-
 let signalR = SignalRBuilder()
-
-let upstreamTemplateConfig = UpstreamTemplateBuilder()
