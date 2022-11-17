@@ -1650,6 +1650,9 @@ module KeyVault =
         | Restore
         | Recover
         | Purge
+        | GetRotationPolicy
+        | SetRotationPolicy
+        | Rotate
 
         static member All = makeAll<Key>
 
