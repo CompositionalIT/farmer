@@ -112,7 +112,7 @@ let tests =
                 Expect.equal resource.Upstream.Templates.[0].HubPattern "*" "Hub Pattern does not match"
                 Expect.equal resource.Upstream.Templates.[0].CategoryPattern "*" "Category Pattern does not match"
                 Expect.equal resource.Upstream.Templates.[0].EventPattern "*" "Event Pattern does not match"
-                Expect.equal resource.Upstream.Templates.[1].UrlTemplate "test-url-template2" "Url Template does not match"
+                Expect.equal resource.Upstream.Templates.[1].UrlTemplate "test-url-template-2" "Url Template does not match"
                 Expect.equal resource.Upstream.Templates.[1].HubPattern "hub1,hub2" "Hub Pattern does not match"
                 Expect.equal resource.Upstream.Templates.[1].CategoryPattern "category1,category2" "Category Pattern does not match"
                 Expect.equal resource.Upstream.Templates.[1].EventPattern "event1,event2" "Event Pattern does not match"
