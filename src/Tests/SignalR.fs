@@ -99,6 +99,7 @@ let tests =
                             sku Standard
                             capacity 10
                             add_upstream "test-url-template"
+                            add_upstream "test-url-template-2" (Arm.SignalRService.List [ "hub1"; "hub2" ]) (Arm.SignalRService.List [ "category1"; "category2" ]) (Arm.SignalRService.List [ "event1"; "event2" ])
                         }
 
                     arm { add_resource mySignalR }
@@ -106,10 +107,14 @@ let tests =
                     |> List.head
 
                 resource.Validate()
-                Expect.hasLength resource.Upstream.Templates 1 "Should have one upstream config"
+                Expect.hasLength resource.Upstream.Templates 2 "Should have one upstream config"
                 Expect.equal resource.Upstream.Templates.[0].UrlTemplate "test-url-template" "Url Template does not match"
                 Expect.equal resource.Upstream.Templates.[0].HubPattern "*" "Hub Pattern does not match"
                 Expect.equal resource.Upstream.Templates.[0].CategoryPattern "*" "Category Pattern does not match"
                 Expect.equal resource.Upstream.Templates.[0].EventPattern "*" "Event Pattern does not match"
+                Expect.equal resource.Upstream.Templates.[1].UrlTemplate "test-url-template2" "Url Template does not match"
+                Expect.equal resource.Upstream.Templates.[1].HubPattern "hub1,hub2" "Hub Pattern does not match"
+                Expect.equal resource.Upstream.Templates.[1].CategoryPattern "category1,category2" "Category Pattern does not match"
+                Expect.equal resource.Upstream.Templates.[1].EventPattern "event1,event2" "Event Pattern does not match"
             }
         ]
