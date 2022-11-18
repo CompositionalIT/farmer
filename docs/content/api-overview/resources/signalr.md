@@ -18,6 +18,7 @@ The SignalR builder creates SignalR services.
 | capacity | Sets the capacity of the SignalR service. (optional) |
 | service_mode | Sets the service mode of the SignalR service. (optional) |
 | allowed_origins | Sets the allowed origins of the SignalR service. (optional) |
+| add_upstream | Appends an upstream setting to the SignalR service. (optional)
 
 #### Configuration Members
 
@@ -38,5 +39,6 @@ let mySignalR = signalR {
     capacity 10
     service_mode ServiceMode.Default
     allowed_origins [ "https://github.com" ]
+    add_upstream "http://host.com/{hub}/api/{category}/{event}"
 }
 ```

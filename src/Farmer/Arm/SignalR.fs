@@ -4,7 +4,23 @@ module Farmer.Arm.SignalRService
 open Farmer
 open Farmer.SignalR
 
-let signalR = ResourceType("Microsoft.SignalRService/signalR", "2018-10-01")
+let signalR = ResourceType("Microsoft.SignalRService/signalR", "2022-02-01")
+
+type SignalRFilterPattern =
+    | Any
+    | List of string list
+    member this.ArmValue =
+        match this with
+        | Any -> "*"
+        | List values -> String.concat "," values
+
+type UpstreamTemplate =
+    {
+        UrlTemplate: string
+        HubPattern: SignalRFilterPattern
+        CategoryPattern: SignalRFilterPattern
+        EventPattern: SignalRFilterPattern        
+    }
 
 type SignalR =
     {
@@ -15,6 +31,7 @@ type SignalR =
         AllowedOrigins: string list
         ServiceMode: ServiceMode
         Tags: Map<string, string>
+        UpstreamTemplates: UpstreamTemplate list
     }
 
     interface IArmResource with
@@ -46,5 +63,17 @@ type SignalR =
                                     value = this.ServiceMode.ToString()
                                 |}
                             ]
+                        upstream = 
+                            {| 
+                                templates = 
+                                    this.UpstreamTemplates
+                                    |> List.map(fun config ->
+                                        {|
+                                            urlTemplate = config.UrlTemplate
+                                            hubPattern = config.HubPattern.ArmValue
+                                            categoryPattern = config.CategoryPattern.ArmValue
+                                            eventPattern = config.EventPattern.ArmValue
+                                        |})    
+                            |}
                     |}
             |}

@@ -15,6 +15,7 @@ type SignalRConfig =
         AllowedOrigins: string list
         ServiceMode: ServiceMode
         Tags: Map<string, string>
+        UpstreamTemplates: UpstreamTemplate list
     }
 
     member this.ResourceId = signalR.resourceId this.Name
@@ -32,7 +33,9 @@ type SignalRConfig =
                     AllowedOrigins = this.AllowedOrigins
                     ServiceMode = this.ServiceMode
                     Tags = this.Tags
-                }
+                    // Order matters for upstream templates and it's more efficient to add to the beginning of a list and then reverse
+                    UpstreamTemplates = this.UpstreamTemplates |> List.rev
+                }                            
             ]
 
     member private this.GetKeyExpr field =
@@ -59,6 +62,7 @@ type SignalRBuilder() =
             AllowedOrigins = []
             ServiceMode = Default
             Tags = Map.empty
+            UpstreamTemplates = []
         }
 
     member _.Run(state: SignalRConfig) =
@@ -91,6 +95,15 @@ type SignalRBuilder() =
     [<CustomOperation("service_mode")>]
     member _.ServiceMode(state: SignalRConfig, serviceMode) =
         { state with ServiceMode = serviceMode }
+
+    /// Add an upstream setting to the Azure SignalR instance
+    [<CustomOperation("add_upstream")>]
+    member _.UpstreamConfigs(state: SignalRConfig, urlTemplate, hubPattern, categoryPattern, eventPattern) =
+        { state with UpstreamTemplates = { UrlTemplate = urlTemplate; HubPattern = hubPattern; CategoryPattern = categoryPattern; EventPattern = eventPattern } :: state.UpstreamTemplates }
+
+    /// Add an upstream setting to the Azure SignalR instance
+    [<CustomOperation("add_upstream")>]
+    member this.UpstreamConfigs(state: SignalRConfig, urlTemplate) = this.UpstreamConfigs(state, urlTemplate, Any, Any, Any)
 
     interface ITaggable<SignalRConfig> with
         member _.Add state tags =
