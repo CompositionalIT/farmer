@@ -71,6 +71,7 @@ type Runtime =
     static member Java8Tomcat85 = Java(Java8, JavaHost.Tomcat85)
     static member DotNet50 = DotNet "5.0"
     static member DotNet60 = DotNet "6.0"
+    static member DotNet70 = DotNet "7.0"
     static member AspNet47 = AspNet "4.0"
     static member AspNet35 = AspNet "2.0"
     static member Python27 = Python("2.7", "2.7")
@@ -106,6 +107,7 @@ type SlotConfig =
         Tags: Map<string, string>
         Dependencies: ResourceId Set
         IpSecurityRestrictions: IpSecurityRestriction list
+        ApplyIPSecurityRestrictionsToScm: bool
     }
 
     member this.ToSite(owner: Arm.Web.Site) =
@@ -208,6 +210,7 @@ type SlotBuilder() =
             Tags = Map.empty
             Dependencies = Set.empty
             IpSecurityRestrictions = []
+            ApplyIPSecurityRestrictionsToScm = false
         }
 
     [<CustomOperation "name">]
@@ -302,33 +305,41 @@ type SlotBuilder() =
 
     /// Add Allowed ip for ip security restrictions
     [<CustomOperation "add_allowed_ip_restriction">]
-    member _.AllowIp(state, name, cidr: IPAddressCidr) : SlotConfig =
+    member _.AllowIp(state, name, cidr: IPAddressCidr, ?applyToScm:bool) : SlotConfig =
+        let applyToScm = defaultArg applyToScm false
         { state with
             IpSecurityRestrictions = state.IpSecurityRestrictions @ [ IpSecurityRestriction.Create name cidr Allow ]
+            ApplyIPSecurityRestrictionsToScm = applyToScm
         }
 
-    member this.AllowIp(state, name, ip: Net.IPAddress) : SlotConfig =
+    member this.AllowIp(state, name, ip: Net.IPAddress, ?applyToScm:bool) : SlotConfig =
+        let applyToScm = defaultArg applyToScm false
         let cidr = { Address = ip; Prefix = 32 }
-        this.AllowIp(state, name, cidr)
+        this.AllowIp(state, name, cidr, applyToScm)
 
-    member this.AllowIp(state, name, ip: string) : SlotConfig =
+    member this.AllowIp(state, name, ip: string, ?applyToScm:bool) : SlotConfig =
+        let applyToScm = defaultArg applyToScm false
         let cidr = IPAddressCidr.parse ip
-        this.AllowIp(state, name, cidr)
+        this.AllowIp(state, name, cidr, applyToScm)
 
     /// Add Denied ip for ip security restrictions
     [<CustomOperation "add_denied_ip_restriction">]
-    member _.DenyIp(state, name, cidr: IPAddressCidr) : SlotConfig =
+    member _.DenyIp(state, name, cidr: IPAddressCidr, ?applyToScm:bool) : SlotConfig =
+        let applyToScm = defaultArg applyToScm false
         { state with
             IpSecurityRestrictions = state.IpSecurityRestrictions @ [ IpSecurityRestriction.Create name cidr Deny ]
+            ApplyIPSecurityRestrictionsToScm = applyToScm
         }
 
-    member this.DenyIp(state, name, ip: Net.IPAddress) : SlotConfig =
+    member this.DenyIp(state, name, ip: Net.IPAddress, ?applyToScm:bool) : SlotConfig =
+        let applyToScm = defaultArg applyToScm false
         let cidr = { Address = ip; Prefix = 32 }
-        this.DenyIp(state, name, cidr)
+        this.DenyIp(state, name, cidr, applyToScm)
 
-    member this.DenyIp(state, name, ip: string) : SlotConfig =
+    member this.DenyIp(state, name, ip: string, ?applyToScm:bool) : SlotConfig =
+        let applyToScm = defaultArg applyToScm false
         let cidr = IPAddressCidr.parse ip
-        this.DenyIp(state, name, cidr)
+        this.DenyIp(state, name, cidr, applyToScm)
 
     interface ITaggable<SlotConfig> with
         member _.Add state tags =
@@ -413,6 +424,7 @@ type CommonWebConfig =
         IpSecurityRestrictions: IpSecurityRestriction list
         IntegratedSubnet: SubnetReference option
         PrivateEndpoints: (SubnetReference * string option) Set
+        ApplyIPSecurityRestrictionsToScm: bool
     }
 
     member this.Validate() =
@@ -694,7 +706,7 @@ type WebAppConfig =
                             match this.Runtime with
                             | AspNet version
                             | DotNet ("5.0" as version)
-                            | DotNet ("6.0" as version) -> Some $"v{version}"
+                            | DotNet version -> Some $"v{version}"
                             | _ -> None
                         JavaVersion =
                             match this.Runtime, this.CommonWebConfig.OperatingSystem with
@@ -735,6 +747,7 @@ type WebAppConfig =
                             |> Option.map (fun (path, slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot)
                         HealthCheckPath = this.CommonWebConfig.HealthCheckPath
                         IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
+                        ApplyIPSecurityRestrictionsToScm = this.CommonWebConfig.ApplyIPSecurityRestrictionsToScm
                         LinkToSubnet = this.CommonWebConfig.IntegratedSubnet
                         PostDeployActions = []
                         VirtualApplications = this.VirtualApplications
@@ -953,6 +966,7 @@ type WebAppBuilder() =
                     IpSecurityRestrictions = []
                     IntegratedSubnet = None
                     PrivateEndpoints = Set.empty
+                    ApplyIPSecurityRestrictionsToScm = false
                 }
             WorkerSize = Small
             WorkerCount = 1
@@ -1647,26 +1661,32 @@ module Extensions =
 
         /// Add Allowed ip for ip security restrictions
         [<CustomOperation "add_allowed_ip_restriction">]
-        member this.AllowIp(state: 'T, name, ip: IPAddressCidr) =
+        member this.AllowIp(state: 'T, name, ip: IPAddressCidr, ?applyToScm:bool) =
+            let applyToScm = defaultArg applyToScm false
             this.Map state (fun x ->
                 { x with
                     IpSecurityRestrictions = IpSecurityRestriction.Create name ip Allow :: x.IpSecurityRestrictions
+                    ApplyIPSecurityRestrictionsToScm = applyToScm
                 })
 
-        member this.AllowIp(state: 'T, name, ip: string) =
+        member this.AllowIp(state: 'T, name, ip: string, ?applyToScm:bool) =
+            let applyToScm = defaultArg applyToScm false
             let ip = IPAddressCidr.parse ip
 
             this.Map state (fun x ->
                 { x with
                     IpSecurityRestrictions = IpSecurityRestriction.Create name ip Allow :: x.IpSecurityRestrictions
+                    ApplyIPSecurityRestrictionsToScm = applyToScm
                 })
 
         /// Add Denied ip for ip security restrictions
         [<CustomOperation "add_denied_ip_restriction">]
-        member this.DenyIp(state: 'T, name, ip) =
+        member this.DenyIp(state: 'T, name, ip, ?applyToScm:bool) =
+            let applyToScm = defaultArg applyToScm false
             this.Map state (fun x ->
                 { x with
                     IpSecurityRestrictions = IpSecurityRestriction.Create name ip Deny :: x.IpSecurityRestrictions
+                    ApplyIPSecurityRestrictionsToScm = applyToScm
                 })
 
         /// Integrate this app with a virtual network subnet

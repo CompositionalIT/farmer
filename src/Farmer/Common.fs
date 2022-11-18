@@ -1650,6 +1650,9 @@ module KeyVault =
         | Restore
         | Recover
         | Purge
+        | GetRotationPolicy
+        | SetRotationPolicy
+        | Rotate
 
         static member All = makeAll<Key>
 
@@ -2508,6 +2511,7 @@ module DeliveryPolicy =
         | NotLessThanOrEquals
         | NotGreaterThan
         | NotGreaterThanOrEquals
+        | Wildcard
 
         interface IOperator with
             member this.AsOperator =
@@ -2530,6 +2534,7 @@ module DeliveryPolicy =
                 | NotGreaterThan -> "GreaterThan"
                 | GreaterThanOrEquals
                 | NotGreaterThanOrEquals -> "GreaterThanOrEqual"
+                | Wildcard -> "Wildcard"
 
             member this.AsNegateCondition =
                 match this with

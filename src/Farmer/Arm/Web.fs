@@ -240,6 +240,7 @@ type Site =
         LinkToSubnet: SubnetReference option
         VirtualApplications: Map<string, VirtualApplication>
         PostDeployActions: (string -> Result<string, string> option) list
+        ApplyIPSecurityRestrictionsToScm: bool
     }
 
     /// Shorthand for SiteType.ResourceType
@@ -400,6 +401,7 @@ type Site =
                                                 priority = index + 1
                                             |})
                                         |> box
+                                scmIpSecurityRestrictionsUseMain = this.ApplyIPSecurityRestrictionsToScm
                                 pythonVersion = this.PythonVersion |> Option.toObj
                                 http20Enabled = this.HTTP20Enabled |> Option.toNullable
                                 webSocketsEnabled = this.WebSocketsEnabled |> Option.toNullable

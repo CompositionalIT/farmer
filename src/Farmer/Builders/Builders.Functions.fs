@@ -348,6 +348,7 @@ type FunctionsConfig =
                         WorkerProcess = this.CommonWebConfig.WorkerProcess
                         HealthCheckPath = this.CommonWebConfig.HealthCheckPath
                         IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
+                        ApplyIPSecurityRestrictionsToScm = this.CommonWebConfig.ApplyIPSecurityRestrictionsToScm
                         LinkToSubnet = this.CommonWebConfig.IntegratedSubnet
                         VirtualApplications = Map []
                     }
@@ -467,6 +468,7 @@ type FunctionsBuilder() =
                     IpSecurityRestrictions = []
                     IntegratedSubnet = None
                     PrivateEndpoints = Set.empty
+                    ApplyIPSecurityRestrictionsToScm = false
                 }
             StorageAccount =
                 derived (fun config ->

@@ -670,6 +670,18 @@ let tests =
                 Expect.equal site.Metadata.Head ("CURRENT_STACK", "dotnet") "Stack should be dotnet"
             }
 
+            test "Supports .NET 7" {
+                let app =
+                    webApp {
+                        name "net7"
+                        runtime_stack Runtime.DotNet70
+                    }
+
+                let site = app |> getResources |> getResource<Web.Site> |> List.head
+                Expect.equal site.NetFrameworkVersion.Value "v7.0" "Wrong dotnet version"
+                Expect.equal site.Metadata.Head ("CURRENT_STACK", "dotnet") "Stack should be dotnet"
+            }
+
             test "Supports .NET 5 on Linux" {
                 let app =
                     webApp {
@@ -1910,5 +1922,33 @@ let tests =
                 let site = app |> getResources |> getResource<Web.Site> |> List.item 1
                 Expect.equal site.Name.Value "webapp/deployment" "site name was not as expected"
                 Expect.hasLength site.PostDeployActions 1 "no custom post deploy actions found"
+            }
+            test "IP restrictions are not applied to SCM site by default" {
+                let ip = IPAddressCidr.parse "1.2.3.4/32"
+
+                let resources =
+                    webApp {
+                        name "test"
+                        add_allowed_ip_restriction "test-rule" ip
+                    }
+                    |> getResources
+
+                let site = resources |> getResource<Web.Site> |> List.head
+
+                Expect.isFalse site.ApplyIPSecurityRestrictionsToScm "ip security restrictions should not be applied to scm by default"
+            }
+            test "IP restrictions can be applied to SCM site" {
+                let ip = IPAddressCidr.parse "1.2.3.4/32"
+
+                let resources =
+                    webApp {
+                        name "test"
+                        add_allowed_ip_restriction "test-rule" ip true
+                    }
+                    |> getResources
+
+                let site = resources |> getResource<Web.Site> |> List.head
+
+                Expect.isTrue site.ApplyIPSecurityRestrictionsToScm "ip security restrictions should be applied to scm site"
             }
         ]
