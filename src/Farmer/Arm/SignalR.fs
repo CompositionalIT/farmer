@@ -11,7 +11,7 @@ type SignalRFilterPattern =
     | List of string list
     member this.ArmValue =
         match this with
-        | Any -> "8"
+        | Any -> "*"
         | List values -> String.concat "," values
 
 type UpstreamTemplate =
