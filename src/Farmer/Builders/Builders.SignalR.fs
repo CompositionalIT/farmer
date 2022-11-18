@@ -33,6 +33,7 @@ type SignalRConfig =
                     AllowedOrigins = this.AllowedOrigins
                     ServiceMode = this.ServiceMode
                     Tags = this.Tags
+                    // Order matters for upstream templates and it's more efficient to add to the beginning of a list and then reverse
                     UpstreamTemplates = this.UpstreamTemplates |> List.rev
                 }                            
             ]

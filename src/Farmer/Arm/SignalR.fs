@@ -9,13 +9,17 @@ let signalR = ResourceType("Microsoft.SignalRService/signalR", "2022-02-01")
 type SignalRFilterPattern =
     | Any
     | List of string list
+    member this.ArmValue =
+        match this with
+        | Any -> "8"
+        | List values -> String.concat "," values
 
 type UpstreamTemplate =
     {
         UrlTemplate: string
         HubPattern: SignalRFilterPattern
         CategoryPattern: SignalRFilterPattern
-        EventPattern: SignalRFilterPattern
+        EventPattern: SignalRFilterPattern        
     }
 
 type SignalR =
@@ -66,9 +70,9 @@ type SignalR =
                                     |> List.map(fun config ->
                                         {|
                                             urlTemplate = config.UrlTemplate
-                                            hubPattern = config.HubPattern |> function | Any -> "*" | List values -> String.concat "," values
-                                            categoryPattern = config.CategoryPattern |> function | Any -> "*" | List values -> String.concat "," values
-                                            eventPattern = config.EventPattern |> function | Any -> "*" | List values -> String.concat "," values
+                                            hubPattern = config.HubPattern.ArmValue
+                                            categoryPattern = config.CategoryPattern.ArmValue
+                                            eventPattern = config.EventPattern.ArmValue
                                         |})    
                             |}
                     |}
