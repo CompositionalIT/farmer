@@ -147,6 +147,7 @@ type Vault =
         Bypass: Bypass option
         IpRules: string list
         VnetRules: string list
+        DisablePublicNetworkAccess: FeatureFlag
         Tags: Map<string, string>
     }
 
@@ -215,6 +216,10 @@ type Vault =
                                 ipRules = this.IpRules
                                 virtualNetworkRules = this.VnetRules |> List.map (fun rule -> {| id = rule |})
                             |}
+                        publicNetworkAccess = 
+                          match this.DisablePublicNetworkAccess with
+                          | FeatureFlag.Enabled -> "Disabled"
+                          | FeatureFlag.Disabled -> "Enabled"
                     |}
             |}
 
