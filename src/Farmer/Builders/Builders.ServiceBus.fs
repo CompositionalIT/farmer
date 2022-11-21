@@ -464,6 +464,9 @@ type ServiceBusConfig =
         Queues: Map<ResourceName, ServiceBusQueueConfig>
         Topics: Map<ResourceName, ServiceBusTopicConfig>
         AuthorizationRules: Map<ResourceName, AuthorizationRuleRight Set>
+        ZoneRedundant: FeatureFlag
+        DisablePublicNetworkAccess: FeatureFlag
+        MinTlsVersion: TlsVersion option
         Tags: Map<string, string>
     }
 
@@ -488,6 +491,9 @@ type ServiceBusConfig =
                     Location = location
                     Sku = this.Sku
                     Dependencies = this.Dependencies
+                    DisablePublicNetworkAccess = this.DisablePublicNetworkAccess
+                    ZoneRedundant = this.ZoneRedundant
+                    MinTlsVersion = this.MinTlsVersion
                     Tags = this.Tags
                 }
 
@@ -533,6 +539,9 @@ type ServiceBusBuilder() =
             Topics = Map.empty
             Dependencies = Set.empty
             AuthorizationRules = Map.empty
+            DisablePublicNetworkAccess = FeatureFlag.Disabled
+            ZoneRedundant = FeatureFlag.Disabled
+            MinTlsVersion = None
             Tags = Map.empty
         }
 
@@ -565,6 +574,25 @@ type ServiceBusBuilder() =
     /// The SKU of the namespace.
     [<CustomOperation "sku">]
     member _.Sku(state: ServiceBusConfig, sku) = { state with Sku = sku }
+
+    /// Enable zone redundancy
+    [<CustomOperation "enable_zone_redundancy">]
+    member _.EnableZoneRedundancy(state: ServiceBusConfig, ?flag:FeatureFlag) = 
+        let flag = defaultArg flag FeatureFlag.Enabled
+        { state with ZoneRedundant = flag }
+
+    /// Disable public network access
+    [<CustomOperation "disable_public_network_access">]
+    member _.DisablePublicNetworkAccess(state: ServiceBusConfig, ?flag:FeatureFlag) = 
+        let flag = defaultArg flag FeatureFlag.Enabled
+        { state with DisablePublicNetworkAccess = flag }
+
+    /// Set minimum TLS version
+    [<CustomOperation "min_tls_version">]
+    member _.SetMinTlsVersion(state: ServiceBusConfig, minTlsVersion:TlsVersion) =
+        { state with
+            MinTlsVersion = Some minTlsVersion
+        }
 
     [<CustomOperation "add_queues">]
     member _.AddQueues(state: ServiceBusConfig, queues) =

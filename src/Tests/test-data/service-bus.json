@@ -5,10 +5,15 @@
   "parameters": {},
   "resources": [
     {
-      "apiVersion": "2017-04-01",
+      "apiVersion": "2022-01-01-preview",
       "dependsOn": [],
       "location": "northeurope",
       "name": "farmer-bus",
+      "properties": {
+        "minimumTlsVersion": "1.2",
+        "publicNetworkAccess": "Disabled",
+        "zoneRedundant": "true"
+      },
       "sku": {
         "capacity": 1,
         "name": "Premium",
