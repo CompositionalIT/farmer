@@ -59,7 +59,7 @@
       "type": "Microsoft.ServiceBus/namespaces"
     },
     {
-      "apiVersion": "2017-04-01",
+      "apiVersion": "2022-01-01-preview",
       "dependsOn": [
         "[resourceId('Microsoft.ServiceBus/namespaces', 'farmereventpubservicebusns')]"
       ],
