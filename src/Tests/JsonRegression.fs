@@ -320,6 +320,10 @@ let tests =
                         sku (ServiceBus.Sku.Premium MessagingUnits.OneUnit)
                         add_queues [ queue { name "queue1" } ]
 
+                        min_tls_version TlsVersion.Tls12
+                        enable_zone_redundancy
+                        disable_public_network_access
+
                         add_topics
                             [
                                 topic {

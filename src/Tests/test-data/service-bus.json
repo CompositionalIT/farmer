@@ -5,10 +5,15 @@
   "parameters": {},
   "resources": [
     {
-      "apiVersion": "2017-04-01",
+      "apiVersion": "2022-01-01-preview",
       "dependsOn": [],
       "location": "northeurope",
       "name": "farmer-bus",
+      "properties": {
+        "minimumTlsVersion": "1.2",
+        "publicNetworkAccess": "Disabled",
+        "zoneRedundant": "true"
+      },
       "sku": {
         "capacity": 1,
         "name": "Premium",
@@ -18,7 +23,7 @@
       "type": "Microsoft.ServiceBus/namespaces"
     },
     {
-      "apiVersion": "2017-04-01",
+      "apiVersion": "2022-01-01-preview",
       "dependsOn": [
         "[resourceId('Microsoft.ServiceBus/namespaces', 'farmer-bus')]"
       ],
@@ -27,7 +32,7 @@
       "type": "Microsoft.ServiceBus/namespaces/queues"
     },
     {
-      "apiVersion": "2017-04-01",
+      "apiVersion": "2022-01-01-preview",
       "dependsOn": [
         "[resourceId('Microsoft.ServiceBus/namespaces', 'farmer-bus')]"
       ],
@@ -36,7 +41,7 @@
       "type": "Microsoft.ServiceBus/namespaces/topics"
     },
     {
-      "apiVersion": "2017-04-01",
+      "apiVersion": "2022-01-01-preview",
       "dependsOn": [
         "[resourceId('Microsoft.ServiceBus/namespaces/topics', 'farmer-bus', 'topic1')]"
       ],
@@ -44,7 +49,7 @@
       "properties": {},
       "resources": [
         {
-          "apiVersion": "2017-04-01",
+          "apiVersion": "2022-01-01-preview",
           "dependsOn": [
             "sub1"
           ],
@@ -63,14 +68,14 @@
       "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions"
     },
     {
-      "apiVersion": "2017-04-01",
+      "apiVersion": "2022-01-01-preview",
       "dependsOn": [],
       "name": "farmer-bus/unmanaged-topic",
       "properties": {},
       "type": "Microsoft.ServiceBus/namespaces/topics"
     },
     {
-      "apiVersion": "2017-04-01",
+      "apiVersion": "2022-01-01-preview",
       "dependsOn": [
         "[resourceId('Microsoft.ServiceBus/namespaces/topics', 'farmer-bus', 'unmanaged-topic')]"
       ],
@@ -78,7 +83,7 @@
       "properties": {},
       "resources": [
         {
-          "apiVersion": "2017-04-01",
+          "apiVersion": "2022-01-01-preview",
           "dependsOn": [
             "sub1"
           ],
