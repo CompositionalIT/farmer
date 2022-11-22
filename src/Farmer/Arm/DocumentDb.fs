@@ -16,9 +16,6 @@ let mongoDatabases =
 let databaseAccounts =
     ResourceType("Microsoft.DocumentDb/databaseAccounts", "2021-04-15")
 
-let throughputSettings =
-    ResourceType("Microsoft.DocumentDb/databaseAccounts/sqlDatabases/throughputSettings", "2022-08-15")
-
 type DatabaseKind =
     | Document
     | Mongo
