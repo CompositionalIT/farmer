@@ -237,16 +237,14 @@ let tests =
             test "Autoscale settings" {
                 let t = arm { add_resource (cosmosDb {
                     name "test"
-                    enable_autoscale 1000
+                    throughput (CosmosDb.Throughput.Autoscale(1000<CosmosDb.RU>))
                 })}
 
                 let json = t.Template |> Writer.toJson 
                 let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
 
-                let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases/throughputSettings')]"
-
-                Expect.equal (jobj.SelectToken($"{resourcePrefix}.name").ToString()) "test-account/test/default" "Incorrect name"
-                Expect.equal (jobj.SelectToken($"{resourcePrefix}.properties.resource.autoscaleSettings.maxThroughput").ToString()) "1000" "Max throughput should be 1000"
+                let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases')]"
+                Expect.equal (jobj.SelectToken($"{resourcePrefix}.properties.options.autoscaleSettings.maxThroughput").ToString()) "1000" "Max throughput should be 1000"
             }
             testList
                 "Account Name Validation tests"

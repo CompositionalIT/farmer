@@ -2209,6 +2209,7 @@ module CosmosDb =
     type Throughput =
         | Provisioned of int<RU>
         | Serverless
+        | Autoscale of int<RU>
 
     /// The residency of database backups
     type BackupStorageRedundancy = 

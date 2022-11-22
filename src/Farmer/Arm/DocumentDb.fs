@@ -88,35 +88,6 @@ module DatabaseAccounts =
                             |}
                     |}
 
-        type ThroughputSettings =
-            {
-                Name: ResourceName
-                Account: ResourceName
-                Database: ResourceName
-                MaxThroughput: int
-            }
-
-            interface IArmResource with
-                member this.ResourceId =
-                    throughputSettings.resourceId (this.Account / this.Database / this.Name)
-
-                member this.JsonModel =
-                    {| throughputSettings.Create(
-                           this.Account / this.Database / this.Name,
-                           dependsOn = [ sqlDatabases.resourceId (this.Account, this.Database) ]
-                       ) with
-                        properties =
-                            {|
-                                resource =
-                                    {|
-                                        autoscaleSettings = 
-                                            {|
-                                                maxThroughput = this.MaxThroughput
-                                            |}
-                                    |}
-                            |}
-                    |}
-
     type SqlDatabase =
         {
             Name: ResourceName
@@ -143,7 +114,11 @@ module DatabaseAccounts =
                                     throughput =
                                         match this.Throughput with
                                         | Provisioned t -> string t
-                                        | Serverless -> null
+                                        | _ -> null
+                                    autoscaleSettings =
+                                        match this.Throughput with
+                                        | Autoscale t -> box {| maxThroughput = string t |}
+                                        | _ -> null
                                 |}
                         |}
                 |}
