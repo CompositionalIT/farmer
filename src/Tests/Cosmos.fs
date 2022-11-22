@@ -234,6 +234,20 @@ let tests =
                 Expect.equal (jobj.SelectToken($"{resourcePrefix}.periodicModeProperties.backupRetentionIntervalInHours").ToString()) "168" "backup interval should be 168"
                 Expect.equal (jobj.SelectToken($"{resourcePrefix}.periodicModeProperties.backupStorageRedundancy").ToString()) "Geo" "backup redundancy should be geo"
             }
+            test "Autoscale settings" {
+                let t = arm { add_resource (cosmosDb {
+                    name "test"
+                    enable_autoscale 1000
+                })}
+
+                let json = t.Template |> Writer.toJson 
+                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+
+                let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases/throughputSettings')]"
+
+                Expect.equal (jobj.SelectToken($"{resourcePrefix}.name").ToString()) "test-account/test/test/default" "Incorrect name"
+                Expect.equal (jobj.SelectToken($"{resourcePrefix}.properties.resource.autoscaleSettings.maxThroughput").ToString()) "1000" "Max throughput should be 1000"
+            }
             testList
                 "Account Name Validation tests"
                 [

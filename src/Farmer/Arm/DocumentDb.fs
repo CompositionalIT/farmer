@@ -16,6 +16,9 @@ let mongoDatabases =
 let databaseAccounts =
     ResourceType("Microsoft.DocumentDb/databaseAccounts", "2021-04-15")
 
+let throughputSettings =
+    ResourceType("Microsoft.DocumentDb/databaseAccounts/sqlDatabases/throughputSettings", "2022-08-15")
+
 type DatabaseKind =
     | Document
     | Mongo
@@ -80,6 +83,35 @@ module DatabaseAccounts =
                                                 excludedPaths =
                                                     this.IndexingPolicy.ExcludedPaths
                                                     |> List.map (fun p -> {| path = p |})
+                                            |}
+                                    |}
+                            |}
+                    |}
+
+        type ThroughputSettings =
+            {
+                Name: ResourceName
+                Account: ResourceName
+                Database: ResourceName
+                MaxThroughput: int
+            }
+
+            interface IArmResource with
+                member this.ResourceId =
+                    throughputSettings.resourceId (this.Account / this.Database / this.Name)
+
+                member this.JsonModel =
+                    {| throughputSettings.Create(
+                           this.Account / this.Database / this.Name,
+                           dependsOn = [ sqlDatabases.resourceId (this.Account, this.Database) ]
+                       ) with
+                        properties =
+                            {|
+                                resource =
+                                    {|
+                                        autoscaleSettings = 
+                                            {|
+                                                maxThroughput = this.MaxThroughput
                                             |}
                                     |}
                             |}

@@ -65,6 +65,12 @@ type CosmosDbContainerConfig =
         ExcludedPaths: string list
     }
 
+type CosmosDbAutoscaleConfig = 
+    {
+        Enabled: FeatureFlag
+        MaxThroughput: int
+    }
+
 type CosmosDbConfig =
     {
         AccountName: ResourceRef<CosmosDbConfig>
@@ -76,6 +82,7 @@ type CosmosDbConfig =
         PublicNetworkAccess: FeatureFlag
         FreeTier: bool
         BackupPolicy: BackupPolicy
+        AutoscaleSettings: CosmosDbAutoscaleConfig
         Tags: Map<string, string>
         Kind: DatabaseKind
     }
@@ -165,6 +172,15 @@ type CosmosDbConfig =
                                     ]
                             |}
                     }
+
+                // Autoscale settings
+                if this.AutoscaleSettings.Enabled = FeatureFlag.Enabled then
+                    {
+                        Name = (ResourceName $"{this.DbName.Value}/default")
+                        Account = this.AccountResourceId.Name
+                        Database = this.DbName
+                        MaxThroughput = this.AutoscaleSettings.MaxThroughput
+                    }
             ]
 
 type CosmosDbContainerBuilder() =
@@ -248,6 +264,7 @@ type CosmosDbBuilder() =
             PublicNetworkAccess = Enabled
             FreeTier = false
             BackupPolicy = BackupPolicy.NoBackup
+            AutoscaleSettings = { Enabled = FeatureFlag.Disabled; MaxThroughput = 0 }
             Tags = Map.empty
             Kind = DatabaseKind.Document
         }
@@ -333,9 +350,20 @@ type CosmosDbBuilder() =
 
     /// Sets the backup policy of the database
     [<CustomOperation "backup_policy">]
-    member _.PrivateNetworkAccess(state: CosmosDbConfig, backupPolicy:BackupPolicy) =
+    member _.BackupPolicy(state: CosmosDbConfig, backupPolicy:BackupPolicy) =
         { state with
             BackupPolicy = backupPolicy
+        }
+
+    /// Enable autoscale with the given max throughput
+    [<CustomOperation "enable_autoscale">]
+    member _.AutoscaleSettings(state: CosmosDbConfig, maxThroughput) =
+        { state with
+            AutoscaleSettings =
+                {
+                    Enabled = FeatureFlag.Enabled
+                    MaxThroughput = maxThroughput
+                }
         }
 
     /// Enables the use of CosmosDB free tier (one per subscription).
