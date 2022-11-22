@@ -126,6 +126,7 @@ type DatabaseAccount =
         FreeTier: bool
         Serverless: FeatureFlag
         Kind: DatabaseKind
+        BackupPolicy: BackupPolicy
         Tags: Map<string, string>
     }
 
@@ -216,6 +217,21 @@ type DatabaseAccount =
                                 box [ {| name = "EnableServerless" |} ]
                             else
                                 null
+                        backupPolicy = 
+                            match this.BackupPolicy with
+                            | BackupPolicy.Continuous -> box {| ``type`` = "Continuous" |}
+                            | BackupPolicy.Periodic(interval, retention, redundancy) -> 
+                                box
+                                    {|
+                                        ``type`` = "Periodic"
+                                        periodicModeProperties =
+                                            {|
+                                                backupIntervalInMinutes = interval
+                                                backupRetentionIntervalInHours = retention
+                                                backupStorageRedundancy = redundancy.ToString()
+                                            |}
+                                    |}
+                            | _ -> null
                     |}
                     |> box
             |}

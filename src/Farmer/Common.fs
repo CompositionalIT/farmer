@@ -2210,6 +2210,18 @@ module CosmosDb =
         | Provisioned of int<RU>
         | Serverless
 
+    /// The residency of database backups
+    type BackupStorageRedundancy = 
+        | Geo
+        | Local
+        | Zone
+
+    /// The backup policy of a CosmosDB account
+    type BackupPolicy = 
+        | NoBackup
+        | Continuous
+        | Periodic of BackupIntervalInMinutes:int * BackupRetentionIntervalInHours:int * BackupStorageRedundancy:BackupStorageRedundancy
+
 module PostgreSQL =
     type Sku =
         | Basic
