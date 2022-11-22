@@ -176,7 +176,7 @@ type CosmosDbConfig =
                 // Autoscale settings
                 if this.AutoscaleSettings.Enabled = FeatureFlag.Enabled then
                     {
-                        Name = (ResourceName $"{this.DbName.Value}/default")
+                        Name = (ResourceName "default")
                         Account = this.AccountResourceId.Name
                         Database = this.DbName
                         MaxThroughput = this.AutoscaleSettings.MaxThroughput

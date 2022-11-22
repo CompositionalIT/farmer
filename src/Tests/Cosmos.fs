@@ -245,7 +245,7 @@ let tests =
 
                 let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases/throughputSettings')]"
 
-                Expect.equal (jobj.SelectToken($"{resourcePrefix}.name").ToString()) "test-account/test/test/default" "Incorrect name"
+                Expect.equal (jobj.SelectToken($"{resourcePrefix}.name").ToString()) "test-account/test/default" "Incorrect name"
                 Expect.equal (jobj.SelectToken($"{resourcePrefix}.properties.resource.autoscaleSettings.maxThroughput").ToString()) "1000" "Max throughput should be 1000"
             }
             testList
