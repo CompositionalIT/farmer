@@ -2209,6 +2209,19 @@ module CosmosDb =
     type Throughput =
         | Provisioned of int<RU>
         | Serverless
+        | Autoscale of int<RU>
+
+    /// The residency of database backups
+    type BackupStorageRedundancy = 
+        | Geo
+        | Local
+        | Zone
+
+    /// The backup policy of a CosmosDB account
+    type BackupPolicy = 
+        | NoBackup
+        | Continuous
+        | Periodic of BackupIntervalInMinutes:int * BackupRetentionIntervalInHours:int * BackupStorageRedundancy:BackupStorageRedundancy
 
 module PostgreSQL =
     type Sku =

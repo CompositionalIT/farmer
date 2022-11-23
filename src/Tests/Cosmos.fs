@@ -194,6 +194,58 @@ let tests =
                     "[listConnectionStrings(resourceId('group', 'Microsoft.DocumentDb/databaseAccounts', 'db'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).connectionStrings[0].connectionString]"
                     "Primary Connection String is incorrect"
             }
+            test "Backup policy should not be set by default" {
+                let t = arm { add_resource (cosmosDb { name "test" }) }
+
+                let json = t.Template |> Writer.toJson 
+                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+
+                let found, _ = jobj.TryGetValue("$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts')].properties")
+                Expect.isFalse found "backup policy should not be included by default"
+            }
+            test "Continuous backup policy" {
+                let t = arm { add_resource (cosmosDb {
+                    name "test"
+                    backup_policy CosmosDb.BackupPolicy.Continuous
+                })}
+
+                let json = t.Template |> Writer.toJson 
+                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+
+                let policy = jobj.SelectToken("$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts')].properties.backupPolicy.type").ToString()
+                Expect.equal policy "Continuous" "backup policy should be Continuous"
+            }
+            test "Periodic backup policy" {
+                let t = arm { add_resource (cosmosDb {
+                    name "test"
+                    backup_policy (CosmosDb.BackupPolicy.Periodic(
+                        BackupIntervalInMinutes = 60,
+                        BackupRetentionIntervalInHours = 168,
+                        BackupStorageRedundancy = CosmosDb.BackupStorageRedundancy.Geo))
+                })}
+
+                let json = t.Template |> Writer.toJson 
+                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+
+                let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts')].properties.backupPolicy"
+
+                Expect.equal (jobj.SelectToken($"{resourcePrefix}.type").ToString()) "Periodic" "backup policy should be Periodic"
+                Expect.equal (jobj.SelectToken($"{resourcePrefix}.periodicModeProperties.backupIntervalInMinutes").ToString()) "60" "backup interval should be 60"
+                Expect.equal (jobj.SelectToken($"{resourcePrefix}.periodicModeProperties.backupRetentionIntervalInHours").ToString()) "168" "backup interval should be 168"
+                Expect.equal (jobj.SelectToken($"{resourcePrefix}.periodicModeProperties.backupStorageRedundancy").ToString()) "Geo" "backup redundancy should be geo"
+            }
+            test "Autoscale settings" {
+                let t = arm { add_resource (cosmosDb {
+                    name "test"
+                    throughput (CosmosDb.Throughput.Autoscale(1000<CosmosDb.RU>))
+                })}
+
+                let json = t.Template |> Writer.toJson 
+                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+
+                let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases')]"
+                Expect.equal (jobj.SelectToken($"{resourcePrefix}.properties.options.autoscaleSettings.maxThroughput").ToString()) "1000" "Max throughput should be 1000"
+            }
             testList
                 "Account Name Validation tests"
                 [

@@ -75,6 +75,7 @@ type CosmosDbConfig =
         Containers: CosmosDbContainerConfig list
         PublicNetworkAccess: FeatureFlag
         FreeTier: bool
+        BackupPolicy: BackupPolicy
         Tags: Map<string, string>
         Kind: DatabaseKind
     }
@@ -120,10 +121,11 @@ type CosmosDbConfig =
                         Serverless =
                             match this.DbThroughput with
                             | Serverless -> Enabled
-                            | Provisioned _ -> Disabled
+                            | _ -> Disabled
                         PublicNetworkAccess = this.PublicNetworkAccess
                         FailoverPolicy = this.AccountFailoverPolicy
                         FreeTier = this.FreeTier
+                        BackupPolicy = this.BackupPolicy
                         Tags = this.Tags
                     }
                 | _ -> ()
@@ -245,6 +247,7 @@ type CosmosDbBuilder() =
             Containers = []
             PublicNetworkAccess = Enabled
             FreeTier = false
+            BackupPolicy = BackupPolicy.NoBackup
             Tags = Map.empty
             Kind = DatabaseKind.Document
         }
@@ -326,6 +329,13 @@ type CosmosDbBuilder() =
     member _.PrivateNetworkAccess(state: CosmosDbConfig) =
         { state with
             PublicNetworkAccess = Disabled
+        }
+
+    /// Sets the backup policy of the database
+    [<CustomOperation "backup_policy">]
+    member _.BackupPolicy(state: CosmosDbConfig, backupPolicy:BackupPolicy) =
+        { state with
+            BackupPolicy = backupPolicy
         }
 
     /// Enables the use of CosmosDB free tier (one per subscription).
