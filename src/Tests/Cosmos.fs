@@ -258,6 +258,42 @@ let tests =
                 let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts')].properties"
                 Expect.equal (jobj.SelectToken($"{resourcePrefix}.ipRules[0].ipAddressOrRange").ToString()) "0.0.0.0" "IP rule for 0.0.0.0 should be added to restrict network access to Azure services"
             }
+            test "Provisioned container throughput" {
+                let t = arm { add_resource (cosmosDb {
+                    name "test"
+                    add_containers [
+                        cosmosContainer {
+                            name "SomeContainer"
+                            partition_key [ "/id" ] CosmosDb.Hash
+                            throughput (CosmosDb.Throughput.Provisioned(100<CosmosDb.RU>))
+                        }
+                    ]
+                })}
+
+                let json = t.Template |> Writer.toJson 
+                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+
+                let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers')]"
+                Expect.equal (jobj.SelectToken($"{resourcePrefix}.properties.options.throughput").ToString()) "100" "throughput should be 100"
+            }
+            test "Autoscaled container throughput" {
+                let t = arm { add_resource (cosmosDb {
+                    name "test"
+                    add_containers [
+                        cosmosContainer {
+                            name "SomeContainer"
+                            partition_key [ "/id" ] CosmosDb.Hash
+                            throughput (CosmosDb.Throughput.Autoscale(1000<CosmosDb.RU>))
+                        }
+                    ]
+                })}
+
+                let json = t.Template |> Writer.toJson 
+                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+
+                let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers')]"
+                Expect.equal (jobj.SelectToken($"{resourcePrefix}.properties.options.autoscaleSettings.maxThroughput").ToString()) "1000" "Max throughput should be 1000"
+            }
             testList
                 "Account Name Validation tests"
                 [

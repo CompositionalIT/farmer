@@ -63,6 +63,7 @@ type CosmosDbContainerConfig =
         Indexes: (string * (IndexDataType * IndexKind) list) list
         UniqueKeys: Set<string list>
         ExcludedPaths: string list
+        ContainerThroughput: Throughput option
     }
 
 type CosmosDbConfig =
@@ -166,6 +167,7 @@ type CosmosDbConfig =
                                             {| Path = path; Indexes = indexes |}
                                     ]
                             |}
+                        Throughput = container.ContainerThroughput
                     }
             ]
 
@@ -177,6 +179,7 @@ type CosmosDbContainerBuilder() =
             Indexes = []
             UniqueKeys = Set.empty
             ExcludedPaths = []
+            ContainerThroughput = None
         }
 
     member _.Run state =
@@ -226,6 +229,11 @@ type CosmosDbContainerBuilder() =
         { state with
             ExcludedPaths = path :: state.ExcludedPaths
         }
+
+    /// Sets the throughput of the container.
+    [<CustomOperation "throughput">]
+    member _.Throughput(state: CosmosDbContainerConfig, throughput) =
+        { state with ContainerThroughput = Some throughput }
 
 type CosmosDbBuilder() =
     member _.Yield _ =
