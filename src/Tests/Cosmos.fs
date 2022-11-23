@@ -265,7 +265,7 @@ let tests =
                         cosmosContainer {
                             name "SomeContainer"
                             partition_key [ "/id" ] CosmosDb.Hash
-                            throughput (CosmosDb.Throughput.Provisioned(100<CosmosDb.RU>))
+                            throughput 100<CosmosDb.RU>
                         }
                     ]
                 })}

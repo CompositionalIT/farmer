@@ -235,6 +235,11 @@ type CosmosDbContainerBuilder() =
     member _.Throughput(state: CosmosDbContainerConfig, throughput) =
         { state with ContainerThroughput = Some throughput }
 
+    member _.Throughput(state: CosmosDbContainerConfig, throughput) =
+        { state with
+            ContainerThroughput = Some (Provisioned throughput)
+        }
+
 type CosmosDbBuilder() =
     member _.Yield _ =
         {
