@@ -127,6 +127,7 @@ type DatabaseAccount =
         ConsistencyPolicy: ConsistencyPolicy
         FailoverPolicy: FailoverPolicy
         PublicNetworkAccess: FeatureFlag
+        RestrictToAzureServices: FeatureFlag
         FreeTier: bool
         Serverless: FeatureFlag
         Kind: DatabaseKind
@@ -215,6 +216,10 @@ type DatabaseAccount =
                             | [], Disabled -> null
                             | locations, _ -> box locations
                         publicNetworkAccess = string this.PublicNetworkAccess
+                        ipRules = 
+                          match this.RestrictToAzureServices with
+                          | Enabled -> box [ "0.0.0.0" ]
+                          | Disabled -> null
                         enableFreeTier = this.FreeTier
                         capabilities =
                             if this.Serverless = Enabled then

@@ -246,6 +246,18 @@ let tests =
                 let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases')]"
                 Expect.equal (jobj.SelectToken($"{resourcePrefix}.properties.options.autoscaleSettings.maxThroughput").ToString()) "1000" "Max throughput should be 1000"
             }
+            test "Restrict to Azure services" {
+                let t = arm { add_resource (cosmosDb {
+                    name "test"
+                    restrict_to_azure_services
+                })}
+
+                let json = t.Template |> Writer.toJson 
+                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+
+                let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts')].properties"
+                Expect.equal (jobj.SelectToken($"{resourcePrefix}.ipRules[0]").ToString()) "0.0.0.0" "IP rule for 0.0.0.0 should be added to restrict network access to Azure services"
+            }
             testList
                 "Account Name Validation tests"
                 [
