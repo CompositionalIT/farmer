@@ -133,9 +133,10 @@ type CosmosDbConfig =
                     }
                 | _ -> ()
 
-                // check if we're setting the throughput directly on the container
+                // When we have containers and they all have throughput set, do not set shared (database) throughput.
+                // When only some containers have throughput, set the shared throughput.
                 let dbThroughput =
-                  if this.Containers |> List.exists(fun x -> x.ContainerThroughput.IsSome) then
+                  if this.Containers.Length > 0 && this.Containers |> List.forall(fun x -> x.ContainerThroughput.IsSome) then
                     None
                   else
                     Some this.DbThroughput

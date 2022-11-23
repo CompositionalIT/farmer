@@ -274,7 +274,7 @@ let tests =
                 let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
 
                 let found, _ = jobj.TryGetValue("$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases')].properties.options.throughput")
-                Expect.isFalse found "when container throughput is set database throughput should not be specified"
+                Expect.isFalse found "When all containers have throughput set database throughput should not be specified"
 
                 let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers')]"
                 Expect.equal (jobj.SelectToken($"{resourcePrefix}.properties.options.throughput").ToString()) "100" "throughput should be 100"
@@ -295,10 +295,44 @@ let tests =
                 let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
 
                 let found, _ = jobj.TryGetValue("$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases')].properties.options.throughput")
-                Expect.isFalse found "when container throughput is set database throughput should not be specified"
+                Expect.isFalse found "When all containers have throughput set database throughput should not be specified"
 
                 let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers')]"
                 Expect.equal (jobj.SelectToken($"{resourcePrefix}.properties.options.autoscaleSettings.maxThroughput").ToString()) "1000" "Max throughput should be 1000"
+            }
+            test "Can use shared and dedicated container throughput" {
+                let sharedContainerName = "SharedThroughputContainer"
+                let dedicatedContainerName = "DedicatedThroughputContainer"
+
+                let t = arm { add_resource (cosmosDb {
+                    name "test"
+                    throughput 1000<CosmosDb.RU>
+                    add_containers [
+                        cosmosContainer {
+                            name sharedContainerName
+                            partition_key [ "/id" ] CosmosDb.Hash
+                        }
+                        cosmosContainer {
+                            name dedicatedContainerName
+                            partition_key [ "/id" ] CosmosDb.Hash
+                            throughput 100<CosmosDb.RU>
+                        }
+                    ]
+                })}
+
+                let json = t.Template |> Writer.toJson 
+                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+
+                let databasePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases')]"
+                Expect.equal (jobj.SelectToken($"{databasePrefix}.properties.options.throughput").ToString()) "1000" "database throughput should be 1000"
+
+                let containerQuery name =
+                    $"resources[?(@.name=='test-account/test/{name}')].properties.options.throughput"
+
+                let found, _ = jobj.TryGetValue(containerQuery sharedContainerName)
+                Expect.isFalse found "Shared throughput container should not have throughput specified"
+                
+                Expect.equal (jobj.SelectToken(containerQuery dedicatedContainerName).ToString()) "100" "throughput should be 1000"
             }
             testList
                 "Account Name Validation tests"
