@@ -133,11 +133,18 @@ type CosmosDbConfig =
                     }
                 | _ -> ()
 
+                // check if we're setting the throughput directly on the container
+                let dbThroughput =
+                  if this.Containers |> List.exists(fun x -> x.ContainerThroughput.IsSome) then
+                    None
+                  else
+                    Some this.DbThroughput
+
                 // Database
                 {
                     Name = this.DbName
                     Account = this.AccountResourceId.Name
-                    Throughput = this.DbThroughput
+                    Throughput = dbThroughput
                     Kind = this.Kind
                 }
 

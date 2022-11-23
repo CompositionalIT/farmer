@@ -273,6 +273,9 @@ let tests =
                 let json = t.Template |> Writer.toJson 
                 let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
 
+                let found, _ = jobj.TryGetValue("$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases')].properties.options.throughput")
+                Expect.isFalse found "when container throughput is set database throughput should not be specified"
+
                 let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers')]"
                 Expect.equal (jobj.SelectToken($"{resourcePrefix}.properties.options.throughput").ToString()) "100" "throughput should be 100"
             }
@@ -290,6 +293,9 @@ let tests =
 
                 let json = t.Template |> Writer.toJson 
                 let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+
+                let found, _ = jobj.TryGetValue("$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases')].properties.options.throughput")
+                Expect.isFalse found "when container throughput is set database throughput should not be specified"
 
                 let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers')]"
                 Expect.equal (jobj.SelectToken($"{resourcePrefix}.properties.options.autoscaleSettings.maxThroughput").ToString()) "1000" "Max throughput should be 1000"
