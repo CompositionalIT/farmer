@@ -218,7 +218,13 @@ type DatabaseAccount =
                         publicNetworkAccess = string this.PublicNetworkAccess
                         ipRules = 
                           match this.RestrictToAzureServices with
-                          | Enabled -> box [ "0.0.0.0" ]
+                          | Enabled ->
+                                box
+                                    [
+                                        {|
+                                            ipAddressOrRange = "0.0.0.0"
+                                        |}
+                                    ]
                           | Disabled -> null
                         enableFreeTier = this.FreeTier
                         capabilities =

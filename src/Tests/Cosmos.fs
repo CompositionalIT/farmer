@@ -256,7 +256,7 @@ let tests =
                 let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
 
                 let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts')].properties"
-                Expect.equal (jobj.SelectToken($"{resourcePrefix}.ipRules[0]").ToString()) "0.0.0.0" "IP rule for 0.0.0.0 should be added to restrict network access to Azure services"
+                Expect.equal (jobj.SelectToken($"{resourcePrefix}.ipRules[0].ipAddressOrRange").ToString()) "0.0.0.0" "IP rule for 0.0.0.0 should be added to restrict network access to Azure services"
             }
             testList
                 "Account Name Validation tests"
