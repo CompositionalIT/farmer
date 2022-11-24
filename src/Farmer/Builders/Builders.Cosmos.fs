@@ -224,6 +224,13 @@ type CosmosDbContainerBuilder() =
             Indexes = (path, indexes) :: state.Indexes
         }
 
+    /// Adds multiple indexes to the container.
+    [<CustomOperation "add_indexes">]
+    member _.AddIndexes(state: CosmosDbContainerConfig, indexes: (string * (IndexDataType * IndexKind) list) list) =
+        { state with
+            Indexes = List.append indexes state.Indexes
+        }
+
     /// Adds a unique key constraint to the container (ensures uniqueness within the logical partition).
     [<CustomOperation "add_unique_key">]
     member _.AddUniqueKey(state: CosmosDbContainerConfig, uniqueKeyPaths) =

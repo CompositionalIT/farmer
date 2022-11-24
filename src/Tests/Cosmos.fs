@@ -334,6 +334,29 @@ let tests =
                 
                 Expect.equal (jobj.SelectToken(containerQuery dedicatedContainerName).ToString()) "100" "throughput should be 1000"
             }
+            test "Can add multiple indexes" {
+                let t = arm { add_resource (cosmosDb {
+                    name "test"
+                    throughput 1000<CosmosDb.RU>
+                    add_containers [
+                        cosmosContainer {
+                            name "container"
+                            partition_key [ "/id" ] CosmosDb.Hash
+                            add_indexes [
+                                ("/field1/?", [ CosmosDb.String, CosmosDb.Range ])
+                                ("/field2/?", [ CosmosDb.String, CosmosDb.Range ])
+                            ]
+                        }
+                    ]
+                })}
+
+                let json = t.Template |> Writer.toJson 
+                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+
+                let databasePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers')].properties.resource.indexingPolicy.includedPaths"
+                Expect.equal (jobj.SelectToken($"{databasePrefix}[0].path").ToString()) "/field1/?" "field1 missing"
+                Expect.equal (jobj.SelectToken($"{databasePrefix}[1].path").ToString()) "/field2/?" "field2 missing"
+            }
             testList
                 "Account Name Validation tests"
                 [
