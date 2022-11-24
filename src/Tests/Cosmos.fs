@@ -334,6 +334,44 @@ let tests =
                 
                 Expect.equal (jobj.SelectToken(containerQuery dedicatedContainerName).ToString()) "100" "throughput should be 1000"
             }
+            test "Db throughput handles None" {
+                let t = arm { add_resource (cosmosDb {
+                    name "test"
+                    throughput None
+                    add_containers [
+                        cosmosContainer {
+                            name "container"
+                            partition_key [ "/id" ] CosmosDb.Hash
+                            //throughput 100<CosmosDb.RU>
+                        }
+                    ]
+                })}
+
+                let json = t.Template |> Writer.toJson 
+                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+
+                let found, _ = jobj.TryGetValue("$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases')].properties.options.throughput")
+                Expect.isFalse found "Throughput should not be set"
+            }
+            test "Container throughput handles None" {
+                let t = arm { add_resource (cosmosDb {
+                    name "test"
+                    throughput 100<CosmosDb.RU>
+                    add_containers [
+                        cosmosContainer {
+                            name "container"
+                            partition_key [ "/id" ] CosmosDb.Hash
+                            throughput None
+                        }
+                    ]
+                })}
+
+                let json = t.Template |> Writer.toJson 
+                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+
+                let found, _ = jobj.TryGetValue("$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers')].properties.options.throughput")
+                Expect.isFalse found "Throughput should not be set"
+            }
             test "Can add multiple indexes" {
                 let t = arm { add_resource (cosmosDb {
                     name "test"
