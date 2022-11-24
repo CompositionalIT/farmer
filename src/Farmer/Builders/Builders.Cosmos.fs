@@ -72,7 +72,7 @@ type CosmosDbConfig =
         AccountConsistencyPolicy: ConsistencyPolicy
         AccountFailoverPolicy: FailoverPolicy
         DbName: ResourceName
-        DbThroughput: Throughput
+        DbThroughput: Throughput option
         Containers: CosmosDbContainerConfig list
         PublicNetworkAccess: FeatureFlag
         RestrictToAzureServices: FeatureFlag
@@ -122,7 +122,7 @@ type CosmosDbConfig =
                         ConsistencyPolicy = this.AccountConsistencyPolicy
                         Serverless =
                             match this.DbThroughput with
-                            | Serverless -> Enabled
+                            | Some Serverless -> Enabled
                             | _ -> Disabled
                         PublicNetworkAccess = this.PublicNetworkAccess
                         RestrictToAzureServices = this.RestrictToAzureServices
@@ -133,13 +133,16 @@ type CosmosDbConfig =
                     }
                 | _ -> ()
 
+                if this.DbThroughput.IsNone && this.Containers.Length > 0 && this.Containers |> List.exists(fun x -> x.ContainerThroughput.IsNone) then
+                  raiseFarmer "Either set database throughput, or set throughput against all containers"
+
                 // When we have containers and they all have throughput set, do not set shared (database) throughput.
                 // When only some containers have throughput, set the shared throughput.
                 let dbThroughput =
                   if this.Containers.Length > 0 && this.Containers |> List.forall(fun x -> x.ContainerThroughput.IsSome) then
                     None
                   else
-                    Some this.DbThroughput
+                    this.DbThroughput
 
                 // Database
                 {
@@ -224,6 +227,13 @@ type CosmosDbContainerBuilder() =
             Indexes = (path, indexes) :: state.Indexes
         }
 
+    /// Adds multiple indexes to the container.
+    [<CustomOperation "add_indexes">]
+    member _.AddIndexes(state: CosmosDbContainerConfig, indexes: (string * (IndexDataType * IndexKind) list) list) =
+        { state with
+            Indexes = List.append indexes state.Indexes
+        }
+
     /// Adds a unique key constraint to the container (ensures uniqueness within the logical partition).
     [<CustomOperation "add_unique_key">]
     member _.AddUniqueKey(state: CosmosDbContainerConfig, uniqueKeyPaths) =
@@ -248,6 +258,9 @@ type CosmosDbContainerBuilder() =
             ContainerThroughput = Some (Provisioned throughput)
         }
 
+    member _.Throughput(state: CosmosDbContainerConfig, throughput) =
+        { state with ContainerThroughput = throughput }
+
 type CosmosDbBuilder() =
     member _.Yield _ =
         {
@@ -266,7 +279,7 @@ type CosmosDbBuilder() =
                     |> databaseAccounts.resourceId)
             AccountConsistencyPolicy = Eventual
             AccountFailoverPolicy = NoFailover
-            DbThroughput = Provisioned 400<RU>
+            DbThroughput = Some (Provisioned 400<RU>)
             Containers = []
             PublicNetworkAccess = Enabled
             RestrictToAzureServices = Disabled
@@ -323,12 +336,15 @@ type CosmosDbBuilder() =
     /// Sets the throughput of the server.
     [<CustomOperation "throughput">]
     member _.Throughput(state: CosmosDbConfig, throughput) =
-        { state with DbThroughput = throughput }
+        { state with DbThroughput = Some throughput }
 
     member _.Throughput(state: CosmosDbConfig, throughput) =
         { state with
-            DbThroughput = Provisioned throughput
+            DbThroughput = Some(Provisioned throughput)
         }
+
+    member _.Throughput(state: CosmosDbConfig, throughput) =
+        { state with DbThroughput = throughput }
 
     /// Sets the storage kind
     [<CustomOperation "kind">]

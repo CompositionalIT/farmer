@@ -6,6 +6,19 @@ open Farmer.Builders
 open Farmer.Storage
 open Farmer.Arm.DocumentDb
 
+let getParsedTemplate (t:ResourceGroupConfig) = 
+  let json = t.Template |> Writer.toJson 
+  json |> Newtonsoft.Json.Linq.JObject.Parse
+
+let accountSelector =
+    "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts')]"
+
+let databaseSelector =
+    "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases')]"
+
+let containerSelector =
+    "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers')]"
+
 let tests =
     testList
         "Cosmos"
@@ -59,7 +72,7 @@ let tests =
 
                 let locationJOjb =
                     jobj.SelectToken(
-                        "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts')].properties.locations[0]"
+                        $"{accountSelector}.properties.locations[0]"
                     )
 
                 Expect.isNotEmpty (locationJOjb |> string) "location should be filled"
@@ -196,11 +209,9 @@ let tests =
             }
             test "Backup policy should not be set by default" {
                 let t = arm { add_resource (cosmosDb { name "test" }) }
+                let jobj = getParsedTemplate t
 
-                let json = t.Template |> Writer.toJson 
-                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
-
-                let found, _ = jobj.TryGetValue("$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts')].properties")
+                let found, _ = jobj.TryGetValue($"{accountSelector}.properties")
                 Expect.isFalse found "backup policy should not be included by default"
             }
             test "Continuous backup policy" {
@@ -209,10 +220,9 @@ let tests =
                     backup_policy CosmosDb.BackupPolicy.Continuous
                 })}
 
-                let json = t.Template |> Writer.toJson 
-                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+                let jobj = getParsedTemplate t
 
-                let policy = jobj.SelectToken("$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts')].properties.backupPolicy.type").ToString()
+                let policy = jobj.SelectToken($"{accountSelector}.properties.backupPolicy.type").ToString()
                 Expect.equal policy "Continuous" "backup policy should be Continuous"
             }
             test "Periodic backup policy" {
@@ -224,10 +234,9 @@ let tests =
                         BackupStorageRedundancy = CosmosDb.BackupStorageRedundancy.Geo))
                 })}
 
-                let json = t.Template |> Writer.toJson 
-                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+                let jobj = getParsedTemplate t
 
-                let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts')].properties.backupPolicy"
+                let resourcePrefix = $"{accountSelector}.properties.backupPolicy"
 
                 Expect.equal (jobj.SelectToken($"{resourcePrefix}.type").ToString()) "Periodic" "backup policy should be Periodic"
                 Expect.equal (jobj.SelectToken($"{resourcePrefix}.periodicModeProperties.backupIntervalInMinutes").ToString()) "60" "backup interval should be 60"
@@ -240,11 +249,12 @@ let tests =
                     throughput (CosmosDb.Throughput.Autoscale(1000<CosmosDb.RU>))
                 })}
 
-                let json = t.Template |> Writer.toJson 
-                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
-
-                let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases')]"
-                Expect.equal (jobj.SelectToken($"{resourcePrefix}.properties.options.autoscaleSettings.maxThroughput").ToString()) "1000" "Max throughput should be 1000"
+                let jobj = getParsedTemplate t
+                
+                Expect.equal
+                    (jobj.SelectToken($"{databaseSelector}.properties.options.autoscaleSettings.maxThroughput").ToString())
+                    "1000"
+                    "Max throughput should be 1000"
             }
             test "Restrict to Azure services" {
                 let t = arm { add_resource (cosmosDb {
@@ -252,11 +262,12 @@ let tests =
                     restrict_to_azure_services
                 })}
 
-                let json = t.Template |> Writer.toJson 
-                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+                let jobj = getParsedTemplate t
 
-                let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts')].properties"
-                Expect.equal (jobj.SelectToken($"{resourcePrefix}.ipRules[0].ipAddressOrRange").ToString()) "0.0.0.0" "IP rule for 0.0.0.0 should be added to restrict network access to Azure services"
+                Expect.equal
+                    (jobj.SelectToken($"{accountSelector}.properties.ipRules[0].ipAddressOrRange").ToString())
+                    "0.0.0.0"
+                    "IP rule for 0.0.0.0 should be added to restrict network access to Azure services"
             }
             test "Provisioned container throughput" {
                 let t = arm { add_resource (cosmosDb {
@@ -270,14 +281,12 @@ let tests =
                     ]
                 })}
 
-                let json = t.Template |> Writer.toJson 
-                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+                let jobj = getParsedTemplate t
 
-                let found, _ = jobj.TryGetValue("$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases')].properties.options.throughput")
+                let found, _ = jobj.TryGetValue($"{databaseSelector}.properties.options.throughput")
                 Expect.isFalse found "When all containers have throughput set database throughput should not be specified"
 
-                let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers')]"
-                Expect.equal (jobj.SelectToken($"{resourcePrefix}.properties.options.throughput").ToString()) "100" "throughput should be 100"
+                Expect.equal (jobj.SelectToken($"{containerSelector}.properties.options.throughput").ToString()) "100" "throughput should be 100"
             }
             test "Autoscaled container throughput" {
                 let t = arm { add_resource (cosmosDb {
@@ -291,14 +300,12 @@ let tests =
                     ]
                 })}
 
-                let json = t.Template |> Writer.toJson 
-                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+                let jobj = getParsedTemplate t
 
-                let found, _ = jobj.TryGetValue("$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases')].properties.options.throughput")
+                let found, _ = jobj.TryGetValue($"{databaseSelector}.properties.options.throughput")
                 Expect.isFalse found "When all containers have throughput set database throughput should not be specified"
 
-                let resourcePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers')]"
-                Expect.equal (jobj.SelectToken($"{resourcePrefix}.properties.options.autoscaleSettings.maxThroughput").ToString()) "1000" "Max throughput should be 1000"
+                Expect.equal (jobj.SelectToken($"{containerSelector}.properties.options.autoscaleSettings.maxThroughput").ToString()) "1000" "Max throughput should be 1000"
             }
             test "Can use shared and dedicated container throughput" {
                 let sharedContainerName = "SharedThroughputContainer"
@@ -320,11 +327,9 @@ let tests =
                     ]
                 })}
 
-                let json = t.Template |> Writer.toJson 
-                let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+                let jobj = getParsedTemplate t
 
-                let databasePrefix = "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases')]"
-                Expect.equal (jobj.SelectToken($"{databasePrefix}.properties.options.throughput").ToString()) "1000" "database throughput should be 1000"
+                Expect.equal (jobj.SelectToken($"{databaseSelector}.properties.options.throughput").ToString()) "1000" "database throughput should be 1000"
 
                 let containerQuery name =
                     $"resources[?(@.name=='test-account/test/{name}')].properties.options.throughput"
@@ -333,6 +338,83 @@ let tests =
                 Expect.isFalse found "Shared throughput container should not have throughput specified"
                 
                 Expect.equal (jobj.SelectToken(containerQuery dedicatedContainerName).ToString()) "100" "throughput should be 1000"
+            }
+            test "Db throughput handles None" {
+                let t = arm { add_resource (cosmosDb {
+                    name "test"
+                    throughput None
+                    add_containers [
+                        cosmosContainer {
+                            name "container"
+                            partition_key [ "/id" ] CosmosDb.Hash
+                            throughput 100<CosmosDb.RU>
+                        }
+                    ]
+                })}
+
+                let jobj = getParsedTemplate t
+
+                let found, _ = jobj.TryGetValue($"{databaseSelector}.properties.options.throughput")
+                Expect.isFalse found "Throughput should not be set"
+            }
+            test "Container throughput handles None" {
+                let t = arm { add_resource (cosmosDb {
+                    name "test"
+                    throughput 100<CosmosDb.RU>
+                    add_containers [
+                        cosmosContainer {
+                            name "container"
+                            partition_key [ "/id" ] CosmosDb.Hash
+                            throughput None
+                        }
+                    ]
+                })}
+
+                let jobj = getParsedTemplate t
+
+                let found, _ = jobj.TryGetValue($"{containerSelector}.properties.options.throughput")
+                Expect.isFalse found "Throughput should not be set"
+            }
+            test "Throughput must be set on database or all containers" {
+                Expect.throws (fun () -> 
+                    arm { add_resource (cosmosDb {
+                        name "test"
+                        throughput None
+                        add_containers [
+                            cosmosContainer {
+                                name "container"
+                                partition_key [ "/id" ] CosmosDb.Hash
+                            }
+                            cosmosContainer {
+                                name "container"
+                                partition_key [ "/id" ] CosmosDb.Hash
+                                throughput 100<CosmosDb.RU>
+                            }
+                        ]
+                    })} |> ignore
+                    ) "Either set database throughput, or set throughput against all containers"
+            }
+            test "Can add multiple indexes" {
+                let t = arm { add_resource (cosmosDb {
+                    name "test"
+                    throughput 1000<CosmosDb.RU>
+                    add_containers [
+                        cosmosContainer {
+                            name "container"
+                            partition_key [ "/id" ] CosmosDb.Hash
+                            add_indexes [
+                                ("/field1/?", [ CosmosDb.String, CosmosDb.Range ])
+                                ("/field2/?", [ CosmosDb.String, CosmosDb.Range ])
+                            ]
+                        }
+                    ]
+                })}
+
+                let jobj = getParsedTemplate t
+
+                let containerPrefix = $"{containerSelector}.properties.resource.indexingPolicy.includedPaths"
+                Expect.equal (jobj.SelectToken($"{containerPrefix}[0].path").ToString()) "/field1/?" "field1 missing"
+                Expect.equal (jobj.SelectToken($"{containerPrefix}[1].path").ToString()) "/field2/?" "field2 missing"
             }
             testList
                 "Account Name Validation tests"
