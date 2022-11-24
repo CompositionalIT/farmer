@@ -63,6 +63,7 @@ type CosmosDbContainerConfig =
         Indexes: (string * (IndexDataType * IndexKind) list) list
         UniqueKeys: Set<string list>
         ExcludedPaths: string list
+        ContainerThroughput: Throughput option
     }
 
 type CosmosDbConfig =
@@ -132,11 +133,19 @@ type CosmosDbConfig =
                     }
                 | _ -> ()
 
+                // When we have containers and they all have throughput set, do not set shared (database) throughput.
+                // When only some containers have throughput, set the shared throughput.
+                let dbThroughput =
+                  if this.Containers.Length > 0 && this.Containers |> List.forall(fun x -> x.ContainerThroughput.IsSome) then
+                    None
+                  else
+                    Some this.DbThroughput
+
                 // Database
                 {
                     Name = this.DbName
                     Account = this.AccountResourceId.Name
-                    Throughput = this.DbThroughput
+                    Throughput = dbThroughput
                     Kind = this.Kind
                 }
 
@@ -166,6 +175,7 @@ type CosmosDbConfig =
                                             {| Path = path; Indexes = indexes |}
                                     ]
                             |}
+                        Throughput = container.ContainerThroughput
                     }
             ]
 
@@ -177,6 +187,7 @@ type CosmosDbContainerBuilder() =
             Indexes = []
             UniqueKeys = Set.empty
             ExcludedPaths = []
+            ContainerThroughput = None
         }
 
     member _.Run state =
@@ -225,6 +236,16 @@ type CosmosDbContainerBuilder() =
     member _.ExcludePath(state: CosmosDbContainerConfig, path) =
         { state with
             ExcludedPaths = path :: state.ExcludedPaths
+        }
+
+    /// Sets the throughput of the container.
+    [<CustomOperation "throughput">]
+    member _.Throughput(state: CosmosDbContainerConfig, throughput) =
+        { state with ContainerThroughput = Some throughput }
+
+    member _.Throughput(state: CosmosDbContainerConfig, throughput) =
+        { state with
+            ContainerThroughput = Some (Provisioned throughput)
         }
 
 type CosmosDbBuilder() =

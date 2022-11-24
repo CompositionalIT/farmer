@@ -33,6 +33,7 @@ module DatabaseAccounts =
                 IndexingPolicy: {| IncludedPaths: {| Path: string
                                                      Indexes: (IndexDataType * IndexKind) list |} list
                                    ExcludedPaths: string list |}
+                Throughput: Throughput option
             }
 
             interface IArmResource with
@@ -82,6 +83,21 @@ module DatabaseAccounts =
                                                     |> List.map (fun p -> {| path = p |})
                                             |}
                                     |}
+                                options = 
+                                    match this.Throughput with
+                                    | Some t -> 
+                                        box 
+                                            {|
+                                                throughput =
+                                                    match t with
+                                                    | Provisioned p -> string p
+                                                    | _ -> null
+                                                autoscaleSettings =
+                                                    match t with
+                                                    | Autoscale a -> box {| maxThroughput = string a |}
+                                                    | _ -> null
+                                            |}
+                                    | None -> null
                             |}
                     |}
 
@@ -89,7 +105,7 @@ module DatabaseAccounts =
         {
             Name: ResourceName
             Account: ResourceName
-            Throughput: Throughput
+            Throughput: Throughput option
             Kind: DatabaseKind
         }
 
@@ -107,16 +123,20 @@ module DatabaseAccounts =
                         {|
                             resource = {| id = this.Name.Value |}
                             options =
-                                {|
-                                    throughput =
-                                        match this.Throughput with
-                                        | Provisioned t -> string t
-                                        | _ -> null
-                                    autoscaleSettings =
-                                        match this.Throughput with
-                                        | Autoscale t -> box {| maxThroughput = string t |}
-                                        | _ -> null
-                                |}
+                                match this.Throughput with
+                                | Some t ->
+                                    box
+                                        {|
+                                            throughput =
+                                                match t with
+                                                | Provisioned t -> string t
+                                                | _ -> null
+                                            autoscaleSettings =
+                                                match t with
+                                                | Autoscale t -> box {| maxThroughput = string t |}
+                                                | _ -> null
+                                        |}
+                                | None -> null
                         |}
                 |}
 
