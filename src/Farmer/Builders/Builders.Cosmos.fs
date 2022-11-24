@@ -133,6 +133,9 @@ type CosmosDbConfig =
                     }
                 | _ -> ()
 
+                if this.DbThroughput.IsNone && this.Containers.Length > 0 && this.Containers |> List.exists(fun x -> x.ContainerThroughput.IsNone) then
+                  raiseFarmer "Either set database throughput, or set throughput against all containers"
+
                 // When we have containers and they all have throughput set, do not set shared (database) throughput.
                 // When only some containers have throughput, set the shared throughput.
                 let dbThroughput =
