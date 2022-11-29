@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.7.12
+* NSG: Added option to modify generated SecurityRule priority step increment
 
 ## 1.7.12
 * WebApps: Added support for .NET 7.

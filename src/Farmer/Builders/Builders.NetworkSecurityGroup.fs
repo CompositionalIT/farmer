@@ -171,6 +171,7 @@ type NsgConfig =
         Name: ResourceName
         SecurityRules: SecurityRuleConfig list
         Tags: Map<string, string>
+        PriorityIncrementor: int
     }
 
     interface IBuilder with
@@ -185,7 +186,7 @@ type NsgConfig =
                         seq {
                             // Policy Rules
                             for priority, rule in List.indexed this.SecurityRules do
-                                buildNsgRule this.Name rule ((priority + 1) * 100)
+                                buildNsgRule this.Name rule (priority * this.PriorityIncrementor + 100)
                         }
                         |> List.ofSeq
                     Tags = this.Tags
@@ -198,6 +199,7 @@ type NsgBuilder() =
             Name = ResourceName.Empty
             SecurityRules = []
             Tags = Map.empty
+            PriorityIncrementor = 100
         }
 
     /// Sets the name of the network security group
@@ -209,6 +211,13 @@ type NsgBuilder() =
     member _.AddSecurityRules(state: NsgConfig, rules) =
         { state with
             SecurityRules = state.SecurityRules @ rules
+        }
+
+    /// First rule is priority 100. After that, this sets how much priority is increased per each rule. Default 100.
+    [<CustomOperation "priority_incr">]
+    member _.PriorityIncrementor(state: NsgConfig, priority_incr) =
+        { state with
+            PriorityIncrementor = priority_incr
         }
 
     interface ITaggable<NsgConfig> with
