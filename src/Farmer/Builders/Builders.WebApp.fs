@@ -70,6 +70,7 @@ type Runtime =
     static member Java8WildFly14 = Java(Java8, WildFly14)
     static member Java8Tomcat90 = Java(Java8, JavaHost.Tomcat90)
     static member Java8Tomcat85 = Java(Java8, JavaHost.Tomcat85)
+    static member DotNet70 = DotNet "7.0"
     static member DotNet60 = DotNet "6.0"
     static member DotNet50 = DotNet "5.0"
     static member AspNet47 = AspNet "4.0"
@@ -614,7 +615,7 @@ type WebAppConfig =
                             match this.Runtime with
                             | AspNet version
                             | DotNet ("5.0" as version)
-                            | DotNet ("6.0" as version) -> Some $"v{version}"
+                            | DotNet version -> Some $"v{version}"
                             | _ -> None
                         JavaVersion =
                             match this.Runtime, this.CommonWebConfig.OperatingSystem with
