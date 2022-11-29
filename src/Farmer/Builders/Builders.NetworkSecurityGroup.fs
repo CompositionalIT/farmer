@@ -213,9 +213,12 @@ type NsgBuilder() =
             SecurityRules = state.SecurityRules @ rules
         }
 
-    /// First rule is priority 100. After that, this sets how much priority is increased per each rule. Default 100. 
+    /// First rule is priority 100. After that, this sets how much priority is increased per each rule. Default 100.
     [<CustomOperation "priority_incr">]
-    member _.PriorityIncrementor(state: NsgConfig, priority_incr) = { state with PriorityIncrementor = priority_incr }
+    member _.PriorityIncrementor(state: NsgConfig, priority_incr) =
+        { state with
+            PriorityIncrementor = priority_incr
+        }
 
     interface ITaggable<NsgConfig> with
         member _.Add state tags =
