@@ -546,7 +546,6 @@ type ServiceBusBuilder() =
         }
 
     member _.Run(state: ServiceBusConfig) =
-
         match state.ZoneRedundant, state.Sku with
         | Some FeatureFlag.Enabled, Standard ->
             raiseFarmer "Zone redundancy can only be enabled against premium service bus namespaces"
@@ -583,13 +582,14 @@ type ServiceBusBuilder() =
     [<CustomOperation "enable_zone_redundancy">]
     member _.EnableZoneRedundancy(state: ServiceBusConfig, ?flag: FeatureFlag) =
         let flag = defaultArg flag FeatureFlag.Enabled
-        { state with ZoneRedundant = Some flag }
+        { state with
+            ZoneRedundant = Some flag
+        }
 
     /// Disable public network access
     [<CustomOperation "disable_public_network_access">]
     member _.DisablePublicNetworkAccess(state: ServiceBusConfig, ?flag: FeatureFlag) =
         let flag = defaultArg flag FeatureFlag.Enabled
-
         { state with
             DisablePublicNetworkAccess = Some flag
         }
