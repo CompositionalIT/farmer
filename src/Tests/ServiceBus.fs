@@ -44,6 +44,10 @@ let dummyClient =
 let getResourceAtIndex o =
     o |> getResourceAtIndex dummyClient.SerializationSettings
 
+let parseTemplate (arm:ResourceGroupConfig) = 
+    let json = arm.Template |> Writer.toJson
+    Newtonsoft.Json.Linq.JObject.Parse(json)
+
 let tests =
     testList
         "Service Bus Tests"
@@ -86,6 +90,88 @@ let tests =
                 Expect.throws
                     (fun _ -> serviceBus { name "c347834e-3f04-409c-b26b-c5ed702dea0b" } |> ignore)
                     "Namespace is a guid"
+            }
+
+            test "Public network access can be disabled" {
+                let resourceGroup =
+                    arm {
+                        add_resource (
+                            serviceBus {
+                                name "serviceBus"
+                                sku Standard
+                                disable_public_network_access
+                            }
+                        )
+                    }
+
+                let jobj = parseTemplate resourceGroup
+                Expect.equal (jobj.SelectToken($"resources[0].properties.publicNetworkAccess").ToString()) "Disabled" "Public network access should be disabled"
+            }
+
+            test "Public network access can be toggled" {
+                let resourceGroup =
+                    arm {
+                        add_resource (
+                            serviceBus {
+                                name "serviceBus"
+                                sku Standard
+                                disable_public_network_access
+                                disable_public_network_access FeatureFlag.Disabled
+                            }
+                        )
+                    }
+
+                let jobj = parseTemplate resourceGroup
+                Expect.equal (jobj.SelectToken($"resources[0].properties.publicNetworkAccess").ToString()) "Enabled" "Public network access should be enabled"
+            }
+
+            test "Zone redundancy can be enabled" {
+                let resourceGroup =
+                    arm {
+                        add_resource (
+                            serviceBus {
+                                name "serviceBus"
+                                sku Standard
+                                enable_zone_redundancy
+                            }
+                        )
+                    }
+
+                let jobj = parseTemplate resourceGroup
+                Expect.equal (jobj.SelectToken($"resources[0].properties.zoneRedundant").ToString()) "true" "Zone redundancy should be enabled"
+            }
+
+            test "Zone redundancy can be toggled" {
+                let resourceGroup =
+                    arm {
+                        add_resource (
+                            serviceBus {
+                                name "serviceBus"
+                                sku Standard
+                                enable_zone_redundancy
+                                enable_zone_redundancy FeatureFlag.Disabled
+                            }
+                        )
+                    }
+
+                let jobj = parseTemplate resourceGroup
+                Expect.equal (jobj.SelectToken($"resources[0].properties.zoneRedundant").ToString()) "false" "Zone redundancy should be disabled"
+            }
+
+            test "Min TLS version can be set" {
+                let resourceGroup =
+                    arm {
+                        add_resource (
+                            serviceBus {
+                                name "serviceBus"
+                                sku Standard
+                                min_tls_version TlsVersion.Tls12
+                            }
+                        )
+                    }
+
+                let jobj = parseTemplate resourceGroup
+                Expect.equal (jobj.SelectToken($"resources[0].properties.minimumTlsVersion").ToString()) "1.2" "Min TLS should be 1.2"
             }
 
             testList

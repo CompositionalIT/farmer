@@ -1,6 +1,11 @@
 Release Notes
 =============
 
+## vNext
+* ServiceBus: Add support for disabling public network access
+* ServiceBus: Add support for enabling zone redundancy
+* ServiceBus: Add support for setting the mininum TLS version
+
 ## 1.7.12
 * CDN: Added Wildcard support for `ComparisonOperator`
 * Network Security Groups: Added option to modify generated SecurityRule priority step increment

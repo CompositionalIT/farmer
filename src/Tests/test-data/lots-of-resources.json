@@ -310,10 +310,11 @@
       "type": "Microsoft.Web/sites"
     },
     {
-      "apiVersion": "2017-04-01",
+      "apiVersion": "2022-01-01-preview",
       "dependsOn": [],
       "location": "northeurope",
       "name": "farmerbus1979",
+      "properties": {},
       "sku": {
         "name": "Standard",
         "tier": "Standard"
@@ -322,7 +323,7 @@
       "type": "Microsoft.ServiceBus/namespaces"
     },
     {
-      "apiVersion": "2017-04-01",
+      "apiVersion": "2022-01-01-preview",
       "dependsOn": [
         "[resourceId('Microsoft.ServiceBus/namespaces', 'farmerbus1979')]"
       ],
@@ -331,7 +332,7 @@
       "type": "Microsoft.ServiceBus/namespaces/queues"
     },
     {
-      "apiVersion": "2017-04-01",
+      "apiVersion": "2022-01-01-preview",
       "dependsOn": [
         "[resourceId('Microsoft.ServiceBus/namespaces', 'farmerbus1979')]"
       ],
@@ -340,7 +341,7 @@
       "type": "Microsoft.ServiceBus/namespaces/topics"
     },
     {
-      "apiVersion": "2017-04-01",
+      "apiVersion": "2022-01-01-preview",
       "dependsOn": [
         "[resourceId('Microsoft.ServiceBus/namespaces/topics', 'farmerbus1979', 'topic1')]"
       ],
