@@ -165,6 +165,7 @@ let tests =
                     nsg {
                         name "my-nsg"
                         add_rules [ webPolicy; appPolicy; dbPolicy; blockOutbound ]
+                        priority_incr 50
                     }
 
                 let nsg =
@@ -197,7 +198,7 @@ let tests =
                     Expect.equal rule2.DestinationPortRanges.[0] "8080" ""
                     Expect.equal rule2.Direction "Inbound" ""
                     Expect.equal rule2.Protocol "Tcp" ""
-                    Expect.equal rule2.Priority (Nullable 200) ""
+                    Expect.equal rule2.Priority (Nullable 150) ""
                     Expect.equal rule2.SourceAddressPrefixes.[0] "10.100.30.0/24" ""
                     Expect.equal rule2.SourcePortRanges.Count 0 ""
                     // DB server access
@@ -208,7 +209,7 @@ let tests =
                     Expect.equal rule3.DestinationPortRanges.[0] "5432" ""
                     Expect.equal rule3.Direction "Inbound" ""
                     Expect.equal rule3.Protocol "Tcp" ""
-                    Expect.equal rule3.Priority (Nullable 300) ""
+                    Expect.equal rule3.Priority (Nullable 200) ""
                     Expect.equal rule3.SourceAddressPrefixes.[0] "10.100.31.0/24" ""
                     Expect.equal rule3.SourcePortRanges.Count 0 ""
                     // Block Internet access
@@ -219,7 +220,7 @@ let tests =
                     Expect.equal rule4.DestinationPortRange "*" ""
                     Expect.equal rule4.Direction "Outbound" ""
                     Expect.equal rule4.Protocol "*" ""
-                    Expect.equal rule4.Priority (Nullable 400) ""
+                    Expect.equal rule4.Priority (Nullable 250) ""
                     Expect.containsAll rule4.SourceAddressPrefixes [ "10.100.31.0/24"; "10.100.32.0/24" ] ""
                 | _ -> raiseFarmer "Unexpected number of resources in template."
             }
