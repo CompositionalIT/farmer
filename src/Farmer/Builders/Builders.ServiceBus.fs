@@ -582,14 +582,13 @@ type ServiceBusBuilder() =
     [<CustomOperation "enable_zone_redundancy">]
     member _.EnableZoneRedundancy(state: ServiceBusConfig, ?flag: FeatureFlag) =
         let flag = defaultArg flag FeatureFlag.Enabled
-        { state with
-            ZoneRedundant = Some flag
-        }
+        { state with ZoneRedundant = Some flag }
 
     /// Disable public network access
     [<CustomOperation "disable_public_network_access">]
     member _.DisablePublicNetworkAccess(state: ServiceBusConfig, ?flag: FeatureFlag) =
         let flag = defaultArg flag FeatureFlag.Enabled
+
         { state with
             DisablePublicNetworkAccess = Some flag
         }
