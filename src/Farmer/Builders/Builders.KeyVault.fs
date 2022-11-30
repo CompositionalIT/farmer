@@ -191,6 +191,7 @@ type KeyVaultConfig =
         Uri: Uri option
         Keys: KeyConfig list
         Secrets: SecretConfig list
+        DisablePublicNetworkAccess: FeatureFlag option
         Tags: Map<string, string>
     }
 
@@ -248,6 +249,7 @@ type KeyVaultConfig =
                         Bypass = this.NetworkAcl.Bypass
                         IpRules = this.NetworkAcl.IpRules
                         VnetRules = this.NetworkAcl.VnetRules
+                        DisablePublicNetworkAccess = this.DisablePublicNetworkAccess
                         Tags = this.Tags
                     }
 
@@ -414,6 +416,7 @@ type KeyVaultBuilderState =
         Uri: Uri option
         Secrets: SecretConfig list
         Keys: KeyConfig list
+        DisablePublicNetworkAccess: FeatureFlag option
         Tags: Map<string, string>
     }
 
@@ -443,6 +446,7 @@ type KeyVaultBuilder() =
             Uri = None
             Secrets = []
             Keys = []
+            DisablePublicNetworkAccess = None
             Tags = Map.empty
         }
 
@@ -464,6 +468,7 @@ type KeyVaultBuilder() =
             Keys = state.Keys
             Secrets = state.Secrets
             Uri = state.Uri
+            DisablePublicNetworkAccess = state.DisablePublicNetworkAccess
             Tags = state.Tags
         }
 
@@ -711,6 +716,12 @@ type KeyVaultBuilder() =
 
     member this.AddSecrets(state: KeyVaultBuilderState, items) =
         this.AddSecrets(state, items |> Seq.map (fun (key, value) -> SecretConfig.create (key, value)))
+
+    /// Disable public network access
+    [<CustomOperation "disable_public_network_access">]
+    member _.DisablePublicNetworkAccess(state: KeyVaultBuilderState, ?flag:FeatureFlag) = 
+        let flag = defaultArg flag FeatureFlag.Enabled
+        { state with DisablePublicNetworkAccess = Some flag }
 
     interface ITaggable<KeyVaultBuilderState> with
         member _.Add state tags =

@@ -338,4 +338,29 @@ let tests =
                 let ruleId = string rules.[0].["id"]
                 Expect.equal vnetId ruleId "The setup network rule should match the used vnetId"
             }
+            test "Public network access can be toggled" {
+                let vault =
+                    keyVault {
+                        name "TestFarmVault"
+                        disable_public_network_access
+                        disable_public_network_access FeatureFlag.Disabled
+                    }
+
+                let deployment = arm { add_resource vault }
+                let jobj = JObject.Parse(deployment.Template |> Writer.toJson)
+
+                Expect.equal (jobj.SelectToken("resources[0].properties.publicNetworkAccess").ToString()) "Enabled" "public network access should be enabled"
+            }
+            test "Public network access can be disabled" {
+                let vault =
+                    keyVault {
+                        name "TestFarmVault"
+                        disable_public_network_access
+                    }
+
+                let deployment = arm { add_resource vault }
+                let jobj = JObject.Parse(deployment.Template |> Writer.toJson)
+
+                Expect.equal (jobj.SelectToken("resources[0].properties.publicNetworkAccess").ToString()) "Disabled" "public network access should be disabled"
+            }
         ]
