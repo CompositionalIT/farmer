@@ -191,7 +191,7 @@ type StorageAccount =
                             | Some Tls11 -> "TLS1_1"
                             | Some Tls12 -> "TLS1_2"
                             | None -> null
-                        dnsEndpointType = 
+                        dnsEndpointType =
                             match this.DnsZoneType with
                             | Some s -> s
                             | None -> null
