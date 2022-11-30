@@ -534,7 +534,7 @@ type StorageAccountBuilder() =
 
     /// Restrict access to this storage account to the private endpoints and azure services.
     [<CustomOperation "restrict_to_azure_services">]
-    member _.RestrictToAzureServices(state: StorageAccountConfig, bypass: NetworkRuleSetBypass list) =        
+    member _.RestrictToAzureServices(state: StorageAccountConfig, bypass: NetworkRuleSetBypass list) =
         match state.NetworkAcls with
         | None ->
             { state with
