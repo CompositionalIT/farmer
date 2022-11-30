@@ -1,13 +1,10 @@
 Release Notes
 =============
-## 1.7.12
-* NSG: Added option to modify generated SecurityRule priority step increment
 
 ## 1.7.12
+* CDN: Added Wildcard support for `ComparisonOperator`
+* Network Security Groups: Added option to modify generated SecurityRule priority step increment
 * WebApps: Added support for .NET 7.
-
-##vNext
-* ComparisonOperator: Added Wildcard support
 
 ## 1.7.11
 * Dedicated Hosts: Support for Host Groups and Hosts
