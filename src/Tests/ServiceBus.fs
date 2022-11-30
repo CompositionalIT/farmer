@@ -139,7 +139,7 @@ let tests =
                         add_resource (
                             serviceBus {
                                 name "serviceBus"
-                                sku Standard
+                                sku (Premium MessagingUnits.OneUnit)
                                 enable_zone_redundancy
                             }
                         )
@@ -159,7 +159,7 @@ let tests =
                         add_resource (
                             serviceBus {
                                 name "serviceBus"
-                                sku Standard
+                                sku (Premium MessagingUnits.OneUnit)
                                 enable_zone_redundancy
                                 enable_zone_redundancy FeatureFlag.Disabled
                             }
@@ -172,6 +172,18 @@ let tests =
                     (jobj.SelectToken($"resources[0].properties.zoneRedundant").ToString())
                     "false"
                     "Zone redundancy should be disabled"
+            }
+
+            test "Zone redundancy cannot be set against standard SKU namespace" {
+                Expect.throws
+                    (fun () ->
+                        serviceBus {
+                            name "serviceBus"
+                            sku Standard
+                            enable_zone_redundancy
+                        }
+                        |> ignore)
+                    "Zone redundancy can only be enabled against premium service bus namespaces"
             }
 
             test "Min TLS version can be set" {

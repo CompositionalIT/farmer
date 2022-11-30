@@ -546,7 +546,11 @@ type ServiceBusBuilder() =
         }
 
     member _.Run(state: ServiceBusConfig) =
-        let isBetween min max v = v >= min && v <= max
+
+        match state.ZoneRedundant, state.Sku with
+        | Some FeatureFlag.Enabled, Standard ->
+            raiseFarmer "Zone redundancy can only be enabled against premium service bus namespaces"
+        | _ -> ()
 
         for queue in state.Queues do
             let queue = queue.Value
