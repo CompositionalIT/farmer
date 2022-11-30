@@ -685,6 +685,11 @@ let tests =
                         .SelectToken("resources[0].properties.networkAcls.virtualNetworkRules")
                         .Values<string>())
                     "network acl should not define vnet restrictions"
+
+                Expect.equal
+                    (jobj.SelectToken("resources[0].properties.publicNetworkAccess").ToString())
+                    "Enabled"
+                    "public network access should be disabled"
             }
 
             test "Blob public access can be disabled" {
