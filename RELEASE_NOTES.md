@@ -1,6 +1,11 @@
 Release Notes
 =============
 
+## vNext
+
+* KeyVault: Added support for disabling public network access.
+* KeyVault: Added missing key permissions (GetRotationPolicy, SetRotationPolicy, Rotate)
+
 ## 1.7.12
 * CDN: Added Wildcard support for `ComparisonOperator`
 * Network Security Groups: Added option to modify generated SecurityRule priority step increment
