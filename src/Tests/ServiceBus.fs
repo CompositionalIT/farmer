@@ -44,7 +44,7 @@ let dummyClient =
 let getResourceAtIndex o =
     o |> getResourceAtIndex dummyClient.SerializationSettings
 
-let parseTemplate (arm:ResourceGroupConfig) = 
+let parseTemplate (arm: ResourceGroupConfig) =
     let json = arm.Template |> Writer.toJson
     Newtonsoft.Json.Linq.JObject.Parse(json)
 
@@ -105,7 +105,11 @@ let tests =
                     }
 
                 let jobj = parseTemplate resourceGroup
-                Expect.equal (jobj.SelectToken($"resources[0].properties.publicNetworkAccess").ToString()) "Disabled" "Public network access should be disabled"
+
+                Expect.equal
+                    (jobj.SelectToken($"resources[0].properties.publicNetworkAccess").ToString())
+                    "Disabled"
+                    "Public network access should be disabled"
             }
 
             test "Public network access can be toggled" {
@@ -122,7 +126,11 @@ let tests =
                     }
 
                 let jobj = parseTemplate resourceGroup
-                Expect.equal (jobj.SelectToken($"resources[0].properties.publicNetworkAccess").ToString()) "Enabled" "Public network access should be enabled"
+
+                Expect.equal
+                    (jobj.SelectToken($"resources[0].properties.publicNetworkAccess").ToString())
+                    "Enabled"
+                    "Public network access should be enabled"
             }
 
             test "Zone redundancy can be enabled" {
@@ -138,7 +146,11 @@ let tests =
                     }
 
                 let jobj = parseTemplate resourceGroup
-                Expect.equal (jobj.SelectToken($"resources[0].properties.zoneRedundant").ToString()) "true" "Zone redundancy should be enabled"
+
+                Expect.equal
+                    (jobj.SelectToken($"resources[0].properties.zoneRedundant").ToString())
+                    "true"
+                    "Zone redundancy should be enabled"
             }
 
             test "Zone redundancy can be toggled" {
@@ -155,7 +167,11 @@ let tests =
                     }
 
                 let jobj = parseTemplate resourceGroup
-                Expect.equal (jobj.SelectToken($"resources[0].properties.zoneRedundant").ToString()) "false" "Zone redundancy should be disabled"
+
+                Expect.equal
+                    (jobj.SelectToken($"resources[0].properties.zoneRedundant").ToString())
+                    "false"
+                    "Zone redundancy should be disabled"
             }
 
             test "Min TLS version can be set" {
@@ -171,7 +187,11 @@ let tests =
                     }
 
                 let jobj = parseTemplate resourceGroup
-                Expect.equal (jobj.SelectToken($"resources[0].properties.minimumTlsVersion").ToString()) "1.2" "Min TLS should be 1.2"
+
+                Expect.equal
+                    (jobj.SelectToken($"resources[0].properties.minimumTlsVersion").ToString())
+                    "1.2"
+                    "Min TLS should be 1.2"
             }
 
             testList

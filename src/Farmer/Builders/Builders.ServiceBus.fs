@@ -577,19 +577,22 @@ type ServiceBusBuilder() =
 
     /// Enable zone redundancy
     [<CustomOperation "enable_zone_redundancy">]
-    member _.EnableZoneRedundancy(state: ServiceBusConfig, ?flag:FeatureFlag) = 
+    member _.EnableZoneRedundancy(state: ServiceBusConfig, ?flag: FeatureFlag) =
         let flag = defaultArg flag FeatureFlag.Enabled
         { state with ZoneRedundant = Some flag }
 
     /// Disable public network access
     [<CustomOperation "disable_public_network_access">]
-    member _.DisablePublicNetworkAccess(state: ServiceBusConfig, ?flag:FeatureFlag) = 
+    member _.DisablePublicNetworkAccess(state: ServiceBusConfig, ?flag: FeatureFlag) =
         let flag = defaultArg flag FeatureFlag.Enabled
-        { state with DisablePublicNetworkAccess = Some flag }
+
+        { state with
+            DisablePublicNetworkAccess = Some flag
+        }
 
     /// Set minimum TLS version
     [<CustomOperation "min_tls_version">]
-    member _.SetMinTlsVersion(state: ServiceBusConfig, minTlsVersion:TlsVersion) =
+    member _.SetMinTlsVersion(state: ServiceBusConfig, minTlsVersion: TlsVersion) =
         { state with
             MinTlsVersion = Some minTlsVersion
         }
