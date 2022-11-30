@@ -598,20 +598,6 @@ let tests =
                 Expect.equal resource.MinimumTlsVersion "TLS1_2" "Min TLS version is wrong"
             }
 
-            test "dnsEndpointType is standard by default" {
-                let resource =
-                    let account = storageAccount { name "mystorage123" }
-                    arm { add_resource account }
-
-                let jsn = resource.Template |> Writer.toJson
-                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
-
-                Expect.equal
-                    (jobj.SelectToken("resources[0].properties.dnsEndpointType").ToString())
-                    "Standard"
-                    "dnsEndpointType should be standard by default"
-            }
-
             test "dnsEndpointType can be set to AzureDnsZone" {
                 let resource =
                     let account =
@@ -635,20 +621,6 @@ let tests =
                 Expect.throws
                     (fun () -> storageAccount { sku Sku.Standard_ZRS } |> ignore)
                     "Must set a name on a storage account"
-            }
-
-            test "Public network access is enabled by default" {
-                let resource =
-                    let account = storageAccount { name "mystorage123" }
-                    arm { add_resource account }
-
-                let jsn = resource.Template |> Writer.toJson
-                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
-
-                Expect.equal
-                    (jobj.SelectToken("resources[0].properties.publicNetworkAccess").ToString())
-                    "Enabled"
-                    "public network access should be enabled by default"
             }
 
             test "Public network access can be disabled" {
@@ -715,20 +687,6 @@ let tests =
                     "network acl should not define vnet restrictions"
             }
 
-            test "Blob public access is enabled by default" {
-                let resource =
-                    let account = storageAccount { name "mystorage123" }
-                    arm { add_resource account }
-
-                let jsn = resource.Template |> Writer.toJson
-                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
-
-                Expect.equal
-                    (jobj.SelectToken("resources[0].properties.allowBlobPublicAccess").ToString())
-                    "true"
-                    "blob public access should be enabled by default"
-            }
-
             test "Blob public access can be disabled" {
                 let resource =
                     let account =
@@ -768,20 +726,6 @@ let tests =
                     "blob public access should be enabled"
             }
 
-            test "Shared key access is enabled by default" {
-                let resource =
-                    let account = storageAccount { name "mystorage123" }
-                    arm { add_resource account }
-
-                let jsn = resource.Template |> Writer.toJson
-                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
-
-                Expect.equal
-                    (jobj.SelectToken("resources[0].properties.allowSharedKeyAccess").ToString())
-                    "true"
-                    "shared key access should be enabled by default"
-            }
-
             test "Shared key access can be disabled" {
                 let resource =
                     let account =
@@ -819,22 +763,6 @@ let tests =
                     (jobj.SelectToken("resources[0].properties.allowSharedKeyAccess").ToString())
                     "true"
                     "shared key access should be enabled"
-            }
-
-            test "Default to OAuth is enabled by default" {
-                let resource =
-                    let account = storageAccount { name "mystorage123" }
-                    arm { add_resource account }
-
-                let jsn = resource.Template |> Writer.toJson
-                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
-
-                Expect.equal
-                    (jobj
-                        .SelectToken("resources[0].properties.defaultToOAuthAuthentication")
-                        .ToString())
-                    "false"
-                    "default to OAuth should be disabled by default"
             }
 
             test "Default to OAuth can be disabled" {

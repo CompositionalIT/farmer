@@ -69,15 +69,15 @@ type StorageAccountConfig =
         /// Tags to apply to the storage account
         Tags: Map<string, string>
         /// DNS endpoint type
-        DnsZoneType: string
+        DnsZoneType: string option
         /// Disable Public Network Acccess
-        DisablePublicNetworkAccess: FeatureFlag
+        DisablePublicNetworkAccess: FeatureFlag option
         /// Disable blob public access
-        DisableBlobPublicAccess: FeatureFlag
+        DisableBlobPublicAccess: FeatureFlag option
         /// Disable Shared Key Access
-        DisableSharedKeyAccess: FeatureFlag
+        DisableSharedKeyAccess: FeatureFlag option
         /// Default to Azure Active Directory authorization in the Azure portal
-        DefaultToOAuthAuthentication: FeatureFlag
+        DefaultToOAuthAuthentication: FeatureFlag option
     }
 
     /// Gets the ARM expression path to the key of this storage account.
@@ -236,11 +236,11 @@ type StorageAccountBuilder() =
             IsVersioningEnabled = []
             MinTlsVersion = None
             Tags = Map.empty
-            DnsZoneType = "Standard"
-            DisablePublicNetworkAccess = FeatureFlag.Disabled
-            DisableBlobPublicAccess = FeatureFlag.Disabled
-            DisableSharedKeyAccess = FeatureFlag.Disabled
-            DefaultToOAuthAuthentication = FeatureFlag.Disabled
+            DnsZoneType = None
+            DisablePublicNetworkAccess = None
+            DisableBlobPublicAccess = None
+            DisableSharedKeyAccess = None
+            DefaultToOAuthAuthentication = None
         }
 
     member _.Run state =
@@ -588,14 +588,14 @@ type StorageAccountBuilder() =
     [<CustomOperation "use_azure_dns_zone">]
     member _.SetDnsEndpointType(state: StorageAccountConfig) =
         { state with
-            DnsZoneType = "AzureDnsZone"
+            DnsZoneType = Some "AzureDnsZone"
         }
 
     /// Disable public network access, all access must be through a private endpoint.
     [<CustomOperation "disable_public_network_access">]
     member _.DisablePublicNetworkAccess(state: StorageAccountConfig) =
         { state with
-            DisablePublicNetworkAccess = FeatureFlag.Enabled
+            DisablePublicNetworkAccess = Some FeatureFlag.Enabled
             NetworkAcls =
                 {
                     Bypass = set [ NetworkRuleSetBypass.None ]
@@ -612,7 +612,7 @@ type StorageAccountBuilder() =
         let flag = defaultArg flag FeatureFlag.Enabled
 
         { state with
-            DisableBlobPublicAccess = flag
+            DisableBlobPublicAccess = Some flag
         }
 
     /// Disable shared key access
@@ -621,7 +621,7 @@ type StorageAccountBuilder() =
         let flag = defaultArg flag FeatureFlag.Enabled
 
         { state with
-            DisableSharedKeyAccess = flag
+            DisableSharedKeyAccess = Some flag
         }
 
     /// Default to Azure Active Directory authorization in the Azure portal
@@ -630,7 +630,7 @@ type StorageAccountBuilder() =
         let flag = defaultArg flag FeatureFlag.Enabled
 
         { state with
-            DefaultToOAuthAuthentication = flag
+            DefaultToOAuthAuthentication = Some flag
         }
 
     interface ITaggable<StorageAccountConfig> with

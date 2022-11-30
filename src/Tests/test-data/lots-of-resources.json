@@ -88,13 +88,7 @@
       "kind": "StorageV2",
       "location": "northeurope",
       "name": "farmerstorage1979",
-      "properties": {
-        "allowBlobPublicAccess": "true",
-        "allowSharedKeyAccess": "true",
-        "defaultToOAuthAuthentication": "false",
-        "dnsEndpointType": "Standard",
-        "publicNetworkAccess": "Enabled"
-      },
+      "properties": {},
       "sku": {
         "name": "Standard_LRS"
       },
@@ -234,13 +228,7 @@
       "kind": "StorageV2",
       "location": "northeurope",
       "name": "farmerfuncs1979storage",
-      "properties": {
-        "allowBlobPublicAccess": "true",
-        "allowSharedKeyAccess": "true",
-        "defaultToOAuthAuthentication": "false",
-        "dnsEndpointType": "Standard",
-        "publicNetworkAccess": "Enabled"
-      },
+      "properties": {},
       "sku": {
         "name": "Standard_LRS"
       },
@@ -796,13 +784,7 @@
       "kind": "StorageV2",
       "location": "northeurope",
       "name": "dockerfuncstorage",
-      "properties": {
-        "allowBlobPublicAccess": "true",
-        "allowSharedKeyAccess": "true",
-        "defaultToOAuthAuthentication": "false",
-        "dnsEndpointType": "Standard",
-        "publicNetworkAccess": "Enabled"
-      },
+      "properties": {},
       "sku": {
         "name": "Standard_LRS"
       },

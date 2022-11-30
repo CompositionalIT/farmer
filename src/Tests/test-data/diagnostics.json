@@ -10,13 +10,7 @@
       "kind": "StorageV2",
       "location": "northeurope",
       "name": "isaacsuperdata",
-      "properties": {
-        "allowBlobPublicAccess": "true",
-        "allowSharedKeyAccess": "true",
-        "defaultToOAuthAuthentication": "false",
-        "dnsEndpointType": "Standard",
-        "publicNetworkAccess": "Enabled"
-      },
+      "properties": {},
       "sku": {
         "name": "Standard_LRS"
       },

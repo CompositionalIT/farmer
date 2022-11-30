@@ -106,11 +106,11 @@ type StorageAccount =
                           ErrorPage: string option
                           ContentPath: string |} option
         MinTlsVersion: TlsVersion option
-        DnsZoneType: string
-        DisablePublicNetworkAccess: FeatureFlag
-        DisableBlobPublicAccess: FeatureFlag
-        DisableSharedKeyAccess: FeatureFlag
-        DefaultToOAuthAuthentication: FeatureFlag
+        DnsZoneType: string option
+        DisablePublicNetworkAccess: FeatureFlag option
+        DisableBlobPublicAccess: FeatureFlag option
+        DisableSharedKeyAccess: FeatureFlag option
+        DefaultToOAuthAuthentication: FeatureFlag option
         Tags: Map<string, string>
     }
 
@@ -191,23 +191,30 @@ type StorageAccount =
                             | Some Tls11 -> "TLS1_1"
                             | Some Tls12 -> "TLS1_2"
                             | None -> null
-                        dnsEndpointType = this.DnsZoneType
+                        dnsEndpointType = 
+                            match this.DnsZoneType with
+                            | Some s -> s
+                            | None -> null
                         publicNetworkAccess =
                             match this.DisablePublicNetworkAccess with
-                            | FeatureFlag.Disabled -> "Enabled"
-                            | FeatureFlag.Enabled -> "Disabled"
+                            | Some FeatureFlag.Disabled -> "Enabled"
+                            | Some FeatureFlag.Enabled -> "Disabled"
+                            | None -> null
                         allowBlobPublicAccess =
                             match this.DisableBlobPublicAccess with
-                            | FeatureFlag.Disabled -> "true"
-                            | FeatureFlag.Enabled -> "false"
+                            | Some FeatureFlag.Disabled -> "true"
+                            | Some FeatureFlag.Enabled -> "false"
+                            | None -> null
                         allowSharedKeyAccess =
                             match this.DisableSharedKeyAccess with
-                            | FeatureFlag.Disabled -> "true"
-                            | FeatureFlag.Enabled -> "false"
+                            | Some FeatureFlag.Disabled -> "true"
+                            | Some FeatureFlag.Enabled -> "false"
+                            | None -> null
                         defaultToOAuthAuthentication =
                             match this.DefaultToOAuthAuthentication with
-                            | FeatureFlag.Disabled -> "false"
-                            | FeatureFlag.Enabled -> "true"
+                            | Some FeatureFlag.Disabled -> "false"
+                            | Some FeatureFlag.Enabled -> "true"
+                            | None -> null
                     |}
             |}
 
