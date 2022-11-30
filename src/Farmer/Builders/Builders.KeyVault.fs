@@ -719,9 +719,12 @@ type KeyVaultBuilder() =
 
     /// Disable public network access
     [<CustomOperation "disable_public_network_access">]
-    member _.DisablePublicNetworkAccess(state: KeyVaultBuilderState, ?flag:FeatureFlag) = 
+    member _.DisablePublicNetworkAccess(state: KeyVaultBuilderState, ?flag: FeatureFlag) =
         let flag = defaultArg flag FeatureFlag.Enabled
-        { state with DisablePublicNetworkAccess = Some flag }
+
+        { state with
+            DisablePublicNetworkAccess = Some flag
+        }
 
     interface ITaggable<KeyVaultBuilderState> with
         member _.Add state tags =

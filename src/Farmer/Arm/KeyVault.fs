@@ -216,11 +216,11 @@ type Vault =
                                 ipRules = this.IpRules
                                 virtualNetworkRules = this.VnetRules |> List.map (fun rule -> {| id = rule |})
                             |}
-                        publicNetworkAccess = 
-                          match this.DisablePublicNetworkAccess with
-                          | Some FeatureFlag.Enabled -> "Disabled"
-                          | Some FeatureFlag.Disabled -> "Enabled"
-                          | None -> null
+                        publicNetworkAccess =
+                            match this.DisablePublicNetworkAccess with
+                            | Some FeatureFlag.Enabled -> "Disabled"
+                            | Some FeatureFlag.Disabled -> "Enabled"
+                            | None -> null
                     |}
             |}
 
