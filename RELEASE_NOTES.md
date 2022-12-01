@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+## 1.7.13
+* Network Security Groups: Added option to set priority for initial SecurityRule.
+
+
 ## 1.7.12
 * CDN: Added Wildcard support for `ComparisonOperator`
 * Network Security Groups: Added option to modify generated SecurityRule priority step increment

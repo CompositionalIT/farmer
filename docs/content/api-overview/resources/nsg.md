@@ -17,7 +17,8 @@ The Network Security Group builder creates network security groups with rules fo
 |-|-|-|
 | nsg | name | Specifies the name of the network security group |
 | nsg | add_rules | Adds security rules to the network security group |
-| nsg | priority_incr | First rule is priority 100. After that, this sets how much priority is increased per each rule. Default 100. |
+| nsg | initial_rule_priority | The priority of the first rule, after which each rule gets an incrementally higher value. Default 100. |
+| nsg | priority_incr | This sets how much priority is increased per each rule. Default 100. |
 | securityRule | name | The name of the security rule |
 | securityRule | description | The description  of the security rule |
 | securityRule | services | The services port(s) and protocol(s) protected by this security rule |
