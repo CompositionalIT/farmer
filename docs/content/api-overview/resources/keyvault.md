@@ -88,6 +88,7 @@ The `keyVault` builder contains access policies, secrets, and configuration info
 | add_vnet_rule | Adds a virtual network rule. This is the full resource id of a vnet subnet, such as '/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/subnet1'. |
 | add_secret | Adds a secret to the vault. This can either be a "full" secret config created using the Secret Builder, a string literal value which represents the parameter name, or a string literal with a resource and an expression based on that resource e.g. a storage account and the Key member. |
 | add_secrets | Adds multiple secrets to the vault. This can either be "full" secret configs created using the Secret Builder, string literal values which represents the parameter name. |
+| disable_public_network_access | Disables public network access to the vault. |
 | add_tag | Adds a tag to the key vault. |
 | add_tags | Adds multiple tags to the key vault. |
 

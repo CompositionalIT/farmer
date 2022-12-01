@@ -5,7 +5,7 @@ open Farmer
 open Farmer.Storage
 
 let storageAccounts =
-    ResourceType("Microsoft.Storage/storageAccounts", "2019-06-01")
+    ResourceType("Microsoft.Storage/storageAccounts", "2022-05-01")
 
 let blobServices =
     ResourceType("Microsoft.Storage/storageAccounts/blobServices", "2019-06-01")
@@ -106,6 +106,11 @@ type StorageAccount =
                           ErrorPage: string option
                           ContentPath: string |} option
         MinTlsVersion: TlsVersion option
+        DnsZoneType: string option
+        DisablePublicNetworkAccess: FeatureFlag option
+        DisableBlobPublicAccess: FeatureFlag option
+        DisableSharedKeyAccess: FeatureFlag option
+        DefaultToOAuthAuthentication: FeatureFlag option
         Tags: Map<string, string>
     }
 
@@ -185,6 +190,30 @@ type StorageAccount =
                             | Some Tls10 -> "TLS1_0"
                             | Some Tls11 -> "TLS1_1"
                             | Some Tls12 -> "TLS1_2"
+                            | None -> null
+                        dnsEndpointType =
+                            match this.DnsZoneType with
+                            | Some s -> s
+                            | None -> null
+                        publicNetworkAccess =
+                            match this.DisablePublicNetworkAccess with
+                            | Some FeatureFlag.Disabled -> "Enabled"
+                            | Some FeatureFlag.Enabled -> "Disabled"
+                            | None -> null
+                        allowBlobPublicAccess =
+                            match this.DisableBlobPublicAccess with
+                            | Some FeatureFlag.Disabled -> "true"
+                            | Some FeatureFlag.Enabled -> "false"
+                            | None -> null
+                        allowSharedKeyAccess =
+                            match this.DisableSharedKeyAccess with
+                            | Some FeatureFlag.Disabled -> "true"
+                            | Some FeatureFlag.Enabled -> "false"
+                            | None -> null
+                        defaultToOAuthAuthentication =
+                            match this.DefaultToOAuthAuthentication with
+                            | Some FeatureFlag.Disabled -> "false"
+                            | Some FeatureFlag.Enabled -> "true"
                             | None -> null
                     |}
             |}

@@ -50,7 +50,9 @@ The Service Bus builder creates service bus namespaces and their associated queu
 | Namespace | sku | The ServiceBusNamespaceSku e.g. Standard |
 | Namespace | namespace_name | The name of the namespace that holds the queue. |
 | Namespace | depends_on | [Sets dependencies on the service bus namespace.](../../dependencies/) |
-| Namespace | add_authorization_rule | Adds an authorization rule to the namespace. |
+| Namespace | enable_zone_redundancy | Enables zone redundancy. |
+| Namespace | disable_public_network_access | Disables public network access to the namespace. |
+| Namespace | min_tls_version | Set the minimum TLS version for clients connecting to the namespace. |
 
 #### Configuration Members
 
