@@ -378,6 +378,11 @@ type FunctionsConfig =
                         EnableHierarchicalNamespace = None
                         MinTlsVersion = None
                         Tags = this.Tags
+                        DnsZoneType = None
+                        DisablePublicNetworkAccess = None
+                        DisableBlobPublicAccess = None
+                        DisableSharedKeyAccess = None
+                        DefaultToOAuthAuthentication = None
                     }
                 | _ -> ()
 
