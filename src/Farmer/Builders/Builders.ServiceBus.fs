@@ -464,6 +464,9 @@ type ServiceBusConfig =
         Queues: Map<ResourceName, ServiceBusQueueConfig>
         Topics: Map<ResourceName, ServiceBusTopicConfig>
         AuthorizationRules: Map<ResourceName, AuthorizationRuleRight Set>
+        ZoneRedundant: FeatureFlag option
+        DisablePublicNetworkAccess: FeatureFlag option
+        MinTlsVersion: TlsVersion option
         Tags: Map<string, string>
     }
 
@@ -488,6 +491,9 @@ type ServiceBusConfig =
                     Location = location
                     Sku = this.Sku
                     Dependencies = this.Dependencies
+                    DisablePublicNetworkAccess = this.DisablePublicNetworkAccess
+                    ZoneRedundant = this.ZoneRedundant
+                    MinTlsVersion = this.MinTlsVersion
                     Tags = this.Tags
                 }
 
@@ -533,11 +539,17 @@ type ServiceBusBuilder() =
             Topics = Map.empty
             Dependencies = Set.empty
             AuthorizationRules = Map.empty
+            DisablePublicNetworkAccess = None
+            ZoneRedundant = None
+            MinTlsVersion = None
             Tags = Map.empty
         }
 
     member _.Run(state: ServiceBusConfig) =
-        let isBetween min max v = v >= min && v <= max
+        match state.ZoneRedundant, state.Sku with
+        | Some FeatureFlag.Enabled, Standard ->
+            raiseFarmer "Zone redundancy can only be enabled against premium service bus namespaces"
+        | _ -> ()
 
         for queue in state.Queues do
             let queue = queue.Value
@@ -565,6 +577,28 @@ type ServiceBusBuilder() =
     /// The SKU of the namespace.
     [<CustomOperation "sku">]
     member _.Sku(state: ServiceBusConfig, sku) = { state with Sku = sku }
+
+    /// Enable zone redundancy
+    [<CustomOperation "enable_zone_redundancy">]
+    member _.EnableZoneRedundancy(state: ServiceBusConfig, ?flag: FeatureFlag) =
+        let flag = defaultArg flag FeatureFlag.Enabled
+        { state with ZoneRedundant = Some flag }
+
+    /// Disable public network access
+    [<CustomOperation "disable_public_network_access">]
+    member _.DisablePublicNetworkAccess(state: ServiceBusConfig, ?flag: FeatureFlag) =
+        let flag = defaultArg flag FeatureFlag.Enabled
+
+        { state with
+            DisablePublicNetworkAccess = Some flag
+        }
+
+    /// Set minimum TLS version
+    [<CustomOperation "min_tls_version">]
+    member _.SetMinTlsVersion(state: ServiceBusConfig, minTlsVersion: TlsVersion) =
+        { state with
+            MinTlsVersion = Some minTlsVersion
+        }
 
     [<CustomOperation "add_queues">]
     member _.AddQueues(state: ServiceBusConfig, queues) =

@@ -9,21 +9,26 @@ let private tryGetIso (v: IsoDateTime option) =
     v |> Option.map (fun v -> v.Value) |> Option.toObj
 
 let subscriptions =
-    ResourceType("Microsoft.ServiceBus/namespaces/topics/subscriptions", "2017-04-01")
+    ResourceType("Microsoft.ServiceBus/namespaces/topics/subscriptions", "2022-01-01-preview")
 
-let queues = ResourceType("Microsoft.ServiceBus/namespaces/queues", "2017-04-01")
-let topics = ResourceType("Microsoft.ServiceBus/namespaces/topics", "2017-04-01")
-let namespaces = ResourceType("Microsoft.ServiceBus/namespaces", "2017-04-01")
+let queues =
+    ResourceType("Microsoft.ServiceBus/namespaces/queues", "2022-01-01-preview")
+
+let topics =
+    ResourceType("Microsoft.ServiceBus/namespaces/topics", "2022-01-01-preview")
+
+let namespaces =
+    ResourceType("Microsoft.ServiceBus/namespaces", "2022-01-01-preview")
 
 let queueAuthorizationRules =
-    ResourceType("Microsoft.ServiceBus/namespaces/queues/authorizationRules", "2017-04-01")
+    ResourceType("Microsoft.ServiceBus/namespaces/queues/authorizationRules", "2022-01-01-preview")
 
 let namespaceAuthorizationRules =
-    ResourceType("Microsoft.ServiceBus/namespaces/AuthorizationRules", "2017-04-01")
+    ResourceType("Microsoft.ServiceBus/namespaces/AuthorizationRules", "2022-01-01-preview")
 
 module Namespaces =
     module Topics =
-        let rules = ResourceType("Rules", "2017-04-01")
+        let rules = ResourceType("Rules", "2022-01-01-preview")
 
         type Subscription =
             {
@@ -213,6 +218,9 @@ type Namespace =
         Location: Location
         Sku: Sku
         Dependencies: ResourceId Set
+        ZoneRedundant: FeatureFlag option
+        DisablePublicNetworkAccess: FeatureFlag option
+        MinTlsVersion: TlsVersion option
         Tags: Map<string, string>
     }
 
@@ -234,5 +242,24 @@ type Namespace =
                         name = this.Sku.NameArmValue
                         tier = this.Sku.TierArmValue
                         capacity = this.Capacity |> Option.toNullable
+                    |}
+                properties =
+                    {|
+                        minimumTlsVersion =
+                            match this.MinTlsVersion with
+                            | Some Tls10 -> "1.0"
+                            | Some Tls11 -> "1.1"
+                            | Some Tls12 -> "1.2"
+                            | None -> null
+                        publicNetworkAccess =
+                            match this.DisablePublicNetworkAccess with
+                            | Some FeatureFlag.Enabled -> "Disabled"
+                            | Some FeatureFlag.Disabled -> "Enabled"
+                            | None -> null
+                        zoneRedundant =
+                            match this.ZoneRedundant with
+                            | Some FeatureFlag.Enabled -> "true"
+                            | Some FeatureFlag.Disabled -> "false"
+                            | None -> null
                     |}
             |}

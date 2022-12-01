@@ -4,6 +4,9 @@ Release Notes
 ## 1.7.13
 * KeyVault: Added support for disabling public network access.
 * KeyVault: Added missing key permissions (GetRotationPolicy, SetRotationPolicy, Rotate)
+* ServiceBus: Add support for disabling public network access
+* ServiceBus: Add support for enabling zone redundancy
+* ServiceBus: Add support for setting the mininum TLS version
 * Storage Accounts: Support for disabling public network access
 * Storage Accounts: Support for restricting access to azure services without also specifying a vnet/subnet (useful when access is already controlled by a private endpoint but you still need to add a bypass for Azure services).
 * Storage Accounts: Support for disabling blob public access
