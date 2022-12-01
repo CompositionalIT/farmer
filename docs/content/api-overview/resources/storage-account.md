@@ -36,12 +36,18 @@ The Storage Account builder creates storage accounts and their associated contai
 | enable_versioning | Enabled versioning for different storage services |
 | restrict_to_ip | Restrict access to a given ip address |
 | restrict_to_subnet | Restrict access to a given virtual network subnet |
+| restrict_to_azure_services | Restrict access to a given set of Azure Services. (Used when access to the storage account already controlled by private endpoint) |
+| disable_public_network_access | Disables public network access to the storage account |
 | use_static_website | Activates static website host, and uploads the provided local content as a post-deployment task to the storage with the specified index page |
 | static_website_error_page | Specifies the 404 page to display for static website hosting |
 | enable_data_lake | Enables Azure Data Lake Gen2 support on the storage account |
 | add_lifecycle_policy | Given a rule name, a list of PolicyActions and a list of string filters, creates a lifecycle policy for the storage account |
 | grant_access | Given a managed identity (can be either user- or system- assigned), and a specific RoleId from the Roles module, grants access to the identity for the provided role. |
 | min_tls_version | Sets the minimum TLS version for the storage account |
+| disable_blob_public_access | Disables public (anonymous) access to blobs for the entire storage account |
+| disable_shared_key_access | Disables shared key access for the storage account |
+| default_to_oauth_authentication | Defaults to OAuth (AAD) authentication for requests to blobs, queues and containers in the Azure portal |
+| use_azure_dns_zone | Change the DNS Endpoint type from `Standard` to `AzureDnsZone` |
 
 
 #### Configuration Members
