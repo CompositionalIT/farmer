@@ -173,8 +173,6 @@ let tests =
                     arm { add_resource myNsg }
                     |> findAzureResources<NetworkSecurityGroup> client.SerializationSettings
 
-                printfn "%A" nsg
-
                 match nsg.Head.SecurityRules |> List.ofSeq with
                 | [ rule1; rule2; rule3; rule4 ] ->
                     // Web server access
