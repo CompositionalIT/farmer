@@ -4,6 +4,7 @@ Release Notes
 ## 1.7.13
 * KeyVault: Added support for disabling public network access.
 * KeyVault: Added missing key permissions (GetRotationPolicy, SetRotationPolicy, Rotate)
+* Network Security Groups: Added option to set priority for initial SecurityRule.
 * ServiceBus: Add support for disabling public network access
 * ServiceBus: Add support for enabling zone redundancy
 * ServiceBus: Add support for setting the mininum TLS version

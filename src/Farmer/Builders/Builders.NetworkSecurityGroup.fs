@@ -171,6 +171,7 @@ type NsgConfig =
         Name: ResourceName
         SecurityRules: SecurityRuleConfig list
         Tags: Map<string, string>
+        InitialRulePriority: int
         PriorityIncrementor: int
     }
 
@@ -186,7 +187,10 @@ type NsgConfig =
                         seq {
                             // Policy Rules
                             for priority, rule in List.indexed this.SecurityRules do
-                                buildNsgRule this.Name rule (priority * this.PriorityIncrementor + 100)
+                                buildNsgRule
+                                    this.Name
+                                    rule
+                                    (priority * this.PriorityIncrementor + this.InitialRulePriority)
                         }
                         |> List.ofSeq
                     Tags = this.Tags
@@ -199,6 +203,7 @@ type NsgBuilder() =
             Name = ResourceName.Empty
             SecurityRules = []
             Tags = Map.empty
+            InitialRulePriority = 100
             PriorityIncrementor = 100
         }
 
@@ -211,6 +216,13 @@ type NsgBuilder() =
     member _.AddSecurityRules(state: NsgConfig, rules) =
         { state with
             SecurityRules = state.SecurityRules @ rules
+        }
+
+    /// Initial rule priority sets the priority of the first rule.
+    [<CustomOperation "initial_rule_priority">]
+    member _.InitialRulePriority(state: NsgConfig, initialPriority) =
+        { state with
+            InitialRulePriority = initialPriority
         }
 
     /// First rule is priority 100. After that, this sets how much priority is increased per each rule. Default 100.
