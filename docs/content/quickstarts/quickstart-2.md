@@ -75,7 +75,7 @@ Also observe the application setting that has been created:
     "appSettings": [
         {
             "name": "storageKey",
-            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=yourfirststorage;AccountKey=', listKeys('yourfirststorage', '2017-10-01').keys[0].value)]"
+            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=yourfirststorage;AccountKey=', listKeys('yourfirststorage', '2022-05-01').keys[0].value)]"
         }
     ]
 }

@@ -13,7 +13,7 @@ type StorageAccount =
     /// Gets an ARM Expression connection string for any Storage Account.
     static member getConnectionString(storageAccount: ResourceId) =
         let expr =
-            $"concat('DefaultEndpointsProtocol=https;AccountName={storageAccount.Name.Value};AccountKey=', listKeys({storageAccount.ArmExpression.Value}, '2017-10-01').keys[0].value)"
+            $"concat('DefaultEndpointsProtocol=https;AccountName={storageAccount.Name.Value};AccountKey=', listKeys({storageAccount.ArmExpression.Value}, '2022-05-01').keys[0].value)"
 
         ArmExpression.create (expr, storageAccount)
 

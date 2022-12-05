@@ -9,6 +9,7 @@ open Microsoft.Azure.Management.Compute.Models
 open Microsoft.Azure.Management.ContainerService
 open Microsoft.Rest
 open System
+open Microsoft.Azure.Management.ContainerService.Models
 
 let dummyClient =
     new ContainerServiceClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
@@ -31,13 +32,13 @@ let tests =
 
                 let aks =
                     template
-                    |> findAzureResources<ContainerService> dummyClient.SerializationSettings
+                    |> findAzureResources<ManagedCluster> dummyClient.SerializationSettings
                     |> Seq.head
 
                 Expect.equal aks.Name "aks-cluster" ""
                 Expect.hasLength aks.AgentPoolProfiles 1 ""
                 Expect.equal aks.AgentPoolProfiles.[0].Name "nodepool1" ""
-                Expect.equal aks.AgentPoolProfiles.[0].Count 3 ""
+                Expect.equal aks.AgentPoolProfiles.[0].Count (Nullable 3) ""
                 let json = template.Template |> Writer.toJson
                 let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
 
@@ -57,13 +58,13 @@ let tests =
 
                 let aks =
                     template
-                    |> findAzureResources<ContainerService> dummyClient.SerializationSettings
+                    |> findAzureResources<ManagedCluster> dummyClient.SerializationSettings
                     |> Seq.head
 
                 Expect.equal aks.Name "aks-cluster" ""
                 Expect.hasLength aks.AgentPoolProfiles 1 ""
                 Expect.equal aks.AgentPoolProfiles.[0].Name "nodepool1" ""
-                Expect.equal aks.AgentPoolProfiles.[0].Count 3 ""
+                Expect.equal aks.AgentPoolProfiles.[0].Count (Nullable 3) ""
                 let json = template.Template |> Writer.toJson
                 let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
 
@@ -100,13 +101,13 @@ let tests =
 
                 let aks =
                     arm { add_resource myAks }
-                    |> findAzureResources<ContainerService> dummyClient.SerializationSettings
+                    |> findAzureResources<ManagedCluster> dummyClient.SerializationSettings
                     |> Seq.head
 
                 Expect.equal aks.Name "k8s-cluster" ""
                 Expect.hasLength aks.AgentPoolProfiles 1 ""
                 Expect.equal aks.AgentPoolProfiles.[0].Name "linuxpool" ""
-                Expect.equal aks.AgentPoolProfiles.[0].Count 3 ""
+                Expect.equal aks.AgentPoolProfiles.[0].Count (Nullable 3) ""
                 Expect.equal aks.AgentPoolProfiles.[0].VmSize "Standard_DS2_v2" ""
                 Expect.equal aks.LinuxProfile.AdminUsername "aksuser" ""
                 Expect.equal aks.LinuxProfile.Ssh.PublicKeys.Count 1 ""
@@ -133,7 +134,7 @@ let tests =
 
                 let aks =
                     arm { add_resource myAks }
-                    |> findAzureResources<ContainerService> dummyClient.SerializationSettings
+                    |> findAzureResources<ManagedCluster> dummyClient.SerializationSettings
                     |> Seq.head
 
                 Expect.equal
@@ -175,7 +176,7 @@ let tests =
 
                 let aks =
                     arm { add_resource myAks }
-                    |> findAzureResources<ContainerService> dummyClient.SerializationSettings
+                    |> findAzureResources<ManagedCluster> dummyClient.SerializationSettings
                     |> Seq.head
 
                 Expect.hasLength aks.AgentPoolProfiles 1 ""

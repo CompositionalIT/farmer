@@ -77,7 +77,7 @@
       "type": "Microsoft.ContainerService/managedClusters"
     },
     {
-      "apiVersion": "2021-04-01-preview",
+      "apiVersion": "2022-04-01",
       "dependsOn": [
         "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'clusterIdentity')]"
       ],
@@ -90,7 +90,7 @@
       "type": "Microsoft.Authorization/roleAssignments"
     },
     {
-      "apiVersion": "2021-04-01-preview",
+      "apiVersion": "2022-04-01",
       "dependsOn": [
         "[resourceId('Microsoft.ContainerRegistry/registries', 'farmercontainerregistry1234')]",
         "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity')]"

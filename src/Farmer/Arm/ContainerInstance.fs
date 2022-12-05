@@ -448,7 +448,7 @@ type ContainerGroup =
                                                     shareName = shareName.Value
                                                     storageAccountName = accountName.ResourceName.Value
                                                     storageAccountKey =
-                                                        $"[listKeys('Microsoft.Storage/storageAccounts/{accountName.ResourceName.Value}', '2018-07-01').keys[0].value]"
+                                                        $"[listKeys('Microsoft.Storage/storageAccounts/{accountName.ResourceName.Value}', '2022-05-01').keys[0].value]"
                                                 |}
                                             emptyDir = null
                                             gitRepo = Unchecked.defaultof<_>

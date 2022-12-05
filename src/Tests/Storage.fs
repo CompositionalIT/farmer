@@ -273,12 +273,12 @@ let tests =
                     StorageAccount.getConnectionString (StorageAccountName.Create("account").OkValue, "rg")
 
                 Expect.equal
-                    "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value)"
+                    "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2022-05-01').keys[0].value)"
                     strongConn.Value
                     "Strong connection string"
 
                 Expect.equal
-                    "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('rg', 'Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value)"
+                    "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('rg', 'Microsoft.Storage/storageAccounts', 'account'), '2022-05-01').keys[0].value)"
                     rgConn.Value
                     "Complex connection string"
             }

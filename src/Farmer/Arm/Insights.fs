@@ -7,7 +7,7 @@ let private createComponents version =
     ResourceType("Microsoft.Insights/components", version)
 
 /// Classic AI instance
-let components = createComponents "2014-04-01"
+let components = createComponents "2015-05-01"
 /// Workspace-enabled AI instance
 let componentsWorkspace = createComponents "2020-02-02"
 

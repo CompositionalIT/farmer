@@ -475,7 +475,7 @@ let tests =
 
                         Expect.equal sbAuthorizationRule.Name "serviceBus/my-queue/my-rule" "Name is wrong"
                         Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
-                        Expect.equal sbAuthorizationRule.Rights.[0] (Nullable AccessRights.Manage) "Wrong rights"
+                        Expect.equal sbAuthorizationRule.Rights.[0] (AccessRights.Manage) "Wrong rights"
                     }
 
                     test "Queue IArmResource has correct resourceId for unmanaged namespace" {
@@ -954,7 +954,7 @@ let tests =
 
                         Expect.equal sbAuthorizationRule.Name "serviceBus/my-rule" "Wrong name"
                         Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
-                        Expect.equal sbAuthorizationRule.Rights.[0] (Nullable AccessRights.Manage) "Wrong rights"
+                        Expect.equal sbAuthorizationRule.Rights.[0] (AccessRights.Manage) "Wrong rights"
                     }
                 ]
         ]

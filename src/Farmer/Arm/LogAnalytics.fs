@@ -4,7 +4,7 @@ module Farmer.Arm.LogAnalytics
 open Farmer
 
 let workspaces =
-    ResourceType("Microsoft.OperationalInsights/workspaces", "2020-03-01-preview")
+    ResourceType("Microsoft.OperationalInsights/workspaces", "2022-10-01")
 
 type Workspace =
     {

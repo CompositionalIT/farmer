@@ -601,7 +601,7 @@ let tests =
                     {|
                         name = "AzureWebJobsDashboard"
                         value =
-                            "[concat('DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=', listKeys(resourceId('shared-group', 'Microsoft.Storage/storageAccounts', 'accountName'), '2017-10-01').keys[0].value)]"
+                            "[concat('DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=', listKeys(resourceId('shared-group', 'Microsoft.Storage/storageAccounts', 'accountName'), '2022-05-01').keys[0].value)]"
                     |}
                     "Invalid value for AzureWebJobsDashboard"
 
@@ -635,7 +635,7 @@ let tests =
                     {|
                         name = "APPINSIGHTS_INSTRUMENTATIONKEY"
                         value =
-                            "[reference(resourceId('shared-group', 'Microsoft.Insights/components', 'theName'), '2014-04-01').InstrumentationKey]"
+                            "[reference(resourceId('shared-group', 'Microsoft.Insights/components', 'theName'), '2015-05-01').InstrumentationKey]"
                     |}
                     "Invalid value for APPINSIGHTS_INSTRUMENTATIONKEY"
             }

@@ -4,7 +4,7 @@ module Farmer.Arm.RoleAssignment
 open Farmer
 
 let roleAssignments =
-    ResourceType("Microsoft.Authorization/roleAssignments", "2021-04-01-preview")
+    ResourceType("Microsoft.Authorization/roleAssignments", "2022-04-01")
 
 [<RequireQualifiedAccess>]
 type PrincipalType =

@@ -6,7 +6,7 @@ open Farmer.Identity
 open Farmer.WebApp
 open System
 
-let serverFarms = ResourceType("Microsoft.Web/serverfarms", "2018-02-01")
+let serverFarms = ResourceType("Microsoft.Web/serverfarms", "2022-03-01")
 let sites = ResourceType("Microsoft.Web/sites", "2021-03-01")
 let config = ResourceType("Microsoft.Web/sites/config", "2016-08-01")
 
