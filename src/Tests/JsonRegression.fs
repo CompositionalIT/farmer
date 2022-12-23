@@ -1,6 +1,8 @@
 module JsonRegression
 
 open Expecto
+open DiffPlex.DiffBuilder
+open DiffPlex.DiffBuilder.Model
 open Farmer
 open Farmer.Arm
 open Farmer.AzureFirewall
@@ -9,6 +11,70 @@ open Farmer.Network
 open Farmer.ServiceBus
 open System
 open System.IO
+
+let private differ = SideBySideDiffBuilder(DiffPlex.Differ())
+
+/// Prints a diff of the changes only, along with some surrounding lines to help with context.
+/// Had to work around some limitations in Expecto.Diff for now.
+let focusedDiffPrinter (numSurroundingLines: int) expected actual =
+    let actual, expected =
+        match box actual, box expected with
+        | (:? string as f), (:? string as s) -> string f, string s
+        | f, s -> sprintf "%A" f, sprintf "%A" s
+
+    let colouredText typ text =
+        match typ with
+        | ChangeType.Inserted -> Logging.ColourText.colouriseText ConsoleColor.Green text
+        | ChangeType.Deleted -> Logging.ColourText.colouriseText ConsoleColor.Red text
+        | ChangeType.Modified -> Logging.ColourText.colouriseText ConsoleColor.Blue text
+        | ChangeType.Imaginary -> Logging.ColourText.colouriseText ConsoleColor.Yellow text
+        | ChangeType.Unchanged
+        | _ -> text
+
+    let colouriseLine (line: DiffPiece) =
+        if line.SubPieces.Count = 0 then
+            colouredText line.Type line.Text
+        else
+            let colouredPieces =
+                line.SubPieces |> Seq.map (fun piece -> colouredText piece.Type piece.Text)
+
+            String.Join("", colouredPieces)
+
+    let colourisedAndFocusedDiff (lines: ResizeArray<#DiffPiece>) =
+        /// Gets a range of lines around any changes.
+        let focusedLineIndices =
+            let changedLineIndices =
+                lines
+                |> Seq.mapi (fun idx line -> if line.Type <> ChangeType.Unchanged then Some idx else None)
+                |> Seq.choose id
+
+            seq {
+                for idx in changedLineIndices do
+                    for i in idx - numSurroundingLines .. idx + numSurroundingLines do
+                        if idx >= 0 && idx < lines.Count then
+                            yield i
+            }
+            |> Set.ofSeq
+
+        /// Includes only the focused lines, necessary on large diffs.
+        let focusedLines =
+            lines
+            |> Seq.mapi (fun idx line ->
+                if focusedLineIndices |> Set.contains idx then
+                    Some $"{idx + 1}: {colouriseLine line}"
+                else
+                    None)
+            |> Seq.choose id
+
+        String.Join("\n", focusedLines)
+
+    let diff = differ.BuildDiffModel(expected, actual)
+
+    sprintf
+        "\n%s---------- Expected: ------------------\n%s\n---------- Actual: --------------------\n%s\n"
+        (Logging.ColourText.colouriseText ConsoleColor.White "") // Reset colour.
+        (colourisedAndFocusedDiff diff.OldText.Lines) // OldText and NewText are reversed in Expecto.Diff
+        (colourisedAndFocusedDiff diff.NewText.Lines)
 
 let tests =
     testList
@@ -20,7 +86,8 @@ let tests =
                 let actual = deployment.Template |> Writer.toJson
                 let filename = Writer.toFile (path + "out") "deployment" actual
 
-                Expect.equal
+                Expect.equalWithDiffPrinter
+                    (focusedDiffPrinter 8)
                     (actual.Trim())
                     (expected.Trim())
                     (sprintf
