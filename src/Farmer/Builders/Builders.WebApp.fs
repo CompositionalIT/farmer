@@ -375,7 +375,8 @@ type WebAppConfig =
         SourceControlSettings: {| Repository: Uri
                                   Branch: string
                                   ContinuousIntegration: FeatureFlag |} option
-        DockerImage: (string * string) option
+        DockerRegistryPath: string option
+        StartupCommand: string option
         DockerCi: bool
         DockerAcrCredentials: {| RegistryName: string
                                  Password: SecureParameter |} option
@@ -564,9 +565,8 @@ type WebAppConfig =
                                 match this.CommonWebConfig.OperatingSystem with
                                 | Linux -> "linux"
                                 | Windows -> ()
-                                match this.DockerImage with
-                                | Some _ -> "container"
-                                | _ -> ()
+                                if this.DockerRegistryPath.IsSome then
+                                    "container"
                             ]
                             |> String.concat ","
                         Dependencies =
@@ -597,8 +597,8 @@ type WebAppConfig =
                             match this.CommonWebConfig.OperatingSystem with
                             | Windows -> None
                             | Linux ->
-                                match this.DockerImage with
-                                | Some (image, _) -> Some("DOCKER|" + image)
+                                match this.DockerRegistryPath with
+                                | Some image -> Some("DOCKER|" + image)
                                 | None ->
                                     match this.Runtime with
                                     | DotNetCore version -> Some $"DOTNETCORE|{version}"
@@ -649,7 +649,7 @@ type WebAppConfig =
                             | _ -> None
                             |> Option.map (fun stack -> "CURRENT_STACK", stack)
                             |> Option.toList
-                        AppCommandLine = this.DockerImage |> Option.map snd
+                        AppCommandLine = this.StartupCommand
                         AutoSwapSlotName = None
                         ZipDeployPath =
                             this.CommonWebConfig.ZipDeployPath
@@ -872,7 +872,8 @@ type WebAppBuilder() =
             Tags = Map.empty
             Dependencies = Set.empty
             Runtime = Runtime.DotNetCoreLts
-            DockerImage = None
+            DockerRegistryPath = None
+            StartupCommand = None
             DockerCi = false
             SourceControlSettings = None
             DockerAcrCredentials = None
@@ -894,21 +895,21 @@ type WebAppBuilder() =
         { state with
             SiteExtensions =
                 match state with
-                // its important to only add this extension if we're not using Web App for Containers - if we are
+                // it is important to only add this extension if we're not using Web App for Containers - if we are
                 // then this will generate an error during deployment:
                 // No route registered for '/api/siteextensions/Microsoft.AspNetCore.AzureAppServices.SiteExtension'
                 | {
                       Runtime = DotNetCore _
                       AutomaticLoggingExtension = true
-                      DockerImage = None
+                      DockerRegistryPath = None
                       CommonWebConfig = { OperatingSystem = Windows }
                   } -> state.SiteExtensions.Add Extensions.Logging
                 | _ -> state.SiteExtensions
-            DockerImage =
-                match state.DockerImage, state.DockerAcrCredentials with
-                | Some (image, tag), Some credentials when not (image.Contains "azurecr.io") ->
-                    Some($"{credentials.RegistryName}.azurecr.io/{image}", tag)
-                | Some x, _ -> Some x
+            DockerRegistryPath =
+                match state.DockerRegistryPath, state.DockerAcrCredentials with
+                | Some image, Some credentials when not (image.Contains "azurecr.io") ->
+                    Some $"{credentials.RegistryName}.azurecr.io/{image}"
+                | Some registryPath, _ -> Some registryPath
                 | None, _ -> None
         }
 
@@ -961,23 +962,31 @@ type WebAppBuilder() =
     [<CustomOperation "runtime_stack">]
     member _.RuntimeStack(state: WebAppConfig, runtime) = { state with Runtime = runtime }
 
-    [<CustomOperation "docker_image">]
     /// Specifies a docker image to use from the registry (linux only), and the startup command to execute.
+    [<CustomOperation "docker_image">]
     member _.DockerImage(state: WebAppConfig, registryPath, startupFile) =
         { state with
             CommonWebConfig =
                 { state.CommonWebConfig with
                     OperatingSystem = Linux
                 }
-            DockerImage = Some(registryPath, startupFile)
+            DockerRegistryPath = Some registryPath
+            StartupCommand = Some startupFile
         }
 
-    [<CustomOperation "docker_ci">]
     /// Have your custom Docker image automatically re-deployed when a new version is pushed to e.g. Docker hub.
+    [<CustomOperation "docker_ci">]
     member _.DockerCI(state: WebAppConfig) = { state with DockerCi = true }
 
-    [<CustomOperation "docker_use_azure_registry">]
+    /// Supply a specific startup command - typically used when using "raw" app deployments to App Service Linux.
+    [<CustomOperation "startup_command">]
+    member _.StartupCommand(state: WebAppConfig, startupCommand) =
+        { state with
+            StartupCommand = Some startupCommand
+        }
+
     /// Have your custom Docker image automatically re-deployed when a new version is pushed to e.g. Docker hub.
+    [<CustomOperation "docker_use_azure_registry">]
     member _.DockerAcrCredentials(state: WebAppConfig, registryName) =
         { state with
             DockerAcrCredentials =

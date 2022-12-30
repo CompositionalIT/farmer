@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* Web App: Ability to set Startup Command directly (useful for Linux deployments).
 
 ## 1.7.13
 * KeyVault: Added support for disabling public network access.
