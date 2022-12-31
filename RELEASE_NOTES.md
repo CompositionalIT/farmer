@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* Identity: Update the list of all RBAC roles to latest.
 
 ## 1.7.13
 * KeyVault: Added support for disabling public network access.
