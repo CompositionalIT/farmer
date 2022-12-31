@@ -2,7 +2,6 @@
 
 open Farmer.Arm
 open Identity
-open Farmer.Arm.ManagedIdentity
 open System
 
 [<AutoOpen>]
@@ -152,17 +151,17 @@ module Roles =
     let AutomationRunbookOperator =
         makeRoleId "AutomationRunbookOperator" "5fb5aef8-1081-4b8e-bb16-9d5d0385bab5"
 
-    /// Grants permissions to upload and manage new Autonomous Development Platform measurements.
-    let AutonomousDevelopmentPlatformDataContributorPreview =
-        makeRoleId "AutonomousDevelopmentPlatformDataContributorPreview" "b8b15564-4fa6-4a59-ab12-03e1d9594795"
+    /// Grants permissions to upload and manage new Autonomous Development Platform measurements. (This is a preview role)
+    let AutonomousDevelopmentPlatformDataContributor =
+        makeRoleId "AutonomousDevelopmentPlatformDataContributor" "b8b15564-4fa6-4a59-ab12-03e1d9594795"
 
-    /// Grants full access to Autonomous Development Platform data.
-    let AutonomousDevelopmentPlatformDataOwnerPreview =
-        makeRoleId "AutonomousDevelopmentPlatformDataOwnerPreview" "27f8b550-c507-4db9-86f2-f4b8e816d59d"
+    /// Grants full access to Autonomous Development Platform data. (This is a preview role)
+    let AutonomousDevelopmentPlatformDataOwner =
+        makeRoleId "AutonomousDevelopmentPlatformDataOwner" "27f8b550-c507-4db9-86f2-f4b8e816d59d"
 
-    /// Grants read access to Autonomous Development Platform data.
-    let AutonomousDevelopmentPlatformDataReaderPreview =
-        makeRoleId "AutonomousDevelopmentPlatformDataReaderPreview" "d63b75f7-47ea-4f27-92ac-e0d173aaf093"
+    /// Grants read access to Autonomous Development Platform data. (This is a preview role)
+    let AutonomousDevelopmentPlatformDataReader =
+        makeRoleId "AutonomousDevelopmentPlatformDataReader" "d63b75f7-47ea-4f27-92ac-e0d173aaf093"
 
     /// Can create and manage an Avere vFXT cluster.
     let AvereContributor =
@@ -443,9 +442,9 @@ module Roles =
     let BizTalkContributor =
         makeRoleId "BizTalkContributor" "5e3c6656-6cfa-4708-81fe-0de47ac73342"
 
-    /// Allows for access to Blockchain Member nodes
-    let BlockchainMemberNodeAccessPreview =
-        makeRoleId "BlockchainMemberNodeAccessPreview" "31a002a1-acaf-453e-8a5b-297c9ca1ea24"
+    /// Allows for access to Blockchain Member nodes (This is a preview role)
+    let BlockchainMemberNodeAccess =
+        makeRoleId "BlockchainMemberNodeAccess" "31a002a1-acaf-453e-8a5b-297c9ca1ea24"
 
     /// Can manage blueprint definitions, but not assign them.
     let BlueprintContributor =
@@ -528,9 +527,9 @@ module Roles =
     let CognitiveServicesCustomVisionTrainer =
         makeRoleId "CognitiveServicesCustomVisionTrainer" "0a5ae4ab-0d65-4eeb-be61-29fc9b54394b"
 
-    /// Lets you read Cognitive Services data.
-    let CognitiveServicesDataReaderPreview =
-        makeRoleId "CognitiveServicesDataReaderPreview" "b59867f0-fa02-499b-be73-45a86b5b3e1c"
+    /// Lets you read Cognitive Services data. (This is a preview role)
+    let CognitiveServicesDataReader =
+        makeRoleId "CognitiveServicesDataReader" "b59867f0-fa02-499b-be73-45a86b5b3e1c"
 
     /// Lets you perform detect, verify, identify, group, and find similar operations on Face API. This role does not allow create or delete operations, which makes it well suited for endpoints that only need inferencing capabilities, following 'least privilege' best practices.
     let CognitiveServicesFaceRecognizer =
@@ -1190,9 +1189,9 @@ module Roles =
     let PlayFabReader =
         makeRoleId "PlayFabReader" "a9a19cc5-31f4-447c-901f-56c0bb18fcaf"
 
-    /// Allows read access to resource policies and write access to resource component policy events.
-    let PolicyInsightsDataWriterPreview =
-        makeRoleId "PolicyInsightsDataWriterPreview" "66bb4e9e-b016-4a94-8249-4c0511c2be84"
+    /// Allows read access to resource policies and write access to resource component policy events. (This is a preview role)
+    let PolicyInsightsDataWriter =
+        makeRoleId "PolicyInsightsDataWriter" "66bb4e9e-b016-4a94-8249-4c0511c2be84"
 
     /// Lets you manage private DNS zone resources, but not the virtual networks they are linked to.
     let PrivateDNSZoneContributor =
@@ -1209,6 +1208,18 @@ module Roles =
     /// The Microsoft.ProjectBabylon data source administrator can manage data sources and data scans. This role is in preview and subject to change.
     let ProjectBabylonDataSourceAdministrator =
         makeRoleId "ProjectBabylonDataSourceAdministrator" "05b7651b-dc44-475e-b74d-df3db49fae0f"
+
+    /// Deprecated role.
+    [<Obsolete "This role has been deprecated.">]
+    let Purviewrole1 = makeRoleId "Purviewrole1" "8a3c2885-9b38-4fd2-9d99-91af537c1347"
+
+    /// Deprecated role.
+    [<Obsolete "This role has been deprecated.">]
+    let Purviewrole2 = makeRoleId "Purviewrole2" "200bba9e-f0c8-430f-892b-6f0794863803"
+
+    /// Deprecated role.
+    [<Obsolete "This role has been deprecated.">]
+    let Purviewrole3 = makeRoleId "Purviewrole3" "ff100721-1b9d-43d8-af52-42b69c1272db"
 
     /// Read and create quota requests, get quota request status, and create support tickets.
     let QuotaRequestOperator =
@@ -1241,9 +1252,9 @@ module Roles =
     let ResourcePolicyContributor =
         makeRoleId "ResourcePolicyContributor" "36243c78-bf99-498c-9df9-86d9f8d28608"
 
-    /// Manage access to Azure resources by assigning roles using Azure RBAC. This role does not allow you to manage access using other ways, such as Azure Policy.
-    let RoleBasedAccessControlAdministratorPreview =
-        makeRoleId "RoleBasedAccessControlAdministratorPreview" "f58310d9-a9f6-439a-9e8d-f62e7b41a168"
+    /// Manage access to Azure resources by assigning roles using Azure RBAC. This role does not allow you to manage access using other ways, such as Azure Policy. (This is a preview role)
+    let RoleBasedAccessControlAdministrator =
+        makeRoleId "RoleBasedAccessControlAdministrator" "f58310d9-a9f6-439a-9e8d-f62e7b41a168"
 
     /// Lets you manage SQL databases, but not access to them. Also, you can't manage their security-related policies or their parent SQL servers.
     let SQLDBContributor =
@@ -1269,13 +1280,13 @@ module Roles =
     let SchedulerJobCollectionsContributor =
         makeRoleId "SchedulerJobCollectionsContributor" "188a0f2f-5c9e-469b-ae67-2aa5ce574b94"
 
-    /// Read, write, and delete Schema Registry groups and schemas.
-    let SchemaRegistryContributorPreview =
-        makeRoleId "SchemaRegistryContributorPreview" "5dffeca3-4936-4216-b2bc-10343a5abb25"
+    /// Read, write, and delete Schema Registry groups and schemas. (This is a preview role)
+    let SchemaRegistryContributor =
+        makeRoleId "SchemaRegistryContributor" "5dffeca3-4936-4216-b2bc-10343a5abb25"
 
-    /// Read and list Schema Registry groups and schemas.
-    let SchemaRegistryReaderPreview =
-        makeRoleId "SchemaRegistryReaderPreview" "2c56ea50-c6b3-40a6-83c0-9d98858bc7d2"
+    /// Read and list Schema Registry groups and schemas. (This is a preview role)
+    let SchemaRegistryReader =
+        makeRoleId "SchemaRegistryReader" "2c56ea50-c6b3-40a6-83c0-9d98858bc7d2"
 
     /// Grants full access to Azure Cognitive Search index data.
     let SearchIndexDataContributor =
@@ -1497,13 +1508,13 @@ module Roles =
     let WebPlanContributor =
         makeRoleId "WebPlanContributor" "2cc479cb-7b4d-49a8-b449-8c00fd0f0a4b"
 
-    /// Full access to Azure Web PubSub Service REST APIs
-    let WebPubSubServiceOwnerPreview =
-        makeRoleId "WebPubSubServiceOwnerPreview" "12cf5a90-567b-43ae-8102-96cf46c7d9b4"
+    /// Full access to Azure Web PubSub Service REST APIs (This is a preview role)
+    let WebPubSubServiceOwner =
+        makeRoleId "WebPubSubServiceOwner" "12cf5a90-567b-43ae-8102-96cf46c7d9b4"
 
-    /// Read-only access to Azure Web PubSub Service REST APIs
-    let WebPubSubServiceReaderPreview =
-        makeRoleId "WebPubSubServiceReaderPreview" "bfb1c7d2-fb1a-466b-b2ba-aee63b92deaf"
+    /// Read-only access to Azure Web PubSub Service REST APIs (This is a preview role)
+    let WebPubSubServiceReader =
+        makeRoleId "WebPubSubServiceReader" "bfb1c7d2-fb1a-466b-b2ba-aee63b92deaf"
 
     /// Lets you manage websites (not web plans), but not access to them.
     let WebsiteContributor =
