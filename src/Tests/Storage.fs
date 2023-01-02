@@ -229,27 +229,30 @@ let tests =
                             [
                                 CurrentVersion,
                                 [
-                                    DeleteAfter 1<Days> // overwritten by next one
-                                    DeleteAfter 7<Days>
-                                    ArchiveAfter 2<Days>
-                                    CoolAfter(5<Days>, AutomaticallyHotTier)
+                                    DeleteAfter, LastAccessed, 1<Days>
+                                    DeleteAfter, LastModified, 7<Days> // ignored
+                                    ArchiveAfter(Some 1<Days>), LastModified, 2<Days>
+                                    CoolAfter AutomaticallyHotTier, LastModified, 5<Days>
                                 ]
                                 Snapshot,
                                 [
-                                    DeleteAfter 3<Days>
-                                    CoolAfter(1<Days>, LeaveCoolAfterAccess)
-                                    ArchiveAfter 1<Days>
+                                    DeleteAfter, Age, 3<Days>
+                                    CoolAfter LeaveCoolAfterAccess, Age, 1<Days>
+                                    ArchiveAfter None, Age, 1<Days>
                                 ]
                                 PreviousVersions,
                                 [
-                                    DeleteAfter 4<Days>
-                                    CoolAfter(1<Days>, LeaveCoolAfterAccess)
-                                    ArchiveAfter 1<Days>
+                                    DeleteAfter, Age, 4<Days>
+                                    CoolAfter LeaveCoolAfterAccess, Age, 1<Days>
+                                    ArchiveAfter None, Age, 1<Days>
                                 ]
                             ]
                             [ "foo/bar" ]
 
-                        add_lifecycle_rule "Rule2" [ CurrentVersion, [ DeleteAfter 7<Days> ] ] NoRuleFilters
+                        add_lifecycle_rule
+                            "Rule2"
+                            [ CurrentVersion, [ DeleteAfter, LastModified, 7<Days> ] ]
+                            NoRuleFilters
                     }
 
                 let resource: ManagementPolicy =
@@ -262,7 +265,7 @@ let tests =
                 Expect.equal rule.Name "Rule1" "rule name is wrong"
 
                 let blob = rule.Definition.Actions.BaseBlob
-                Expect.equal blob.Delete.DaysAfterModificationGreaterThan (Nullable 1.) "Blob delete is wrong"
+                Expect.equal blob.Delete.DaysAfterLastAccessTimeGreaterThan (Nullable 1.) "Blob delete is wrong"
                 Expect.equal blob.TierToCool.DaysAfterModificationGreaterThan (Nullable 5.) "Blob cool is wrong"
                 Expect.equal blob.TierToArchive.DaysAfterModificationGreaterThan (Nullable 2.) "Blob Archive is wrong"
                 Expect.equal blob.EnableAutoTierToHotFromCool (Nullable true) "Should set auto hot tier"
@@ -290,7 +293,7 @@ let tests =
 
                             add_lifecycle_rule
                                 "Rule1"
-                                [ Snapshot, [ CoolAfter(1<Days>, AutomaticallyHotTier) ] ]
+                                [ Snapshot, [ CoolAfter AutomaticallyHotTier, LastModified, 1<Days> ] ]
                                 NoRuleFilters
                         }
                         |> ignore)

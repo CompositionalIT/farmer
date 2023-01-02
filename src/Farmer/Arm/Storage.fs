@@ -440,9 +440,9 @@ module ManagementPolicies =
             StorageAccount: ResourceName
             Rules: {| Name: ResourceName
                       Actions: {| Target: LifecycleTarget
-                                  CoolAfter: int<Days> option
-                                  ArchiveAfter: int<Days> option
-                                  DeleteAfter: int<Days> option
+                                  CoolAfter: (int<Days> * RunCondition) option
+                                  ArchiveAfter: (int<Days> * RunCondition) option
+                                  DeleteAfter: (int<Days> * RunCondition) option
                                   AutoHotTier: AutoHotTierSetting option |} list
                       Filters: string list |} list
         }
@@ -474,38 +474,42 @@ module ManagementPolicies =
                                                                 Map
                                                                     [
                                                                         for action in rule.Actions do
-                                                                            let targetField, daysField =
+                                                                            let targetField =
                                                                                 match action.Target with
-                                                                                | CurrentVersion ->
-                                                                                    "baseBlob",
-                                                                                    "daysAfterModificationGreaterThan"
-                                                                                | Snapshot ->
-                                                                                    "snapshot",
-                                                                                    "DaysAfterCreationGreaterThan"
-                                                                                | PreviousVersions ->
-                                                                                    "version",
-                                                                                    "DaysAfterCreationGreaterThan"
+                                                                                | CurrentVersion -> "baseBlob"
+                                                                                | Snapshot -> "snapshot"
+                                                                                | PreviousVersions -> "version"
+
+                                                                            let asAction (days: int<Days>, condition) =
+                                                                                Map
+                                                                                    [
+                                                                                        let field =
+                                                                                            match condition with
+                                                                                            | LastModified ->
+                                                                                                "daysAfterModificationGreaterThan"
+                                                                                            | LastAccessed ->
+                                                                                                "daysAfterLastAccessTimeGreaterThan"
+                                                                                            | Age ->
+                                                                                                "DaysAfterCreationGreaterThan"
+
+                                                                                        field, days
+                                                                                    ]
+                                                                                |> box
 
                                                                             let value =
                                                                                 {|
                                                                                     tierToCool =
-                                                                                        match action.CoolAfter with
-                                                                                        | Some days ->
-                                                                                            Map [ daysField, days ]
-                                                                                            |> box
-                                                                                        | None -> ()
+                                                                                        action.CoolAfter
+                                                                                        |> Option.map asAction
+                                                                                        |> Option.toObj
                                                                                     tierToArchive =
-                                                                                        match action.ArchiveAfter with
-                                                                                        | Some days ->
-                                                                                            Map [ daysField, days ]
-                                                                                            |> box
-                                                                                        | None -> ()
+                                                                                        action.ArchiveAfter
+                                                                                        |> Option.map asAction
+                                                                                        |> Option.toObj
                                                                                     delete =
-                                                                                        match action.DeleteAfter with
-                                                                                        | Some days ->
-                                                                                            Map [ daysField, days ]
-                                                                                            |> box
-                                                                                        | None -> ()
+                                                                                        action.DeleteAfter
+                                                                                        |> Option.map asAction
+                                                                                        |> Option.toObj
                                                                                     enableAutoTierToHotFromCool =
                                                                                         match action.AutoHotTier with
                                                                                         | Some AutomaticallyHotTier ->

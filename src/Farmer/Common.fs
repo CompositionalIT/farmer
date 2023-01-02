@@ -1213,16 +1213,38 @@ module Storage =
         | PreviousVersions
         | Snapshot
 
+    type RunCondition =
+        | LastModified
+        | LastAccessed
+        | Age
+
     /// Whether to automatically move cool blobs back to hot after accessing them.
     type AutoHotTierSetting =
         | AutomaticallyHotTier
         | LeaveCoolAfterAccess
 
     /// The possible set of lifecycle actions to take when defining a policy.
-    type LifecyclePolicyAction =
-        | CoolAfter of int<Days> * autoHotTier: AutoHotTierSetting
-        | ArchiveAfter of int<Days>
-        | DeleteAfter of int<Days>
+    type LifecycleActionKind =
+        | CoolAfter of autoHotTier: AutoHotTierSetting
+        | ArchiveAfter of lastTierChange: int<Days> option
+        | DeleteAfter
+
+    // static member private Create(action: LifecycleAction, days: int<Days>, ?runCondition) =
+    //     let runCondition = defaultArg runCondition LastModified
+    //     action, days, runCondition
+    //
+    // static member Cool(days: int<Days>, ?runCondition) =
+    //     let action = CoolAfter AutoHotTierSetting.LeaveCoolAfterAccess
+    //     action, days, defaultArg runCondition LastModified
+    //
+    // static member Archive(days: int<Days>, ?runCondition, ?lastTierChange: int<Days>) =
+    //     ArchiveAfter lastTierChange, days, defaultArg runCondition LastModified
+    //
+    // static member Delete(days: int<Days>, ?runCondition) =
+    //     LifecycleAction.Create(DeleteAfter, days, ?runCondition = runCondition)
+
+    type LifecycleAction = LifecycleActionKind * RunCondition * int<Days>
+    type Definition = LifecycleTarget * LifecycleAction list
 
     /// Represents no filters for a lifecycle rule
     let NoRuleFilters: string list = []
