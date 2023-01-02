@@ -440,9 +440,9 @@ module ManagementPolicies =
             StorageAccount: ResourceName
             Rules: {| Name: ResourceName
                       Actions: {| Target: LifecycleTarget
-                                  CoolAfter: (int<Days> * RunCondition) option
-                                  ArchiveAfter: (int<Days> * RunCondition) option
-                                  DeleteAfter: (int<Days> * RunCondition) option
+                                  CoolAfter: RunCondition option
+                                  ArchiveAfter: RunCondition option
+                                  DeleteAfter: RunCondition option
                                   AutoHotTier: AutoHotTierSetting option |} list
                       Filters: string list |} list
         }
@@ -480,17 +480,20 @@ module ManagementPolicies =
                                                                                 | Snapshot -> "snapshot"
                                                                                 | PreviousVersions -> "version"
 
-                                                                            let asAction (days: int<Days>, condition) =
+                                                                            let asAction condition =
                                                                                 Map
                                                                                     [
-                                                                                        let field =
+                                                                                        let field, days =
                                                                                             match condition with
-                                                                                            | LastModified ->
-                                                                                                "daysAfterModificationGreaterThan"
-                                                                                            | LastAccessed ->
-                                                                                                "daysAfterLastAccessTimeGreaterThan"
-                                                                                            | Age ->
-                                                                                                "DaysAfterCreationGreaterThan"
+                                                                                            | LastModified days ->
+                                                                                                "daysAfterModificationGreaterThan",
+                                                                                                days
+                                                                                            | LastAccessed days ->
+                                                                                                "daysAfterLastAccessTimeGreaterThan",
+                                                                                                days
+                                                                                            | Age days ->
+                                                                                                "DaysAfterCreationGreaterThan",
+                                                                                                days
 
                                                                                         field, days
                                                                                     ]
@@ -512,9 +515,9 @@ module ManagementPolicies =
                                                                                         |> Option.toObj
                                                                                     enableAutoTierToHotFromCool =
                                                                                         match action.AutoHotTier with
-                                                                                        | Some AutomaticallyHotTier ->
+                                                                                        | Some AutoHotTier ->
                                                                                             Nullable true
-                                                                                        | Some LeaveCoolAfterAccess ->
+                                                                                        | Some LeaveCool ->
                                                                                             Nullable false
                                                                                         | None -> Nullable()
                                                                                 |}

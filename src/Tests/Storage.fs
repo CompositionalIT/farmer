@@ -229,30 +229,27 @@ let tests =
                             [
                                 CurrentVersion,
                                 [
-                                    DeleteAfter, LastAccessed, 1<Days>
-                                    DeleteAfter, LastModified, 7<Days> // ignored
-                                    ArchiveAfter(Some 1<Days>), LastModified, 2<Days>
-                                    CoolAfter AutomaticallyHotTier, LastModified, 5<Days>
+                                    ToDelete, LastAccessed 1<Days>
+                                    ToDelete, LastModified 7<Days> // ignored
+                                    ToArchive(Some 1<Days>), LastModified 2<Days>
+                                    ToCool AutoHotTier, LastModified 5<Days>
                                 ]
                                 Snapshot,
                                 [
-                                    DeleteAfter, Age, 3<Days>
-                                    CoolAfter LeaveCoolAfterAccess, Age, 1<Days>
-                                    ArchiveAfter None, Age, 1<Days>
+                                    ToDelete, Age 3<Days>
+                                    ToCool LeaveCool, Age 1<Days>
+                                    ToArchive None, Age 1<Days>
                                 ]
                                 PreviousVersions,
                                 [
-                                    DeleteAfter, Age, 4<Days>
-                                    CoolAfter LeaveCoolAfterAccess, Age, 1<Days>
-                                    ArchiveAfter None, Age, 1<Days>
+                                    ToDelete, Age 4<Days>
+                                    ToCool LeaveCool, Age 1<Days>
+                                    ToArchive None, Age 1<Days>
                                 ]
                             ]
                             [ "foo/bar" ]
 
-                        add_lifecycle_rule
-                            "Rule2"
-                            [ CurrentVersion, [ DeleteAfter, LastModified, 7<Days> ] ]
-                            NoRuleFilters
+                        add_lifecycle_rule "Rule2" [ CurrentVersion, [ ToDelete, LastModified 7<Days> ] ] NoRuleFilters
                     }
 
                 let resource: ManagementPolicy =
@@ -293,7 +290,7 @@ let tests =
 
                             add_lifecycle_rule
                                 "Rule1"
-                                [ Snapshot, [ CoolAfter AutomaticallyHotTier, LastModified, 1<Days> ] ]
+                                [ Snapshot, [ ToCool AutoHotTier, LastModified 1<Days> ] ]
                                 NoRuleFilters
                         }
                         |> ignore)

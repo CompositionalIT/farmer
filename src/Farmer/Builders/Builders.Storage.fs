@@ -26,9 +26,9 @@ type StorageAccount =
 
 type StorageLifecycleRule =
     {
-        Actions: Map<LifecycleTarget, {| CoolAfter: (int<Days> * RunCondition * AutoHotTierSetting) option
-                                         ArchiveAfter: (int<Days> * RunCondition) option
-                                         DeleteAfter: (int<Days> * RunCondition) option |}>
+        Actions: Map<LifecycleTarget, {| CoolAfter: (RunCondition * AutoHotTierSetting) option
+                                         ArchiveAfter: RunCondition option
+                                         DeleteAfter: RunCondition option |}>
         Filters: string list
     }
 
@@ -165,16 +165,24 @@ type StorageAccountConfig =
                                                 for action in policy.Actions do
                                                     {| action.Value with
                                                         Target = action.Key
-                                                        CoolAfter =
-                                                            action.Value.CoolAfter
-                                                            |> Option.map (fun (days, condition, _) -> days, condition)
+                                                        CoolAfter = action.Value.CoolAfter |> Option.map fst
                                                         AutoHotTier =
                                                             match action.Key, action.Value.CoolAfter with
-                                                            | CurrentVersion, Some (_, _, value) -> Some value
+                                                            | CurrentVersion, Some (_, value) -> Some value
                                                             | CurrentVersion, None -> None
                                                             | (Snapshot
                                                               | PreviousVersions),
                                                               _ -> None
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -395,30 +403,23 @@ type StorageAccountBuilder() =
                                 {|
                                     CoolAfter =
                                         actions
-                                        |> List.tryPick (fun (action, condition, days) ->
-                                            match action with
-                                            | CoolAfter autoHotTier ->
+                                        |> List.tryPick (function
+                                            | ToCool autoHotTier, condition ->
                                                 match target, autoHotTier with
-                                                | CurrentVersion, _
-                                                | (Snapshot
-                                                  | PreviousVersions),
-                                                  LeaveCoolAfterAccess -> Some(days, condition, autoHotTier)
-                                                | (Snapshot
-                                                  | PreviousVersions),
-                                                  AutomaticallyHotTier ->
+                                                | Snapshot, AutoHotTier
+                                                | PreviousVersions, AutoHotTier ->
                                                     raiseFarmer "Automatic Hot Tier can only be set for Blobs."
+                                                | _ -> Some(condition, autoHotTier)
                                             | _ -> None)
                                     ArchiveAfter =
                                         actions
-                                        |> List.tryPick (fun (action, condition, days) ->
-                                            match action with
-                                            | ArchiveAfter _ -> Some(days, condition)
+                                        |> List.tryPick (function
+                                            | ToArchive _, condition -> Some condition
                                             | _ -> None)
                                     DeleteAfter =
                                         actions
-                                        |> List.tryPick (fun (action, condition, days) ->
-                                            match action with
-                                            | DeleteAfter -> Some(days, condition)
+                                        |> List.tryPick (function
+                                            | ToDelete, condition -> Some condition
                                             | _ -> None)
                                 |}
                         ]
