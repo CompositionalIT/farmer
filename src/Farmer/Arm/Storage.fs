@@ -1,6 +1,7 @@
 [<AutoOpen>]
 module Farmer.Arm.Storage
 
+open System
 open Farmer
 open Farmer.Storage
 
@@ -436,13 +437,14 @@ module Queues =
 module ManagementPolicies =
     type ManagementPolicy =
         {
-            Rules: {| Name: ResourceName
-                      CoolBlobAfter: int<Days> option
-                      ArchiveBlobAfter: int<Days> option
-                      DeleteBlobAfter: int<Days> option
-                      DeleteSnapshotAfter: int<Days> option
-                      Filters: string list |} list
             StorageAccount: ResourceName
+            Rules: {| Name: ResourceName
+                      Actions: {| Target: LifecycleTarget
+                                  CoolAfter: int<Days> option
+                                  ArchiveAfter: int<Days> option
+                                  DeleteAfter: int<Days> option
+                                  AutoHotTier: AutoHotTierSetting option |} list
+                      Filters: string list |} list
         }
 
         member this.ResourceName = this.StorageAccount / "default"
@@ -469,50 +471,52 @@ module ManagementPolicies =
                                                     definition =
                                                         {|
                                                             actions =
-                                                                {|
-                                                                    baseBlob =
-                                                                        {|
-                                                                            tierToCool =
-                                                                                rule.CoolBlobAfter
-                                                                                |> Option.map (fun days ->
-                                                                                    {|
-                                                                                        daysAfterModificationGreaterThan =
-                                                                                            days
-                                                                                    |}
-                                                                                    |> box)
-                                                                                |> Option.toObj
-                                                                            tierToArchive =
-                                                                                rule.ArchiveBlobAfter
-                                                                                |> Option.map (fun days ->
-                                                                                    {|
-                                                                                        daysAfterModificationGreaterThan =
-                                                                                            days
-                                                                                    |}
-                                                                                    |> box)
-                                                                                |> Option.toObj
-                                                                            delete =
-                                                                                rule.DeleteBlobAfter
-                                                                                |> Option.map (fun days ->
-                                                                                    {|
-                                                                                        daysAfterModificationGreaterThan =
-                                                                                            days
-                                                                                    |}
-                                                                                    |> box)
-                                                                                |> Option.toObj
-                                                                        |}
-                                                                    snapshot =
-                                                                        rule.DeleteSnapshotAfter
-                                                                        |> Option.map (fun days ->
-                                                                            {|
-                                                                                delete =
-                                                                                    {|
-                                                                                        daysAfterCreationGreaterThan =
-                                                                                            days
-                                                                                    |}
-                                                                            |}
-                                                                            |> box)
-                                                                        |> Option.toObj
-                                                                |}
+                                                                Map
+                                                                    [
+                                                                        for action in rule.Actions do
+                                                                            let targetField, daysField =
+                                                                                match action.Target with
+                                                                                | CurrentVersion ->
+                                                                                    "baseBlob",
+                                                                                    "daysAfterModificationGreaterThan"
+                                                                                | Snapshot ->
+                                                                                    "snapshot",
+                                                                                    "DaysAfterCreationGreaterThan"
+                                                                                | PreviousVersions ->
+                                                                                    "version",
+                                                                                    "DaysAfterCreationGreaterThan"
+
+                                                                            let value =
+                                                                                {|
+                                                                                    tierToCool =
+                                                                                        match action.CoolAfter with
+                                                                                        | Some days ->
+                                                                                            Map [ daysField, days ]
+                                                                                            |> box
+                                                                                        | None -> ()
+                                                                                    tierToArchive =
+                                                                                        match action.ArchiveAfter with
+                                                                                        | Some days ->
+                                                                                            Map [ daysField, days ]
+                                                                                            |> box
+                                                                                        | None -> ()
+                                                                                    delete =
+                                                                                        match action.DeleteAfter with
+                                                                                        | Some days ->
+                                                                                            Map [ daysField, days ]
+                                                                                            |> box
+                                                                                        | None -> ()
+                                                                                    enableAutoTierToHotFromCool =
+                                                                                        match action.AutoHotTier with
+                                                                                        | Some AutomaticallyHotTier ->
+                                                                                            Nullable true
+                                                                                        | Some LeaveCoolAfterAccess ->
+                                                                                            Nullable false
+                                                                                        | None -> Nullable()
+                                                                                |}
+
+                                                                            targetField, value
+                                                                    ]
                                                             filters =
                                                                 {|
                                                                     blobTypes = [ "blockBlob" ]

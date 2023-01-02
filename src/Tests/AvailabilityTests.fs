@@ -8,7 +8,6 @@ let tests =
     testList
         "AvailabilityTests"
         [
-
             test "Create an availability test" {
                 let ai = appInsights { name "ai" }
 

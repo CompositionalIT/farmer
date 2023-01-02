@@ -1207,12 +1207,22 @@ module Storage =
         | Container
         | Blob
 
-    /// The type of action to take when defining a lifecycle policy.
+    /// The type of blob to use when defining a set of lifecycle actions.
+    type LifecycleTarget =
+        | CurrentVersion
+        | PreviousVersions
+        | Snapshot
+
+    /// Whether to automatically move cool blobs back to hot after accessing them.
+    type AutoHotTierSetting =
+        | AutomaticallyHotTier
+        | LeaveCoolAfterAccess
+
+    /// The possible set of lifecycle actions to take when defining a policy.
     type LifecyclePolicyAction =
-        | CoolAfter of int<Days>
+        | CoolAfter of int<Days> * autoHotTier: AutoHotTierSetting
         | ArchiveAfter of int<Days>
         | DeleteAfter of int<Days>
-        | DeleteSnapshotAfter of int<Days>
 
     /// Represents no filters for a lifecycle rule
     let NoRuleFilters: string list = []

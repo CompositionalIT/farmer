@@ -24,12 +24,11 @@ type StorageAccount =
 
         StorageAccount.getConnectionString(resourceId).WithOwner(resourceId)
 
-type StoragePolicy =
+type StorageLifecycleRule =
     {
-        CoolBlobAfter: int<Days> option
-        ArchiveBlobAfter: int<Days> option
-        DeleteBlobAfter: int<Days> option
-        DeleteSnapshotAfter: int<Days> option
+        Actions: Map<LifecycleTarget, {| CoolAfter: (int<Days> * AutoHotTierSetting) option
+                                         ArchiveAfter: int<Days> option
+                                         DeleteAfter: int<Days> option |}>
         Filters: string list
     }
 
@@ -52,7 +51,7 @@ type StorageAccountConfig =
         /// Tables
         Tables: StorageResourceName Set
         /// Rules
-        Rules: Map<ResourceName, StoragePolicy>
+        Rules: Map<ResourceName, StorageLifecycleRule>
         RoleAssignments: Roles.RoleAssignment Set
         /// Static Website Settings
         StaticWebsite: {| IndexPage: string
@@ -150,15 +149,33 @@ type StorageAccountConfig =
                         Tables.Table.Name = table
                         Tables.Table.StorageAccount = this.Name.ResourceName
                     }
-                match this.Rules |> Map.toList with
+                match Map.toList this.Rules with
                 | [] -> ()
                 | rules ->
                     {
                         ManagementPolicies.ManagementPolicy.StorageAccount = this.Name.ResourceName
                         ManagementPolicies.ManagementPolicy.Rules =
                             [
-                                for name, rule in rules do
-                                    {| rule with Name = name |}
+                                for name, policy in rules do
+                                    {|
+                                        Name = name
+                                        Filters = policy.Filters
+                                        Actions =
+                                            [
+                                                for action in policy.Actions do
+                                                    {| action.Value with
+                                                        Target = action.Key
+                                                        CoolAfter = action.Value.CoolAfter |> Option.map fst
+                                                        AutoHotTier =
+                                                            match action.Key, action.Value.CoolAfter with
+                                                            | CurrentVersion, Some (_, value) -> Some value
+                                                            | CurrentVersion, None -> None
+                                                            | (Snapshot
+                                                              | PreviousVersions),
+                                                              _ -> None
+                                                    |}
+                                            ]
+                                    |}
                             ]
                     }
                 for roleAssignment in this.RoleAssignments do
@@ -353,33 +370,50 @@ type StorageAccountBuilder() =
             EnableDataLake = Some value
         }
 
-    /// Adds tags to the storage account
-    /// Adds a lifecycle rule
+    /// Adds a lifecycle rule. Supply a name, a list of actions and any filters.
     [<CustomOperation "add_lifecycle_rule">]
-    member _.AddLifecycleRule(state: StorageAccountConfig, ruleName, actions, filters) =
+    member _.AddLifecycleRule
+        (
+            state: StorageAccountConfig,
+            ruleName,
+            actions: (LifecycleTarget * LifecyclePolicyAction list) list,
+            filters
+        ) =
         let rule =
             {
                 Filters = filters
-                CoolBlobAfter =
-                    actions
-                    |> List.tryPick (function
-                        | CoolAfter days -> Some days
-                        | _ -> None)
-                ArchiveBlobAfter =
-                    actions
-                    |> List.tryPick (function
-                        | ArchiveAfter days -> Some days
-                        | _ -> None)
-                DeleteBlobAfter =
-                    actions
-                    |> List.tryPick (function
-                        | DeleteAfter days -> Some days
-                        | _ -> None)
-                DeleteSnapshotAfter =
-                    actions
-                    |> List.tryPick (function
-                        | DeleteSnapshotAfter days -> Some days
-                        | _ -> None)
+                Actions =
+                    Map
+                        [
+                            for (target, actions) in actions do
+                                target,
+                                {|
+                                    CoolAfter =
+                                        actions
+                                        |> List.tryPick (function
+                                            | CoolAfter (days, autoHotTier) ->
+                                                match target, autoHotTier with
+                                                | CurrentVersion, _
+                                                | (Snapshot
+                                                  | PreviousVersions),
+                                                  LeaveCoolAfterAccess -> Some(days, autoHotTier)
+                                                | (Snapshot
+                                                  | PreviousVersions),
+                                                  AutomaticallyHotTier ->
+                                                    raiseFarmer "Automatic Hot Tier can only be set for Blobs."
+                                            | _ -> None)
+                                    ArchiveAfter =
+                                        actions
+                                        |> List.tryPick (function
+                                            | ArchiveAfter days -> Some days
+                                            | _ -> None)
+                                    DeleteAfter =
+                                        actions
+                                        |> List.tryPick (function
+                                            | DeleteAfter days -> Some days
+                                            | _ -> None)
+                                |}
+                        ]
             }
 
         { state with

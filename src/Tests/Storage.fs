@@ -220,51 +220,83 @@ let tests =
                     "Should have created a valid storage resource name"
             }
             test "Adds lifecycle policies correctly" {
-                let resource: ManagementPolicy =
-                    let account =
-                        storageAccount {
-                            name "storage"
-                            add_lifecycle_rule "cleanup" [ Storage.DeleteAfter 7<Days> ] Storage.NoRuleFilters
+                let account =
+                    storageAccount {
+                        name "storage"
 
-                            add_lifecycle_rule
-                                "test"
+                        add_lifecycle_rule
+                            "Rule1"
+                            [
+                                CurrentVersion,
                                 [
-                                    Storage.DeleteAfter 1<Days>
-                                    Storage.DeleteAfter 2<Days>
-                                    Storage.ArchiveAfter 2<Days>
+                                    DeleteAfter 1<Days> // overwritten by next one
+                                    DeleteAfter 7<Days>
+                                    ArchiveAfter 2<Days>
+                                    CoolAfter(5<Days>, AutomaticallyHotTier)
                                 ]
-                                [ "foo/bar" ]
-                        }
+                                Snapshot,
+                                [
+                                    DeleteAfter 3<Days>
+                                    CoolAfter(1<Days>, LeaveCoolAfterAccess)
+                                    ArchiveAfter 1<Days>
+                                ]
+                                PreviousVersions,
+                                [
+                                    DeleteAfter 4<Days>
+                                    CoolAfter(1<Days>, LeaveCoolAfterAccess)
+                                    ArchiveAfter 1<Days>
+                                ]
+                            ]
+                            [ "foo/bar" ]
 
+                        add_lifecycle_rule "Rule2" [ CurrentVersion, [ DeleteAfter 7<Days> ] ] NoRuleFilters
+                    }
+
+                let resource: ManagementPolicy =
                     account |> getResourceAtIndex client.SerializationSettings 1
 
-                Expect.equal resource.Name "storage/default" "policy name for is wrong"
+                Expect.equal resource.Name "storage/default" "policy name is wrong"
                 Expect.hasLength resource.Policy.Rules 2 "Should be two rules"
 
                 let rule = resource.Policy.Rules.[0]
-                Expect.equal rule.Name "cleanup" "rule name is wrong"
+                Expect.equal rule.Name "Rule1" "rule name is wrong"
 
-                Expect.equal
-                    rule.Definition.Actions.BaseBlob.Delete.DaysAfterModificationGreaterThan
-                    (Nullable 7.)
-                    "Incorrect policy action"
+                let blob = rule.Definition.Actions.BaseBlob
+                Expect.equal blob.Delete.DaysAfterModificationGreaterThan (Nullable 1.) "Blob delete is wrong"
+                Expect.equal blob.TierToCool.DaysAfterModificationGreaterThan (Nullable 5.) "Blob cool is wrong"
+                Expect.equal blob.TierToArchive.DaysAfterModificationGreaterThan (Nullable 2.) "Blob Archive is wrong"
+                Expect.equal blob.EnableAutoTierToHotFromCool (Nullable true) "Should set auto hot tier"
 
-                Expect.isEmpty rule.Definition.Filters.PrefixMatch "should be no filters"
+                let snapshot = rule.Definition.Actions.Snapshot
+                Expect.equal snapshot.Delete.DaysAfterCreationGreaterThan 3. "Snapshot delete is wrong"
+                Expect.equal snapshot.TierToCool.DaysAfterCreationGreaterThan 1. "Snapshot cool is wrong"
+                Expect.equal snapshot.TierToArchive.DaysAfterCreationGreaterThan 1. "Snapshot archive is wrong"
 
-                let rule = resource.Policy.Rules.[1]
+                let previousVersions = rule.Definition.Actions.Version
+                Expect.equal previousVersions.Delete.DaysAfterCreationGreaterThan 4. "Version delete is wrong"
+                Expect.equal previousVersions.TierToCool.DaysAfterCreationGreaterThan 1. "Version cool is wrong"
+                Expect.equal previousVersions.TierToArchive.DaysAfterCreationGreaterThan 1. "Version archive is wrong"
 
-                Expect.equal
-                    rule.Definition.Actions.BaseBlob.Delete.DaysAfterModificationGreaterThan
-                    (Nullable 1.)
-                    "should ignore duplicate actions"
+                Expect.containsAll rule.Definition.Filters.PrefixMatch [ "foo/bar" ] "Should be no filters"
 
-                Expect.equal
-                    rule.Definition.Actions.BaseBlob.TierToArchive.DaysAfterModificationGreaterThan
-                    (Nullable 2.)
-                    "should add multiple actions to a rule"
-
-                Expect.equal (rule.Definition.Filters.PrefixMatch |> Seq.toList) [ "foo/bar" ] "incorrect filter"
+                Expect.equal resource.Policy.Rules[1].Name "Rule2" "Second rule set incorrectly"
             }
+
+            test "Stops setting cool-to-hot policy on non-blob target" {
+                Expect.throws
+                    (fun () ->
+                        storageAccount {
+                            name "storage"
+
+                            add_lifecycle_rule
+                                "Rule1"
+                                [ Snapshot, [ CoolAfter(1<Days>, AutomaticallyHotTier) ] ]
+                                NoRuleFilters
+                        }
+                        |> ignore)
+                    "Should not allow automatic hot tiering for Snapshot"
+            }
+
             test "Creates connection strings correctly" {
                 let strongConn =
                     StorageAccount.getConnectionString (StorageAccountName.Create("account").OkValue)
