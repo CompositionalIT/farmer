@@ -100,6 +100,15 @@ let tests =
 
                 Expect.equal 8.0<Gb> container8Gb.Memory "Memory rounded incorrectly for 8 GB"
 
+                let container8_2Gb =
+                    containerInstance {
+                        name "myapp"
+                        image "myapp:latest"
+                        memory 8.2<Gb>
+                    }
+
+                Expect.equal 8.2<Gb> container8_2Gb.Memory "Memory rounded incorrectly for 8.2 GB"
+
                 let container0_2Gb =
                     containerInstance {
                         name "myapp"
