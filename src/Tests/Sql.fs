@@ -330,4 +330,17 @@ let tests =
                     (fun () -> sqlServer { admin_username "test" } |> ignore)
                     "Must set a name on a sql server account"
             }
+
+            test "Can create a DB and link to an existing server" {
+                let sql =
+                    sqlDb {
+                        name "db"
+                        link_to_unmanaged_server (Arm.Sql.servers.resourceId("server")) (ResourceName "server-pool")
+                    }
+
+                let model: Models.Database = sql |> getResourceAtIndex client.SerializationSettings 0
+                let expectedPoolId = (Arm.Sql.elasticPools.resourceId ((ResourceName "server"),[|ResourceName "server-pool"|])).Eval()
+                Expect.equal model.ElasticPoolId expectedPoolId "Incorrect pool name"
+                Expect.equal model.Name "server/db" "Incorrect database name"
+            }
         ]
