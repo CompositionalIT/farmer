@@ -707,7 +707,10 @@ type ContainerInstanceBuilder() =
 
     /// Sets the maximum gigabytes of memory the container instance may use
     [<CustomOperationAttribute "memory">]
-    member _.Memory(state: ContainerInstanceConfig, memory) = { state with Memory = memory }
+    member _.Memory(state: ContainerInstanceConfig, memory: float<Gb>) =
+        { state with
+            Memory = System.Math.Round(memory / 1.<Gb>, 1) * 1.<Gb>
+        }
 
     /// Enables container instances with gpus
     [<CustomOperationAttribute "gpu">]
