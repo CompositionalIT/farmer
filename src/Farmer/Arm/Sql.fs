@@ -129,7 +129,7 @@ module Servers =
     type Database =
         {
             Name: ResourceName
-            Server: SqlAccountName
+            Server: LinkedResource
             Location: Location
             MaxSizeBytes: int64 option
             Sku: DbKind
@@ -137,19 +137,23 @@ module Servers =
         }
 
         interface IArmResource with
-            member this.ResourceId = databases.resourceId (this.Server.ResourceName / this.Name)
+            member this.ResourceId = databases.resourceId (this.Server.Name / this.Name)
 
             member this.JsonModel =
                 let dependsOn =
-                    [
-                        servers.resourceId this.Server.ResourceName
-                        match this.Sku with
-                        | Pool poolName -> elasticPools.resourceId (this.Server.ResourceName, poolName)
-                        | Standalone _ -> ()
-                    ]
+                    LinkedResource.addToSetIfManaged this.Server
+                      (Set [
+                          match this.Sku with
+                          | Pool poolName -> elasticPools.resourceId (this.Server.Name, poolName)
+                          | Standalone _ -> ()
+                      ])
+
+                let serverName = 
+                  SqlAccountName.Create this.Server.Name
+                  |> Result.get
 
                 {| databases.Create(
-                       this.Server.ResourceName / this.Name,
+                       serverName.ResourceName / this.Name,
                        this.Location,
                        dependsOn,
                        tags = Map [ "displayName", this.Name.Value ]
@@ -185,7 +189,7 @@ module Servers =
                             elasticPoolId =
                                 match this.Sku with
                                 | Standalone _ -> null
-                                | Pool pool -> elasticPools.resourceId(this.Server.ResourceName, pool).Eval()
+                                | Pool pool -> elasticPools.resourceId(this.Server.Name, pool).Eval()
                             autoPauseDelay =
                                 match this.Sku with
                                 | Standalone (VCore (GeneralPurpose (S_Gen5 _), _))
@@ -204,11 +208,11 @@ module Servers =
     module Databases =
         type TransparentDataEncryption =
             {
-                Server: SqlAccountName
+                Server: LinkedResource
                 Database: ResourceName
             }
 
-            member this.Name = this.Server.ResourceName / this.Database / "current"
+            member this.Name = this.Server.Name / this.Database / "current"
 
             interface IArmResource with
                 member this.ResourceId = transparentDataEncryption.resourceId this.Name
@@ -216,7 +220,7 @@ module Servers =
                 member this.JsonModel =
                     {| transparentDataEncryption.Create(
                            this.Name,
-                           dependsOn = [ databases.resourceId (this.Server.ResourceName, this.Database) ]
+                           dependsOn = [ {this.Server.ResourceId with Type = databases; Segments = [this.Database] } ]
                        ) with
                         comments = "Transparent Data Encryption"
                         properties = {| status = string Enabled |}

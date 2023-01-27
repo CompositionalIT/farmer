@@ -25,12 +25,7 @@ type SqlAzureDbConfig =
         | None -> raiseFarmer $"databse %s{this.Name.Value} must have a server"
 
       member this.BuildResources location =
-        let server = 
-          this.Server 
-          |> Option.defaultWith (fun () -> raiseFarmer $"databse %s{this.Name.Value} must have a server")
-          |> (fun n -> SqlAccountName.Create n.Name)
-          |> Result.get
-
+        let server = this.Server |> Option.defaultWith (fun () -> raiseFarmer $"databse %s{this.Name.Value} must have a server")
         [
           {
               Name = this.Name
