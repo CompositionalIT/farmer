@@ -15,7 +15,41 @@ type SqlAzureDbConfig =
         MaxSize: int<Mb> option
         Collation: string
         Encryption: FeatureFlag
+        Server: LinkedResource option
+        Pool: ResourceName option
     }
+    interface IBuilder with
+      member this.ResourceId = 
+        match this.Server with
+        | Some server -> {server.ResourceId with Type = databases; Segments = [this.Name]}
+        | None -> raiseFarmer $"databse %s{this.Name.Value} must have a server"
+
+      member this.BuildResources location =
+        let server = this.Server |> Option.defaultWith (fun () -> raiseFarmer $"databse %s{this.Name.Value} must have a server")
+        [
+          {
+              Name = this.Name
+              Server = server
+              Location = location
+              MaxSizeBytes =
+                  match this.Sku, this.MaxSize with
+                  | Some _, Some maxSize -> Some(Mb.toBytes maxSize)
+                  | _ -> None
+              Sku =
+                  match this.Sku with
+                  | Some dbSku -> Standalone dbSku
+                  | None -> Pool (this.Pool |> Option.defaultWith (fun () -> raiseFarmer $"Non-standalone databse %s{this.Name.Value} must have a pool."))
+              Collation = this.Collation
+          }
+
+          match this.Encryption with
+          | Enabled ->
+              {
+                  Server = server
+                  Database = this.Name
+              }
+          | Disabled -> ()
+        ]
 
 type SqlAzureConfig =
     {
@@ -60,9 +94,10 @@ type SqlAzureConfig =
 
     /// The key of the parameter that is required by Farmer for the SQL password.
     member this.PasswordParameter = $"password-for-{this.Name.ResourceName.Value}"
+    member this.ResourceId = servers.resourceId this.Name.ResourceName
 
     interface IBuilder with
-        member this.ResourceId = servers.resourceId this.Name.ResourceName
+        member this.ResourceId = this.ResourceId
 
         member this.BuildResources location =
             [
@@ -83,28 +118,7 @@ type SqlAzureConfig =
                 }
 
                 for database in this.Databases do
-                    {
-                        Name = database.Name
-                        Server = this.Name
-                        Location = location
-                        MaxSizeBytes =
-                            match database.Sku, database.MaxSize with
-                            | Some _, Some maxSize -> Some(Mb.toBytes maxSize)
-                            | _ -> None
-                        Sku =
-                            match database.Sku with
-                            | Some dbSku -> Standalone dbSku
-                            | None -> Pool elasticPoolName
-                        Collation = database.Collation
-                    }
-
-                    match database.Encryption with
-                    | Enabled ->
-                        {
-                            Server = this.Name
-                            Database = database.Name
-                        }
-                    | Disabled -> ()
+                  yield! ({database with Server=Some (Managed this.ResourceId); Pool= Some elasticPoolName } :> IBuilder).BuildResources location
 
                 for rule in this.FirewallRules do
                     {
@@ -209,6 +223,8 @@ type SqlDbBuilder() =
             Sku = None
             MaxSize = None
             Encryption = Disabled
+            Server = None
+            Pool = None
         }
 
     /// Sets the name of the database.
@@ -234,6 +250,13 @@ type SqlDbBuilder() =
     member _.DbSku(state: SqlAzureDbConfig, sku: VCoreSku) =
         { state with
             Sku = Some(VCore(sku, LicenseRequired))
+        }
+    
+    [<CustomOperation "link_to_unmanaged_server">]
+    member _.LinkToUnmanagedServer(state:SqlAzureDbConfig, server:ResourceId, ?poolName:ResourceName) =
+        { state with
+            Server = Some (Unmanaged server)
+            Pool = poolName
         }
 
     /// Sets the collation of the database.
