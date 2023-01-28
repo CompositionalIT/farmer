@@ -2,6 +2,7 @@ Release Notes
 =============
 ## vNext
 * Identity: Update the list of all RBAC roles to latest.
+* Container Groups: Automatically round container instance memory to the first decimal place.
 
 ## 1.7.13
 * KeyVault: Added support for disabling public network access.
