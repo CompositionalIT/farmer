@@ -1,6 +1,7 @@
 Release Notes
 =============
-## vNext
+
+## 1.7.14
 * Identity: Update the list of all RBAC roles to latest.
 * Container Groups: Automatically round container instance memory to the first decimal place.
 
