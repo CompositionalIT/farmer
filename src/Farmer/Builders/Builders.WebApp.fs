@@ -322,6 +322,14 @@ type SlotBuilder() =
         let cidr = IPAddressCidr.parse ip
         this.AllowIp(state, name, cidr, applyToScm)
 
+    /// Add multiple allowed ip for ip security restrictions
+    [<CustomOperation "add_allowed_ip_restrictions">]
+    member this.AllowIps(state, name, ips: string list, ?applyToScm:bool) : SlotConfig =
+        let applyToScm = defaultArg applyToScm false
+        ips 
+            |> List.map (fun ip -> IPAddressCidr.parse ip)
+            |> List.fold (fun state cidr -> this.AllowIp(state, name, cidr, applyToScm)) state
+
     /// Add Denied ip for ip security restrictions
     [<CustomOperation "add_denied_ip_restriction">]
     member _.DenyIp(state, name, cidr: IPAddressCidr, ?applyToScm:bool) : SlotConfig =
@@ -1678,6 +1686,14 @@ module Extensions =
                     IpSecurityRestrictions = IpSecurityRestriction.Create name ip Allow :: x.IpSecurityRestrictions
                     ApplyIPSecurityRestrictionsToScm = applyToScm
                 })
+
+        /// Add multiple allowed ip for ip security restrictions
+        [<CustomOperation "add_allowed_ip_restrictions">]
+        member this.AllowIps(state, name, ips: string list, ?applyToScm:bool) =
+            let applyToScm = defaultArg applyToScm false
+            ips 
+                |> List.map (fun ip -> IPAddressCidr.parse ip)
+                |> List.fold (fun state cidr -> this.AllowIp(state, name, cidr, applyToScm)) state
 
         /// Add Denied ip for ip security restrictions
         [<CustomOperation "add_denied_ip_restriction">]
