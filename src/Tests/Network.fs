@@ -796,4 +796,120 @@ let tests =
                     armPe.Resource
                     "private endpoint resource should link to correct resource"
             }
+            test "Can create nat gateway" {
+                let myPublicIpAddress =
+                    publicIpAddress {
+                      name  "pip"
+                      sku PublicIpAddress.Sku.Standard
+                      allocation_method PublicIpAddress.AllocationMethod.Static
+                }
+                let myNatGateway =
+                    natGateway {
+                        name "natgateway"
+                        idle_timeout_in_minutes 10
+                        link_to_public_ip myPublicIpAddress
+                    }
+                    :> IBuilder
+
+                let template = arm { add_resources [ myNatGateway ] }
+                let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+                let dependsOn =
+                    (jobj.SelectToken "resources[?(@.type=='Microsoft.Network/natGateways')].dependsOn")
+                        .ToObject<string[]>()
+
+                Expect.contains dependsOn (myPublicIpAddress.ResourceId.Eval()) "Expected dependsOn to include public IP"
+
+                let idleTimeoutInMinutes =
+                    jobj.SelectToken
+                        "$..*[?(@.type=='Microsoft.Network/natGateways')].properties.idleTimeoutInMinutes"
+
+                Expect.equal (int idleTimeoutInMinutes) 10 "Expected idle timeout should match specification"
+
+                let publicIpAddressId =
+                    jobj.SelectToken
+                        "$..*[?(@.type=='Microsoft.Network/natGateways')].properties.publicIpAddresses[0].id"
+
+                Expect.isNotNull publicIpAddressId "publicIpAddressId should be specified"
+
+                Expect.equal
+                    (string publicIpAddressId)
+                    "[resourceId('Microsoft.Network/publicIPAddresses', 'pip')]"
+                    "Incorrect publicIpAddressId"
+            }
+            test "Subnet created with linked nat gateway" {
+                let vnetName = "my-vnet"
+                let webSubnet = "web"
+                let natGatewayName = "my-nat-gateway"
+                let myNatGateway =
+                    natGateway {
+                        name natGatewayName
+                        link_to_unmanaged_public_ip (publicIPAddresses.resourceId "somePublicIp")
+                    }
+
+                let myNet =
+                    vnet {
+                        name vnetName
+
+                        build_address_spaces
+                            [
+                                addressSpace {
+                                    space "10.28.0.0/16"
+
+                                    subnets
+                                        [
+                                            subnetSpec {
+                                                name webSubnet
+                                                size 24
+                                                link_to_nat_gateway myNatGateway
+                                            }
+                                        ]
+                                }
+                            ]
+                    }
+
+                let template = arm { add_resources [ myNet ] }
+                let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+                let dependsOn =
+                    (jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks')].dependsOn")
+                        .ToObject<string[]>()
+
+                Expect.contains dependsOn (myNatGateway.ResourceId.Eval()) "Expected dependsOn to include nat gateway"
+
+                let natGatewayId =
+                    jobj.SelectToken
+                        "$..*[?(@.type=='Microsoft.Network/virtualNetworks')].properties.subnets[0].properties.natGateway.id"
+
+                Expect.isNotNull natGatewayId "natGateway should be specified"
+
+                Expect.equal
+                    (string natGatewayId)
+                    "[resourceId('Microsoft.Network/natGateways', 'my-nat-gateway')]"
+                    "Incorrect natGatewayId"
+            }
+            test "Can create public ip address" {
+                let myPublicIpAddress =
+                    publicIpAddress {
+                      name  "pip"
+                      sku PublicIpAddress.Sku.Standard
+                      allocation_method PublicIpAddress.AllocationMethod.Static
+                    }
+                    :> IBuilder
+
+                let template = arm { add_resources [ myPublicIpAddress ] }
+                let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+                let allocationMethod =
+                    jobj.SelectToken
+                        "$..*[?(@.type=='Microsoft.Network/publicIPAddresses')].properties.publicIPAllocationMethod"
+
+                Expect.equal (string allocationMethod) "Static" "Expected IP Address Allocation type to be static"
+
+                let sku =
+                    jobj.SelectToken
+                        "$..*[?(@.type=='Microsoft.Network/publicIPAddresses')].sku.name"
+
+                Expect.equal (string sku) "Standard" "Expected IP Address sku to be Standard"
+            }
         ]

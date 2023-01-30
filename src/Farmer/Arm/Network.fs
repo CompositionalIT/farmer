@@ -49,6 +49,8 @@ let virtualNetworkPeering =
 
 let routeTables = ResourceType("Microsoft.Network/routeTables", "2021-05-01")
 
+let natGateways = ResourceType("Microsoft.Network/natGateways", "2022-07-01")
+
 type SubnetReference =
     | ViaManagedVNet of (ResourceId * ResourceName)
     | Direct of LinkedResource
@@ -133,6 +135,7 @@ type Subnet =
         PrivateEndpointNetworkPolicies: FeatureFlag option
         PrivateLinkServiceNetworkPolicies: FeatureFlag option
         RouteTable: LinkedResource option
+        NatGateway: LinkedResource option
         DependsOn: ResourceId Set
     }
 
@@ -177,6 +180,7 @@ type Subnet =
             privateLinkServiceNetworkPolicies =
                 this.PrivateLinkServiceNetworkPolicies |> Option.mapBoxed (fun x -> x.ArmValue)
             routeTable = this.RouteTable |> Option.mapBoxed (fun ref -> {| id = ref.ResourceId.Eval() |})
+            natGateway = this.NatGateway |> Option.mapBoxed (fun ref -> {| id = ref.ResourceId.Eval() |})
         |}
 
     interface IArmResource with
@@ -789,5 +793,51 @@ type NetworkPeering =
                                     | Managed id
                                     | Unmanaged id -> id.ArmExpression.Eval()
                             |}
+                    |}
+            |}
+
+[<RequireQualifiedAccess>]
+type Zones =
+    | None
+    | One
+    | Two
+    | Three
+
+type NatGateway =
+    {
+        Location: Location
+        Name: ResourceName
+        IdleTimeoutInMinutes: int
+        Zone: Zones
+        PublicIpAddresses: LinkedResource list
+        PublicIpPrefixes: LinkedResource list
+    }
+
+    interface IArmResource with
+        member this.ResourceId = natGateways.resourceId this.Name
+
+        member this.JsonModel =
+            let deps =
+                this.PublicIpAddresses @
+                this.PublicIpPrefixes
+                |> List.fold (fun s x -> LinkedResource.addToSetIfManaged x s) Set.empty
+
+            {| natGateways.Create(this.Name, this.Location, deps) with
+                sku = {| name = "Standard" |}
+                zones =
+                      match this.Zone with
+                            | Zones.None -> null
+                            | Zones.One ->[| "1" |]
+                            | Zones.Two ->[| "2" |]
+                            | Zones.Three ->[| "3" |]
+                properties =
+                    {|
+                        idleTimeoutInMinutes =
+                            this.IdleTimeoutInMinutes
+                        publicIpAddresses =
+                            this.PublicIpAddresses |> List.map (fun x->{| id = x.ResourceId.ArmExpression.Eval() |} )  |> Set
+                        publicIpPrefixes =
+                            this.PublicIpPrefixes |> List.map (fun x->{| id = x.ResourceId.ArmExpression.Eval() |} )  |> Set
+
                     |}
             |}
