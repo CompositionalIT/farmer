@@ -152,6 +152,7 @@ type VmConfig =
                                     PrivateEndpointNetworkPolicies = None
                                     PrivateLinkServiceNetworkPolicies = None
                                     RouteTable = None
+                                    NatGateway = None
                                     DependsOn = Set.empty
                                 }
                             ]
