@@ -56,10 +56,10 @@ type PublicIpAddressBuilder() =
     member _.Sku(state: PublicIpAddressConfig, sku: PublicIpAddress.Sku) = { state with Sku = sku }
 
     [<CustomOperation "allocation_method">]
-    member _.Sku(state: PublicIpAddressConfig, allocationMethod: PublicIpAddress.AllocationMethod) = { state with AllocationMethod = allocationMethod }
+    member _.AllocationMethod(state: PublicIpAddressConfig, allocationMethod: PublicIpAddress.AllocationMethod) = { state with AllocationMethod = allocationMethod }
 
     [<CustomOperation "domain_name_label">]
-    member _.Sku(state: PublicIpAddressConfig, domainNameLabel: string) = { state with DomainNameLabel = Some domainNameLabel }
+    member _.DomainNameLabel(state: PublicIpAddressConfig, domainNameLabel: string) = { state with DomainNameLabel = Some domainNameLabel }
 
     interface ITaggable<PublicIpAddressConfig> with
         member _.Add state tags =
@@ -352,10 +352,20 @@ type SubnetBuilder() =
             NatGateway = Some(Managed (natGateway.ResourceId))
         }
 
+    member _.LinkToNatGateway(state: SubnetConfig, natGateway: NatGatewayConfig option) =
+        { state with
+            NatGateway = natGateway |> Option.map (fun gw -> Managed gw.ResourceId)
+        }
+
     [<CustomOperation "link_to_unmanaged_nat_gateway">]
     member _.LinkToUnmanagedNatGateway(state: SubnetConfig, natGateway: ResourceId) =
         { state with
             NatGateway = Some(Unmanaged natGateway)
+        }
+
+    member _.LinkToUnmanagedNatGateway(state: SubnetConfig, natGateway: ResourceId option) =
+        { state with
+            NatGateway = natGateway |> Option.map Unmanaged
         }
 
     /// Enable support for additional dependencies.
