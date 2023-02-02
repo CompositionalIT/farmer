@@ -1465,6 +1465,66 @@ let tests =
                     "Should add allowed ip security restriction"
             }
 
+            test "Supports adding multiple ip restrictions for allowed ip" {
+                let ips = ["1.2.3.4/32";"5.6.7.8/24"]
+
+                let resources =
+                    webApp {
+                        name "test"
+                        add_allowed_ip_restrictions "test-rule" ips
+                    }
+                    |> getResources
+
+                let site = resources |> getResource<Web.Site> |> List.head
+
+                let expectedRestrictionOne =
+                    IpSecurityRestriction.Create "test-rule" (IPAddressCidr.parse ips.[0]) Allow
+
+                let expectedRestrictionTwo =
+                    IpSecurityRestriction.Create "test-rule" (IPAddressCidr.parse ips.[1]) Allow
+
+                Expect.equal
+                    site.IpSecurityRestrictions
+                    [ expectedRestrictionTwo; expectedRestrictionOne ]
+                    "Should add allowed ip security restriction"
+            }
+
+            test "Slot supports adding multiple ip restrictions for allowed ip" {
+                let ips = ["1.2.3.4/32";"5.6.7.8/24"]
+
+                let slot =
+                    appSlot {
+                        name "deploy"
+                        add_allowed_ip_restrictions "test-rule" ips
+                    }
+
+                let site: WebAppConfig =
+                    webApp {
+                        name "web"
+                        add_slot slot
+                    }
+
+                Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "deploy") "Config should contain slot"
+
+                let slot =
+                    site
+                    |> getResources
+                    |> getResource<Arm.Web.Site>
+                    |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
+                    |> List.head
+
+                let expectedRestrictionOne =
+                    IpSecurityRestriction.Create "test-rule" (IPAddressCidr.parse ips.[0]) Allow
+
+                let expectedRestrictionTwo =
+                    IpSecurityRestriction.Create "test-rule" (IPAddressCidr.parse ips.[1]) Allow
+
+                Expect.equal
+                    slot.IpSecurityRestrictions
+                    [ expectedRestrictionOne; expectedRestrictionTwo ]
+                    "Should add allowed ip security restriction"
+            }
+
             test "Supports adding ip restriction for denied ip" {
                 let ip = IPAddressCidr.parse "1.2.3.4/32"
 
@@ -1950,5 +2010,48 @@ let tests =
                 let site = resources |> getResource<Web.Site> |> List.head
 
                 Expect.isTrue site.ApplyIPSecurityRestrictionsToScm "ip security restrictions should be applied to scm site"
+            }
+            test "Public network access can be enabled" {
+                let resources =
+                    webApp {
+                        name "test"
+                        enable_public_network_access
+                    }
+                    |> getResources
+
+                let site = resources |> getResource<Web.Site> |> List.head
+
+                Expect.equal
+                    site.EnablePublicNetworkAccess
+                    (Some true)
+                    "Site should have public network access enabled"
+            }
+            test "Public network access can be enabled on slot" {
+
+                let slot =
+                    appSlot {
+                        name "deploy"
+                        enable_public_network_access
+                    }
+
+                let site: WebAppConfig =
+                    webApp {
+                        name "web"
+                        add_slot slot
+                    }
+
+                Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "deploy") "Config should contain slot"
+
+                let slot =
+                    site
+                    |> getResources
+                    |> getResource<Arm.Web.Site>
+                    |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
+                    |> List.head
+
+                Expect.equal
+                    slot.EnablePublicNetworkAccess
+                    (Some true)
+                    "Slot should have public network access enabled"
             }
         ]

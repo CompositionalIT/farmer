@@ -241,6 +241,7 @@ type Site =
         VirtualApplications: Map<string, VirtualApplication>
         PostDeployActions: (string -> Result<string, string> option) list
         ApplyIPSecurityRestrictionsToScm: bool
+        EnablePublicNetworkAccess: bool option
     }
 
     /// Shorthand for SiteType.ResourceType
@@ -356,6 +357,11 @@ type Site =
                             match this.LinkToSubnet with
                             | None -> null
                             | Some id -> id.ResourceId.ArmExpression.Eval()
+                        publicNetworkAccess = 
+                            match this.EnablePublicNetworkAccess with
+                            | None -> null
+                            | Some true -> "Enabled"
+                            | Some false -> "Disabled"
                         siteConfig =
                             {|
                                 alwaysOn = this.AlwaysOn

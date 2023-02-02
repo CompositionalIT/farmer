@@ -108,6 +108,7 @@ type SlotConfig =
         Dependencies: ResourceId Set
         IpSecurityRestrictions: IpSecurityRestriction list
         ApplyIPSecurityRestrictionsToScm: bool
+        EnablePublicNetworkAccess: bool option
     }
 
     member this.ToSite(owner: Arm.Web.Site) =
@@ -131,6 +132,8 @@ type SlotConfig =
             Identity = this.Identity + owner.Identity
             KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity |> Option.orElse owner.KeyVaultReferenceIdentity
             IpSecurityRestrictions = this.IpSecurityRestrictions
+            ApplyIPSecurityRestrictionsToScm = this.ApplyIPSecurityRestrictionsToScm
+            EnablePublicNetworkAccess = this.EnablePublicNetworkAccess
             ZipDeployPath = None
             PostDeployActions =
                 [
@@ -211,6 +214,7 @@ type SlotBuilder() =
             Dependencies = Set.empty
             IpSecurityRestrictions = []
             ApplyIPSecurityRestrictionsToScm = false
+            EnablePublicNetworkAccess = None
         }
 
     [<CustomOperation "name">]
@@ -322,6 +326,17 @@ type SlotBuilder() =
         let cidr = IPAddressCidr.parse ip
         this.AllowIp(state, name, cidr, applyToScm)
 
+    /// Add multiple allowed ip for ip security restrictions
+    [<CustomOperation "add_allowed_ip_restrictions">]
+    member this.AllowIps(state, name, ips: IPAddressCidr list, ?applyToScm:bool) : SlotConfig =
+        let applyToScm = defaultArg applyToScm false
+        ips |> List.fold (fun state cidr -> this.AllowIp(state, name, cidr, applyToScm)) state
+
+    member this.AllowIps(state, name, ips: string list, ?applyToScm:bool) : SlotConfig =
+        let applyToScm = defaultArg applyToScm false
+        let cidrs = ips |> List.map (fun ip -> IPAddressCidr.parse ip)
+        this.AllowIps(state, name, cidrs, applyToScm)
+
     /// Add Denied ip for ip security restrictions
     [<CustomOperation "add_denied_ip_restriction">]
     member _.DenyIp(state, name, cidr: IPAddressCidr, ?applyToScm:bool) : SlotConfig =
@@ -340,6 +355,13 @@ type SlotBuilder() =
         let applyToScm = defaultArg applyToScm false
         let cidr = IPAddressCidr.parse ip
         this.DenyIp(state, name, cidr, applyToScm)
+
+    /// Enables public network access, to allow hybrid networking with public and private endpoints.
+    [<CustomOperation "enable_public_network_access">]
+    member _.EnablePublicNetworkAccess(state) : SlotConfig =
+        { state with 
+            EnablePublicNetworkAccess = Some true
+        }
 
     interface ITaggable<SlotConfig> with
         member _.Add state tags =
@@ -425,6 +447,7 @@ type CommonWebConfig =
         IntegratedSubnet: SubnetReference option
         PrivateEndpoints: (SubnetReference * string option) Set
         ApplyIPSecurityRestrictionsToScm: bool
+        EnablePublicNetworkAccess: bool option
     }
 
     member this.Validate() =
@@ -751,6 +774,7 @@ type WebAppConfig =
                         LinkToSubnet = this.CommonWebConfig.IntegratedSubnet
                         PostDeployActions = []
                         VirtualApplications = this.VirtualApplications
+                        EnablePublicNetworkAccess = this.CommonWebConfig.EnablePublicNetworkAccess   
                     }
 
                 match keyVault with
@@ -967,6 +991,7 @@ type WebAppBuilder() =
                     IntegratedSubnet = None
                     PrivateEndpoints = Set.empty
                     ApplyIPSecurityRestrictionsToScm = false
+                    EnablePublicNetworkAccess = None
                 }
             WorkerSize = Small
             WorkerCount = 1
@@ -1679,6 +1704,18 @@ module Extensions =
                     ApplyIPSecurityRestrictionsToScm = applyToScm
                 })
 
+        /// Add multiple allowed ip for ip security restrictions
+        [<CustomOperation "add_allowed_ip_restrictions">]
+        member this.AllowIps(state, name, ips: IPAddressCidr list, ?applyToScm:bool) =
+            let applyToScm = defaultArg applyToScm false
+            ips 
+                |> List.fold (fun state cidr -> this.AllowIp(state, name, cidr, applyToScm)) state
+
+        member this.AllowIps(state, name, ips: string list, ?applyToScm:bool) =
+            let applyToScm = defaultArg applyToScm false
+            let cidrs = ips |> List.map (fun ip -> IPAddressCidr.parse ip)
+            this.AllowIps(state, name, cidrs, applyToScm)
+
         /// Add Denied ip for ip security restrictions
         [<CustomOperation "add_denied_ip_restriction">]
         member this.DenyIp(state: 'T, name, ip, ?applyToScm:bool) =
@@ -1726,3 +1763,8 @@ module Extensions =
 
         member this.LinkToUnmanagedVNet(state: 'T, (vnet, subnetName): VirtualNetworkConfig * ResourceName) =
             this.LinkToUnmanagedVNet(state, vnet.SubnetIds[subnetName.Value])
+
+        /// Enables public network access, to allow hybrid networking with public and private endpoints.
+        [<CustomOperation "enable_public_network_access">]
+        member this.EnablePublicNetworkAccess(state: 'T) =
+            this.Map state (fun x -> { x with EnablePublicNetworkAccess = Some true })
