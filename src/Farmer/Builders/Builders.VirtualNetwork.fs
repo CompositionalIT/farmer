@@ -2,6 +2,7 @@
 module Farmer.Builders.VirtualNetwork
 
 open Farmer
+open Farmer.Arm
 open Farmer.Builders
 open Farmer.Network
 open Farmer.Arm.Network
@@ -10,6 +11,140 @@ type PeeringMode =
     | TwoWay
     | OneWayToRemote
     | OneWayFromRemote
+
+type PublicIpAddressConfig =
+    {
+        Name: ResourceName
+        Sku: PublicIpAddress.Sku
+        AllocationMethod: PublicIpAddress.AllocationMethod
+        DomainNameLabel: string option
+        Tags: Map<string,string>
+    }
+
+        member this.ResourceId = publicIPAddresses.resourceId this.Name
+    interface IBuilder with
+        member this.ResourceId = this.ResourceId
+
+        member this.BuildResources location =
+            let publicIpAddress =
+                {
+                  Location = location
+                  Name = this.Name
+                  Sku = this.Sku
+                  AllocationMethod = this.AllocationMethod
+                  DomainNameLabel = this.DomainNameLabel
+                  Tags = this.Tags
+                }
+
+            [
+                publicIpAddress
+            ]
+type PublicIpAddressBuilder() =
+    member _.Yield _ =
+        {
+          Name = ResourceName.Empty
+          Sku = PublicIpAddress.Sku.Standard
+          AllocationMethod = PublicIpAddress.AllocationMethod.Dynamic
+          DomainNameLabel = None
+          Tags = Map.empty
+        }
+
+    [<CustomOperation "name">]
+    member _.Name(state: PublicIpAddressConfig, name: string) = { state with Name = (ResourceName name) }
+
+    [<CustomOperation "sku">]
+    member _.Sku(state: PublicIpAddressConfig, sku: PublicIpAddress.Sku) = { state with Sku = sku }
+
+    [<CustomOperation "allocation_method">]
+    member _.AllocationMethod(state: PublicIpAddressConfig, allocationMethod: PublicIpAddress.AllocationMethod) = { state with AllocationMethod = allocationMethod }
+
+    [<CustomOperation "domain_name_label">]
+    member _.DomainNameLabel(state: PublicIpAddressConfig, domainNameLabel: string) = { state with DomainNameLabel = Some domainNameLabel }
+
+    interface ITaggable<PublicIpAddressConfig> with
+        member _.Add state tags =
+            { state with
+                Tags = state.Tags |> Map.merge tags
+            }
+
+
+let publicIpAddress = PublicIpAddressBuilder()
+
+type NatGatewayConfig =
+    {
+        Name: ResourceName
+        IdleTimeoutInMinutes: int
+        Zone: Zones
+        PublicIpAddresses: LinkedResource list
+        PublicIpPrefixes: LinkedResource list
+    }
+
+    member this.ResourceId = natGateways.resourceId this.Name
+
+    interface IBuilder with
+        member this.ResourceId = this.ResourceId
+
+        member this.BuildResources location =
+            let natGateway =
+                {
+                  Location = location
+                  Name = this.Name
+                  IdleTimeoutInMinutes = this.IdleTimeoutInMinutes
+                  Zone = this.Zone
+                  PublicIpAddresses = this.PublicIpAddresses
+                  PublicIpPrefixes = this.PublicIpPrefixes
+                }
+
+            [
+                natGateway
+            ]
+
+type NatGatewayBuilder() =
+    member _.Yield _ =
+        {
+            Name = ResourceName.Empty
+            IdleTimeoutInMinutes = 4
+            Zone = Zones.None
+            PublicIpAddresses = []
+            PublicIpPrefixes = []
+        }
+
+    [<CustomOperation "name">]
+    member _.Name(state: NatGatewayConfig, name: string) = { state with Name = (ResourceName name) }
+
+    [<CustomOperation "idle_timeout_in_minutes">]
+    member _.IdleTimeoutInMinutes(state: NatGatewayConfig, idleTimeoutInMinutes: int) = { state with IdleTimeoutInMinutes = idleTimeoutInMinutes }
+
+    [<CustomOperation "link_to_public_ip">]
+    member _.LinkToPublicIpAddress(state: NatGatewayConfig, publicIpAddress: PublicIpAddressConfig) =
+        {
+          state with
+            PublicIpAddresses = Managed (publicIpAddress :> IBuilder).ResourceId :: state.PublicIpAddresses
+        }
+
+    [<CustomOperation "link_to_public_ips">]
+    member _.LinkToPublicIpAddresses(state: NatGatewayConfig, publicIpAddresses: PublicIpAddressConfig list) =
+        {
+          state with
+            PublicIpAddresses = publicIpAddresses
+                                |> List.fold (fun acc pip -> (Managed pip.ResourceId)::acc) state.PublicIpAddresses
+        }
+
+    [<CustomOperation "link_to_unmanaged_public_ip">]
+    member _.LinkToUnmanagedPublicIpAddress(state: NatGatewayConfig, publicIpAddress: ResourceId) =
+        {
+          state with
+            PublicIpAddresses = (Unmanaged publicIpAddress) :: state.PublicIpAddresses
+        }
+
+    [<CustomOperation "link_to_unmanaged_public_ips">]
+    member _.LinkToUnmanagedPublicIpAddresses(state: NatGatewayConfig, publicIpAddresses: ResourceId list) =
+        {
+          state with
+            PublicIpAddresses =  publicIpAddresses |> List.map Unmanaged
+        }
+
+let natGateway = NatGatewayBuilder()
 
 type SubnetConfig =
     {
@@ -23,6 +158,7 @@ type SubnetConfig =
         AllowPrivateEndpoints: FeatureFlag option
         PrivateLinkServiceNetworkPolicies: FeatureFlag option
         RouteTable: LinkedResource option
+        NatGateway: LinkedResource option
         Dependencies: ResourceId Set
     }
 
@@ -46,11 +182,13 @@ type SubnetConfig =
             PrivateEndpointNetworkPolicies = this.AllowPrivateEndpoints |> Option.map FeatureFlag.invert
             PrivateLinkServiceNetworkPolicies = this.PrivateLinkServiceNetworkPolicies
             RouteTable = this.RouteTable
+            NatGateway = this.NatGateway
             DependsOn =
                 this.Dependencies
                 |> LinkedResource.addToSetIfSomeManaged this.VirtualNetwork
                 |> LinkedResource.addToSetIfSomeManaged this.RouteTable
                 |> LinkedResource.addToSetIfSomeManaged this.NetworkSecurityGroup
+                |> LinkedResource.addToSetIfSomeManaged this.NatGateway
         }
 
     interface IBuilder with
@@ -78,6 +216,7 @@ type SubnetBuilder() =
             AllowPrivateEndpoints = None
             PrivateLinkServiceNetworkPolicies = None
             RouteTable = None
+            NatGateway = None
             Dependencies = Set.empty
         }
 
@@ -207,6 +346,28 @@ type SubnetBuilder() =
             RouteTable = Some(Unmanaged routeTable)
         }
 
+    [<CustomOperation "link_to_nat_gateway">]
+    member _.LinkToNatGateway(state: SubnetConfig, natGateway: NatGatewayConfig) =
+        { state with
+            NatGateway = Some(Managed (natGateway.ResourceId))
+        }
+
+    member _.LinkToNatGateway(state: SubnetConfig, natGateway: NatGatewayConfig option) =
+        { state with
+            NatGateway = natGateway |> Option.map (fun gw -> Managed gw.ResourceId)
+        }
+
+    [<CustomOperation "link_to_unmanaged_nat_gateway">]
+    member _.LinkToUnmanagedNatGateway(state: SubnetConfig, natGateway: ResourceId) =
+        { state with
+            NatGateway = Some(Unmanaged natGateway)
+        }
+
+    member _.LinkToUnmanagedNatGateway(state: SubnetConfig, natGateway: ResourceId option) =
+        { state with
+            NatGateway = natGateway |> Option.map Unmanaged
+        }
+
     /// Enable support for additional dependencies.
     interface IDependable<SubnetConfig> with
         member _.Add state newDeps =
@@ -228,6 +389,7 @@ type SubnetBuildSpec =
         AllowPrivateEndpoints: FeatureFlag option
         PrivateLinkServiceNetworkPolicies: FeatureFlag option
         RouteTable: LinkedResource option
+        NatGateway: LinkedResource option
     }
 
 /// Builds a subnet of a certain CIDR block size.
@@ -242,6 +404,7 @@ let buildSubnet name size =
         AllowPrivateEndpoints = None
         PrivateLinkServiceNetworkPolicies = None
         RouteTable = None
+        NatGateway = None
     }
 
 /// Builds a subnet of a certain CIDR block size with service delegations.
@@ -256,6 +419,7 @@ let buildSubnetDelegations name size delegations =
         AllowPrivateEndpoints = None
         PrivateLinkServiceNetworkPolicies = None
         RouteTable = None
+        NatGateway = None
     }
 
 let buildSubnetAllowPrivateEndpoints name size =
@@ -269,6 +433,7 @@ let buildSubnetAllowPrivateEndpoints name size =
         AllowPrivateEndpoints = None
         PrivateLinkServiceNetworkPolicies = None
         RouteTable = None
+        NatGateway = None
     }
 
 type SubnetSpecBuilder() =
@@ -283,6 +448,7 @@ type SubnetSpecBuilder() =
             AllowPrivateEndpoints = None
             PrivateLinkServiceNetworkPolicies = None
             RouteTable = None
+            NatGateway = None
         }
 
     /// Sets the name of the subnet to build
@@ -379,6 +545,18 @@ type SubnetSpecBuilder() =
             RouteTable = Some(Unmanaged routeTable)
         }
 
+    [<CustomOperation "link_to_nat_gateway">]
+    member _.LinkToNatGateway(state: SubnetBuildSpec, natGateway: NatGatewayConfig) =
+        { state with
+            NatGateway = Some(Managed (natGateway.ResourceId))
+        }
+
+    [<CustomOperation "link_to_unmanaged_nat_gateway">]
+    member _.LinkToUnmanagedNatGateway(state: SubnetBuildSpec, natGateway: ResourceId) =
+        { state with
+            NatGateway = Some(Unmanaged natGateway)
+        }
+
 let subnetSpec = SubnetSpecBuilder()
 
 /// A specification building an address space and subnets.
@@ -414,7 +592,8 @@ type AddressSpaceBuilder() =
             ?allowPrivateEndpoints: FeatureFlag,
             ?privateLinkServiceNetworkPolicies: FeatureFlag,
             ?nsg: LinkedResource,
-            ?routeTable: LinkedResource
+            ?routeTable: LinkedResource,
+            ?natGateway: LinkedResource
         ) =
         let subnetBuildSpec =
             {
@@ -427,6 +606,7 @@ type AddressSpaceBuilder() =
                 AllowPrivateEndpoints = allowPrivateEndpoints
                 PrivateLinkServiceNetworkPolicies = privateLinkServiceNetworkPolicies
                 RouteTable = routeTable
+                NatGateway = natGateway
             }
 
         { state with
@@ -622,7 +802,8 @@ type VirtualNetworkBuilder() =
                         s.AllowPrivateEndpoints,
                         s.PrivateLinkServiceNetworkPolicies,
                         s.NetworkSecurityGroup,
-                        s.RouteTable)
+                        s.RouteTable,
+                        s.NatGateway)
                 )
                 |> List.map
                     (fun ((name,
@@ -632,7 +813,8 @@ type VirtualNetworkBuilder() =
                            allowPrivateEndpoints,
                            privateLinkServiceNetworkPolicies,
                            nsg,
-                           routeTable),
+                           routeTable,
+                           natGateway),
                           cidr) ->
                         {
                             Name = ResourceName name
@@ -645,6 +827,7 @@ type VirtualNetworkBuilder() =
                             AllowPrivateEndpoints = allowPrivateEndpoints
                             PrivateLinkServiceNetworkPolicies = privateLinkServiceNetworkPolicies
                             RouteTable = routeTable
+                            NatGateway = natGateway
                             Dependencies = Set.empty
                         }))
 
@@ -849,3 +1032,4 @@ type PrivateEndpointBuilder() =
         }
 
 let privateEndpoint = PrivateEndpointBuilder()
+
