@@ -360,7 +360,8 @@ type Site =
                         publicNetworkAccess = 
                             match this.EnablePublicNetworkAccess with
                             | None -> null
-                            | Some v -> box v
+                            | Some true -> "Enabled"
+                            | Some false -> "Disabled"
                         siteConfig =
                             {|
                                 alwaysOn = this.AlwaysOn
