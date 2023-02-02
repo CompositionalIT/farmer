@@ -108,6 +108,7 @@ type SlotConfig =
         Dependencies: ResourceId Set
         IpSecurityRestrictions: IpSecurityRestriction list
         ApplyIPSecurityRestrictionsToScm: bool
+        EnablePublicNetworkAccess: bool option
     }
 
     member this.ToSite(owner: Arm.Web.Site) =
@@ -131,6 +132,8 @@ type SlotConfig =
             Identity = this.Identity + owner.Identity
             KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity |> Option.orElse owner.KeyVaultReferenceIdentity
             IpSecurityRestrictions = this.IpSecurityRestrictions
+            ApplyIPSecurityRestrictionsToScm = this.ApplyIPSecurityRestrictionsToScm
+            EnablePublicNetworkAccess = this.EnablePublicNetworkAccess
             ZipDeployPath = None
             PostDeployActions =
                 [
@@ -211,6 +214,7 @@ type SlotBuilder() =
             Dependencies = Set.empty
             IpSecurityRestrictions = []
             ApplyIPSecurityRestrictionsToScm = false
+            EnablePublicNetworkAccess = None
         }
 
     [<CustomOperation "name">]
@@ -352,6 +356,13 @@ type SlotBuilder() =
         let cidr = IPAddressCidr.parse ip
         this.DenyIp(state, name, cidr, applyToScm)
 
+    /// Enables public network access, to allow hybrid networking with public and private endpoints.
+    [<CustomOperation "enable_public_network_access">]
+    member _.EnablePublicNetworkAccess(state) : SlotConfig =
+        { state with 
+            EnablePublicNetworkAccess = Some true
+        }
+
     interface ITaggable<SlotConfig> with
         member _.Add state tags =
             { state with
@@ -436,6 +447,7 @@ type CommonWebConfig =
         IntegratedSubnet: SubnetReference option
         PrivateEndpoints: (SubnetReference * string option) Set
         ApplyIPSecurityRestrictionsToScm: bool
+        EnablePublicNetworkAccess: bool option
     }
 
     member this.Validate() =
@@ -762,6 +774,7 @@ type WebAppConfig =
                         LinkToSubnet = this.CommonWebConfig.IntegratedSubnet
                         PostDeployActions = []
                         VirtualApplications = this.VirtualApplications
+                        EnablePublicNetworkAccess = this.CommonWebConfig.EnablePublicNetworkAccess   
                     }
 
                 match keyVault with
@@ -978,6 +991,7 @@ type WebAppBuilder() =
                     IntegratedSubnet = None
                     PrivateEndpoints = Set.empty
                     ApplyIPSecurityRestrictionsToScm = false
+                    EnablePublicNetworkAccess = None
                 }
             WorkerSize = Small
             WorkerCount = 1
@@ -1749,3 +1763,8 @@ module Extensions =
 
         member this.LinkToUnmanagedVNet(state: 'T, (vnet, subnetName): VirtualNetworkConfig * ResourceName) =
             this.LinkToUnmanagedVNet(state, vnet.SubnetIds[subnetName.Value])
+
+        /// Enables public network access, to allow hybrid networking with public and private endpoints.
+        [<CustomOperation "enable_public_network_access">]
+        member this.EnablePublicNetworkAccess(state: 'T) =
+            this.Map state (fun x -> { x with EnablePublicNetworkAccess = Some true })

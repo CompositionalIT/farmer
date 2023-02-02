@@ -351,6 +351,7 @@ type FunctionsConfig =
                         ApplyIPSecurityRestrictionsToScm = this.CommonWebConfig.ApplyIPSecurityRestrictionsToScm
                         LinkToSubnet = this.CommonWebConfig.IntegratedSubnet
                         VirtualApplications = Map []
+                        EnablePublicNetworkAccess = this.CommonWebConfig.EnablePublicNetworkAccess
                     }
 
                 match this.CommonWebConfig.ServicePlan with
@@ -469,6 +470,7 @@ type FunctionsBuilder() =
                     IntegratedSubnet = None
                     PrivateEndpoints = Set.empty
                     ApplyIPSecurityRestrictionsToScm = false
+                    EnablePublicNetworkAccess = None
                 }
             StorageAccount =
                 derived (fun config ->

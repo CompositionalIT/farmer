@@ -2011,4 +2011,47 @@ let tests =
 
                 Expect.isTrue site.ApplyIPSecurityRestrictionsToScm "ip security restrictions should be applied to scm site"
             }
+            test "Public network access can be enabled" {
+                let resources =
+                    webApp {
+                        name "test"
+                        enable_public_network_access
+                    }
+                    |> getResources
+
+                let site = resources |> getResource<Web.Site> |> List.head
+
+                Expect.equal
+                    site.EnablePublicNetworkAccess
+                    (Some true)
+                    "Site should have public network access enabled"
+            }
+            test "Public network access can be enabled on slot" {
+
+                let slot =
+                    appSlot {
+                        name "deploy"
+                        enable_public_network_access
+                    }
+
+                let site: WebAppConfig =
+                    webApp {
+                        name "web"
+                        add_slot slot
+                    }
+
+                Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "deploy") "Config should contain slot"
+
+                let slot =
+                    site
+                    |> getResources
+                    |> getResource<Arm.Web.Site>
+                    |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
+                    |> List.head
+
+                Expect.equal
+                    slot.EnablePublicNetworkAccess
+                    (Some true)
+                    "Slot should have public network access enabled"
+            }
         ]
