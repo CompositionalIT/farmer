@@ -115,7 +115,7 @@ type VirtualMachine =
         Image: ImageDefinition
         OsDisk: DiskInfo
         DataDisks: DiskInfo list
-        NetworkInterfaceName: ResourceName
+        NetworkInterfaceIds: ResourceId list
         Identity: Identity.ManagedIdentity
         Tags: Map<string, string>
     }
@@ -136,7 +136,7 @@ type VirtualMachine =
         member this.JsonModel =
             let dependsOn =
                 [
-                    networkInterfaces.resourceId this.NetworkInterfaceName
+                    yield! this.NetworkInterfaceIds
                     yield! this.StorageAccount |> Option.mapList storageAccounts.resourceId
                 ]
 
@@ -218,12 +218,7 @@ type VirtualMachine =
                         |}
                     networkProfile =
                         {|
-                            networkInterfaces =
-                                [
-                                    {|
-                                        id = networkInterfaces.resourceId(this.NetworkInterfaceName).Eval()
-                                    |}
-                                ]
+                            networkInterfaces = this.NetworkInterfaceIds |> List.map (fun id -> {| id = id.Eval() |})
                         |}
                     diagnosticsProfile =
                         match this.DiagnosticsEnabled with

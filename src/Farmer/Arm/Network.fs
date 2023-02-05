@@ -540,16 +540,22 @@ type Connection =
                     |}
             |}
 
+/// IP configuration for a network interface.
+type IpConfiguration =
+    {
+        SubnetName: ResourceName
+        PublicIpAddress: LinkedResource option
+        LoadBalancerBackendAddressPools: LinkedResource list
+        PrivateIpAllocation: PrivateIpAddress.AllocationMethod option
+    }
+
 type NetworkInterface =
     {
         Name: ResourceName
         Location: Location
-        IpConfigs: {| SubnetName: ResourceName
-                      PublicIpAddress: LinkedResource option
-                      LoadBalancerBackendAddressPools: LinkedResource list |} list
+        IpConfigs: IpConfiguration list
         VirtualNetwork: LinkedResource
         NetworkSecurityGroup: ResourceId option
-        PrivateIpAllocation: PrivateIpAddress.AllocationMethod option
         Tags: Map<string, string>
     }
 
@@ -584,7 +590,7 @@ type NetworkInterface =
                                 name = $"ipconfig{index + 1}"
                                 properties =
                                     let allocationMethod, ip =
-                                        match this.PrivateIpAllocation with
+                                        match ipConfig.PrivateIpAllocation with
                                         | Some (StaticPrivateIp ip) -> "Static", string ip
                                         | _ -> "Dynamic", null
 

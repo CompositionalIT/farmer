@@ -490,6 +490,147 @@ let tests =
                 Expect.equal (ipToken.ToString()) (expectedIpToken) "Static IP is wrong or missing"
             }
 
+            test "Supports multiple private IP configurations" {
+                let deployment =
+                    arm {
+                        add_resources
+                            [
+                                vm {
+                                    name "foo"
+                                    username "foo"
+
+                                    private_ip_allocation (
+                                        PrivateIpAddress.StaticPrivateIp(Net.IPAddress.Parse("192.168.12.13"))
+                                    )
+
+                                    add_ip_configurations
+                                        [
+                                            ipConfig {
+                                                private_ip_allocation (
+                                                    PrivateIpAddress.StaticPrivateIp(
+                                                        Net.IPAddress.Parse("192.168.12.14")
+                                                    )
+                                                )
+                                            }
+                                        ]
+                                }
+                            ]
+                    }
+
+                let jobj = Newtonsoft.Json.Linq.JObject.Parse(deployment.Template |> Writer.toJson)
+                let nic = jobj.SelectToken("resources[?(@.name=='foo-nic')]")
+                Expect.isNotNull nic "VM NIC not found"
+
+                let ip0 =
+                    nic.SelectToken "properties.ipConfigurations[0].properties.privateIPAddress"
+
+                Expect.equal (ip0.ToString()) "192.168.12.13" "First static IP is wrong or missing"
+
+                let ip1 =
+                    nic.SelectToken "properties.ipConfigurations[1].properties.privateIPAddress"
+
+                Expect.equal (ip1.ToString()) "192.168.12.14" "Second static IP is wrong or missing"
+
+                let ip1SubnetId =
+                    nic.SelectToken "properties.ipConfigurations[1].properties.subnet.id"
+
+                Expect.equal
+                    (ip1SubnetId.ToString())
+                    "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'foo-vnet', 'foo-subnet')]"
+                    "Second subnet is wrong or missing"
+            }
+
+            test "Supports adding multiple private IP addresses" {
+                let deployment =
+                    arm {
+                        add_resources
+                            [
+                                vm {
+                                    name "foo"
+                                    username "foo"
+                                    public_ip None
+
+                                    add_ip_configurations
+                                        [
+                                            ipConfig {
+                                                private_ip_allocation (
+                                                    PrivateIpAddress.StaticPrivateIp(
+                                                        Net.IPAddress.Parse("192.168.12.13")
+                                                    )
+                                                )
+                                            }
+                                        ]
+                                }
+                            ]
+                    }
+
+                let jobj = Newtonsoft.Json.Linq.JObject.Parse(deployment.Template |> Writer.toJson)
+                let nic = jobj.SelectToken("resources[?(@.name=='foo-nic')]").ToString()
+                Expect.isNonEmpty nic "NIC not found"
+
+                let nicProps = jobj.SelectToken("resources[?(@.name=='foo-nic')].properties")
+
+                Expect.isNotNull nicProps "NIC properties not found"
+
+                let ip0Token =
+                    nicProps.SelectToken "ipConfigurations[1].properties.privateIPAddress"
+
+                Expect.equal (ip0Token.ToString()) "192.168.12.13" "Static IP is wrong or missing"
+            }
+
+            test "Builds multiple NICs when attaching to multiple subnets" {
+                let deployment =
+                    arm {
+                        add_resources
+                            [
+                                vm {
+                                    name "foo"
+                                    username "foo"
+                                    public_ip None
+
+                                    add_ip_configurations
+                                        [
+                                            ipConfig {
+                                                private_ip_allocation (
+                                                    PrivateIpAddress.StaticPrivateIp(
+                                                        Net.IPAddress.Parse("192.168.12.13")
+                                                    )
+                                                )
+
+                                                subnet_name (ResourceName "another-subnet")
+                                            }
+                                        ]
+                                }
+                            ]
+                    }
+
+                let jobj = Newtonsoft.Json.Linq.JObject.Parse(deployment.Template |> Writer.toJson)
+
+                let vm =
+                    jobj.SelectToken("resources[?(@.type=='Microsoft.Compute/virtualMachines')]")
+
+                let vmProps = vm.["properties"]
+                let vmNics = vmProps.["networkProfile"].["networkInterfaces"]
+                Expect.hasLength vmNics 2 "Emitted VM should have two network interfaces"
+                let vmDepends = vm.["dependsOn"]
+                Expect.hasLength vmDepends 2 "Emitted VM should have two dependencies"
+
+                let nics =
+                    jobj.SelectTokens("resources[?(@.type=='Microsoft.Network/networkInterfaces')]")
+
+                Expect.hasLength nics 2 "Should have emitted two network interfaces"
+                let secondNic = jobj.SelectToken("resources[?(@.name=='foo-nic-another-subnet')]")
+                Expect.isNotNull secondNic "Second NIC not found"
+
+                let secondNicProps = secondNic["properties"]
+                Expect.isNotNull secondNicProps "Second NIC properties not found"
+
+                let secondNicIp =
+                    secondNicProps.SelectToken "ipConfigurations[0].properties.privateIPAddress"
+
+                Expect.equal (secondNicIp.ToString()) "192.168.12.13" "Static IP is wrong or missing"
+            }
+
             test "Can attach to NSG" {
                 let vmName = "fooVm"
                 let myNsg = nsg { name "testNsg" }
