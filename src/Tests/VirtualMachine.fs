@@ -845,4 +845,33 @@ let tests =
                 Expect.hasLength publicIpZone 1 "Public IP should have a zone assignment."
                 Expect.equal (string publicIpZone.[0]) "2" "Public IP zone should be '2'"
             }
+            test "Creates VM with Ultra disk and zone" {
+                let deployment =
+                    arm {
+                        location Location.WestUS3
+
+                        add_resources
+                            [
+                                vm {
+                                    name "ultra-disk-vm"
+                                    vm_size Standard_D2s_v5
+                                    username "azureuser"
+                                    add_availability_zone "2"
+                                    add_disk 4096 UltraSSD_LRS
+                                }
+                            ]
+                    }
+
+                let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+                let vm = jobj.SelectToken "resources[?(@.name=='ultra-disk-vm')]"
+                let vmProps = vm.["properties"]
+                let ultraSsdEnabled = vmProps.SelectToken "additionalCapabilities.ultraSSDEnabled"
+                Expect.equal ultraSsdEnabled (JValue true) "Ultra SSD capability not enabled on VM"
+
+                let dataDiskType =
+                    vmProps.SelectToken "storageProfile.dataDisks[0].managedDisk.storageAccountType"
+
+                Expect.equal dataDiskType (JValue "UltraSSD_LRS") "Data disk not set to Ultra disk type"
+            }
+
         ]

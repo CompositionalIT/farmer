@@ -398,6 +398,9 @@ type VirtualMachineBuilder() =
     /// Sets the size and type of the OS disk for the VM.
     [<CustomOperation "os_disk">]
     member _.OsDisk(state: VmConfig, size, diskType) =
+        if diskType = UltraSSD_LRS then
+            raiseFarmer "UltraSSD_LRS can only be used for a data disk, not an OS disk."
+
         { state with
             OsDisk = { Size = size; DiskType = diskType }
         }

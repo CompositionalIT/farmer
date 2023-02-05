@@ -828,9 +828,13 @@ module Vm =
 
     /// The type of disk to use.
     type DiskType =
-        | StandardSSD_LRS
-        | Standard_LRS
+        | PremiumV2_LRS
         | Premium_LRS
+        | Premium_ZRS
+        | StandardSSD_LRS
+        | StandardSSD_ZRS
+        | Standard_LRS
+        | UltraSSD_LRS
 
         member this.ArmValue =
             match this with

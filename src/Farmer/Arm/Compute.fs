@@ -143,6 +143,11 @@ type VirtualMachine =
 
             let properties =
                 {|
+                    additionalCapabilities = // If data disks use UltraSSD then enable that support
+                        if this.DataDisks |> List.exists (fun disk -> disk.DiskType = UltraSSD_LRS) then
+                            {| ultraSSDEnabled = true |} :> obj
+                        else
+                            null
                     priority =
                         match this.Priority with
                         | Some priority -> priority.ArmValue
