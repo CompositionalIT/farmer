@@ -151,6 +151,7 @@ type RouteTable =
 type PublicIpAddress =
     {
         Name: ResourceName
+        AvailabilityZone: string option
         Location: Location
         Sku: PublicIpAddress.Sku
         AllocationMethod: PublicIpAddress.AllocationMethod
@@ -172,6 +173,7 @@ type PublicIpAddress =
                             | Some label -> box {| domainNameLabel = label.ToLower() |}
                             | None -> null
                     |}
+                zones = this.AvailabilityZone |> Option.map ResizeArray |> Option.toObj
             |}
 
 /// If using the IPs in the frontend of a cross-region laod balancer, public IPs and prefixes must be in

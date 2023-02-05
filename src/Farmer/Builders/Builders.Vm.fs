@@ -19,6 +19,7 @@ let makeName (vmName: ResourceName) elementType =
 type VmConfig =
     {
         Name: ResourceName
+        AvailabilityZone: string option
         DiagnosticsEnabled: bool option
         DiagnosticsStorageAccount: ResourceRef<VmConfig> option
 
@@ -125,6 +126,7 @@ type VmConfig =
                 // VM itself
                 {
                     Name = this.Name
+                    AvailabilityZone = this.AvailabilityZone
                     Location = location
                     DiagnosticsEnabled = this.DiagnosticsEnabled
                     StorageAccount = this.DiagnosticsStorageAccount |> Option.map (fun r -> r.resourceId(this).Name)
@@ -199,10 +201,16 @@ type VmConfig =
                         AllocationMethod =
                             match this.IpAllocation with
                             | Some x -> x
+                            | None when this.AvailabilityZone.IsSome -> PublicIpAddress.AllocationMethod.Static
                             | None -> PublicIpAddress.AllocationMethod.Dynamic
-                        Sku = PublicIpAddress.Sku.Basic
+                        Sku =
+                            if this.AvailabilityZone.IsSome then
+                                PublicIpAddress.Sku.Standard
+                            else
+                                PublicIpAddress.Sku.Basic
                         DomainNameLabel = this.DomainNamePrefix
                         Tags = this.Tags
+                        AvailabilityZone = this.AvailabilityZone
                     }
                 | None -> ()
 
@@ -270,6 +278,7 @@ type VirtualMachineBuilder() =
     member _.Yield _ =
         {
             Name = ResourceName.Empty
+            AvailabilityZone = None
             DiagnosticsEnabled = None
             DiagnosticsStorageAccount = None
             Priority = None
@@ -320,6 +329,12 @@ type VirtualMachineBuilder() =
     member _.Name(state: VmConfig, name) = { state with Name = name }
 
     member this.Name(state: VmConfig, name) = this.Name(state, ResourceName name)
+
+    [<CustomOperation "add_availability_zone">]
+    member _.AddAvailabilityZone(state: VmConfig, az: string) =
+        { state with
+            AvailabilityZone = Some az
+        }
 
     /// Turns on diagnostics support using an automatically created storage account.
     [<CustomOperation "diagnostics_support">]

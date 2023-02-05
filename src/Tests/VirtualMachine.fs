@@ -9,6 +9,7 @@ open Microsoft.Azure.Management.Compute.Models
 open Microsoft.Rest
 open System
 open Microsoft.Azure.Management.WebSites.Models
+open Newtonsoft.Json.Linq
 
 /// Client instance needed to get the serializer settings.
 let client =
@@ -817,4 +818,31 @@ let tests =
                 Expect.throws createVm "priority and spot_instance both set"
             }
 
+            test "Creates zonal VM and public IP" {
+                let deployment =
+                    arm {
+                        location Location.WestUS3
+
+                        add_resources
+                            [
+                                vm {
+                                    name "zonal-vm"
+                                    vm_size Standard_B1ms
+                                    username "azureuser"
+                                    add_availability_zone "2"
+                                }
+                            ]
+                    }
+
+                let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+                let vmZones = jobj.SelectToken "resources[?(@.name=='zonal-vm')].zones" :?> JArray
+                Expect.hasLength vmZones 1 "VM s have a zone assignment."
+                Expect.equal (string vmZones.[0]) "2" "VM zone should be '2'"
+
+                let publicIpZone =
+                    jobj.SelectToken "resources[?(@.name=='zonal-vm-ip')].zones" :?> JArray
+
+                Expect.hasLength publicIpZone 1 "Public IP should have a zone assignment."
+                Expect.equal (string publicIpZone.[0]) "2" "Public IP zone should be '2'"
+            }
         ]

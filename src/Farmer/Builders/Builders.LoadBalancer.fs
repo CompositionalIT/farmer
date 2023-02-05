@@ -35,6 +35,7 @@ type FrontendIpConfig =
             {
                 Name = resId.Name
                 AllocationMethod = AllocationMethod.Static
+                AvailabilityZone = None
                 Location = location
                 Sku =
                     match lbSku with

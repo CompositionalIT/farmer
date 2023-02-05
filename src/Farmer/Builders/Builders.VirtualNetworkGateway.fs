@@ -48,6 +48,7 @@ type VNetGatewayConfig =
                 if this.GatewayPublicIpName = ResourceName.Empty then
                     { // No public IP set, so generate one named after the gateway
                         Name = ResourceName $"{this.Name.Value}-ip"
+                        AvailabilityZone = None
                         AllocationMethod = AllocationMethod.Dynamic
                         Location = location
                         Sku = PublicIpAddress.Sku.Basic

@@ -103,6 +103,7 @@ type VirtualMachine =
     {
         Name: ResourceName
         Location: Location
+        AvailabilityZone: string option
         DiagnosticsEnabled: bool option
         StorageAccount: ResourceName option
         Size: VMSize
@@ -271,6 +272,7 @@ type VirtualMachine =
                             evictionPolicy = evictionPolicy.ArmValue
                             billingProfile = {| maxPrice = maxPrice |}
                         |}
+                zones = this.AvailabilityZone |> Option.map ResizeArray |> Option.toObj
             |}
 
 type Host =
