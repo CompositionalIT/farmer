@@ -224,7 +224,17 @@ type VirtualMachine =
                         |}
                     networkProfile =
                         {|
-                            networkInterfaces = this.NetworkInterfaceIds |> List.map (fun id -> {| id = id.Eval() |})
+                            networkInterfaces =
+                                this.NetworkInterfaceIds
+                                |> List.mapi (fun idx id ->
+                                    {|
+                                        id = id.Eval()
+                                        properties =
+                                            if this.NetworkInterfaceIds.Length > 1 then
+                                                box {| primary = idx = 0 |} // First NIC is primary
+                                            else
+                                                null // Don't emit primary if there aren't multiple NICs
+                                    |})
                         |}
                     diagnosticsProfile =
                         match this.DiagnosticsEnabled with

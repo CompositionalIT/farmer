@@ -85,6 +85,7 @@ type VmConfig =
             LoadBalancerBackendAddressPools = this.LoadBalancerBackendAddressPools
             PublicIpAddress = this.PublicIp |> Option.map (fun x -> x.toLinkedResource this)
             PrivateIpAllocation = this.PrivateIpAllocation
+            Primary = if this.IpConfigs.Length > 0 then Some true else None
         }
         :: this.IpConfigs
         |> List.map (fun ipconfig ->
@@ -98,18 +99,29 @@ type VmConfig =
         // NIC for each distinct subnet
         let ipConfigs = this.buildIpConfigs ()
 
-        ipConfigs
-        |> List.groupBy (fun ipconfig -> ipconfig.SubnetName)
+        let ipConfigsBySubnet =
+            ipConfigs |> List.groupBy (fun ipconfig -> ipconfig.SubnetName)
+
+        ipConfigsBySubnet
         |> List.map (fun (subnetName, subnetIpConfigs) ->
+            let isPrimaryNic =
+                // NIC for the VM's subnet is considered the primary.
+                (this.Subnet.resourceId this).Name = subnetName
+
             {
                 Name =
-                    // NIC for the VM's subnet gets the default NicName, others are have -subnetName appended.
-                    if ((this.Subnet.resourceId this).Name = subnetName) then
+                    //Primary NIC gets the default NicName, others are have -subnetName appended.
+                    if isPrimaryNic then
                         this.NicName.Name
                     else
                         ResourceName $"{this.NicName.Name.Value}-{subnetName.Value}"
                 Location = location
                 IpConfigs = subnetIpConfigs
+                Primary =
+                    if ipConfigsBySubnet.Length > 1 then // multiple NICs, need to indicate the primary
+                        Some isPrimaryNic
+                    else
+                        None
                 VirtualNetwork = this.VNet.toLinkedResource this
                 NetworkSecurityGroup = nsgId
                 Tags = this.Tags
@@ -687,6 +699,7 @@ type IpConfigBuilder() =
             PublicIpAddress = None
             LoadBalancerBackendAddressPools = []
             PrivateIpAllocation = None
+            Primary = None
         }
 
     [<CustomOperation "subnet_name">]

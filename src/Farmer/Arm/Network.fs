@@ -549,6 +549,7 @@ type IpConfiguration =
         PublicIpAddress: LinkedResource option
         LoadBalancerBackendAddressPools: LinkedResource list
         PrivateIpAllocation: PrivateIpAddress.AllocationMethod option
+        Primary: bool option
     }
 
 type NetworkInterface =
@@ -558,6 +559,7 @@ type NetworkInterface =
         IpConfigs: IpConfiguration list
         VirtualNetwork: LinkedResource
         NetworkSecurityGroup: ResourceId option
+        Primary: bool option
         Tags: Map<string, string>
     }
 
@@ -585,6 +587,7 @@ type NetworkInterface =
 
             let props =
                 {|
+                    primary = this.Primary |> Option.map box |> Option.toObj
                     ipConfigurations =
                         this.IpConfigs
                         |> List.mapi (fun index ipConfig ->
@@ -604,6 +607,7 @@ type NetworkInterface =
                                                 backendPools
                                                 |> List.map (fun lr -> lr.ResourceId |> ResourceId.AsIdObject)
                                                 |> box
+                                        primary = ipConfig.Primary |> Option.map box |> Option.toObj
                                         privateIPAllocationMethod = allocationMethod
                                         privateIPAddress = ip
                                         publicIPAddress =
