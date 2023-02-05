@@ -721,6 +721,7 @@ let tests =
                 Expect.isNotNull routes "Routes should have been generated for the route table"
                 Expect.equal (string routes.[0].["name"]) "myroute" "route 1 should be named 'myroute'"
                 Expect.equal (string routes.[1].["name"]) "myroute2" "route 2 should be named 'myroute2'"
+                Expect.isNull routes.[0].["apiVersion"] "Embedded routes should not have 'apiVersion'."
                 let routeProps = routes.[0].["properties"]
                 let route2Props = routes.[1].["properties"]
                 let route3Props = routes.[2].["properties"]

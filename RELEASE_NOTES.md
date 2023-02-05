@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.7.15
+* Route Tables: Fix bug where embedded routes should only serialize properties.
+
 ## 1.7.14
 * Identity: Update the list of all RBAC roles to latest.
 * Container Groups: Automatically round container instance memory to the first decimal place.
