@@ -52,6 +52,7 @@ module LocationExtensions =
         static member UKWest = Location "UKWest"
         static member WestCentralUS = Location "WestCentralUS"
         static member WestUS2 = Location "WestUS2"
+        static member WestUS3 = Location "WestUS3"
         static member KoreaCentral = Location "KoreaCentral"
         static member KoreaSouth = Location "KoreaSouth"
         static member FranceCentral = Location "FranceCentral"
