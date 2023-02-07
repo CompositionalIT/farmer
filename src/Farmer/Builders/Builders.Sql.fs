@@ -22,10 +22,10 @@ type SqlAzureDbConfig =
       member this.ResourceId = 
         match this.Server with
         | Some server -> {server.ResourceId with Type = databases; Segments = [this.Name]}
-        | None -> raiseFarmer $"databse %s{this.Name.Value} must have a server"
+        | None -> raiseFarmer $"database %s{this.Name.Value} must have a server"
 
       member this.BuildResources location =
-        let server = this.Server |> Option.defaultWith (fun () -> raiseFarmer $"databse %s{this.Name.Value} must have a server")
+        let server = this.Server |> Option.defaultWith (fun () -> raiseFarmer $"database %s{this.Name.Value} must have a server")
         [
           {
               Name = this.Name
@@ -38,7 +38,7 @@ type SqlAzureDbConfig =
               Sku =
                   match this.Sku with
                   | Some dbSku -> Standalone dbSku
-                  | None -> Pool (this.Pool |> Option.defaultWith (fun () -> raiseFarmer $"Non-standalone databse %s{this.Name.Value} must have a pool."))
+                  | None -> Pool (this.Pool |> Option.defaultWith (fun () -> raiseFarmer $"Non-standalone database %s{this.Name.Value} must have a pool."))
               Collation = this.Collation
           }
 
@@ -258,6 +258,14 @@ type SqlDbBuilder() =
             Server = Some (Unmanaged server)
             Pool = poolName
         }
+        
+    [<CustomOperation "link_to_elastic_pool">]
+    member _.LinkToPool(state:SqlAzureDbConfig, pool: ResourceName option) =
+      match pool with
+      | Some poolName -> {state with Sku=None; Pool = Some poolName}
+      | None -> {state with Pool = None }
+    member this.LinkToPool(state:SqlAzureDbConfig, pool: ResourceName) = this.LinkToPool(state, Some pool)
+    member this.LinkToPool(state:SqlAzureDbConfig, pool: string) =  this.LinkToPool(state, Some (ResourceName pool))
 
     /// Sets the collation of the database.
     [<CustomOperation "collation">]
