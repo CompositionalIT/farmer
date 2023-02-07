@@ -259,7 +259,7 @@ type SqlDbBuilder() =
             Pool = poolName
         }
         
-    [<CustomOperation "link_to_elastic_pool">]
+    [<CustomOperation "link_to_pool">]
     member _.LinkToPool(state:SqlAzureDbConfig, pool: ResourceName option) =
       match pool with
       | Some poolName -> {state with Sku=None; Pool = Some poolName}
