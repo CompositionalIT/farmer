@@ -140,13 +140,17 @@ module Servers =
             member this.ResourceId = databases.resourceId (this.Server.Name / this.Name)
 
             member this.JsonModel =
-                let dependsOn =
-                    LinkedResource.addToSetIfManaged this.Server
-                      (Set [
-                          match this.Sku with
-                          | Pool poolName -> elasticPools.resourceId (this.Server.Name, poolName)
-                          | Standalone _ -> ()
-                      ])
+                let dependsOn = Set [
+                    match this.Server with
+                    | Unmanaged _ -> ()
+                    | Managed serverName -> 
+                        serverName
+
+                        match this.Sku with
+                        | Standalone _ -> ()
+                        | Pool poolName ->
+                            {serverName with Type = elasticPools; Segments = [poolName]}
+                  ]
 
                 let serverName = 
                   SqlAccountName.Create this.Server.Name

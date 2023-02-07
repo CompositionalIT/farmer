@@ -16,7 +16,7 @@ type SqlAzureDbConfig =
         Collation: string
         Encryption: FeatureFlag
         Server: LinkedResource option
-        Pool: ResourceName option
+        Pool: LinkedResource option
     }
     interface IBuilder with
       member this.ResourceId = 
@@ -38,7 +38,7 @@ type SqlAzureDbConfig =
               Sku =
                   match this.Sku with
                   | Some dbSku -> Standalone dbSku
-                  | None -> Pool (this.Pool |> Option.defaultWith (fun () -> raiseFarmer $"Non-standalone database %s{this.Name.Value} must have a pool."))
+                  | None -> Pool (this.Pool |> Option.map (fun x-> x.Name) |> Option.defaultWith (fun () -> raiseFarmer $"Non-standalone database %s{this.Name.Value} must have a pool."))
               Collation = this.Collation
           }
 
@@ -118,7 +118,7 @@ type SqlAzureConfig =
                 }
 
                 for database in this.Databases do
-                  yield! ({database with Server=Some (Managed this.ResourceId); Pool= Some elasticPoolName } :> IBuilder).BuildResources location
+                  yield! ({database with Server=Some (Managed this.ResourceId); Pool= Some (Managed (elasticPools.resourceId elasticPoolName)) } :> IBuilder).BuildResources location
 
                 for rule in this.FirewallRules do
                     {
@@ -256,16 +256,8 @@ type SqlDbBuilder() =
     member _.LinkToUnmanagedServer(state:SqlAzureDbConfig, server:ResourceId, ?poolName:ResourceName) =
         { state with
             Server = Some (Unmanaged server)
-            Pool = poolName
+            Pool = poolName |> Option.map (fun x -> Unmanaged (elasticPools.resourceId x))
         }
-        
-    [<CustomOperation "link_to_pool">]
-    member _.LinkToPool(state:SqlAzureDbConfig, pool: ResourceName option) =
-      match pool with
-      | Some poolName -> {state with Sku=None; Pool = Some poolName}
-      | None -> {state with Pool = None }
-    member this.LinkToPool(state:SqlAzureDbConfig, pool: ResourceName) = this.LinkToPool(state, Some pool)
-    member this.LinkToPool(state:SqlAzureDbConfig, pool: string) =  this.LinkToPool(state, Some (ResourceName pool))
 
     /// Sets the collation of the database.
     [<CustomOperation "collation">]
