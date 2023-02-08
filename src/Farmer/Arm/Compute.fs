@@ -103,6 +103,7 @@ type VirtualMachine =
     {
         Name: ResourceName
         Location: Location
+        AvailabilityZone: string option
         DiagnosticsEnabled: bool option
         StorageAccount: ResourceName option
         Size: VMSize
@@ -115,7 +116,7 @@ type VirtualMachine =
         Image: ImageDefinition
         OsDisk: DiskInfo
         DataDisks: DiskInfo list
-        NetworkInterfaceName: ResourceName
+        NetworkInterfaceIds: ResourceId list
         Identity: Identity.ManagedIdentity
         Tags: Map<string, string>
     }
@@ -136,12 +137,17 @@ type VirtualMachine =
         member this.JsonModel =
             let dependsOn =
                 [
-                    networkInterfaces.resourceId this.NetworkInterfaceName
+                    yield! this.NetworkInterfaceIds
                     yield! this.StorageAccount |> Option.mapList storageAccounts.resourceId
                 ]
 
             let properties =
                 {|
+                    additionalCapabilities = // If data disks use UltraSSD then enable that support
+                        if this.DataDisks |> List.exists (fun disk -> disk.DiskType = UltraSSD_LRS) then
+                            {| ultraSSDEnabled = true |} :> obj
+                        else
+                            null
                     priority =
                         match this.Priority with
                         | Some priority -> priority.ArmValue
@@ -219,11 +225,16 @@ type VirtualMachine =
                     networkProfile =
                         {|
                             networkInterfaces =
-                                [
+                                this.NetworkInterfaceIds
+                                |> List.mapi (fun idx id ->
                                     {|
-                                        id = networkInterfaces.resourceId(this.NetworkInterfaceName).Eval()
-                                    |}
-                                ]
+                                        id = id.Eval()
+                                        properties =
+                                            if this.NetworkInterfaceIds.Length > 1 then
+                                                box {| primary = idx = 0 |} // First NIC is primary
+                                            else
+                                                null // Don't emit primary if there aren't multiple NICs
+                                    |})
                         |}
                     diagnosticsProfile =
                         match this.DiagnosticsEnabled with
@@ -276,6 +287,7 @@ type VirtualMachine =
                             evictionPolicy = evictionPolicy.ArmValue
                             billingProfile = {| maxPrice = maxPrice |}
                         |}
+                zones = this.AvailabilityZone |> Option.map ResizeArray |> Option.toObj
             |}
 
 type Host =

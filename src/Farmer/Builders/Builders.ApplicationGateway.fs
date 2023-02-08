@@ -82,6 +82,7 @@ type FrontendIpConfig =
             {
                 Name = resId.Name
                 AllocationMethod = AllocationMethod.Static
+                AvailabilityZone = None
                 Location = location
                 Sku = PublicIpAddress.Sku.Standard
                 DomainNameLabel = None

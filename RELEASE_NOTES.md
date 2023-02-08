@@ -3,6 +3,13 @@ Release Notes
 ## vNext
 * Web App: Ability to set Startup Command directly (useful for Linux deployments).
 
+## 1.7.15
+* Adds the West US 3 location
+* Virtual Machines: Support for multiple network interfaces on a VM
+* Virtual Machines: Support for multiple IP configs on a NIC
+* Virtual Machines: Support for Ultra SSD disk type for high performance data disks.
+* Virtual Machines: Availability zone deployment for VM and public IP.
+
 ## 1.7.14
 * Identity: Update the list of all RBAC roles to latest.
 * Container Groups: Automatically round container instance memory to the first decimal place.

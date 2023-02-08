@@ -9,6 +9,7 @@ open Microsoft.Azure.Management.Compute.Models
 open Microsoft.Rest
 open System
 open Microsoft.Azure.Management.WebSites.Models
+open Newtonsoft.Json.Linq
 
 /// Client instance needed to get the serializer settings.
 let client =
@@ -490,6 +491,147 @@ let tests =
                 Expect.equal (ipToken.ToString()) (expectedIpToken) "Static IP is wrong or missing"
             }
 
+            test "Supports multiple private IP configurations" {
+                let deployment =
+                    arm {
+                        add_resources
+                            [
+                                vm {
+                                    name "foo"
+                                    username "foo"
+
+                                    private_ip_allocation (
+                                        PrivateIpAddress.StaticPrivateIp(Net.IPAddress.Parse("192.168.12.13"))
+                                    )
+
+                                    add_ip_configurations
+                                        [
+                                            ipConfig {
+                                                private_ip_allocation (
+                                                    PrivateIpAddress.StaticPrivateIp(
+                                                        Net.IPAddress.Parse("192.168.12.14")
+                                                    )
+                                                )
+                                            }
+                                        ]
+                                }
+                            ]
+                    }
+
+                let jobj = Newtonsoft.Json.Linq.JObject.Parse(deployment.Template |> Writer.toJson)
+                let nic = jobj.SelectToken("resources[?(@.name=='foo-nic')]")
+                Expect.isNotNull nic "VM NIC not found"
+
+                let ip0 =
+                    nic.SelectToken "properties.ipConfigurations[0].properties.privateIPAddress"
+
+                Expect.equal (ip0.ToString()) "192.168.12.13" "First static IP is wrong or missing"
+
+                let ip1 =
+                    nic.SelectToken "properties.ipConfigurations[1].properties.privateIPAddress"
+
+                Expect.equal (ip1.ToString()) "192.168.12.14" "Second static IP is wrong or missing"
+
+                let ip1SubnetId =
+                    nic.SelectToken "properties.ipConfigurations[1].properties.subnet.id"
+
+                Expect.equal
+                    (ip1SubnetId.ToString())
+                    "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'foo-vnet', 'foo-subnet')]"
+                    "Second subnet is wrong or missing"
+            }
+
+            test "Supports adding multiple private IP addresses" {
+                let deployment =
+                    arm {
+                        add_resources
+                            [
+                                vm {
+                                    name "foo"
+                                    username "foo"
+                                    public_ip None
+
+                                    add_ip_configurations
+                                        [
+                                            ipConfig {
+                                                private_ip_allocation (
+                                                    PrivateIpAddress.StaticPrivateIp(
+                                                        Net.IPAddress.Parse("192.168.12.13")
+                                                    )
+                                                )
+                                            }
+                                        ]
+                                }
+                            ]
+                    }
+
+                let jobj = Newtonsoft.Json.Linq.JObject.Parse(deployment.Template |> Writer.toJson)
+                let nic = jobj.SelectToken("resources[?(@.name=='foo-nic')]").ToString()
+                Expect.isNonEmpty nic "NIC not found"
+
+                let nicProps = jobj.SelectToken("resources[?(@.name=='foo-nic')].properties")
+
+                Expect.isNotNull nicProps "NIC properties not found"
+
+                let ip0Token =
+                    nicProps.SelectToken "ipConfigurations[1].properties.privateIPAddress"
+
+                Expect.equal (ip0Token.ToString()) "192.168.12.13" "Static IP is wrong or missing"
+            }
+
+            test "Builds multiple NICs when attaching to multiple subnets" {
+                let deployment =
+                    arm {
+                        add_resources
+                            [
+                                vm {
+                                    name "foo"
+                                    username "foo"
+                                    public_ip None
+
+                                    add_ip_configurations
+                                        [
+                                            ipConfig {
+                                                private_ip_allocation (
+                                                    PrivateIpAddress.StaticPrivateIp(
+                                                        Net.IPAddress.Parse("192.168.12.13")
+                                                    )
+                                                )
+
+                                                subnet_name (ResourceName "another-subnet")
+                                            }
+                                        ]
+                                }
+                            ]
+                    }
+
+                let jobj = Newtonsoft.Json.Linq.JObject.Parse(deployment.Template |> Writer.toJson)
+
+                let vm =
+                    jobj.SelectToken("resources[?(@.type=='Microsoft.Compute/virtualMachines')]")
+
+                let vmProps = vm.["properties"]
+                let vmNics = vmProps.["networkProfile"].["networkInterfaces"]
+                Expect.hasLength vmNics 2 "Emitted VM should have two network interfaces"
+                let vmDepends = vm.["dependsOn"]
+                Expect.hasLength vmDepends 2 "Emitted VM should have two dependencies"
+
+                let nics =
+                    jobj.SelectTokens("resources[?(@.type=='Microsoft.Network/networkInterfaces')]")
+
+                Expect.hasLength nics 2 "Should have emitted two network interfaces"
+                let secondNic = jobj.SelectToken("resources[?(@.name=='foo-nic-another-subnet')]")
+                Expect.isNotNull secondNic "Second NIC not found"
+
+                let secondNicProps = secondNic["properties"]
+                Expect.isNotNull secondNicProps "Second NIC properties not found"
+
+                let secondNicIp =
+                    secondNicProps.SelectToken "ipConfigurations[0].properties.privateIPAddress"
+
+                Expect.equal (secondNicIp.ToString()) "192.168.12.13" "Static IP is wrong or missing"
+            }
+
             test "Can attach to NSG" {
                 let vmName = "fooVm"
                 let myNsg = nsg { name "testNsg" }
@@ -674,6 +816,62 @@ let tests =
                     |> ignore
 
                 Expect.throws createVm "priority and spot_instance both set"
+            }
+
+            test "Creates zonal VM and public IP" {
+                let deployment =
+                    arm {
+                        location Location.WestUS3
+
+                        add_resources
+                            [
+                                vm {
+                                    name "zonal-vm"
+                                    vm_size Standard_B1ms
+                                    username "azureuser"
+                                    add_availability_zone "2"
+                                }
+                            ]
+                    }
+
+                let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+                let vmZones = jobj.SelectToken "resources[?(@.name=='zonal-vm')].zones" :?> JArray
+                Expect.hasLength vmZones 1 "VM s have a zone assignment."
+                Expect.equal (string vmZones.[0]) "2" "VM zone should be '2'"
+
+                let publicIpZone =
+                    jobj.SelectToken "resources[?(@.name=='zonal-vm-ip')].zones" :?> JArray
+
+                Expect.hasLength publicIpZone 1 "Public IP should have a zone assignment."
+                Expect.equal (string publicIpZone.[0]) "2" "Public IP zone should be '2'"
+            }
+            test "Creates VM with Ultra disk and zone" {
+                let deployment =
+                    arm {
+                        location Location.WestUS3
+
+                        add_resources
+                            [
+                                vm {
+                                    name "ultra-disk-vm"
+                                    vm_size Standard_D2s_v5
+                                    username "azureuser"
+                                    add_availability_zone "2"
+                                    add_disk 4096 UltraSSD_LRS
+                                }
+                            ]
+                    }
+
+                let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+                let vm = jobj.SelectToken "resources[?(@.name=='ultra-disk-vm')]"
+                let vmProps = vm.["properties"]
+                let ultraSsdEnabled = vmProps.SelectToken "additionalCapabilities.ultraSSDEnabled"
+                Expect.equal ultraSsdEnabled (JValue true) "Ultra SSD capability not enabled on VM"
+
+                let dataDiskType =
+                    vmProps.SelectToken "storageProfile.dataDisks[0].managedDisk.storageAccountType"
+
+                Expect.equal dataDiskType (JValue "UltraSSD_LRS") "Data disk not set to Ultra disk type"
             }
 
         ]

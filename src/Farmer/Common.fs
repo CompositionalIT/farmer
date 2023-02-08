@@ -52,6 +52,7 @@ module LocationExtensions =
         static member UKWest = Location "UKWest"
         static member WestCentralUS = Location "WestCentralUS"
         static member WestUS2 = Location "WestUS2"
+        static member WestUS3 = Location "WestUS3"
         static member KoreaCentral = Location "KoreaCentral"
         static member KoreaSouth = Location "KoreaSouth"
         static member FranceCentral = Location "FranceCentral"
@@ -827,9 +828,13 @@ module Vm =
 
     /// The type of disk to use.
     type DiskType =
-        | StandardSSD_LRS
-        | Standard_LRS
+        | PremiumV2_LRS
         | Premium_LRS
+        | Premium_ZRS
+        | StandardSSD_LRS
+        | StandardSSD_ZRS
+        | Standard_LRS
+        | UltraSSD_LRS
 
         member this.ArmValue =
             match this with
