@@ -137,7 +137,13 @@ type RouteTable =
     member internal this.JsonModelProperties =
         {|
             disableBgpRoutePropagation = this.DisableBGPRoutePropagation.AsBoolean
-            routes = this.Routes |> Seq.map (fun x -> (x :> IArmResource).JsonModel)
+            routes =
+                this.Routes
+                |> Seq.map (fun x ->
+                    {|
+                        name = x.Name.Value
+                        properties = x.JsonModelProperties
+                    |})
         |}
 
     interface IArmResource with
