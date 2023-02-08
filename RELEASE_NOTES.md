@@ -8,8 +8,6 @@ Release Notes
 * Virtual Machines: Support for Ultra SSD disk type for high performance data disks.
 * Virtual Machines: Availability zone deployment for VM and public IP.
 * Web App: Ability to set Startup Command directly (useful for Linux deployments).
-
-## 1.7.15
 * Route Tables: Fix bug where embedded routes should only serialize properties.
 
 ## 1.7.14
