@@ -1602,6 +1602,17 @@ let tests =
                     "Should add virtual application definition for root"
             }
 
+            test "Can add startup command without docker" {
+                let wa: Site =
+                    webApp {
+                        name "test"
+                        startup_command "foo"
+                    }
+                    |> getResourceAtIndex 3
+
+                Expect.equal wa.SiteConfig.AppCommandLine "foo" "Command line not set correctly"
+            }
+
             test "Supports defining additional virtual applications without changing root" {
                 let wa =
                     webApp {

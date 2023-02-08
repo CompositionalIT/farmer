@@ -63,6 +63,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | link_to_vnet | Enable the VNET integration feature in azure where all outbound traffic from the web app with be sent via the specified subnet. Use this operator when the given VNET is in the same deployment |
 | Web App | link_to_unmanaged_vnet | Enable the VNET integration feature in azure where all outbound traffic from the web app with be sent via the specified subnet. Use this operator when the given VNET is *not* in the same deployment |
 | Web App | add_virtual_applications | Adds list of `virtualApplication` definitions to the webapp |
+| Web App | startup_command | Adds a startup command to be run post-deployment. This is useful on Linux-based web app deployments, where your application is "implicitly" converted into a docker image and may need to be told what to do on startup. 
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
 | Service Plan | runtime_stack | Sets the runtime stack. |
 | Service Plan | operating_system | Sets the operating system. If Linux, App Insights configuration settings will be omitted as they are not supported by Azure App Service. |
