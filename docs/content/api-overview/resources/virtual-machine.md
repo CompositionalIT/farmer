@@ -42,14 +42,16 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |custom_script_files|Uploads the supplied set of files, specified by URI, to the VM on creation.|
 |aad_ssh_login|Adds the `AADSSHLoginForLinux` extension on Linux VM's (requires `system_identity`).|
 |custom_data|Sets the custom data field for the VM.|
-|public_ip|Specifies or removes the public IP for this VM|
-|ip_allocation|Sets the public IP as Dynamic or Static. Default is Dynamic.|
 |disable_password_authentication|Disables password authentication on the VM. Must include at least one key if true|
 |add_authorized_key|adds one authorized key|
 |add_authorized_keys|adds a list of authorized keys|
 |add_identity|Adds a managed identity to the Virtual Machine.|
 |system_identity|Activates the system identity of the Virtual Machine.|
-|private_ip_allocation| Sets the private ip as Dynamic or Static default is dynamic.|
+|public_ip|Specifies or removes the public IP for this VM|
+|ip_allocation|Sets the *public* IP as Dynamic or Static. Default is dynamic.|
+|private_ip_allocation| Sets the *private* IP as Dynamic or Static. Default is dynamic.|
+|ip_forwarding|Enable or disable IP forwarding on the primary network interface. Secondary NICs will leave it undefined.|
+|accelerated_networking|Enable or disable accelerated networking on all network interfaces generated for the VM.|
 |add_ip_configuration| Add `ipConfig` definitions to add additional IP addresses or connect to multiple subnets. Connecting to additional subnets will generate a NIC for each subnet. | 
 |network_security_group| Sets the Network Security Group (NSG) for VM/NIC. Enables you to create and share firewall rule sets.|
 |link_to_network_security_group| Specify an existing Network Security Group (NSG) for VM/NIC.             |

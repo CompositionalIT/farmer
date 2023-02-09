@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## vNext
+* Virtual Machines: Accelerated networking and IP forwarding for interfaces
+
 ## 1.7.15
 * Adds the West US 3 location
 * Virtual Machines: Support for multiple network interfaces on a VM
