@@ -142,6 +142,9 @@ type ContainerApp =
                     {|
                         managedEnvironmentId = this.Environment.Eval()
                         configuration =
+                            let buildPasswordRef (resourceId: ResourceId) =
+                                $"password-for-%s{resourceId.Name.Value}-registry"
+
                             {|
                                 secrets =
                                     [|
@@ -154,12 +157,7 @@ type ContainerApp =
                                                 |}
                                             | ImageRegistryAuthentication.ListCredentials resourceId ->
                                                 {|
-                                                    name =
-                                                        ArmExpression
-                                                            .create(
-                                                                $"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username"
-                                                            )
-                                                            .Eval()
+                                                    name = buildPasswordRef resourceId
                                                     value =
                                                         ArmExpression
                                                             .create(
@@ -211,12 +209,7 @@ type ContainerApp =
                                                                 $"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username"
                                                             )
                                                             .Eval()
-                                                    passwordSecretRef =
-                                                        ArmExpression
-                                                            .create(
-                                                                $"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username"
-                                                            )
-                                                            .Eval()
+                                                    passwordSecretRef = buildPasswordRef resourceId
                                                     identity = null
                                                 |}
                                             | ImageRegistryAuthentication.ManagedIdentityCredential cred ->
