@@ -649,7 +649,6 @@ type NetworkInterface =
                         |}
                 |}
 
-
 type NetworkProfile =
     {
         Name: ResourceName

@@ -6,6 +6,7 @@ open Farmer.Builders
 open Newtonsoft.Json.Linq
 open Farmer.ContainerApp
 open Farmer.Identity
+open Farmer.Arm
 
 let msi = createUserAssignedIdentity "appUser"
 let containerRegistryName = "myregistry"
@@ -13,7 +14,15 @@ let storageAccountName = "storagename"
 
 let fullContainerAppDeployment =
     let containerLogs = logAnalytics { name "containerlogs" }
+
+    let insights =
+        appInsights {
+            name "appinsights"
+            log_analytics_workspace containerLogs
+        }
+
     let containerRegistryDomain = $"{containerRegistryName}.azurecr.io"
+
     let acr = containerRegistry { name containerRegistryName }
 
     let storage =
@@ -29,6 +38,7 @@ let fullContainerAppDeployment =
         containerEnvironment {
             name "kubecontainerenv"
             log_analytics_instance containerLogs
+            app_insights_instance insights
 
             add_containers
                 [
@@ -68,7 +78,9 @@ let fullContainerAppDeployment =
                         add_http_scale_rule "http-scaler" { ConcurrentRequests = 10 }
                         add_cpu_scale_rule "cpu-scaler" { Utilisation = 50 }
                         add_secret_parameters [ "servicebusconnectionkey" ]
+
                         add_env_variables [ "ServiceBusQueueName", "wishrequests" ]
+
                         add_secret_expressions [ "containerlogs", containerLogs.PrimarySharedKey ]
                     }
                     containerApp {
@@ -91,6 +103,7 @@ let fullContainerAppDeployment =
                                 container {
                                     name "servicebus"
                                     private_docker_image containerRegistryDomain "servicebus" version
+
                                     add_volume_mounts [ "empty-v", "/tmp"; "certs-v", "/certs" ]
                                 }
                             ]
@@ -117,10 +130,12 @@ let tests =
         "Container Apps"
         [
             let jsonTemplate = fullContainerAppDeployment.Template |> Writer.toJson
+
             let jobj = JObject.Parse jsonTemplate
 
             test "Container automatically creates a log analytics workspace" {
                 let env: IBuilder = containerEnvironment { name "testca" }
+
                 let resources = env.BuildResources Location.NorthEurope
 
                 Expect.exists
@@ -148,7 +163,9 @@ let tests =
                     :?> Farmer.Arm.App.ContainerApp
 
                 containerApp.EnvironmentVariables.["ServiceBusQueueName"] |> ignore
+
                 containerApp.EnvironmentVariables.["servicebusconnectionkey"] |> ignore
+
                 containerApp.EnvironmentVariables.["containerlogs"] |> ignore
             }
 
@@ -193,11 +210,16 @@ let tests =
                     "Incorrect type for containerApps"
 
                 Expect.equal (httpContainerApp.["kind"] |> string) "containerapp" "Incorrect kind for containerApps"
+
                 let ingress = httpContainerApp.SelectToken("properties.configuration.ingress")
+
                 Expect.isTrue (ingress.SelectToken("external") |> string |> bool.Parse) "Incorrect external ingress"
+
                 Expect.equal (ingress.SelectToken("targetPort") |> string |> int) 80 "Incorrect targetPort"
                 Expect.equal (ingress.SelectToken("transport") |> string) "auto" "Incorrect transport"
+
                 let registries = httpContainerApp.SelectToken("properties.configuration.registries")
+
                 Expect.hasLength registries 1 "Expected 1 registry"
                 let firstRegistry = registries |> Seq.head
 
@@ -217,6 +239,7 @@ let tests =
                     "Incorrect registry username"
 
                 let secrets = httpContainerApp.SelectToken("properties.configuration.secrets")
+
                 Expect.hasLength secrets 2 "Expecting 2 secrets"
                 Expect.equal (secrets.[0].["name"] |> string) "myregistry" "Incorrect name for registry password secret"
 
@@ -231,6 +254,7 @@ let tests =
                     "Incorrect kube environment Id"
 
                 let containers = httpContainerApp.SelectToken("properties.template.containers")
+
                 Expect.hasLength containers 1 "Expected 1 http container"
                 let httpContainer = containers |> Seq.head
 
@@ -257,12 +281,15 @@ let tests =
                     "Incorrect container ephemeral storage resources"
 
                 let scale = httpContainerApp.SelectToken("properties.template.scale")
+
                 Expect.isNotNull scale "properties.scale was null"
                 Expect.equal (scale.["minReplicas"] |> int) 1 "Incorrect min replicas"
                 Expect.equal (scale.["maxReplicas"] |> int) 5 "Incorrect max replicas"
 
                 let serviceBusContainerApp = jobj.SelectToken("resources[?(@.name=='servicebus')]")
+
                 let volumes = serviceBusContainerApp.SelectToken("properties.template.volumes")
+
                 Expect.hasLength volumes 2 "Expecting 2 volumes"
 
                 let serviceBusContainer =
@@ -338,5 +365,36 @@ let tests =
                          (ContainerAppValidation.ContainerAppSettingKey.Create $"{containerRegistryName}-username")
                              .OkValue)
                     "Container app did not have linked ACR's secret"
+            }
+
+            test "Turns on Dapr" {
+                let containerApp =
+                    fullContainerAppDeployment.Template.Resources
+                    |> List.find (fun r -> r.ResourceId.Name.Value = "http")
+                    :?> ContainerApp
+
+                Expect.isSome containerApp.DaprConfig "Dapr config was not set"
+            }
+
+            test "Adds App Insight integration" {
+                let apps =
+                    fullContainerAppDeployment.Template.Resources
+                    |> List.choose (function
+                        | (:? ContainerApp as c) -> Some c
+                        | _ -> None)
+
+                for ca in apps do
+                    Expect.exists
+                        ca.EnvironmentVariables
+                        (fun r -> r.Key = "APPINSIGHTS_INSTRUMENTATIONKEY")
+                        "Missing AI key"
+
+                let managedEnvironment =
+                    fullContainerAppDeployment.Template.Resources
+                    |> List.pick (function
+                        | (:? ManagedEnvironment as c) -> Some c
+                        | _ -> None)
+
+                Expect.isSome managedEnvironment.AppInsightsInstrumentationKey "Dapr AI key not set"
             }
         ]

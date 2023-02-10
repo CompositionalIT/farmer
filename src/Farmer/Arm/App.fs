@@ -3,7 +3,6 @@ module Farmer.Arm.App
 
 open System
 open Farmer.ContainerApp
-open Farmer.Identity
 open Farmer
 
 let containerApps = ResourceType("Microsoft.App/containerApps", "2022-03-01")
@@ -98,7 +97,7 @@ type ContainerApp =
 
     member private this.dependencies =
         [
-            yield this.Environment
+            this.Environment
             yield! this.Dependencies
             yield!
                 this.Volumes
@@ -110,6 +109,7 @@ type ContainerApp =
         ]
 
     member private this.ResourceId = containerApps.resourceId this.Name
+
     member this.SystemIdentity = SystemIdentity this.ResourceId
 
     interface IParameters with
@@ -131,8 +131,6 @@ type ContainerApp =
         member this.ResourceId = containerApps.resourceId this.Name
 
         member this.JsonModel =
-            let usernameSecretName (resourceId: ResourceId) = $"{resourceId.Name.Value}-username"
-
             {| containerApps.Create(this.Name, this.Location, this.dependencies) with
                 kind = "containerapp"
                 identity =
@@ -144,6 +142,9 @@ type ContainerApp =
                     {|
                         managedEnvironmentId = this.Environment.Eval()
                         configuration =
+                            let buildPasswordRef (resourceId: ResourceId) =
+                                $"password-for-%s{resourceId.Name.Value}-registry"
+
                             {|
                                 secrets =
                                     [|
@@ -156,7 +157,7 @@ type ContainerApp =
                                                 |}
                                             | ImageRegistryAuthentication.ListCredentials resourceId ->
                                                 {|
-                                                    name = usernameSecretName resourceId
+                                                    name = buildPasswordRef resourceId
                                                     value =
                                                         ArmExpression
                                                             .create(
@@ -168,10 +169,10 @@ type ContainerApp =
                                                 {|
                                                     name = cred.Server
                                                     value =
-                                                        if cred.Identity.Dependencies.Length > 0 then
-                                                            cred.Identity.Dependencies.Head.ArmExpression.Eval()
-                                                        else
-                                                            String.Empty
+                                                        match cred.Identity.Dependencies with
+                                                        | [] -> String.Empty
+                                                        | primaryDependency :: _ ->
+                                                            primaryDependency.ArmExpression.Eval()
                                                 |}
                                         for setting in this.Secrets do
                                             {|
@@ -196,14 +197,19 @@ type ContainerApp =
                                                 |}
                                             | ImageRegistryAuthentication.ListCredentials resourceId ->
                                                 {|
-                                                    server = $"{resourceId.Name.Value}.azurecr.io"
+                                                    server =
+                                                        ArmExpression
+                                                            .create(
+                                                                $"reference({resourceId.ArmExpression.Value}, '2019-05-01').loginServer"
+                                                            )
+                                                            .Eval()
                                                     username =
                                                         ArmExpression
                                                             .create(
                                                                 $"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username"
                                                             )
                                                             .Eval()
-                                                    passwordSecretRef = usernameSecretName resourceId
+                                                    passwordSecretRef = buildPasswordRef resourceId
                                                     identity = null
                                                 |}
                                             | ImageRegistryAuthentication.ManagedIdentityCredential cred ->
@@ -257,8 +263,8 @@ type ContainerApp =
                                                             | SecureEnvExpression armExpr ->
                                                                 {|
                                                                     name = env.Key
-                                                                    value = null
-                                                                    secretref = armExpr.Eval()
+                                                                    value = armExpr.Eval()
+                                                                    secretref = null
                                                                 |}
                                                             | SecureEnvValue _ ->
                                                                 {|
@@ -440,7 +446,7 @@ type ContainerApp =
                                             appId = settings.AppId
                                         |}
                                         :> obj
-                                    | None -> {| enabled = false |} :> obj
+                                    | None -> {| enabled = false |}
                                 volumes =
                                     [
                                         for key, value in Map.toSeq this.Volumes do
@@ -471,6 +477,7 @@ type ManagedEnvironment =
         Location: Location
         InternalLoadBalancerState: FeatureFlag
         LogAnalytics: ResourceId
+        AppInsightsInstrumentationKey: ArmExpression option
         Dependencies: Set<ResourceId>
         Tags: Map<string, string>
     }
@@ -485,6 +492,10 @@ type ManagedEnvironment =
                     {|
                         ``type`` = "managed"
                         internalLoadBalancerEnabled = this.InternalLoadBalancerState.AsBoolean
+                        daprAIInstrumentationKey =
+                            this.AppInsightsInstrumentationKey
+                            |> Option.map (fun key -> key.Eval())
+                            |> Option.toObj
                         appLogsConfiguration =
                             {|
                                 destination = "log-analytics"
