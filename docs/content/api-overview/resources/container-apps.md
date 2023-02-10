@@ -27,6 +27,7 @@ The Container Environment builder (`containerEnvironment`) defines settings for 
 | internal_load_balancer_state | Sets whether an internal load balancer should be used for load balancing traffic to container app replicas. |
 | add_container | Adds a single container app to the environment. |
 | add_containers | Adds one or more container apps to the environment. |
+| app_insights_instance | Links an App Insights instance to this environment. All containers will be configured to use this AI instance, as well as DAPR. |
 
 > Also supports Tagging and Dependencies.
 
