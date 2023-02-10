@@ -1,7 +1,6 @@
 Release Notes
 =============
 ## vNext
-* Web App: Ability to set Startup Command directly (useful for Linux deployments).
 * Container Apps: Fix a bug whereby Dapr was not correctly turned on.
 * Container Apps: Support for collections of env vars, fix ACR credentials linking.
 * Container Apps: Add Dapr / App Insights integration.
@@ -12,8 +11,7 @@ Release Notes
 * Virtual Machines: Support for multiple IP configs on a NIC
 * Virtual Machines: Support for Ultra SSD disk type for high performance data disks.
 * Virtual Machines: Availability zone deployment for VM and public IP.
-
-## 1.7.15
+* Web App: Ability to set Startup Command directly (useful for Linux deployments).
 * Route Tables: Fix bug where embedded routes should only serialize properties.
 
 ## 1.7.14
