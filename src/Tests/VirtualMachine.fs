@@ -632,6 +632,91 @@ let tests =
                 Expect.equal (secondNicIp.ToString()) "192.168.12.13" "Static IP is wrong or missing"
             }
 
+            test "IP forwarding set for first NIC only" {
+                let deployment =
+                    arm {
+                        add_resources
+                            [
+                                vm {
+                                    name "foo"
+                                    username "foo"
+                                    ip_forwarding Enabled
+
+                                    add_ip_configurations [ ipConfig { subnet_name (ResourceName "another-subnet") } ]
+                                }
+                            ]
+                    }
+
+                let jobj = Newtonsoft.Json.Linq.JObject.Parse(deployment.Template |> Writer.toJson)
+                let firstNicProps = jobj.SelectToken("resources[?(@.name=='foo-nic')].properties")
+
+                Expect.equal
+                    firstNicProps.["enableIPForwarding"]
+                    (JValue true)
+                    "First NIC should have IP forwarding enabled"
+
+                let secondNicProps =
+                    jobj.SelectToken("resources[?(@.name=='foo-nic-another-subnet')].properties")
+
+                Expect.isNull secondNicProps.["enableIPForwarding"] "Second NIC should not have IP forwarding"
+            }
+
+            test "Accelerated networking set for all NICs" {
+                let deployment =
+                    arm {
+                        add_resources
+                            [
+                                vm {
+                                    name "foo"
+                                    username "foo"
+                                    vm_size Standard_D2s_v5
+                                    accelerated_networking Enabled
+
+                                    add_ip_configurations [ ipConfig { subnet_name (ResourceName "another-subnet") } ]
+                                }
+                            ]
+                    }
+
+                let jobj = Newtonsoft.Json.Linq.JObject.Parse(deployment.Template |> Writer.toJson)
+                let firstNicProps = jobj.SelectToken("resources[?(@.name=='foo-nic')].properties")
+
+                Expect.equal
+                    firstNicProps.["enableAcceleratedNetworking"]
+                    (JValue true)
+                    "First NIC should have accelerated networking enabled"
+
+                let secondNicProps =
+                    jobj.SelectToken("resources[?(@.name=='foo-nic-another-subnet')].properties")
+
+                Expect.equal
+                    secondNicProps.["enableAcceleratedNetworking"]
+                    (JValue true)
+                    "Second NIC should have accelerated networking enabled"
+            }
+
+            test "Accelerated networking not allowed on A-series VM" {
+                Expect.throws
+                    (fun _ ->
+                        let _ =
+                            arm {
+                                add_resources
+                                    [
+                                        vm {
+                                            name "foo"
+                                            username "foo"
+                                            vm_size Basic_A0
+                                            accelerated_networking Enabled
+
+                                            add_ip_configurations
+                                                [ ipConfig { subnet_name (ResourceName "another-subnet") } ]
+                                        }
+                                    ]
+                            }
+
+                        ())
+                    "Expected failure using accelerated networking with default VM size."
+            }
+
             test "Can attach to NSG" {
                 let vmName = "fooVm"
                 let myNsg = nsg { name "testNsg" }

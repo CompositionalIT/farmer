@@ -558,10 +558,31 @@ type IpConfiguration =
         Primary: bool option
     }
 
+module NetworkInterface =
+    open Vm
+
+    /// Accelerated networking only supported on certain VM sizes.
+    let (|AcceleratedNetworkingSupported|AcceleratedNetworkingUnsupported|) (vmSize: VMSize) =
+        let size = vmSize.ArmValue
+
+        if size.Contains "_A" || size.Contains "_NC" || size.Contains "_NV" then
+            AcceleratedNetworkingUnsupported
+        else
+            match vmSize with
+            | Standard_B1ls
+            | Standard_B1ms
+            | Standard_B1s
+            | Standard_B2s
+            | Standard_B4ms
+            | Standard_B8ms -> AcceleratedNetworkingUnsupported // failwithf "Accelerated networking unsupported for specified VM size. Using '%s'." state.Size.ArmValue
+            | _ -> AcceleratedNetworkingSupported
+
 type NetworkInterface =
     {
         Name: ResourceName
         Location: Location
+        EnableAcceleratedNetworking: bool option
+        EnableIpForwarding: bool option
         IpConfigs: IpConfiguration list
         VirtualNetwork: LinkedResource
         NetworkSecurityGroup: ResourceId option
@@ -594,6 +615,8 @@ type NetworkInterface =
             let props =
                 {|
                     primary = this.Primary |> Option.map box |> Option.toObj
+                    enableAcceleratedNetworking = this.EnableAcceleratedNetworking |> Option.map box |> Option.toObj
+                    enableIPForwarding = this.EnableIpForwarding |> Option.map box |> Option.toObj
                     ipConfigurations =
                         this.IpConfigs
                         |> List.mapi (fun index ipConfig ->

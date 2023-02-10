@@ -427,6 +427,7 @@ type FeatureFlag =
 
 module FeatureFlag =
     let ofBool enabled = if enabled then Enabled else Disabled
+    let toBool (flag: FeatureFlag) = flag.AsBoolean
 
     let invert flag =
         match flag with
