@@ -171,10 +171,10 @@ type ContainerApp =
                                                 {|
                                                     name = cred.Server
                                                     value =
-                                                        if cred.Identity.Dependencies.Length > 0 then
-                                                            cred.Identity.Dependencies.Head.ArmExpression.Eval()
-                                                        else
-                                                            String.Empty
+                                                        match cred.Identity.Dependencies with
+                                                        | [] -> String.Empty
+                                                        | primaryDependency :: _ ->
+                                                            primaryDependency.ArmExpression.Eval()
                                                 |}
                                         for setting in this.Secrets do
                                             {|
