@@ -1,9 +1,43 @@
 Release Notes
 =============
 ## vNext
+* Web App: Ability to set Startup Command directly (useful for Linux deployments).
 * Container Apps: Fix a bug whereby Dapr was not correctly turned on.
 * Container Apps: Support for collections of env vars, fix ACR credentials linking.
 * Container Apps: Add Dapr / App Insights integration.
+
+## 1.7.15
+* Adds the West US 3 location
+* Virtual Machines: Support for multiple network interfaces on a VM
+* Virtual Machines: Support for multiple IP configs on a NIC
+* Virtual Machines: Support for Ultra SSD disk type for high performance data disks.
+* Virtual Machines: Availability zone deployment for VM and public IP.
+
+## 1.7.15
+* Route Tables: Fix bug where embedded routes should only serialize properties.
+
+## 1.7.14
+* Identity: Update the list of all RBAC roles to latest.
+* Container Groups: Automatically round container instance memory to the first decimal place.
+
+## 1.7.13
+* KeyVault: Added support for disabling public network access.
+* KeyVault: Added missing key permissions (GetRotationPolicy, SetRotationPolicy, Rotate)
+* Network Security Groups: Added option to set priority for initial SecurityRule.
+* ServiceBus: Add support for disabling public network access
+* ServiceBus: Add support for enabling zone redundancy
+* ServiceBus: Add support for setting the mininum TLS version
+* Storage Accounts: Support for disabling public network access
+* Storage Accounts: Support for restricting access to azure services without also specifying a vnet/subnet (useful when access is already controlled by a private endpoint but you still need to add a bypass for Azure services).
+* Storage Accounts: Support for disabling blob public access
+* Storage Accounts: Support for disabling shared key access
+* Storage Accounts: Support for defaulting to AAD auth in the portal instead of shared key access
+* Storage Accounts: Support for changing the DNS endpoint type which allows you to create more than 250 storage accounts in a given subscription.
+
+## 1.7.12
+* CDN: Added Wildcard support for `ComparisonOperator`
+* Network Security Groups: Added option to modify generated SecurityRule priority step increment
+* WebApps: Added support for .NET 7.
 
 ## 1.7.11
 * Dedicated Hosts: Support for Host Groups and Hosts

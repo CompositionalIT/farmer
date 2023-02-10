@@ -81,6 +81,44 @@ let tests =
                 Expect.equal ports [ 80; 443; 9090 ] "Incorrect ports on container"
             }
 
+            test "Container group memory increment truncation" {
+                let container4_5Gb =
+                    containerInstance {
+                        name "myapp"
+                        image "myapp:latest"
+                        memory 4.5678<Gb>
+                    }
+
+                Expect.equal 4.6<Gb> container4_5Gb.Memory "Memory rounded incorrectly for 4.5 GB"
+
+                let container8Gb =
+                    containerInstance {
+                        name "myapp"
+                        image "myapp:latest"
+                        memory 8.<Gb>
+                    }
+
+                Expect.equal 8.0<Gb> container8Gb.Memory "Memory rounded incorrectly for 8 GB"
+
+                let container8_2Gb =
+                    containerInstance {
+                        name "myapp"
+                        image "myapp:latest"
+                        memory 8.2<Gb>
+                    }
+
+                Expect.equal 8.2<Gb> container8_2Gb.Memory "Memory rounded incorrectly for 8.2 GB"
+
+                let container0_2Gb =
+                    containerInstance {
+                        name "myapp"
+                        image "myapp:latest"
+                        memory 0.22<Gb>
+                    }
+
+                Expect.equal 0.2<Gb> container0_2Gb.Memory "Memory rounded incorrectly for 0.2 GB"
+            }
+
             test "Container group with init containers" {
                 let group =
                     let emptyDir1 = "emptyDir1"

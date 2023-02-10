@@ -50,6 +50,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |add_identity|Adds a managed identity to the Virtual Machine.|
 |system_identity|Activates the system identity of the Virtual Machine.|
 |private_ip_allocation| Sets the private ip as Dynamic or Static default is dynamic.|
+|add_ip_configuration| Add `ipConfig` definitions to add additional IP addresses or connect to multiple subnets. Connecting to additional subnets will generate a NIC for each subnet. | 
 |network_security_group| Sets the Network Security Group (NSG) for VM/NIC. Enables you to create and share firewall rule sets.|
 |link_to_network_security_group| Specify an existing Network Security Group (NSG) for VM/NIC.             |
 |link_to_vnet|Attaches the VM NIC to a vnet that is deployed in this same template|

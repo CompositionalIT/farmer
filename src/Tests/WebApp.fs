@@ -664,6 +664,18 @@ let tests =
                 Expect.equal site.Metadata.Head ("CURRENT_STACK", "dotnet") "Stack should be dotnet"
             }
 
+            test "Supports .NET 7" {
+                let app =
+                    webApp {
+                        name "net7"
+                        runtime_stack Runtime.DotNet70
+                    }
+
+                let site = app |> getResources |> getResource<Web.Site> |> List.head
+                Expect.equal site.NetFrameworkVersion.Value "v7.0" "Wrong dotnet version"
+                Expect.equal site.Metadata.Head ("CURRENT_STACK", "dotnet") "Stack should be dotnet"
+            }
+
             test "Supports .NET 5 on Linux" {
                 let app =
                     webApp {
@@ -1588,6 +1600,17 @@ let tests =
                     site.VirtualApplications
                     expectedVirtualApplications
                     "Should add virtual application definition for root"
+            }
+
+            test "Can add startup command without docker" {
+                let wa: Site =
+                    webApp {
+                        name "test"
+                        startup_command "foo"
+                    }
+                    |> getResourceAtIndex 3
+
+                Expect.equal wa.SiteConfig.AppCommandLine "foo" "Command line not set correctly"
             }
 
             test "Supports defining additional virtual applications without changing root" {

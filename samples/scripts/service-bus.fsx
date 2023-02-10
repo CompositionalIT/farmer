@@ -7,6 +7,9 @@ open Farmer.ServiceBus
 let myServiceBus = serviceBus {
     name "allMyQueues"
     sku Standard
+    min_tls_version TlsVersion.Tls12
+    enable_zone_redundancy
+    disable_public_network_access
     add_queues [
         queue { name "queuenumberone" }
         queue { name "queuenumbertwo" }

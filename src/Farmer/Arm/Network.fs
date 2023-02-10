@@ -137,7 +137,13 @@ type RouteTable =
     member internal this.JsonModelProperties =
         {|
             disableBgpRoutePropagation = this.DisableBGPRoutePropagation.AsBoolean
-            routes = this.Routes |> Seq.map (fun x -> (x :> IArmResource).JsonModel)
+            routes =
+                this.Routes
+                |> Seq.map (fun x ->
+                    {|
+                        name = x.Name.Value
+                        properties = x.JsonModelProperties
+                    |})
         |}
 
     interface IArmResource with
@@ -151,6 +157,7 @@ type RouteTable =
 type PublicIpAddress =
     {
         Name: ResourceName
+        AvailabilityZone: string option
         Location: Location
         Sku: PublicIpAddress.Sku
         AllocationMethod: PublicIpAddress.AllocationMethod
@@ -172,6 +179,7 @@ type PublicIpAddress =
                             | Some label -> box {| domainNameLabel = label.ToLower() |}
                             | None -> null
                     |}
+                zones = this.AvailabilityZone |> Option.map ResizeArray |> Option.toObj
             |}
 
 /// If using the IPs in the frontend of a cross-region laod balancer, public IPs and prefixes must be in
@@ -540,16 +548,24 @@ type Connection =
                     |}
             |}
 
+/// IP configuration for a network interface.
+type IpConfiguration =
+    {
+        SubnetName: ResourceName
+        PublicIpAddress: LinkedResource option
+        LoadBalancerBackendAddressPools: LinkedResource list
+        PrivateIpAllocation: PrivateIpAddress.AllocationMethod option
+        Primary: bool option
+    }
+
 type NetworkInterface =
     {
         Name: ResourceName
         Location: Location
-        IpConfigs: {| SubnetName: ResourceName
-                      PublicIpAddress: LinkedResource option
-                      LoadBalancerBackendAddressPools: LinkedResource list |} list
+        IpConfigs: IpConfiguration list
         VirtualNetwork: LinkedResource
         NetworkSecurityGroup: ResourceId option
-        PrivateIpAllocation: PrivateIpAddress.AllocationMethod option
+        Primary: bool option
         Tags: Map<string, string>
     }
 
@@ -577,6 +593,7 @@ type NetworkInterface =
 
             let props =
                 {|
+                    primary = this.Primary |> Option.map box |> Option.toObj
                     ipConfigurations =
                         this.IpConfigs
                         |> List.mapi (fun index ipConfig ->
@@ -584,7 +601,7 @@ type NetworkInterface =
                                 name = $"ipconfig{index + 1}"
                                 properties =
                                     let allocationMethod, ip =
-                                        match this.PrivateIpAllocation with
+                                        match ipConfig.PrivateIpAllocation with
                                         | Some (StaticPrivateIp ip) -> "Static", string ip
                                         | _ -> "Dynamic", null
 
@@ -596,6 +613,7 @@ type NetworkInterface =
                                                 backendPools
                                                 |> List.map (fun lr -> lr.ResourceId |> ResourceId.AsIdObject)
                                                 |> box
+                                        primary = ipConfig.Primary |> Option.map box |> Option.toObj
                                         privateIPAllocationMethod = allocationMethod
                                         privateIPAddress = ip
                                         publicIPAddress =
