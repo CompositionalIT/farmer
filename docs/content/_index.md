@@ -26,7 +26,7 @@ Farmer has you covered.
 * **Open source and free**. Farmer is free to use and modify. We welcome contributions to the project!
 
 #### Why not Azure Resource Manager?
-Farmer uses a simple DSL to declare resources and comes with helper functions to perform common tasks. Farmer templates are **around 5-8 times smaller than ARM templates**, meaning they are quicker and easier to author, understand and maintain. **Read more on the [comparison page](arm-vs-farmer/)**.
+Azure Resource Manager is a service-side orchestrator, as such, Farmer does use ARM! It simply replaces the templating language with a statically-verifiable DSL to declare resources and comes with helper functions to perform common tasks. Farmer templates are **around 5-8 times smaller than ARM templates**, meaning they are quicker and easier to author, understand and maintain. **Read more on the [comparison page](arm-vs-farmer/)**.
 
 ![](images/comparison.png)
 
