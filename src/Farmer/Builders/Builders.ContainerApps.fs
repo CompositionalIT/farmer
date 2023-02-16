@@ -299,7 +299,7 @@ type ContainerAppBuilder() =
     [<CustomOperation "add_cpu_scale_rule">]
     member _.AddCpuScaleRule(state: ContainerAppConfig, name, rule) =
         { state with
-            ScaleRules = state.ScaleRules.Add(name, ScaleRule.CPU(Utilisation rule))
+            ScaleRules = state.ScaleRules.Add(name, ScaleRule.CPU(Utilization rule))
         }
 
     member _.AddCpuScaleRule(state: ContainerAppConfig, name, rule) =
@@ -310,7 +310,7 @@ type ContainerAppBuilder() =
     [<CustomOperation "add_memory_scale_rule">]
     member _.AddMemScaleRule(state: ContainerAppConfig, name, rule) =
         { state with
-            ScaleRules = state.ScaleRules.Add(name, ScaleRule.Memory(Utilisation rule))
+            ScaleRules = state.ScaleRules.Add(name, ScaleRule.Memory(Utilization rule))
         }
 
     member _.AddMemScaleRule(state: ContainerAppConfig, name, rule) =

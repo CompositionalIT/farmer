@@ -386,12 +386,12 @@ type ContainerApp =
                                                                         {|
                                                                             ``type`` =
                                                                                 match settings with
-                                                                                | Utilisation _ -> "Utilisation"
+                                                                                | Utilization _ -> "Utilization"
                                                                                 | AverageValue _ -> "AverageValue"
                                                                             value =
                                                                                 match settings with
-                                                                                | Utilisation v ->
-                                                                                    v.Utilisation |> string
+                                                                                | Utilization v ->
+                                                                                    v.Utilization |> string
                                                                                 | AverageValue v ->
                                                                                     v.AverageValue |> string
                                                                         |}
@@ -408,12 +408,12 @@ type ContainerApp =
                                                                         {|
                                                                             ``type`` =
                                                                                 match settings with
-                                                                                | Utilisation _ -> "Utilisation"
+                                                                                | Utilization _ -> "Utilization"
                                                                                 | AverageValue _ -> "AverageValue"
                                                                             value =
                                                                                 match settings with
-                                                                                | Utilisation v ->
-                                                                                    v.Utilisation |> string
+                                                                                | Utilization v ->
+                                                                                    v.Utilization |> string
                                                                                 | AverageValue v ->
                                                                                     v.AverageValue |> string
                                                                         |}

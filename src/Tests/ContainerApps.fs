@@ -76,7 +76,7 @@ let fullContainerAppDeployment =
                         ingress_target_port 80us
                         ingress_transport Auto
                         add_http_scale_rule "http-scaler" { ConcurrentRequests = 10 }
-                        add_cpu_scale_rule "cpu-scaler" { Utilisation = 50 }
+                        add_cpu_scale_rule "cpu-scaler" { Utilization = 50 }
                         add_secret_parameters [ "servicebusconnectionkey" ]
 
                         add_env_variables [ "ServiceBusQueueName", "wishrequests" ]

@@ -3418,11 +3418,11 @@ module ContainerApp =
             AccountName: string
         }
 
-    type UtilisationRule = { Utilisation: int }
+    type UtilizationRule = { Utilization: int }
     type AverageValueRule = { AverageValue: int }
 
     type MetricScaleRule =
-        | Utilisation of UtilisationRule
+        | Utilization of UtilizationRule
         | AverageValue of AverageValueRule
 
     [<RequireQualifiedAccess>]
