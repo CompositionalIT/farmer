@@ -28,10 +28,9 @@ type VmConfig =
 
         Username: string option
         PasswordParameter: string option
-        Image: ImageDefinition
         Size: VMSize
-        OsDisk: DiskInfo
-        DataDisks: DiskInfo list option
+        OsDisk: OsDiskCreateOption
+        DataDisks: DataDiskCreateOption list option
 
         CustomScript: string option
         CustomScriptFiles: Uri list
@@ -175,7 +174,6 @@ type VmConfig =
                         else
                             (this.SshPathAndPublicKeys)
                     Identity = this.Identity
-                    Image = this.Image
                     OsDisk = this.OsDisk
                     DataDisks = this.DataDisks |> Option.defaultValue []
                     Tags = this.Tags
@@ -264,7 +262,11 @@ type VmConfig =
                         Name = this.Name.Map(sprintf "%s-custom-script")
                         Location = location
                         VirtualMachine = this.Name
-                        OS = this.Image.OS
+                        OS =
+                            match this.OsDisk with
+                            | FromImage (image, _) -> image.OS
+                            | _ ->
+                                raiseFarmer "Unable to determine OS for custom script when attaching an existing disk"
                         ScriptContents = script
                         FileUris = files
                         Tags = this.Tags
@@ -274,20 +276,23 @@ type VmConfig =
                     raiseFarmer
                         $"You have supplied custom script files {this.CustomScriptFiles} but no script. Custom script files are not automatically executed; you must provide an inline script which acts as a bootstrapper using the custom_script keyword."
 
-                /// Azure AD SSH login extension
-                match this.AadSshLogin with
-                | FeatureFlag.Enabled when this.Image.OS = Linux && this.Identity.SystemAssigned = Disabled ->
+                // Azure AD SSH login extension
+                match this.AadSshLogin, this.OsDisk with
+                | FeatureFlag.Enabled, FromImage (image, _) when
+                    image.OS = Linux && this.Identity.SystemAssigned = Disabled
+                    ->
                     raiseFarmer
                         "AAD SSH login requires that system assigned identity be enabled on the virtual machine."
-                | FeatureFlag.Enabled when this.Image.OS = Windows ->
+                | FeatureFlag.Enabled, FromImage (image, _) when image.OS = Windows ->
                     raiseFarmer "AAD SSH login is only supported for Linux Virtual Machines"
-                | FeatureFlag.Enabled ->
+                // Assuming a user that attaches a disk knows to only using this extension for Linux images.
+                | FeatureFlag.Enabled, _ ->
                     {
                         AadSshLoginExtension.Location = location
                         VirtualMachine = this.Name
                         Tags = this.Tags
                     }
-                | FeatureFlag.Disabled -> ()
+                | FeatureFlag.Disabled, _ -> ()
             ]
 
 type VirtualMachineBuilder() =
@@ -306,7 +311,6 @@ type VirtualMachineBuilder() =
             Size = Basic_A0
             Username = None
             PasswordParameter = None
-            Image = WindowsServer_2012Datacenter
             DataDisks = Some []
             Identity = ManagedIdentity.Empty
             CustomScript = None
@@ -316,7 +320,7 @@ type VirtualMachineBuilder() =
             DisablePasswordAuthentication = None
             SshPathAndPublicKeys = None
             AadSshLogin = FeatureFlag.Disabled
-            OsDisk = { Size = 128; DiskType = Standard_LRS }
+            OsDisk = FromImage(WindowsServer_2012Datacenter, { Size = 128; DiskType = Standard_LRS })
             AddressPrefix = "10.0.0.0/16"
             SubnetPrefix = "10.0.0.0/24"
             VNet = derived (fun config -> config.DeriveResourceName virtualNetworks "vnet")
@@ -351,6 +355,7 @@ type VirtualMachineBuilder() =
                                 Size = 1024
                                 DiskType = DiskType.Standard_LRS
                             }
+                            |> DataDiskCreateOption.Empty
                         ]
                     | other -> other)
         }
@@ -413,18 +418,24 @@ type VirtualMachineBuilder() =
 
     /// Sets the operating system of the VM. A set of samples is provided in the `CommonImages` module.
     [<CustomOperation "operating_system">]
-    member _.ConfigureOs(state: VmConfig, image) = { state with Image = image }
+    member _.ConfigureOs(state: VmConfig, image) =
+        let osDisk =
+            match state.OsDisk with
+            | FromImage (_, diskInfo) -> FromImage(image, diskInfo)
+            | AttachOsDisk _ -> raiseFarmer "Operating system from attached disk will be used"
 
-    member _.ConfigureOs(state: VmConfig, (os, offer, publisher, sku)) =
-        { state with
-            Image =
-                {
-                    OS = os
-                    Offer = Offer offer
-                    Publisher = Publisher publisher
-                    Sku = ImageSku sku
-                }
-        }
+        { state with OsDisk = osDisk }
+
+    member this.ConfigureOs(state: VmConfig, (os, offer, publisher, sku)) =
+        let image =
+            {
+                OS = os
+                Offer = Offer offer
+                Publisher = Publisher publisher
+                Sku = ImageSku sku
+            }
+
+        this.ConfigureOs(state, image)
 
     /// Sets the size and type of the OS disk for the VM.
     [<CustomOperation "os_disk">]
@@ -432,9 +443,104 @@ type VirtualMachineBuilder() =
         if diskType = UltraSSD_LRS then
             raiseFarmer "UltraSSD_LRS can only be used for a data disk, not an OS disk."
 
+        let osDisk =
+            match state.OsDisk with
+            | FromImage (image, diskInfo) ->
+                let updatedDiskInfo =
+                    { diskInfo with
+                        DiskType = diskType
+                        Size = size
+                    }
+
+                FromImage(image, updatedDiskInfo)
+            | AttachOsDisk _ -> state.OsDisk // uses the size and type from the attached disk
+
+        { state with OsDisk = osDisk }
+
+    [<CustomOperation "attach_os_disk">]
+    member _.AttachOsDisk(state: VmConfig, os: OS, disk: DiskConfig) =
         { state with
-            OsDisk = { Size = size; DiskType = diskType }
+            OsDisk = AttachOsDisk(os, Managed((disk :> IBuilder).ResourceId))
         }
+
+    member _.AttachOsDisk(state: VmConfig, os: OS, diskId: ResourceId) =
+        { state with
+            OsDisk = AttachOsDisk(os, Managed diskId)
+        }
+
+    [<CustomOperation "attach_existing_os_disk">]
+    member _.AttachExistingOsDisk(state: VmConfig, os: OS, disk: DiskConfig) =
+        { state with
+            OsDisk = AttachOsDisk(os, Unmanaged((disk :> IBuilder).ResourceId))
+        }
+
+    member _.AttachExistingOsDisk(state: VmConfig, os: OS, diskId: ResourceId) =
+        { state with
+            OsDisk = AttachOsDisk(os, Unmanaged diskId)
+        }
+
+    [<CustomOperation "attach_data_disk">]
+    member _.AttachDataDisk(state: VmConfig, diskId: ResourceId) =
+        let existingDisks = state.DataDisks
+
+        match existingDisks with
+        | Some disks ->
+            { state with
+                DataDisks = disks @ [ AttachDataDisk(Managed diskId) ] |> Some
+            }
+        | None ->
+            { state with
+                DataDisks = [ AttachDataDisk(Managed diskId) ] |> Some
+            }
+
+    member this.AttachDataDisk(state: VmConfig, disk: DiskConfig) =
+        match disk.Sku with
+        | Some (UltraSSD_LRS) ->
+            let existingDisks = state.DataDisks
+            let diskId = (disk :> IBuilder).ResourceId
+
+            match existingDisks with
+            | Some disks ->
+                { state with
+                    DataDisks = disks @ [ AttachUltra(Managed diskId) ] |> Some
+                }
+            | None ->
+                { state with
+                    DataDisks = [ AttachUltra(Managed diskId) ] |> Some
+                }
+        | _ -> this.AttachDataDisk(state, (disk :> IBuilder).ResourceId)
+
+
+    [<CustomOperation "attach_existing_data_disk">]
+    member _.AttachExistingDataDisk(state: VmConfig, diskId: ResourceId) =
+        let existingDisks = state.DataDisks
+
+        match existingDisks with
+        | Some disks ->
+            { state with
+                DataDisks = disks @ [ AttachDataDisk(Unmanaged diskId) ] |> Some
+            }
+        | None ->
+            { state with
+                DataDisks = [ AttachDataDisk(Unmanaged diskId) ] |> Some
+            }
+
+    member this.AttachExistingDataDisk(state: VmConfig, disk: DiskConfig) =
+        match disk.Sku with
+        | Some (UltraSSD_LRS) ->
+            let existingDisks = state.DataDisks
+            let diskId = (disk :> IBuilder).ResourceId
+
+            match existingDisks with
+            | Some disks ->
+                { state with
+                    DataDisks = disks @ [ AttachUltra(Unmanaged diskId) ] |> Some
+                }
+            | None ->
+                { state with
+                    DataDisks = [ AttachUltra(Unmanaged diskId) ] |> Some
+                }
+        | _ -> this.AttachExistingDataDisk(state, (disk :> IBuilder).ResourceId)
 
     /// Adds a data disk to the VM with a specific size and type.
     [<CustomOperation "add_disk">]
@@ -445,7 +551,9 @@ type VirtualMachineBuilder() =
             | None -> []
 
         { state with
-            DataDisks = { Size = size; DiskType = diskType } :: existingDisks |> Some
+            DataDisks =
+                DataDiskCreateOption.Empty { Size = size; DiskType = diskType } :: existingDisks
+                |> Some
         }
 
     /// Provision the VM without generating a data disk (OS-only).

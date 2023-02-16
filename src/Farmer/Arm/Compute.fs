@@ -113,9 +113,8 @@ type VirtualMachine =
         CustomData: string option
         DisablePasswordAuthentication: bool option
         PublicKeys: (string * string) list option
-        Image: ImageDefinition
-        OsDisk: DiskInfo
-        DataDisks: DiskInfo list
+        OsDisk: OsDiskCreateOption
+        DataDisks: DataDiskCreateOption list
         NetworkInterfaceIds: ResourceId list
         Identity: Identity.ManagedIdentity
         Tags: Map<string, string>
@@ -123,13 +122,10 @@ type VirtualMachine =
 
     interface IParameters with
         member this.SecureParameters =
-            if
-                this.DisablePasswordAuthentication.IsSome
-                && this.DisablePasswordAuthentication.Value
-            then
-                []
-            else
-                [ this.Credentials.Password ]
+            match this.DisablePasswordAuthentication, this.OsDisk with
+            | Some (true), _
+            | _, AttachOsDisk _ -> [] // What attaching an OS disk, the osConfig cannot be set, so cannot set password
+            | _ -> [ this.Credentials.Password ]
 
     interface IArmResource with
         member this.ResourceId = virtualMachines.resourceId this.Name
@@ -139,12 +135,20 @@ type VirtualMachine =
                 [
                     yield! this.NetworkInterfaceIds
                     yield! this.StorageAccount |> Option.mapList storageAccounts.resourceId
+                    match this.OsDisk with
+                    | AttachOsDisk (_, Managed (resourceId)) -> resourceId
+                    | _ -> ()
+                    for disk in this.DataDisks do
+                        match disk with
+                        | AttachDataDisk (Managed (resourceId))
+                        | AttachUltra (Managed (resourceId)) -> resourceId
+                        | _ -> ()
                 ]
 
             let properties =
                 {|
                     additionalCapabilities = // If data disks use UltraSSD then enable that support
-                        if this.DataDisks |> List.exists (fun disk -> disk.DiskType = UltraSSD_LRS) then
+                        if this.DataDisks |> List.exists (fun disk -> disk.IsUltraDisk) then
                             {| ultraSSDEnabled = true |} :> obj
                         else
                             null
@@ -154,73 +158,109 @@ type VirtualMachine =
                         | _ -> Unchecked.defaultof<_>
                     hardwareProfile = {| vmSize = this.Size.ArmValue |}
                     osProfile =
-                        {|
-                            computerName = this.Name.Value
-                            adminUsername = this.Credentials.Username
-                            adminPassword =
-                                if
-                                    this.DisablePasswordAuthentication.IsSome
-                                    && this.DisablePasswordAuthentication.Value
-                                then //If the disablePasswordAuthentication is set and the value is true then we don't need a password
-                                    null
-                                else
-                                    this.Credentials.Password.ArmExpression.Eval()
-                            customData =
-                                this.CustomData
-                                |> Option.map (System.Text.Encoding.UTF8.GetBytes >> Convert.ToBase64String)
-                                |> Option.toObj
-                            linuxConfiguration =
-                                if this.DisablePasswordAuthentication.IsSome || this.PublicKeys.IsSome then
-                                    {|
-                                        disablePasswordAuthentication =
-                                            this.DisablePasswordAuthentication |> Option.map box |> Option.toObj
-                                        ssh =
-                                            match this.PublicKeys with
-                                            | Some publicKeys ->
-                                                {|
-                                                    publicKeys =
-                                                        publicKeys
-                                                        |> List.map (fun k -> {| path = fst k; keyData = snd k |})
-                                                |}
-                                            | None -> Unchecked.defaultof<_>
-                                    |}
-                                else
-                                    Unchecked.defaultof<_>
-                        |}
+                        match this.OsDisk with
+                        | AttachOsDisk _ -> null
+                        | _ ->
+                            {|
+                                computerName = this.Name.Value
+                                adminUsername = this.Credentials.Username
+                                adminPassword =
+                                    if
+                                        this.DisablePasswordAuthentication.IsSome
+                                        && this.DisablePasswordAuthentication.Value
+                                    then //If the disablePasswordAuthentication is set and the value is true then we don't need a password
+                                        null
+                                    else
+                                        this.Credentials.Password.ArmExpression.Eval()
+                                customData =
+                                    this.CustomData
+                                    |> Option.map (System.Text.Encoding.UTF8.GetBytes >> Convert.ToBase64String)
+                                    |> Option.toObj
+                                linuxConfiguration =
+                                    if this.DisablePasswordAuthentication.IsSome || this.PublicKeys.IsSome then
+                                        {|
+                                            disablePasswordAuthentication =
+                                                this.DisablePasswordAuthentication |> Option.map box |> Option.toObj
+                                            ssh =
+                                                match this.PublicKeys with
+                                                | Some publicKeys ->
+                                                    {|
+                                                        publicKeys =
+                                                            publicKeys
+                                                            |> List.map (fun k -> {| path = fst k; keyData = snd k |})
+                                                    |}
+                                                | None -> Unchecked.defaultof<_>
+                                        |}
+                                    else
+                                        Unchecked.defaultof<_>
+                            |}
+                            :> obj
                     storageProfile =
                         let vmNameLowerCase = this.Name.Value.ToLower()
 
                         {|
                             imageReference =
-                                {|
-                                    publisher = this.Image.Publisher.ArmValue
-                                    offer = this.Image.Offer.ArmValue
-                                    sku = this.Image.Sku.ArmValue
-                                    version = "latest"
-                                |}
+                                match this.OsDisk with
+                                | FromImage (imageDefintion, _) ->
+                                    {|
+                                        publisher = imageDefintion.Publisher.ArmValue
+                                        offer = imageDefintion.Offer.ArmValue
+                                        sku = imageDefintion.Sku.ArmValue
+                                        version = "latest"
+                                    |}
+                                    :> obj
+                                | _ -> null
                             osDisk =
-                                {|
-                                    createOption = "FromImage"
-                                    name = $"{vmNameLowerCase}-osdisk"
-                                    diskSizeGB = this.OsDisk.Size
-                                    managedDisk =
-                                        {|
-                                            storageAccountType = this.OsDisk.DiskType.ArmValue
-                                        |}
-                                |}
+                                match this.OsDisk with
+                                | FromImage (_, diskInfo) ->
+                                    {|
+                                        createOption = "FromImage"
+                                        name = $"{vmNameLowerCase}-osdisk"
+                                        diskSizeGB = diskInfo.Size
+                                        managedDisk =
+                                            {|
+                                                storageAccountType = diskInfo.DiskType.ArmValue
+                                            |}
+                                    |}
+                                    :> obj
+                                | AttachOsDisk (os, managedDiskId) ->
+                                    {|
+                                        createOption = "Attach"
+                                        managedDisk =
+                                            {|
+                                                id = managedDiskId.ResourceId.Eval()
+                                            |}
+                                        name = managedDiskId.Name.Value
+                                        osType = string<OS> os
+                                    |}
                             dataDisks =
                                 this.DataDisks
                                 |> List.mapi (fun lun dataDisk ->
-                                    {|
-                                        createOption = "Empty"
-                                        name = $"{vmNameLowerCase}-datadisk-{lun}"
-                                        diskSizeGB = dataDisk.Size
-                                        lun = lun
-                                        managedDisk =
-                                            {|
-                                                storageAccountType = dataDisk.DiskType.ArmValue
-                                            |}
-                                    |})
+                                    match dataDisk with
+                                    | AttachDataDisk (managedDiskId)
+                                    | AttachUltra (managedDiskId) ->
+                                        {|
+                                            createOption = "Attach"
+                                            name = managedDiskId.Name.Value
+                                            lun = lun
+                                            managedDisk =
+                                                {|
+                                                    id = managedDiskId.ResourceId.Eval()
+                                                |}
+                                        |}
+                                        :> obj
+                                    | Empty diskInfo ->
+                                        {|
+                                            createOption = "Empty"
+                                            name = $"{vmNameLowerCase}-datadisk-{lun}"
+                                            diskSizeGB = diskInfo.Size
+                                            lun = lun
+                                            managedDisk =
+                                                {|
+                                                    storageAccountType = diskInfo.DiskType.ArmValue
+                                                |}
+                                        |}
+                                        :> obj)
                         |}
                     networkProfile =
                         {|

@@ -3,6 +3,8 @@ Release Notes
 
 ## vNext
 * Container Apps: Fix scaler spelling
+* Disks: Create managed disks
+* Virtual Machines: Attach existing managed disks.
 
 ## 1.7.16
 * Container Apps: Fix a bug whereby Dapr was not correctly turned on.

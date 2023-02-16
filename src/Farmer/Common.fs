@@ -819,6 +819,9 @@ module Vm =
     let UbuntuServer_2004LTS =
         makeLinuxVm "0001-com-ubuntu-server-focal" "canonical" "20_04-lts-gen2"
 
+    let UbuntuServer_2204LTS =
+        makeLinuxVm "0001-com-ubuntu-server-jammy" "canonical" "22_04-lts-gen2"
+
     let WindowsServer_2019Datacenter = makeWindowsVm "2019-Datacenter"
     let WindowsServer_2016Datacenter = makeWindowsVm "2016-Datacenter"
     let WindowsServer_2012R2Datacenter = makeWindowsVm "2012-R2-Datacenter"
@@ -841,7 +844,35 @@ module Vm =
             | x -> x.ToString()
 
     /// Represents a disk in a VM.
-    type DiskInfo = { Size: int; DiskType: DiskType }
+    type DiskInfo =
+        {
+            Size: int
+            DiskType: DiskType
+        }
+
+        member this.IsUltraDisk =
+            match this.DiskType with
+            | UltraSSD_LRS -> true
+            | _ -> false
+
+    /// VM OS disks can be created by attaching an existing disk or from a gallery image.
+    type OsDiskCreateOption =
+        | AttachOsDisk of OS * ManagedDiskId: LinkedResource
+        | FromImage of ImageDefinition * DiskInfo
+
+    /// VM data disks can be created by attaching an existing disk or generating an empty disk.
+    type DataDiskCreateOption =
+        | AttachDataDisk of ManagedDiskId: LinkedResource
+        /// Indicates the disk being attached is an ultra disk to enable that option on the VM
+        | AttachUltra of ManagedDiskId: LinkedResource
+        | Empty of DiskInfo
+
+        /// Indicates an Ultra SSD will be used so that option should be enabled on the VM.
+        member this.IsUltraDisk =
+            match this with
+            | AttachUltra _ -> true
+            | Empty diskInfo when diskInfo.IsUltraDisk -> true
+            | _ -> false
 
     type EvictionPolicy =
         | Deallocate

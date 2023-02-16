@@ -34,6 +34,10 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |add_disk|Adds a data disk to the VM with a specific size and type.|
 |add_ssd_disk|Adds a SSD data disk to the VM with a specific size.|
 |add_slow_disk|Adds a conventional (non-SSD) data disk to the VM with a specific size.|
+|attach_os_disk|Attaches an newly imported managed disk to the VM as the OS disk. The OS (Windows or Linux) for the image must be specified. When attaching an OS disk, the OS settings such as username, password, and `configData` cannot be set.|
+|attach_existing_os_disk|Attaches an existing managed disk to the VM as the OS disk.|
+|attach_data_disk|Attaches an newly imported managed disk to the VM as a data disk.|
+|attach_existing_data_disk|Attaches an existing managed disk to the VM as a data disk.|
 |no_disk|Excludes a data disk (only an OS disk) - common when mounting cloud storage.|
 |domain_name_prefix|Sets the prefix for the domain name of the VM.|
 |address_prefix|Sets the IP address prefix of the VM.|
