@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-## vNext
+## 1.7.17
 * Container Apps: Fix scaler spelling
 
 ## 1.7.16
