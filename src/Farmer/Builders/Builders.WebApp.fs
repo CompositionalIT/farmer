@@ -109,6 +109,7 @@ type SlotConfig =
         IpSecurityRestrictions: IpSecurityRestriction list
         ApplyIPSecurityRestrictionsToScm: bool
         EnablePublicNetworkAccess: bool option
+        AlwaysOn: bool option
     }
 
     member this.ToSite(owner: Arm.Web.Site) =
@@ -130,6 +131,7 @@ type SlotConfig =
                 owner.ConnectionStrings
                 |> Option.map (Map.merge (this.ConnectionStrings |> Map.toList))
             Identity = this.Identity + owner.Identity
+            AlwaysOn = this.AlwaysOn |> Option.defaultValue owner.AlwaysOn
             KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity |> Option.orElse owner.KeyVaultReferenceIdentity
             IpSecurityRestrictions = this.IpSecurityRestrictions
             ApplyIPSecurityRestrictionsToScm = this.ApplyIPSecurityRestrictionsToScm
@@ -215,6 +217,7 @@ type SlotBuilder() =
             IpSecurityRestrictions = []
             ApplyIPSecurityRestrictionsToScm = false
             EnablePublicNetworkAccess = None
+            AlwaysOn = None
         }
 
     [<CustomOperation "name">]
@@ -251,6 +254,10 @@ type SlotBuilder() =
                     SystemAssigned = Enabled
                 }
         }
+
+    [<CustomOperation "always_on">]
+    member this.AlwaysOn(state: SlotConfig, alwaysOn : bool) =
+        { state with AlwaysOn = Some alwaysOn }
 
     [<CustomOperation "keyvault_identity">]
     member this.AddKeyVaultIdentity(state: SlotConfig, identity: UserAssignedIdentity) =
