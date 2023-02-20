@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## vNext
+* Image Template: Templates for building and publishing VM images.
+
 ## 1.7.17
 * Container Apps: Fix scaler spelling
 

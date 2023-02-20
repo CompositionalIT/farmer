@@ -89,6 +89,7 @@
     <Compile Include="Arm/Devices.fs" />
     <Compile Include="Arm/DocumentDb.fs" />
     <Compile Include="Arm/EventHub.fs" />
+    <Compile Include="Arm/ImageTemplate.fs" />
     <Compile Include="Arm/Insights.fs" />
     <Compile Include="Arm\AvailabilityTest.fs" />
     <Compile Include="Arm/KeyVault.fs" />
@@ -131,6 +132,7 @@
     <Compile Include="Builders/Builders.DataLake.fs" />
     <Compile Include="Builders/Builders.DeploymentScript.fs" />
     <Compile Include="Builders/Builders.Dns.fs" />
+    <Compile Include="Builders/Builders.ImageTemplate.fs" />
     <Compile Include="Builders/Builders.Redis.fs" />
     <Compile Include="Builders/Builders.KeyVault.fs" />
     <Compile Include="Builders/Builders.Bastion.fs" />
