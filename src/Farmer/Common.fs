@@ -976,6 +976,9 @@ module internal Validation =
     let lettersNumbersOrDash =
         "alphanumeric characters or the dash (-)", Char.IsLetterOrDigit <|> (snd dash)
 
+    let lettersNumbersOrDot =
+        "alphanumeric characters or the dot (.)", Char.IsLetterOrDigit <|> (snd dot)
+
     let lettersNumbersDashOrDot =
         "alphanumeric characters, a dash (-) or a dot (.)", Char.IsLetterOrDigit <|> (snd dash) <|> (snd dot)
 
@@ -1611,6 +1614,25 @@ module ContainerRegistryValidation =
         member this.ResourceName =
             match this with
             | ContainerRegistryName name -> name
+
+module GalleryValidation =
+    open Validation
+
+    type GalleryName =
+        private
+        | GalleryName of ResourceName
+
+        static member Create name =
+            [ containsOnly lettersNumbersOrDot; nonEmptyLengthBetween 1 80 ]
+            |> validate "Image Gallery Name" name
+            |> Result.map (ResourceName >> GalleryName)
+
+        static member internal Empty = GalleryName ResourceName.Empty
+
+        member this.ResourceName =
+            match this with
+            | GalleryName name -> name
+
 
 module Search =
     type HostingMode =

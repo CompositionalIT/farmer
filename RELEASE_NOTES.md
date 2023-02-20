@@ -2,6 +2,7 @@ Release Notes
 =============
 
 ## vNext
+* Gallery: Create Galleries for sharing VM images.
 * Image Template: Templates for building and publishing VM images.
 
 ## 1.7.17
