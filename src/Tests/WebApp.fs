@@ -2054,4 +2054,25 @@ let tests =
                     (Some true)
                     "Slot should have public network access enabled"
             }
+            test "WebApp supports independent always_on for slot" {
+                let slot =
+                    appSlot {
+                        name "deployment"
+                        always_on false
+                    }
+
+                let app =
+                    webApp {
+                        name "webapp"
+                        add_slot slot
+                        always_on
+                    }
+
+                let site = app |> getResources |> getResource<Web.Site> |> List.item 0
+                let slot = app |> getResources |> getResource<Web.Site> |> List.item 1
+                Expect.equal site.Name.Value "webapp" "Site name was not as expcted"
+                Expect.equal site.AlwaysOn true "Site was not set to Always On"
+                Expect.equal slot.Name.Value "webapp/deployment" "Slot name was not as expected"
+                Expect.equal slot.AlwaysOn false "Slot was not set to Always On -> false"
+            }
         ]
