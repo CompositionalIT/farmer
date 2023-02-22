@@ -959,4 +959,168 @@ let tests =
                 Expect.equal dataDiskType (JValue "UltraSSD_LRS") "Data disk not set to Ultra disk type"
             }
 
+            test "Creates VM and attaches newly imported OS disk" {
+                let deployment =
+                    arm {
+                        location Location.EastUS
+
+                        add_resources
+                            [
+                                disk {
+                                    name "imported-disk-image"
+                                    sku Vm.DiskType.Premium_LRS
+                                    os_type Linux
+
+                                    import
+                                        (Uri
+                                            "https://rxw1n3qxt54dnvfen1gnza5n.blob.core.windows.net/vhds/Ubuntu2004WithJava_20230213141703.vhd")
+                                        (ResourceId.create (
+                                            Arm.Storage.storageAccounts,
+                                            ResourceName "rxw1n3qxt54dnvfen1gnza5n",
+                                            "IT_farmer-imgbldr_Ubuntu2004WithJava_aea5facc-e1b5-47de-aa5b-2c6aafe2161d"
+                                        ))
+                                }
+                                vm {
+                                    name "attached-os-disk-vm"
+                                    vm_size Standard_B1ms
+                                    username "azureuser"
+                                    attach_os_disk Linux (Arm.Disk.disks.resourceId "imported-disk-image")
+                                }
+                            ]
+                    }
+
+                let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+                let vm = jobj.SelectToken "resources[?(@.name=='attached-os-disk-vm')]"
+                let dependencies = vm.["dependsOn"]
+
+                Expect.contains
+                    dependencies
+                    (JValue "[resourceId('Microsoft.Compute/disks', 'imported-disk-image')]")
+                    "Missing imported-disk-image dependency"
+
+                let vmOsProfile = vm.SelectToken "properties.osProfile"
+                Expect.isNull vmOsProfile "The osProfile should not be set when attaching an OS disk"
+
+                let vmOsDisk = vm.SelectToken "properties.storageProfile.osDisk"
+                Expect.isNotNull vmOsDisk "VM missing OS disk"
+                Expect.equal vmOsDisk.["createOption"] (JValue "Attach") "OS disk createOption incorrect"
+
+                Expect.equal
+                    vmOsDisk.["name"]
+                    (JValue "imported-disk-image")
+                    "OS disk name should match attached disk name"
+
+                Expect.equal vmOsDisk.["osType"] (JValue "Linux") "OS disk osType incorrect"
+
+                Expect.equal
+                    (vm.SelectToken "properties.storageProfile.osDisk.managedDisk.id")
+                    (JValue "[resourceId('Microsoft.Compute/disks', 'imported-disk-image')]")
+                    "Incorrect reference to managed disk"
+            }
+
+            test "Creates VM and attaches existing OS disk" {
+                let deployment =
+                    arm {
+                        location Location.EastUS
+
+                        add_resources
+                            [
+                                vm {
+                                    name "attached-os-disk-vm"
+                                    vm_size Standard_B1ms
+                                    username "azureuser"
+                                    attach_existing_os_disk Linux (Arm.Disk.disks.resourceId "existing-os-disk")
+                                }
+                            ]
+                    }
+
+                let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+                let vm = jobj.SelectToken "resources[?(@.name=='attached-os-disk-vm')]"
+                Expect.hasLength vm.["dependsOn"] 1 "Should only have dependency for NIC when attaching existing disk"
+            }
+
+            test "Creates VM and attaches newly created data disks" {
+                let disk0 =
+                    disk {
+                        name "ultra-disk-0"
+                        sku Vm.DiskType.UltraSSD_LRS
+                        os_type Linux
+                        create_empty 1024<Gb>
+                        add_availability_zone "1"
+                    }
+
+                let disk1 =
+                    disk {
+                        name "standard-disk-1"
+                        sku Vm.DiskType.Standard_LRS
+                        os_type Linux
+                        create_empty 1024<Gb>
+                        add_availability_zone "1"
+                    }
+
+                let deployment =
+                    arm {
+                        location Location.EastUS
+
+                        add_resources
+                            [
+                                disk0
+                                disk1
+                                vm {
+                                    name "attached-data-disk-vm"
+                                    vm_size Standard_B1ms
+                                    operating_system UbuntuServer_2204LTS
+                                    username "azureuser"
+                                    add_availability_zone "1"
+                                    attach_data_disk disk0
+                                    attach_data_disk disk1
+                                }
+                            ]
+                    }
+
+                let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+                let vm = jobj.SelectToken "resources[?(@.name=='attached-data-disk-vm')]"
+                let dependencies = vm.["dependsOn"]
+
+                Expect.contains
+                    dependencies
+                    (JValue "[resourceId('Microsoft.Compute/disks', 'ultra-disk-0')]")
+                    "Missing disk-0"
+
+                Expect.contains
+                    dependencies
+                    (JValue "[resourceId('Microsoft.Compute/disks', 'standard-disk-1')]")
+                    "Missing disk-1"
+
+                let dataDisks = vm.SelectToken "properties.storageProfile.dataDisks"
+                Expect.hasLength dataDisks 2 "Incorrect number of data disks on VM"
+
+                for disk in dataDisks do
+                    Expect.equal disk.["createOption"] (JValue "Attach") "Incorrect createOption"
+
+                let firstDisk = dataDisks.[0]
+
+                Expect.equal
+                    (firstDisk.SelectToken "managedDisk.id")
+                    (JValue "[resourceId('Microsoft.Compute/disks', 'ultra-disk-0')]")
+                    "Incorrect managedDisk.id"
+
+                Expect.equal
+                    (firstDisk.SelectToken "name")
+                    (JValue "ultra-disk-0")
+                    "Ultra disk name should match name from resourceId"
+
+                let secondDisk = dataDisks.[1]
+
+                Expect.equal
+                    (secondDisk.SelectToken "managedDisk.id")
+                    (JValue "[resourceId('Microsoft.Compute/disks', 'standard-disk-1')]")
+                    "Incorrect managedDisk.id"
+
+                Expect.equal
+                    (secondDisk.SelectToken "name")
+                    (JValue "standard-disk-1")
+                    "Standard disk name should match name from resourceId"
+            }
+
         ]

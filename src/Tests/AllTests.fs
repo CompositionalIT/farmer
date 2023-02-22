@@ -39,6 +39,7 @@ let allTests =
                     DedicatedHosts.tests
                     DeploymentScript.tests
                     DiagnosticSettings.tests
+                    Disk.tests
                     Dns.tests
                     EventGrid.tests
                     EventHub.tests
