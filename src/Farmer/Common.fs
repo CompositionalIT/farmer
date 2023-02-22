@@ -896,6 +896,34 @@ module Vm =
             | Regular -> "Regular"
             | Spot _ -> "Spot"
 
+module Image =
+    type Architecture =
+        | Arm64
+        | X64
+
+        member this.ArmValue =
+            match this with
+            | Arm64 -> "Arm64"
+            | X64 -> "x64"
+
+    type OsState =
+        | Generalized
+        | Specialized
+
+        member this.ArmValue =
+            match this with
+            | Generalized -> "Generalized"
+            | Specialized -> "Specialized"
+
+    type HyperVGeneration =
+        | V1
+        | V2
+
+        member this.ArmValue =
+            match this with
+            | V1 -> "V1"
+            | V2 -> "V2"
+
 module internal Validation =
     // ANDs two validation rules
     let (<+>) a b v = a v && b v
@@ -1006,6 +1034,9 @@ module internal Validation =
 
     let lettersNumbersOrDash =
         "alphanumeric characters or the dash (-)", Char.IsLetterOrDigit <|> (snd dash)
+
+    let lettersNumbersOrDot =
+        "alphanumeric characters or the dot (.)", Char.IsLetterOrDigit <|> (snd dot)
 
     let lettersNumbersDashOrDot =
         "alphanumeric characters, a dash (-) or a dot (.)", Char.IsLetterOrDigit <|> (snd dash) <|> (snd dot)
@@ -1642,6 +1673,24 @@ module ContainerRegistryValidation =
         member this.ResourceName =
             match this with
             | ContainerRegistryName name -> name
+
+module GalleryValidation =
+    open Validation
+
+    type GalleryName =
+        private
+        | GalleryName of ResourceName
+
+        static member Create name =
+            [ containsOnly lettersNumbersOrDot; nonEmptyLengthBetween 1 80 ]
+            |> validate "Image Gallery Name" name
+            |> Result.map (ResourceName >> GalleryName)
+
+        static member internal Empty = GalleryName ResourceName.Empty
+
+        member this.ResourceName =
+            match this with
+            | GalleryName name -> name
 
 module Search =
     type HostingMode =

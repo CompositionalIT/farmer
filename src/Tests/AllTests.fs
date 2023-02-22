@@ -46,6 +46,8 @@ let allTests =
                     ExpressRoute.tests
                     Functions.tests
                     IotHub.tests
+                    Gallery.tests
+                    ImageTemplate.tests
                     JsonRegression.tests
                     KeyVault.tests
                     Network.tests
