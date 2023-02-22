@@ -3,6 +3,7 @@ module Farmer.Builders.ImageTemplate
 
 open Farmer
 open Farmer.Arm.ImageTemplate
+open Farmer.Arm.Gallery
 open Farmer.Identity
 
 type ImageTemplateConfig =
@@ -74,10 +75,13 @@ type ImageTemplateBuilder() =
     member this.PlatformImageSource(config: ImageTemplateConfig, image: Vm.ImageDefinition) =
         let imageSource =
             {
-                Offer = image.Offer.ArmValue
+                ImageIdentifier =
+                    {
+                        Publisher = image.Publisher.ArmValue
+                        Offer = image.Offer.ArmValue
+                        Sku = image.Sku.ArmValue
+                    }
                 PlanInfo = None
-                Publisher = image.Publisher.ArmValue
-                Sku = image.Sku.ArmValue
                 Version = "latest"
             }
 

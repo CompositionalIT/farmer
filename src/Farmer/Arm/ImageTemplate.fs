@@ -3,32 +3,24 @@ module Farmer.Arm.ImageTemplate
 
 open System
 open Farmer
+open Farmer.Arm.Gallery
 
 let imageTemplates =
     ResourceType("Microsoft.VirtualMachineImages/imageTemplates", "2022-02-14")
 
 let images = ResourceType("Microsoft.Compute/images", "2022-08-01")
 
-type PlatformImagePurchasePlan =
-    {
-        PlanName: string
-        PlanProduct: string
-        PlanPublisher: string
-    }
-
 type PlatformImageSource =
     {
-        Offer: string
-        PlanInfo: PlatformImagePurchasePlan option
-        Publisher: string
-        Sku: string
+        ImageIdentifier: GalleryImageIdentifier
+        PlanInfo: ImagePurchasePlan option
         Version: string
     }
 
     member this.JsonModel =
         {|
             ``type`` = "PlatformImage"
-            offer = this.Offer
+            offer = this.ImageIdentifier.Offer
             planInfo =
                 match this.PlanInfo with
                 | Some plan ->
@@ -39,8 +31,8 @@ type PlatformImageSource =
                     |}
                     :> obj
                 | None -> null
-            publisher = this.Publisher
-            sku = this.Sku
+            publisher = this.ImageIdentifier.Publisher
+            sku = this.ImageIdentifier.Sku
             version =
                 if String.IsNullOrEmpty this.Version then
                     "latest"

@@ -28,9 +28,12 @@ let tests =
                         Source =
                             {
                                 PlanInfo = None
-                                Publisher = "canonical"
-                                Offer = "0001-com-ubuntu-server-focal"
-                                Sku = "20_04-lts-gen2"
+                                ImageIdentifier =
+                                    {
+                                        Publisher = "canonical"
+                                        Offer = "0001-com-ubuntu-server-focal"
+                                        Sku = "20_04-lts-gen2"
+                                    }
                                 Version = null
                             }
                             |> ImageBuilderSource.Platform
