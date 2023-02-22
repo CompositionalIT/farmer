@@ -21,24 +21,24 @@ The `gallery` builder is used to create Galleries for sharing VM images. These c
 |gallery|soft_delete|Indicate soft deletion of images should be enabled or disabled (default disabled).|
 |gallery|add_tags|Add tags to the gallery resource.|
 |gallery|depends_on|Add explicit dependencies for the gallery resource.|
-|image|name|Name of the image in the gallery.|
-|image|gallery_name|Name of the gallery where the image is created.|
-|image|gallery|Specify the gallery in the same deployment. The image will depend on the gallery.|
-|image|architecture|Indicates x64 or ARM 64 images - defaults to x64 if not set.|
-|image|description|Optional description for the image in the gallery.|
-|image|eula|Optional End User License Agreement for using the image.|
-|image|hyperv_generation|The Hyper-V generation for the image. This should be set to match the Hyper-V generation of the source image that was used to create this image.|
-|image|gallery_image_identifier|The publisher, offer, and sku for the image in the gallery.|
-|image|os_state|Indicate if the VM is Generalized or Specialized. A generalized image allows OS configuration options, such as setting the username and password, whereas this is typically set already in a specialized image.|
-|image|os_type|OS type for the image - Windows or Linux|
-|image|privacy_statement_uri|URI where the privacy statement for the use of the image can be found.|
-|image|purchase_plan|A purchase plan name, publisher, and product for the image, for use in a community gallery or marketplace images.|
-|image|recommended_configuration|Recommended range of vCPUs and memory for VMs created from this image.|
-|image|recommended_memory|A recommended range of memory for VMs created from this image. Default is 1 Gb to 32 Gb.|
-|image|recommended_vcpu|A recommended range of vCPUs for VMs created from this image. Default is 1 to 16.|
-|image|release_notes_uri|URI where release notes can be found for the image.|
-|image|add_tags|Add tags to the image resource.|
-|image|depends_on|Add explicit dependencies for the image resource.|
+|galleryImage|name|Name of the image in the gallery.|
+|galleryImage|gallery_name|Name of the gallery where the image is created.|
+|galleryImage|gallery|Specify the gallery in the same deployment. The image will depend on the gallery.|
+|galleryImage|architecture|Indicates x64 or ARM 64 images - defaults to x64 if not set.|
+|galleryImage|description|Optional description for the image in the gallery.|
+|galleryImage|eula|Optional End User License Agreement for using the image.|
+|galleryImage|hyperv_generation|The Hyper-V generation for the image. This should be set to match the Hyper-V generation of the source image that was used to create this image.|
+|galleryImage|gallery_image_identifier|The publisher, offer, and sku for the image in the gallery.|
+|galleryImage|os_state|Indicate if the VM is Generalized or Specialized. A generalized image allows OS configuration options, such as setting the username and password, whereas this is typically set already in a specialized image.|
+|galleryImage|os_type|OS type for the image - Windows or Linux|
+|galleryImage|privacy_statement_uri|URI where the privacy statement for the use of the image can be found.|
+|galleryImage|purchase_plan|A purchase plan name, publisher, and product for the image, for use in a community gallery or marketplace images.|
+|galleryImage|recommended_configuration|Recommended range of vCPUs and memory for VMs created from this image.|
+|galleryImage|recommended_memory|A recommended range of memory for VMs created from this image. Default is 1 Gb to 32 Gb.|
+|igalleryImagemage|recommended_vcpu|A recommended range of vCPUs for VMs created from this image. Default is 1 to 16.|
+|galleryImage|release_notes_uri|URI where release notes can be found for the image.|
+|galleryImage|add_tags|Add tags to the image resource.|
+|galleryImage|depends_on|Add explicit dependencies for the image resource.|
 
 #### Example
 
@@ -62,7 +62,7 @@ let myGallery =
     }
 
 let myImage =
-    image {
+    galleryImage {
         name "my-server-image"
         gallery myGallery
 

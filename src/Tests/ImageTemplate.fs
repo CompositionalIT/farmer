@@ -123,8 +123,10 @@ let tests =
                                 vhdDistributor { run_output_name "testVhdRun" }
                                 sharedImageDistributor {
                                     gallery_image_id (
-                                        ResourceType("Microsoft.Compute/galleries/images", "2020-09-30")
-                                            .resourceId (ResourceName "my-image-gallery", ResourceName "java-server-os")
+                                        Farmer.Arm.Gallery.galleryImages.resourceId (
+                                            ResourceName "my-image-gallery",
+                                            ResourceName "java-server-os"
+                                        )
                                     )
 
                                     add_replication_regions [ Location.EastUS ]
@@ -172,8 +174,8 @@ let tests =
                 Expect.equal distribute.[1].["type"] (JValue "SharedImage") "Incorrect distribute.[1].type"
 
                 Expect.equal
-                    distribute.[1].["galleryImageId"]
-                    (JValue "[resourceId('Microsoft.Compute/galleries/images', 'my-image-gallery', 'java-server-os')]")
+                    (string distribute.[1].["galleryImageId"])
+                    ("[resourceId('Microsoft.Compute/galleries/images', 'my-image-gallery', 'java-server-os')]")
                     "Incorrect distribute.[1].galleryImageId"
 
                 Expect.equal

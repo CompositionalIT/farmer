@@ -7,7 +7,7 @@ open Farmer.Image
 open Farmer.GalleryValidation
 
 let galleries = ResourceType("Microsoft.Compute/galleries", "2022-03-03")
-let images = ResourceType("Microsoft.Compute/galleries/images", "2022-03-03")
+let galleryImages = ResourceType("Microsoft.Compute/galleries/images", "2022-03-03")
 
 let imageVersions =
     ResourceType("Microsoft.Compute/galleries/images/versions", "2022-03-03")
@@ -127,10 +127,11 @@ type GalleryImage =
     }
 
     interface IArmResource with
-        member this.ResourceId = images.resourceId (this.GalleryName.ResourceName, this.Name)
+        member this.ResourceId =
+            galleryImages.resourceId (this.GalleryName.ResourceName, this.Name)
 
         member this.JsonModel =
-            {| images.Create(
+            {| galleryImages.Create(
                    this.GalleryName.ResourceName / this.Name,
                    this.Location,
                    dependsOn = this.Dependencies,

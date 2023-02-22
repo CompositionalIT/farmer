@@ -70,7 +70,7 @@ let tests =
                     arm {
                         add_resources
                             [
-                                image {
+                                galleryImage {
                                     name "javaserver"
                                     gallery_name "mygallery"
 
@@ -124,7 +124,7 @@ let tests =
                     }
 
                 let myGalleryImage =
-                    image {
+                    galleryImage {
                         name "ubuntu-java-17-server"
                         gallery myGallery
 

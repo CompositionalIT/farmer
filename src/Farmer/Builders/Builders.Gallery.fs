@@ -101,7 +101,8 @@ type GalleryImageConfig =
     }
 
     interface IBuilder with
-        member this.ResourceId = images.resourceId (this.GalleryName.ResourceName, this.Name)
+        member this.ResourceId =
+            galleryImages.resourceId (this.GalleryName.ResourceName, this.Name)
 
         member this.BuildResources location =
             [
@@ -131,7 +132,7 @@ type GalleryImageConfig =
                 }
             ]
 
-type ImageBuilder() =
+type GalleryImageBuilder() =
     member _.Yield _ =
         {
             Name = ResourceName.Empty
@@ -291,4 +292,4 @@ type ImageBuilder() =
                 Dependencies = state.Dependencies + resources
             }
 
-let image = ImageBuilder()
+let galleryImage = GalleryImageBuilder()

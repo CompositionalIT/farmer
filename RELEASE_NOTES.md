@@ -3,7 +3,7 @@ Release Notes
 
 ## vNext
 * Galleries: Create Galleries for sharing VM images.
-* Images: Create images in a gallery that can be used to create VMs.
+* Gallery Images: Create images in a gallery that can be used to create VMs.
 * Image Templates: Templates for building and publishing VM images.
 
 ## 1.7.17
