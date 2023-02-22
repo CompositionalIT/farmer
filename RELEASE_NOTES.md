@@ -1,15 +1,15 @@
 Release Notes
 =============
 
-## vNext
+## 1.7.18
+* Disks: Create managed disks
 * Galleries: Create Galleries for sharing VM images.
 * Gallery Images: Create images in a gallery that can be used to create VMs.
 * Image Templates: Templates for building and publishing VM images.
+* Virtual Machines: Attach existing managed disks.
 
 ## 1.7.17
 * Container Apps: Fix scaler spelling
-* Disks: Create managed disks
-* Virtual Machines: Attach existing managed disks.
 
 ## 1.7.16
 * Container Apps: Fix a bug whereby Dapr was not correctly turned on.
