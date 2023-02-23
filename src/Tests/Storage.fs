@@ -506,9 +506,11 @@ let tests =
 
                 let blobSpecificRule = rules.[1]
 
+                Expect.isTrue (not <| blobSpecificRule.allowedOrigins.[0].EndsWith('/')) "Should not add trailing slash"
+
                 Expect.equal
-                    [| "https://compositional-it.com/" |]
                     blobSpecificRule.allowedOrigins
+                    [| "https://compositional-it.com" |]
                     "Incorrect custom allowed origin"
 
                 let queueRule =
@@ -517,7 +519,7 @@ let tests =
 
                 Expect.equal [| "ALLOWED1"; "ALLOWED2" |] queueRule.allowedHeaders "Incorrect factory headers"
                 Expect.equal [| string GET |] queueRule.allowedMethods "Incorrect factory methods"
-                Expect.equal [| "https://compositional-it.com/" |] queueRule.allowedOrigins "Incorrect factory origin"
+                Expect.equal queueRule.allowedOrigins [| "https://compositional-it.com" |] "Incorrect factory origin"
                 Expect.equal [| "exposed1"; "exposed2" |] queueRule.exposedHeaders "Incorrect factory exposed headers"
                 Expect.equal 15 queueRule.maxAgeInSeconds "Incorrect factory max age is seconds"
             }
