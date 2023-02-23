@@ -102,6 +102,8 @@ type SlotConfig =
         AutoSwapSlotName: string option
         AppSettings: Map<string, Setting>
         ConnectionStrings: Map<string, (Setting * ConnectionStringKind)>
+        DockerRegistryPath: string option
+        StartupCommand: string option
         Identity: ManagedIdentity
         KeyVaultReferenceIdentity: UserAssignedIdentity option
         Tags: Map<string, string>
@@ -118,6 +120,8 @@ type SlotConfig =
             ConnectionStrings =
                 owner.ConnectionStrings
                 |> Option.map (Map.merge (this.ConnectionStrings |> Map.toList))
+            LinuxFxVersion = this.DockerRegistryPath |> Option.map (fun image -> "DOCKER|" + image)
+            AppCommandLine = this.StartupCommand
             Identity = this.Identity + owner.Identity
             KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity |> Option.orElse owner.KeyVaultReferenceIdentity
             IpSecurityRestrictions = this.IpSecurityRestrictions
@@ -131,6 +135,8 @@ type SlotBuilder() =
             AutoSwapSlotName = None
             AppSettings = Map.empty
             ConnectionStrings = Map.empty
+            DockerRegistryPath = None
+            StartupCommand = None
             Identity = ManagedIdentity.Empty
             KeyVaultReferenceIdentity = None
             Tags = Map.empty
@@ -221,6 +227,14 @@ type SlotBuilder() =
     member this.AddConnectionStrings(state, connectionStrings: string list) : SlotConfig =
         connectionStrings
         |> List.fold (fun state key -> this.AddConnectionString(state, key)) state
+
+    /// Specifies a docker image to use from the registry (linux only), and the startup command to execute.
+    [<CustomOperation "docker_image">]
+    member _.DockerImage(state, registryPath, startupFile) : SlotConfig =
+        { state with
+            DockerRegistryPath = Some registryPath
+            StartupCommand = Some startupFile
+        }
 
     /// Add Allowed ip for ip security restrictions
     [<CustomOperation "add_allowed_ip_restriction">]

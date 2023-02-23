@@ -7,6 +7,7 @@ Release Notes
 * Gallery Images: Create images in a gallery that can be used to create VMs.
 * Image Templates: Templates for building and publishing VM images.
 * Virtual Machines: Attach existing managed disks.
+* WebApps: Enable the docker image tag to be specified for a slot.
 
 ## 1.7.17
 * Container Apps: Fix scaler spelling
