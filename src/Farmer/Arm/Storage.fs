@@ -298,7 +298,7 @@ type StorageService =
                                     [
                                         for rule in this.CorsRules do
                                             {|
-                                                allowedOrigins = rule.AllowedOrigins.Emit(fun r -> r.AbsoluteUri)
+                                                allowedOrigins = rule.AllowedOrigins.Emit(fun r -> r.OriginalString)
                                                 allowedMethods =
                                                     [
                                                         for httpMethod in rule.AllowedMethods.Value do
