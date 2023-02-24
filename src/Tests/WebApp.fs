@@ -521,6 +521,27 @@ let tests =
                 Expect.isEmpty extensions "Shouldn't be any extensions"
             }
 
+            test "Can specify different image for slots" {
+                let wa =
+                    webApp {
+                        name "my-webapp-2651A324"
+                        sku (Sku.Standard "S1")
+                        docker_image "nginx:1.22.1" ""
+
+                        add_slots
+                            [
+                                appSlot {
+                                    name "staging"
+                                    docker_image "nginx:1.23.1" ""
+                                }
+                            ]
+                    }
+
+                let (slot: Site) = wa |> getResourceAtIndex 3
+                Expect.equal slot.Name "my-webapp-2651A324/staging" "Resource isn't the 'staging' slot"
+                Expect.equal slot.SiteConfig.LinuxFxVersion "DOCKER|nginx:1.23.1" "Docker image not set on slot"
+            }
+
             test "Handles add_extension correctly" {
                 let wa =
                     webApp {

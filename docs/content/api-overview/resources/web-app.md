@@ -63,7 +63,17 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | link_to_vnet | Enable the VNET integration feature in azure where all outbound traffic from the web app with be sent via the specified subnet. Use this operator when the given VNET is in the same deployment |
 | Web App | link_to_unmanaged_vnet | Enable the VNET integration feature in azure where all outbound traffic from the web app with be sent via the specified subnet. Use this operator when the given VNET is *not* in the same deployment |
 | Web App | add_virtual_applications | Adds list of `virtualApplication` definitions to the webapp |
-| Web App | startup_command | Adds a startup command to be run post-deployment. This is useful on Linux-based web app deployments, where your application is "implicitly" converted into a docker image and may need to be told what to do on startup. 
+| Web App | startup_command | Adds a startup command to be run post-deployment. This is useful on Linux-based web app deployments, where your application is "implicitly" converted into a docker image and may need to be told what to do on startup. |
+| App Slot | name | Sets the name for the slot |
+| App Slot | add_identity | Sets the user managed identity for the slot. |
+| App Slot | system_identity | Sets the system identity to be enabled for the slot. |
+| App Slot | keyvault_identity | Sets the identity for accessing key vault. |
+| App Slot | setting | Set an arbitrary setting for the slot. |
+| App Slot | settings | Sets multiple settings for the slot. |
+| App Slot | connection_string | Adds a connection string setting for the slot |
+| App Slot | docker_image | Sets the docker image to be pulled down from Docker Hub, and the command to execute as a second argument. This enabled a new container to be staged in a slot. |
+| App Slot | add_allowed_ip_restriction | Allows access from this IP when the slot is in production. |
+| App Slot | add_denied_ip_restriction | Denies access from this IP when the slot is in production. |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
 | Service Plan | runtime_stack | Sets the runtime stack. |
 | Service Plan | operating_system | Sets the operating system. If Linux, App Insights configuration settings will be omitted as they are not supported by Azure App Service. |
