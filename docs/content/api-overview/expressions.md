@@ -13,7 +13,7 @@ Farmer understands how to use ARM expressions and provides functionality to corr
 #### How do I use ARM expressions?
 Many Farmer builders contain pre-defined ARM expression that can be used for common tasks, such as passing a connection string from a storage account as a KeyVault secret, or a web application setting.
 
-As an example, a Storage Account config contains a `Key` member that you can supply this to a web app as a setting:
+As an example, a Storage Account config contains a `Key` member that you can supply to a web app as a setting:
 
 ```fsharp
 let storageConfig = storageAccount {
@@ -51,7 +51,7 @@ let template = arm {
 }
 
 // Deploy the template.
-let outputs =  template |> Deploy.execute template []
+let outputs = template |> Deploy.execute template []
 
 // Get the value of the storage_key.
 let key = outputs.["storage_key"]
