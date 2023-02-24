@@ -7,6 +7,7 @@ Release Notes
 * Gallery Images: Create images in a gallery that can be used to create VMs.
 * Image Templates: Templates for building and publishing VM images.
 * Virtual Machines: Attach existing managed disks.
+* Storage Accounts: CORS rules respect format of original URI (fixes #1003)
 
 ## 1.7.17
 * Container Apps: Fix scaler spelling
