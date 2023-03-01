@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## vNext
+* PostgreSQL: Adds `FullyQualifiedDomainName` configuration member.
+
 ## 1.7.18
 * Disks: Create managed disks
 * Galleries: Create Galleries for sharing VM images.
