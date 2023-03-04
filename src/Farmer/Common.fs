@@ -3520,6 +3520,11 @@ module ContainerApp =
         | HTTP2
         | Auto
 
+    [<RequireQualifiedAccess>]
+    type ProbeProtocol =
+        | TCP
+        | HTTPS
+
     type IngressMode =
         | External of port: uint16 * Transport option
         | InternalOnly

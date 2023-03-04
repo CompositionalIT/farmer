@@ -1,7 +1,9 @@
 [<AutoOpen>]
 module Farmer.Builders.ContainerApps
 
+open System
 open Farmer
+open Farmer.ApplicationGateway
 open Farmer.Builders
 open Farmer.ContainerApp
 open Farmer.ContainerAppValidation
@@ -17,6 +19,7 @@ type ContainerConfig =
         Resources: {| CPU: float<VCores>
                       Memory: float<Gb>
                       EphemeralStorage: float<Gb> option |}
+        Probes: ProbeMap
     }
 
     member internal this.BuildContainer: Container =
@@ -27,6 +30,7 @@ type ContainerConfig =
                 DockerImage = dockerImage
                 Resources = this.Resources
                 VolumeMounts = this.VolumeMounts
+                Probes = this.Probes
             }
         | None -> raiseFarmer $"Container '{this.ContainerName}' requires a docker image."
 
@@ -507,6 +511,7 @@ type ContainerAppBuilder() =
                 DockerImage = Some(Containers.PublicImage(dockerImage, Some dockerVersion))
                 Resources = defaultResources
                 VolumeMounts = Map.empty
+                Probes = Map.empty
             }
 
         this.AddContainers(state, [ container ])
@@ -536,6 +541,7 @@ type ContainerBuilder() =
             DockerImage = None
             Resources = defaultResources
             VolumeMounts = Map.empty
+            Probes = Map.empty
         }
 
     /// Set docker credentials
@@ -608,7 +614,20 @@ type ContainerBuilder() =
                 |> Seq.fold (fun s (volumeName, mountPath) -> s |> Map.add volumeName mountPath) state.VolumeMounts
         }
 
-let containerEnvironment = ContainerEnvironmentBuilder()
+    [<CustomOperation "set_probe">]
+    member _.SetHealthProbe(state: ContainerConfig, probe, protocol, route, port) =
+        { state with
+            Probes =
+                state.Probes.Add(
+                    probe,
+                    {|
+                        Protocol = protocol
+                        Route = Uri(route, UriKind.Relative)
+                        Port = port
+                    |}
+                )
+        }
 
+let containerEnvironment = ContainerEnvironmentBuilder()
 let containerApp = ContainerAppBuilder()
 let container = ContainerBuilder()
