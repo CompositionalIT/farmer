@@ -14,14 +14,13 @@ type UserAssignedIdentityConfig =
     interface IBuilder with
         member this.ResourceId = this.ResourceId
 
-        member this.BuildResources location =
-            [
-                {
-                    UserAssignedIdentity.Name = this.Name
-                    Location = location
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                UserAssignedIdentity.Name = this.Name
+                Location = location
+                Tags = this.Tags
+            }
+        ]
 
     member this.ResourceId = userAssignedIdentities.resourceId this.Name
 
@@ -31,11 +30,10 @@ type UserAssignedIdentityConfig =
     member this.PrincipalId = this.UserAssignedIdentity.PrincipalId
 
 type UserAssignedIdentityBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Tags = Map.empty
+    }
 
     /// Sets the name of the user assigned identity.
     [<CustomOperation "name">]

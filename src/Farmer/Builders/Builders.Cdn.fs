@@ -9,29 +9,27 @@ open Farmer.Cdn
 open System
 open CdnRule
 
-type CdnRuleConfig =
-    {
-        Name: ResourceName
-        Order: int
-        Conditions: Condition list
-        Actions: Action list
-    }
+type CdnRuleConfig = {
+    Name: ResourceName
+    Order: int
+    Conditions: Condition list
+    Actions: Action list
+}
 
-type EndpointConfig =
-    {
-        Name: ResourceName
-        Dependencies: ResourceId Set
-        CompressedContentTypes: string Set
-        QueryStringCachingBehaviour: QueryStringCachingBehaviour
-        Http: FeatureFlag
-        Https: FeatureFlag
-        Compression: FeatureFlag
-        Origin: ArmExpression
-        CustomDomain: string option
-        OptimizationType: OptimizationType
-        DeliveryPolicyDescription: string
-        Rules: CdnRuleConfig list
-    }
+type EndpointConfig = {
+    Name: ResourceName
+    Dependencies: ResourceId Set
+    CompressedContentTypes: string Set
+    QueryStringCachingBehaviour: QueryStringCachingBehaviour
+    Http: FeatureFlag
+    Https: FeatureFlag
+    Compression: FeatureFlag
+    Origin: ArmExpression
+    CustomDomain: string option
+    OptimizationType: OptimizationType
+    DeliveryPolicyDescription: string
+    Rules: CdnRuleConfig list
+}
 
 type CdnConfig =
     {
@@ -44,60 +42,55 @@ type CdnConfig =
     interface IBuilder with
         member this.ResourceId = profiles.resourceId this.Name
 
-        member this.BuildResources _ =
-            [
+        member this.BuildResources _ = [
+            {
+                Name = this.Name
+                Sku = this.Sku
+                Tags = this.Tags
+            }
+            for endpoint in this.Endpoints do
                 {
-                    Name = this.Name
-                    Sku = this.Sku
+                    Name = endpoint.Name
+                    Profile = this.Name
+                    Dependencies = endpoint.Dependencies
+                    CompressedContentTypes = endpoint.CompressedContentTypes
+                    QueryStringCachingBehaviour = endpoint.QueryStringCachingBehaviour
+                    Http = endpoint.Http
+                    Https = endpoint.Https
+                    Compression = endpoint.Compression
+                    Origin = endpoint.Origin
+                    OptimizationType = endpoint.OptimizationType
                     Tags = this.Tags
-                }
-                for endpoint in this.Endpoints do
-                    {
-                        Name = endpoint.Name
-                        Profile = this.Name
-                        Dependencies = endpoint.Dependencies
-                        CompressedContentTypes = endpoint.CompressedContentTypes
-                        QueryStringCachingBehaviour = endpoint.QueryStringCachingBehaviour
-                        Http = endpoint.Http
-                        Https = endpoint.Https
-                        Compression = endpoint.Compression
-                        Origin = endpoint.Origin
-                        OptimizationType = endpoint.OptimizationType
-                        Tags = this.Tags
-                        DeliveryPolicy =
-                            {
-                                Description = endpoint.DeliveryPolicyDescription
-                                Rules =
-                                    endpoint.Rules
-                                    |> List.map (fun r ->
-                                        {
-                                            Name = r.Name
-                                            Order = r.Order
-                                            Conditions = r.Conditions
-                                            Actions = r.Actions
-                                        })
-                            }
+                    DeliveryPolicy = {
+                        Description = endpoint.DeliveryPolicyDescription
+                        Rules =
+                            endpoint.Rules
+                            |> List.map (fun r -> {
+                                Name = r.Name
+                                Order = r.Order
+                                Conditions = r.Conditions
+                                Actions = r.Actions
+                            })
                     }
+                }
 
-                    match endpoint.CustomDomain with
-                    | Some customDomain ->
-                        {
-                            Name = endpoint.Name.Map(sprintf "%sdomain")
-                            Profile = this.Name
-                            Endpoint = endpoint.Name
-                            Hostname = customDomain
-                        }
-                    | None -> ()
-            ]
+                match endpoint.CustomDomain with
+                | Some customDomain -> {
+                    Name = endpoint.Name.Map(sprintf "%sdomain")
+                    Profile = this.Name
+                    Endpoint = endpoint.Name
+                    Hostname = customDomain
+                  }
+                | None -> ()
+        ]
 
 type CdnBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sku = Standard_Akamai
-            Endpoints = []
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = Standard_Akamai
+        Endpoints = []
+        Tags = Map.empty
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: CdnConfig, name) = { state with Name = ResourceName name }
@@ -124,21 +117,20 @@ type EndpointBuilder() =
                 Dependencies = state.Dependencies + newDeps
             }
 
-    member _.Yield _ : EndpointConfig =
-        {
-            Name = ResourceName.Empty
-            Dependencies = Set.empty
-            CompressedContentTypes = Set.empty
-            QueryStringCachingBehaviour = UseQueryString
-            Http = Enabled
-            Https = Enabled
-            Compression = Disabled
-            Origin = ArmExpression.Empty
-            CustomDomain = None
-            OptimizationType = GeneralWebDelivery
-            DeliveryPolicyDescription = ""
-            Rules = []
-        }
+    member _.Yield _ : EndpointConfig = {
+        Name = ResourceName.Empty
+        Dependencies = Set.empty
+        CompressedContentTypes = Set.empty
+        QueryStringCachingBehaviour = UseQueryString
+        Http = Enabled
+        Https = Enabled
+        Compression = Disabled
+        Origin = ArmExpression.Empty
+        CustomDomain = None
+        OptimizationType = GeneralWebDelivery
+        DeliveryPolicyDescription = ""
+        Rules = []
+    }
 
     /// Name of the endpoint within the CDN.
     [<CustomOperation "name">]
@@ -224,13 +216,12 @@ type CdnRuleBuilder() =
                 Dependencies = state.Dependencies + newDeps
             }
 
-    member _.Yield _ : CdnRuleConfig =
-        {
-            Name = ResourceName.Empty
-            Order = 1
-            Conditions = list.Empty
-            Actions = list.Empty
-        }
+    member _.Yield _ : CdnRuleConfig = {
+        Name = ResourceName.Empty
+        Order = 1
+        Conditions = list.Empty
+        Actions = list.Empty
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: CdnRuleConfig, name) = { state with Name = name }

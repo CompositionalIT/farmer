@@ -17,22 +17,20 @@ type PrivateEndpointConfig =
     interface IBuilder with
         member this.ResourceId = privateEndpoints.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                match this.Subnet, this.Resource with
-                | Some subnet, Some resource ->
-                    {
-                        PrivateEndpoint.Name = this.Name
-                        Location = location
-                        Subnet = subnet
-                        Resource = resource
-                        CustomNetworkInterfaceName = this.CustomNetworkInterfaceName
-                        GroupIds = []
-                    }
-                | _ ->
-                    raiseFarmer
-                        $"Subnet and Resource must be specified. Subnet: '{this.Subnet}' Resource: '{this.Resource}'"
-            ]
+        member this.BuildResources location = [
+            match this.Subnet, this.Resource with
+            | Some subnet, Some resource -> {
+                PrivateEndpoint.Name = this.Name
+                Location = location
+                Subnet = subnet
+                Resource = resource
+                CustomNetworkInterfaceName = this.CustomNetworkInterfaceName
+                GroupIds = []
+              }
+            | _ ->
+                raiseFarmer
+                    $"Subnet and Resource must be specified. Subnet: '{this.Subnet}' Resource: '{this.Resource}'"
+        ]
 
     /// If a CustomNetworkInterfaceName is set via 'custom_nic_name', this returns the private IP.
     member this.CustomNicEndpointIP(idx: int) : ArmExpression option =
@@ -46,14 +44,13 @@ type PrivateEndpointConfig =
     member this.CustomNicFirstEndpointIP = this.CustomNicEndpointIP 0
 
 type PrivateEndpointBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Subnet = None
-            Resource = None
-            CustomNetworkInterfaceName = None
-            GroupIds = []
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Subnet = None
+        Resource = None
+        CustomNetworkInterfaceName = None
+        GroupIds = []
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: PrivateEndpointConfig, name: string) = { state with Name = ResourceName name }

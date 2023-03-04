@@ -12,11 +12,26 @@ let myDatabases = sqlServer {
     add_databases [
         sqlDb { name "poolDb1" }
         sqlDb { name "poolDb2" }
-        sqlDb { name "dtuDb"; sku Basic }
-        sqlDb { name "memoryDb"; sku M_8 }
-        sqlDb { name "cpuDb"; sku Fsv2_8 }
-        sqlDb { name "businessCriticalDb"; sku (BusinessCritical Gen5_2) }
-        sqlDb { name "hyperscaleDb"; sku (Hyperscale Gen5_2) }
+        sqlDb {
+            name "dtuDb"
+            sku Basic
+        }
+        sqlDb {
+            name "memoryDb"
+            sku M_8
+        }
+        sqlDb {
+            name "cpuDb"
+            sku Fsv2_8
+        }
+        sqlDb {
+            name "businessCriticalDb"
+            sku (BusinessCritical Gen5_2)
+        }
+        sqlDb {
+            name "hyperscaleDb"
+            sku (Hyperscale Gen5_2)
+        }
         sqlDb {
             name "generalPurposeDb"
             sku (GeneralPurpose Gen5_8)
@@ -25,7 +40,7 @@ let myDatabases = sqlServer {
         }
         sqlDb {
             name "serverless4to8cpu"
-            sku (GeneralPurpose (S_Gen5 (4, 8)))
+            sku (GeneralPurpose(S_Gen5(4, 8)))
         }
     ]
 }

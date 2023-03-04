@@ -19,11 +19,10 @@ type Maps =
 
         member this.JsonModel =
             {| accounts.Create(this.Name, this.Location, tags = this.Tags) with
-                sku =
-                    {|
-                        name =
-                            match this.Sku with
-                            | S0 -> "S0"
-                            | S1 -> "S1"
-                    |}
+                sku = {|
+                    name =
+                        match this.Sku with
+                        | S0 -> "S0"
+                        | S1 -> "S1"
+                |}
             |}

@@ -90,10 +90,9 @@ type DnsZone =
 
         member this.JsonModel =
             {| this.zoneResource.Create(this.Name, Location.Global, this.Dependencies) with
-                properties =
-                    {|
-                        zoneType = this.Properties.ZoneType
-                    |}
+                properties = {|
+                    zoneType = this.Properties.ZoneType
+                |}
             |}
 
 module DnsRecords =
@@ -182,9 +181,9 @@ module DnsRecords =
                             (ttlKey this.ZoneType), box this.TTL
 
                             match this.Type with
-                            | A (Some targetResource, _)
-                            | CName (Some targetResource, _)
-                            | AAAA (Some targetResource, _) ->
+                            | A(Some targetResource, _)
+                            | CName(Some targetResource, _)
+                            | AAAA(Some targetResource, _) ->
                                 "targetResource",
                                 box
                                     {|
@@ -193,20 +192,19 @@ module DnsRecords =
                             | _ -> ()
 
                             match this.Type with
-                            | CName (_, Some cnameRecord) ->
+                            | CName(_, Some cnameRecord) ->
                                 (cnameRecordKey this.ZoneType), box {| cname = cnameRecord |}
                             | MX records ->
                                 (mxRecordKey this.ZoneType),
                                 records
-                                |> List.map (fun mx ->
-                                    {|
-                                        preference = mx.Preference
-                                        exchange = mx.Exchange
-                                    |})
+                                |> List.map (fun mx -> {|
+                                    preference = mx.Preference
+                                    exchange = mx.Exchange
+                                |})
                                 |> box
-                            | NS (NsRecords.Records records) ->
+                            | NS(NsRecords.Records records) ->
                                 "NSRecords", records |> List.map (fun ns -> {| nsdname = ns |}) |> box
-                            | NS (NsRecords.SourceZone sourceZone) ->
+                            | NS(NsRecords.SourceZone sourceZone) ->
                                 "NSRecords", (sourceZoneNSRecordReference sourceZone).Eval() |> box
                             | TXT records ->
                                 (txtRecordKey this.ZoneType),
@@ -214,37 +212,35 @@ module DnsRecords =
                             | PTR records ->
                                 (ptrRecordKey this.ZoneType),
                                 records |> List.map (fun ptr -> {| ptrdname = ptr |}) |> box
-                            | A (_, records) ->
+                            | A(_, records) ->
                                 (aRecordKey this.ZoneType), records |> List.map (fun a -> {| ipv4Address = a |}) |> box
-                            | AAAA (_, records) ->
+                            | AAAA(_, records) ->
                                 (aaaRecordKey this.ZoneType),
                                 records |> List.map (fun aaaa -> {| ipv6Address = aaaa |}) |> box
                             | SRV records ->
                                 let records =
                                     records
-                                    |> List.map (fun srv ->
-                                        {|
-                                            priority = srv.Priority |> Option.toNullable
-                                            weight = srv.Weight |> Option.toNullable
-                                            port = srv.Port |> Option.toNullable
-                                            target = Option.toObj srv.Target
-                                        |})
+                                    |> List.map (fun srv -> {|
+                                        priority = srv.Priority |> Option.toNullable
+                                        weight = srv.Weight |> Option.toNullable
+                                        port = srv.Port |> Option.toNullable
+                                        target = Option.toObj srv.Target
+                                    |})
 
                                 (srvRecordKey this.ZoneType), box records
                             | SOA record ->
-                                let record =
-                                    {|
-                                        host = Option.toObj record.Host
-                                        email = Option.toObj record.Email
-                                        serialNumber = record.SerialNumber |> Option.toNullable
-                                        refreshTime = record.RefreshTime |> Option.toNullable
-                                        retryTime = record.RetryTime |> Option.toNullable
-                                        expireTime = record.ExpireTime |> Option.toNullable
-                                        minimumTTL = record.MinimumTTL |> Option.toNullable
-                                    |}
+                                let record = {|
+                                    host = Option.toObj record.Host
+                                    email = Option.toObj record.Email
+                                    serialNumber = record.SerialNumber |> Option.toNullable
+                                    refreshTime = record.RefreshTime |> Option.toNullable
+                                    retryTime = record.RetryTime |> Option.toNullable
+                                    expireTime = record.ExpireTime |> Option.toNullable
+                                    minimumTTL = record.MinimumTTL |> Option.toNullable
+                                |}
 
                                 (soaRecordKey this.ZoneType), box record
-                            | CName (_, None) -> ()
+                            | CName(_, None) -> ()
                         ]
                         |> Map
                 |}

@@ -6,6 +6,7 @@ open Farmer.Builders
 let dns = dnsZone {
     name "farmer.com"
     zone_type Dns.Public
+
     add_records [
         cnameRecord {
             name "www2"
@@ -30,17 +31,16 @@ let dns = dnsZone {
         mxRecord {
             name "mxName"
             ttl 7200
+
             add_values [
-                0, "farmer-com.mail.protection.outlook.com";
-                1, "farmer2-com.mail.protection.outlook.com";
+                0, "farmer-com.mail.protection.outlook.com"
+                1, "farmer2-com.mail.protection.outlook.com"
             ]
         }
         nsRecord {
             name "nsRecord"
             ttl 172800
-            add_nsd_names [
-                "my.other.dns.com."
-            ]
+            add_nsd_names [ "my.other.dns.com." ]
         }
         soaRecord {
             host "ns1-09.azure-dns.com."
@@ -55,11 +55,14 @@ let dns = dnsZone {
         srvRecord {
             name "_sip._tcp.name"
             ttl 3600
+
             add_values [
-                { Priority = Some 100
-                  Weight = Some 1
-                  Port = Some 5061
-                  Target = Some "farmer.online.com."}
+                {
+                    Priority = Some 100
+                    Weight = Some 1
+                    Port = Some 5061
+                    Target = Some "farmer.online.com."
+                }
             ]
         }
     ]
@@ -70,5 +73,4 @@ let deployment = arm {
     add_resource dns
 }
 
-deployment
-|> Writer.quickWrite "dns-example"
+deployment |> Writer.quickWrite "dns-example"

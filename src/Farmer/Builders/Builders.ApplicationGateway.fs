@@ -14,15 +14,14 @@ type GatewayIpConfig =
         Subnet: LinkedResource option
     }
 
-    static member BuildResource gatewayIp =
-        {|
-            Name = gatewayIp.Name
-            Subnet =
-                gatewayIp.Subnet
-                |> Option.map (function
-                    | Managed resId -> resId
-                    | Unmanaged resId -> resId)
-        |}
+    static member BuildResource gatewayIp = {|
+        Name = gatewayIp.Name
+        Subnet =
+            gatewayIp.Subnet
+            |> Option.map (function
+                | Managed resId -> resId
+                | Unmanaged resId -> resId)
+    |}
 
     static member Dependencies gatewayIp =
         seq {
@@ -35,11 +34,10 @@ type GatewayIpConfig =
         |> Set.ofSeq
 
 type GatewayIpBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Subnet = None
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Subnet = None
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: GatewayIpConfig, name) = { state with Name = ResourceName name }
@@ -65,20 +63,19 @@ type FrontendIpConfig =
         PublicIp: LinkedResource option
     }
 
-    static member BuildResource frontend =
-        {|
-            Name = frontend.Name
-            PrivateIpAllocationMethod = frontend.PrivateIpAllocationMethod
-            PublicIp =
-                frontend.PublicIp
-                |> Option.map (function
-                    | Managed resId -> resId
-                    | Unmanaged resId -> resId)
-        |}
+    static member BuildResource frontend = {|
+        Name = frontend.Name
+        PrivateIpAllocationMethod = frontend.PrivateIpAllocationMethod
+        PublicIp =
+            frontend.PublicIp
+            |> Option.map (function
+                | Managed resId -> resId
+                | Unmanaged resId -> resId)
+    |}
 
     static member BuildIp (frontend: FrontendIpConfig) (location: Location) : PublicIpAddress option =
         match frontend.PublicIp with
-        | Some (Managed resId) ->
+        | Some(Managed resId) ->
             {
                 Name = resId.Name
                 AllocationMethod = AllocationMethod.Static
@@ -92,12 +89,11 @@ type FrontendIpConfig =
         | _ -> None
 
 type FrontendIpBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            PrivateIpAllocationMethod = PrivateIpAddress.DynamicPrivateIp
-            PublicIp = None
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        PrivateIpAllocationMethod = PrivateIpAddress.DynamicPrivateIp
+        PublicIp = None
+    }
 
     /// Sets the name of the frontend IP configuration.
     [<CustomOperation "name">]
@@ -132,18 +128,16 @@ type FrontendPortConfig =
         Port: uint16
     }
 
-    static member BuildResource frontendPort =
-        {|
-            Name = frontendPort.Name
-            Port = frontendPort.Port
-        |}
+    static member BuildResource frontendPort = {|
+        Name = frontendPort.Name
+        Port = frontendPort.Port
+    |}
 
 type FrontendPortBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Port = uint16 80
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Port = uint16 80
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: FrontendPortConfig, name) = { state with Name = ResourceName name }
@@ -160,8 +154,11 @@ type HttpListenerConfig =
         Name: ResourceName
         FrontendIpConfiguration: ResourceName
         BackendAddressPool: ResourceName
-        CustomErrorConfigurations: {| CustomErrorPageUrl: string
-                                      StatusCode: HttpStatusCode |} list
+        CustomErrorConfigurations:
+            {|
+                CustomErrorPageUrl: string
+                StatusCode: HttpStatusCode
+            |} list
         FirewallPolicy: ResourceId option
         FrontendPort: ResourceName
         RequireServerNameIndication: bool
@@ -171,36 +168,34 @@ type HttpListenerConfig =
         SslProfile: ResourceName option
     }
 
-    static member BuildResource(listener: HttpListenerConfig) =
-        {|
-            Name = listener.Name
-            BackendAddressPool = listener.BackendAddressPool
-            FrontendIpConfiguration = listener.FrontendIpConfiguration
-            FrontendPort = listener.FrontendPort
-            Protocol = listener.Protocol
-            HostNames = listener.HostNames
-            RequireServerNameIndication = listener.RequireServerNameIndication
-            CustomErrorConfigurations = listener.CustomErrorConfigurations
-            FirewallPolicy = listener.FirewallPolicy
-            SslCertificate = listener.SslCertificate
-            SslProfile = listener.SslProfile
-        |}
+    static member BuildResource(listener: HttpListenerConfig) = {|
+        Name = listener.Name
+        BackendAddressPool = listener.BackendAddressPool
+        FrontendIpConfiguration = listener.FrontendIpConfiguration
+        FrontendPort = listener.FrontendPort
+        Protocol = listener.Protocol
+        HostNames = listener.HostNames
+        RequireServerNameIndication = listener.RequireServerNameIndication
+        CustomErrorConfigurations = listener.CustomErrorConfigurations
+        FirewallPolicy = listener.FirewallPolicy
+        SslCertificate = listener.SslCertificate
+        SslProfile = listener.SslProfile
+    |}
 
 type HttpListenerBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            BackendAddressPool = ResourceName.Empty
-            FrontendIpConfiguration = ResourceName.Empty
-            FrontendPort = ResourceName.Empty
-            Protocol = Protocol.Http
-            HostNames = []
-            RequireServerNameIndication = false
-            CustomErrorConfigurations = []
-            FirewallPolicy = None
-            SslCertificate = None
-            SslProfile = None
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        BackendAddressPool = ResourceName.Empty
+        FrontendIpConfiguration = ResourceName.Empty
+        FrontendPort = ResourceName.Empty
+        Protocol = Protocol.Http
+        HostNames = []
+        RequireServerNameIndication = false
+        CustomErrorConfigurations = []
+        FirewallPolicy = None
+        SslCertificate = None
+        SslProfile = None
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: HttpListenerConfig, name) = { state with Name = ResourceName name }
@@ -249,29 +244,26 @@ type BackendAddressConfig =
         IpAddress: System.Net.IPAddress
     }
 
-    static member BuildResource backendAddress =
-        {|
-            Fqdn = backendAddress.Fqdn
-            IpAddress = backendAddress.IpAddress
-        |}
+    static member BuildResource backendAddress = {|
+        Fqdn = backendAddress.Fqdn
+        IpAddress = backendAddress.IpAddress
+    |}
 
 let backend_fqdn (fqdn: string) = BackendAddress.Fqdn fqdn
 
 let backend_ip_address (ip: string) =
     BackendAddress.Ip(System.Net.IPAddress.Parse ip)
 
-type BackendAddressPoolConfig =
-    {
-        Name: ResourceName
-        BackendAddresses: BackendAddress list
-    }
+type BackendAddressPoolConfig = {
+    Name: ResourceName
+    BackendAddresses: BackendAddress list
+}
 
 type BackendAddressPoolBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            BackendAddresses = []
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        BackendAddresses = []
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: BackendAddressPoolConfig, name) = { state with Name = ResourceName name }
@@ -298,35 +290,33 @@ type AppGatewayProbeConfig =
         MinServers: uint16 option
     }
 
-    static member BuildResource(probe: AppGatewayProbeConfig) =
-        {|
-            Name = probe.Name
-            Host = probe.Host
-            Port = probe.Port
-            Path = probe.Path
-            Protocol = probe.Protocol
-            IntervalInSeconds = probe.IntervalInSeconds
-            TimeoutInSeconds = probe.TimeoutInSeconds
-            UnhealthyThreshold = probe.UnhealthyThreshold
-            PickHostNameFromBackendHttpSettings = probe.PickHostNameFromBackendHttpSettings
-            MinServers = probe.MinServers
-            Match = None
-        |}
+    static member BuildResource(probe: AppGatewayProbeConfig) = {|
+        Name = probe.Name
+        Host = probe.Host
+        Port = probe.Port
+        Path = probe.Path
+        Protocol = probe.Protocol
+        IntervalInSeconds = probe.IntervalInSeconds
+        TimeoutInSeconds = probe.TimeoutInSeconds
+        UnhealthyThreshold = probe.UnhealthyThreshold
+        PickHostNameFromBackendHttpSettings = probe.PickHostNameFromBackendHttpSettings
+        MinServers = probe.MinServers
+        Match = None
+    |}
 
 type AppGatewayProbeBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Host = "localhost"
-            Path = "/"
-            Port = None
-            Protocol = Protocol.Http
-            IntervalInSeconds = 30<Seconds>
-            TimeoutInSeconds = 10<Seconds>
-            UnhealthyThreshold = 3us
-            PickHostNameFromBackendHttpSettings = false
-            MinServers = None
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Host = "localhost"
+        Path = "/"
+        Port = None
+        Protocol = Protocol.Http
+        IntervalInSeconds = 30<Seconds>
+        TimeoutInSeconds = 10<Seconds>
+        UnhealthyThreshold = 3us
+        PickHostNameFromBackendHttpSettings = false
+        MinServers = None
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: AppGatewayProbeConfig, name) = { state with Name = ResourceName name }
@@ -353,18 +343,16 @@ type ConnectionDrainingConfig =
         Enabled: bool
     }
 
-    static member BuildResource connDraining =
-        {|
-            DrainTimeoutInSeconds = connDraining.DrainTimeoutInSeconds
-            Enabled = connDraining.Enabled
-        |}
+    static member BuildResource connDraining = {|
+        DrainTimeoutInSeconds = connDraining.DrainTimeoutInSeconds
+        Enabled = connDraining.Enabled
+    |}
 
 type ConnectionDrainingBuilder() =
-    member _.Yield _ =
-        {
-            DrainTimeoutInSeconds = 0<Seconds>
-            Enabled = false
-        }
+    member _.Yield _ = {
+        DrainTimeoutInSeconds = 0<Seconds>
+        Enabled = false
+    }
 
     [<CustomOperation "drain_timeout">]
     member _.DrainTimeoutInSeconds(state: ConnectionDrainingConfig, timeout) =
@@ -395,44 +383,42 @@ type BackendHttpSettingsConfig =
         TrustedRootCertificates: ResourceName list
     }
 
-    static member BuildResource backendHttpSettings =
-        {|
-            Name = backendHttpSettings.Name
-            AffinityCookieName = backendHttpSettings.AffinityCookieName
-            AuthenticationCertificates = backendHttpSettings.AuthenticationCertificates
-            ConnectionDraining =
-                backendHttpSettings.ConnectionDraining
-                |> Option.map ConnectionDrainingConfig.BuildResource
-            CookieBasedAffinity = backendHttpSettings.CookieBasedAffinity
-            HostName = backendHttpSettings.HostName
-            Path = backendHttpSettings.Path
-            Port = backendHttpSettings.Port
-            Protocol = backendHttpSettings.Protocol
-            PickHostNameFromBackendAddress = backendHttpSettings.PickHostNameFromBackendAddress
-            RequestTimeoutInSeconds = backendHttpSettings.RequestTimeoutInSeconds
-            Probe = backendHttpSettings.Probe
-            ProbeEnabled = backendHttpSettings.ProbeEnabled
-            TrustedRootCertificates = backendHttpSettings.TrustedRootCertificates
-        |}
+    static member BuildResource backendHttpSettings = {|
+        Name = backendHttpSettings.Name
+        AffinityCookieName = backendHttpSettings.AffinityCookieName
+        AuthenticationCertificates = backendHttpSettings.AuthenticationCertificates
+        ConnectionDraining =
+            backendHttpSettings.ConnectionDraining
+            |> Option.map ConnectionDrainingConfig.BuildResource
+        CookieBasedAffinity = backendHttpSettings.CookieBasedAffinity
+        HostName = backendHttpSettings.HostName
+        Path = backendHttpSettings.Path
+        Port = backendHttpSettings.Port
+        Protocol = backendHttpSettings.Protocol
+        PickHostNameFromBackendAddress = backendHttpSettings.PickHostNameFromBackendAddress
+        RequestTimeoutInSeconds = backendHttpSettings.RequestTimeoutInSeconds
+        Probe = backendHttpSettings.Probe
+        ProbeEnabled = backendHttpSettings.ProbeEnabled
+        TrustedRootCertificates = backendHttpSettings.TrustedRootCertificates
+    |}
 
 type BackendHttpSettingsBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            AffinityCookieName = None
-            AuthenticationCertificates = []
-            ConnectionDraining = None
-            CookieBasedAffinity = FeatureFlag.Disabled
-            HostName = None
-            Path = None
-            Port = 80us
-            Protocol = Protocol.Http
-            PickHostNameFromBackendAddress = false
-            RequestTimeoutInSeconds = 500<Seconds>
-            Probe = None // ResourceName.Empty
-            ProbeEnabled = false
-            TrustedRootCertificates = []
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        AffinityCookieName = None
+        AuthenticationCertificates = []
+        ConnectionDraining = None
+        CookieBasedAffinity = FeatureFlag.Disabled
+        HostName = None
+        Path = None
+        Port = 80us
+        Protocol = Protocol.Http
+        PickHostNameFromBackendAddress = false
+        RequestTimeoutInSeconds = 500<Seconds>
+        Probe = None // ResourceName.Empty
+        ProbeEnabled = false
+        TrustedRootCertificates = []
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: BackendHttpSettingsConfig, name) = { state with Name = ResourceName name }
@@ -527,32 +513,30 @@ type RequestRoutingRuleConfig =
         Priority: int option
     }
 
-    static member BuildResource(rule: RequestRoutingRuleConfig) =
-        {|
-            Name = rule.Name
-            RuleType = rule.RuleType
-            HttpListener = rule.HttpListener
-            BackendAddressPool = rule.BackendAddressPool
-            BackendHttpSettings = rule.BackendHttpSettings
-            RedirectConfiguration = rule.RedirectConfiguration
-            RewriteRuleSet = rule.RewriteRuleSet
-            UrlPathMap = rule.UrlPathMap
-            Priority = rule.Priority
-        |}
+    static member BuildResource(rule: RequestRoutingRuleConfig) = {|
+        Name = rule.Name
+        RuleType = rule.RuleType
+        HttpListener = rule.HttpListener
+        BackendAddressPool = rule.BackendAddressPool
+        BackendHttpSettings = rule.BackendHttpSettings
+        RedirectConfiguration = rule.RedirectConfiguration
+        RewriteRuleSet = rule.RewriteRuleSet
+        UrlPathMap = rule.UrlPathMap
+        Priority = rule.Priority
+    |}
 
 type BasicRequestRoutingRuleBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            RuleType = RuleType.Basic
-            HttpListener = ResourceName.Empty
-            BackendAddressPool = ResourceName.Empty
-            BackendHttpSettings = ResourceName.Empty
-            RedirectConfiguration = None
-            RewriteRuleSet = None
-            UrlPathMap = None
-            Priority = None
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        RuleType = RuleType.Basic
+        HttpListener = ResourceName.Empty
+        BackendAddressPool = ResourceName.Empty
+        BackendHttpSettings = ResourceName.Empty
+        RedirectConfiguration = None
+        RewriteRuleSet = None
+        UrlPathMap = None
+        Priority = None
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: RequestRoutingRuleConfig, name) = { state with Name = ResourceName name }
@@ -628,11 +612,10 @@ type AppGatewayConfig =
                 FrontendPorts = this.FrontendPorts |> List.map FrontendPortConfig.BuildResource
                 BackendAddressPools =
                     this.BackendAddressPools
-                    |> List.map (fun p ->
-                        {|
-                            Name = p.Name
-                            Addresses = p.BackendAddresses
-                        |})
+                    |> List.map (fun p -> {|
+                        Name = p.Name
+                        Addresses = p.BackendAddresses
+                    |})
                 BackendHttpSettingsCollection =
                     this.BackendHttpSettingsCollection
                     |> List.map BackendHttpSettingsConfig.BuildResource
@@ -672,27 +655,25 @@ type AppGatewayConfig =
 
 
 type AppGatewayBuilder() =
-    member _.Yield _ : AppGatewayConfig =
-        {
-            Name = ResourceName.Empty
-            Sku =
-                {
-                    Name = Sku.Standard_v2
-                    Capacity = None
-                    Tier = Tier.Standard_v2
-                }
-            Identity = Identity.ManagedIdentity.Empty
-            GatewayIpConfigs = []
-            FrontendIpConfigs = []
-            FrontendPorts = []
-            BackendAddressPools = []
-            BackendHttpSettingsCollection = []
-            HttpListeners = []
-            Probes = []
-            RequestRoutingRules = []
-            Dependencies = Set.empty
-            Tags = Map.empty
+    member _.Yield _ : AppGatewayConfig = {
+        Name = ResourceName.Empty
+        Sku = {
+            Name = Sku.Standard_v2
+            Capacity = None
+            Tier = Tier.Standard_v2
         }
+        Identity = Identity.ManagedIdentity.Empty
+        GatewayIpConfigs = []
+        FrontendIpConfigs = []
+        FrontendPorts = []
+        BackendAddressPools = []
+        BackendHttpSettingsCollection = []
+        HttpListeners = []
+        Probes = []
+        RequestRoutingRules = []
+        Dependencies = Set.empty
+        Tags = Map.empty
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: AppGatewayConfig, name) = { state with Name = ResourceName name }

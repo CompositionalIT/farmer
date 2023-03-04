@@ -1,4 +1,3 @@
-
 #r "nuget:Farmer"
 
 open Farmer
@@ -8,9 +7,8 @@ open Farmer.Arm.Network
 
 let privateNet = vnet {
     name "my-vnet"
-    add_address_spaces [
-        "10.30.0.0/16"
-    ]
+    add_address_spaces [ "10.30.0.0/16" ]
+
     add_subnets [
         subnet {
             name "GatewaySubnet"
@@ -42,6 +40,4 @@ let deployment = arm {
     add_resource gatewayIp
 }
 
-deployment
-|> Deploy.whatIf "FarmerTest" Deploy.NoParameters
-|> printfn "%A"
+deployment |> Deploy.whatIf "FarmerTest" Deploy.NoParameters |> printfn "%A"

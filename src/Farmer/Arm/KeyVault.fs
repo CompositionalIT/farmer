@@ -45,23 +45,21 @@ module Vaults =
 
             member this.JsonModel =
                 {| secrets.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
-                    properties =
-                        {|
-                            value = this.Value.Value
-                            contentType = this.ContentType |> Option.toObj
-                            attributes =
-                                {|
-                                    enabled = this.Enabled |> Option.toNullable
-                                    nbf =
-                                        this.ActivationDate
-                                        |> Option.map Secret.TotalSecondsSince1970
-                                        |> Option.toNullable
-                                    exp =
-                                        this.ExpirationDate
-                                        |> Option.map Secret.TotalSecondsSince1970
-                                        |> Option.toNullable
-                                |}
+                    properties = {|
+                        value = this.Value.Value
+                        contentType = this.ContentType |> Option.toObj
+                        attributes = {|
+                            enabled = this.Enabled |> Option.toNullable
+                            nbf =
+                                this.ActivationDate
+                                |> Option.map Secret.TotalSecondsSince1970
+                                |> Option.toNullable
+                            exp =
+                                this.ExpirationDate
+                                |> Option.map Secret.TotalSecondsSince1970
+                                |> Option.toNullable
                         |}
+                    |}
                 |}
 
     let private armValue armValue (a: 'a option) =
@@ -89,35 +87,33 @@ module Vaults =
 
             member this.JsonModel =
                 {| keys.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
-                    properties =
-                        {|
-                            attributes =
-                                {|
-                                    enabled = this.Enabled |> Option.toNullable
-                                    exp =
-                                        this.ExpirationDate
-                                        |> Option.map (fun exp -> DateTimeOffset(exp).ToUnixTimeSeconds())
-                                    nbf =
-                                        this.ActivationDate
-                                        |> Option.map (fun nbf -> DateTimeOffset(nbf).ToUnixTimeSeconds())
-                                |}
-                            curveName =
-                                match this.KTY with
-                                | EC curveName
-                                | ECHSM curveName -> curveName |> KeyCurveName.ArmValue
-                                | _ -> null
-                            kty = this.KTY |> KeyType.ArmValue
-                            keyOps =
-                                if this.KeyOps.IsEmpty then
-                                    Unchecked.defaultof<_>
-                                else
-                                    this.KeyOps |> List.map KeyOperation.ArmValue
-                            keySize =
-                                match this.KTY with
-                                | RSA (RsaKeyLength keySize) -> box keySize
-                                | RSAHSM (RsaKeyLength keySize) -> box keySize
-                                | _ -> null
+                    properties = {|
+                        attributes = {|
+                            enabled = this.Enabled |> Option.toNullable
+                            exp =
+                                this.ExpirationDate
+                                |> Option.map (fun exp -> DateTimeOffset(exp).ToUnixTimeSeconds())
+                            nbf =
+                                this.ActivationDate
+                                |> Option.map (fun nbf -> DateTimeOffset(nbf).ToUnixTimeSeconds())
                         |}
+                        curveName =
+                            match this.KTY with
+                            | EC curveName
+                            | ECHSM curveName -> curveName |> KeyCurveName.ArmValue
+                            | _ -> null
+                        kty = this.KTY |> KeyType.ArmValue
+                        keyOps =
+                            if this.KeyOps.IsEmpty then
+                                Unchecked.defaultof<_>
+                            else
+                                this.KeyOps |> List.map KeyOperation.ArmValue
+                        keySize =
+                            match this.KTY with
+                            | RSA(RsaKeyLength keySize) -> box keySize
+                            | RSAHSM(RsaKeyLength keySize) -> box keySize
+                            | _ -> null
+                    |}
                 |}
 
 type CreateMode =
@@ -137,12 +133,18 @@ type Vault =
         TemplateDeployment: FeatureFlag option
         SoftDelete: SoftDeletionMode option
         CreateMode: CreateMode option
-        AccessPolicies: {| ObjectId: ArmExpression
-                           ApplicationId: Guid option
-                           Permissions: {| Keys: Key Set
-                                           Secrets: Secret Set
-                                           Certificates: Certificate Set
-                                           Storage: Storage Set |} |} list
+        AccessPolicies:
+            {|
+                ObjectId: ArmExpression
+                ApplicationId: Guid option
+                Permissions:
+                    {|
+                        Keys: Key Set
+                        Secrets: Secret Set
+                        Certificates: Certificate Set
+                        Storage: Storage Set
+                    |}
+            |} list
         DefaultAction: DefaultAction option
         Bypass: Bypass option
         IpRules: string list
@@ -168,72 +170,73 @@ type Vault =
 
         member this.JsonModel =
             {| vaults.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
-                properties =
-                    {|
-                        tenantId = this.TenantId
-                        sku =
-                            {|
-                                name = this.Sku.ArmValue
-                                family = "A"
-                            |}
-                        enabledForDeployment = this.Deployment |> Option.map (fun f -> f.AsBoolean) |> Option.toNullable
-                        enabledForDiskEncryption =
-                            this.DiskEncryption |> Option.map (fun f -> f.AsBoolean) |> Option.toNullable
-                        enabledForTemplateDeployment =
-                            this.TemplateDeployment
-                            |> Option.map (fun f -> f.AsBoolean)
-                            |> Option.toNullable
-                        enableRbacAuthorization =
-                            this.RbacAuthorization |> Option.map (fun f -> f.AsBoolean) |> Option.toNullable
-                        enableSoftDelete =
-                            match this.SoftDelete with
-                            | None -> Nullable()
-                            | Some SoftDeleteWithPurgeProtection
-                            | Some SoftDeletionOnly -> Nullable true
-                        createMode = this.CreateMode |> Option.map (fun m -> m.ToString().ToLower()) |> Option.toObj
-                        enablePurgeProtection = this.PurgeProtection |> Option.toNullable
-                        vaultUri = this.Uri |> Option.map string |> Option.toObj
-                        accessPolicies =
-                            [|
-                                for policy in this.AccessPolicies do
-                                    {|
-                                        objectId = ArmExpression.Eval policy.ObjectId
-                                        tenantId = this.TenantId
-                                        applicationId = policy.ApplicationId |> Option.map string |> Option.toObj
-                                        permissions =
-                                            {|
-                                                keys = this.ToStringArray policy.Permissions.Keys
-                                                storage = this.ToStringArray policy.Permissions.Storage
-                                                certificates = this.ToStringArray policy.Permissions.Certificates
-                                                secrets = this.ToStringArray policy.Permissions.Secrets
-                                            |}
-                                    |}
-                            |]
-                        networkAcls =
-                            {|
-                                defaultAction = this.DefaultAction |> Option.map string |> Option.toObj
-                                bypass = this.Bypass |> Option.map string |> Option.toObj
-                                ipRules = this.IpRules
-                                virtualNetworkRules = this.VnetRules |> List.map (fun rule -> {| id = rule |})
-                            |}
-                        publicNetworkAccess =
-                            match this.DisablePublicNetworkAccess with
-                            | Some FeatureFlag.Enabled -> "Disabled"
-                            | Some FeatureFlag.Disabled -> "Enabled"
-                            | None -> null
+                properties = {|
+                    tenantId = this.TenantId
+                    sku = {|
+                        name = this.Sku.ArmValue
+                        family = "A"
                     |}
+                    enabledForDeployment = this.Deployment |> Option.map (fun f -> f.AsBoolean) |> Option.toNullable
+                    enabledForDiskEncryption =
+                        this.DiskEncryption |> Option.map (fun f -> f.AsBoolean) |> Option.toNullable
+                    enabledForTemplateDeployment =
+                        this.TemplateDeployment
+                        |> Option.map (fun f -> f.AsBoolean)
+                        |> Option.toNullable
+                    enableRbacAuthorization =
+                        this.RbacAuthorization |> Option.map (fun f -> f.AsBoolean) |> Option.toNullable
+                    enableSoftDelete =
+                        match this.SoftDelete with
+                        | None -> Nullable()
+                        | Some SoftDeleteWithPurgeProtection
+                        | Some SoftDeletionOnly -> Nullable true
+                    createMode = this.CreateMode |> Option.map (fun m -> m.ToString().ToLower()) |> Option.toObj
+                    enablePurgeProtection = this.PurgeProtection |> Option.toNullable
+                    vaultUri = this.Uri |> Option.map string |> Option.toObj
+                    accessPolicies = [|
+                        for policy in this.AccessPolicies do
+                            {|
+                                objectId = ArmExpression.Eval policy.ObjectId
+                                tenantId = this.TenantId
+                                applicationId = policy.ApplicationId |> Option.map string |> Option.toObj
+                                permissions = {|
+                                    keys = this.ToStringArray policy.Permissions.Keys
+                                    storage = this.ToStringArray policy.Permissions.Storage
+                                    certificates = this.ToStringArray policy.Permissions.Certificates
+                                    secrets = this.ToStringArray policy.Permissions.Secrets
+                                |}
+                            |}
+                    |]
+                    networkAcls = {|
+                        defaultAction = this.DefaultAction |> Option.map string |> Option.toObj
+                        bypass = this.Bypass |> Option.map string |> Option.toObj
+                        ipRules = this.IpRules
+                        virtualNetworkRules = this.VnetRules |> List.map (fun rule -> {| id = rule |})
+                    |}
+                    publicNetworkAccess =
+                        match this.DisablePublicNetworkAccess with
+                        | Some FeatureFlag.Enabled -> "Disabled"
+                        | Some FeatureFlag.Disabled -> "Enabled"
+                        | None -> null
+                |}
             |}
 
 type VaultAddPolicies =
     {
         KeyVault: LinkedResource
         TenantId: string option
-        AccessPolicies: {| ObjectId: ArmExpression
-                           ApplicationId: Guid option
-                           Permissions: {| Keys: Key Set
-                                           Secrets: Secret Set
-                                           Certificates: Certificate Set
-                                           Storage: Storage Set |} |} list
+        AccessPolicies:
+            {|
+                ObjectId: ArmExpression
+                ApplicationId: Guid option
+                Permissions:
+                    {|
+                        Keys: Key Set
+                        Secrets: Secret Set
+                        Certificates: Certificate Set
+                        Storage: Storage Set
+                    |}
+            |} list
     }
 
     member private _.ToStringArray s =
@@ -250,23 +253,20 @@ type VaultAddPolicies =
                 | _ -> []
 
             {| accessPolicies.Create(this.KeyVault.Name / (ResourceName "add"), dependsOn = dependencies) with
-                properties =
-                    {|
-                        accessPolicies =
-                            [|
-                                for policy in this.AccessPolicies do
-                                    {|
-                                        objectId = ArmExpression.Eval policy.ObjectId
-                                        tenantId = this.TenantId |> Option.defaultValue "[subscription().tenantId]"
-                                        applicationId = policy.ApplicationId |> Option.map string |> Option.toObj
-                                        permissions =
-                                            {|
-                                                keys = this.ToStringArray policy.Permissions.Keys
-                                                storage = this.ToStringArray policy.Permissions.Storage
-                                                certificates = this.ToStringArray policy.Permissions.Certificates
-                                                secrets = this.ToStringArray policy.Permissions.Secrets
-                                            |}
-                                    |}
-                            |]
-                    |}
+                properties = {|
+                    accessPolicies = [|
+                        for policy in this.AccessPolicies do
+                            {|
+                                objectId = ArmExpression.Eval policy.ObjectId
+                                tenantId = this.TenantId |> Option.defaultValue "[subscription().tenantId]"
+                                applicationId = policy.ApplicationId |> Option.map string |> Option.toObj
+                                permissions = {|
+                                    keys = this.ToStringArray policy.Permissions.Keys
+                                    storage = this.ToStringArray policy.Permissions.Storage
+                                    certificates = this.ToStringArray policy.Permissions.Certificates
+                                    secrets = this.ToStringArray policy.Permissions.Secrets
+                                |}
+                            |}
+                    |]
+                |}
             |}

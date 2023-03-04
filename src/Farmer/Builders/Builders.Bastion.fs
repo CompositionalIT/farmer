@@ -41,12 +41,11 @@ type BastionConfig =
             ]
 
 type BastionBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            VirtualNetwork = ResourceName.Empty
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        VirtualNetwork = ResourceName.Empty
+        Tags = Map.empty
+    }
 
     /// Sets the name of the bastion host.
     [<CustomOperation "name">]

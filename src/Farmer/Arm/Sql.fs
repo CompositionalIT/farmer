@@ -27,8 +27,10 @@ type Server =
     {
         ServerName: SqlAccountName
         Location: Location
-        Credentials: {| Username: string
-                        Password: SecureParameter |}
+        Credentials: {|
+            Username: string
+            Password: SecureParameter
+        |}
         MinTlsVersion: TlsVersion option
         Tags: Map<string, string>
     }
@@ -45,18 +47,17 @@ type Server =
                    this.Location,
                    tags = (this.Tags |> Map.add "displayName" this.ServerName.ResourceName.Value)
                ) with
-                properties =
-                    {|
-                        administratorLogin = this.Credentials.Username
-                        administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
-                        version = "12.0"
-                        minimalTlsVersion =
-                            match this.MinTlsVersion with
-                            | Some Tls10 -> "1.0"
-                            | Some Tls11 -> "1.1"
-                            | Some Tls12 -> "1.2"
-                            | None -> null
-                    |}
+                properties = {|
+                    administratorLogin = this.Credentials.Username
+                    administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
+                    version = "12.0"
+                    minimalTlsVersion =
+                        match this.MinTlsVersion with
+                        | Some Tls10 -> "1.0"
+                        | Some Tls11 -> "1.1"
+                        | Some Tls12 -> "1.2"
+                        | None -> null
+                |}
             |}
 
 module Servers =
@@ -79,25 +80,23 @@ module Servers =
                        this.Location,
                        [ servers.resourceId this.Server.ResourceName ]
                    ) with
-                    properties =
-                        {|
-                            maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
-                            perDatabaseSettings =
-                                match this.MinMax with
-                                | Some (min, max) ->
-                                    box
-                                        {|
-                                            minCapacity = min
-                                            maxCapacity = max
-                                        |}
-                                | None -> null
-                        |}
-                    sku =
-                        {|
-                            name = this.Sku.Name
-                            tier = this.Sku.Edition
-                            size = string this.Sku.Capacity
-                        |}
+                    properties = {|
+                        maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
+                        perDatabaseSettings =
+                            match this.MinMax with
+                            | Some(min, max) ->
+                                box
+                                    {|
+                                        minCapacity = min
+                                        maxCapacity = max
+                                    |}
+                            | None -> null
+                    |}
+                    sku = {|
+                        name = this.Sku.Name
+                        tier = this.Sku.Edition
+                        size = string this.Sku.Capacity
+                    |}
                 |}
 
     type FirewallRule =
@@ -119,11 +118,10 @@ module Servers =
                        this.Location,
                        [ servers.resourceId this.Server.ResourceName ]
                    ) with
-                    properties =
-                        {|
-                            startIpAddress = string this.Start
-                            endIpAddress = string this.End
-                        |}
+                    properties = {|
+                        startIpAddress = string this.Start
+                        endIpAddress = string this.End
+                    |}
                 |}
 
     type Database =
@@ -140,13 +138,12 @@ module Servers =
             member this.ResourceId = databases.resourceId (this.Server.ResourceName / this.Name)
 
             member this.JsonModel =
-                let dependsOn =
-                    [
-                        servers.resourceId this.Server.ResourceName
-                        match this.Sku with
-                        | Pool poolName -> elasticPools.resourceId (this.Server.ResourceName, poolName)
-                        | Standalone _ -> ()
-                    ]
+                let dependsOn = [
+                    servers.resourceId this.Server.ResourceName
+                    match this.Sku with
+                    | Pool poolName -> elasticPools.resourceId (this.Server.ResourceName, poolName)
+                    | Standalone _ -> ()
+                ]
 
                 {| databases.Create(
                        this.Server.ResourceName / this.Name,
@@ -156,9 +153,9 @@ module Servers =
                    ) with
                     sku =
                         match this.Sku with
-                        | Standalone (VCore (GeneralPurpose (S_Gen5 (_, max)), _) as sku)
-                        | Standalone (VCore (BusinessCritical (S_Gen5 (_, max)), _) as sku)
-                        | Standalone (VCore (Hyperscale (S_Gen5 (_, max)), _) as sku) -> (* Serverless *)
+                        | Standalone(VCore(GeneralPurpose(S_Gen5(_, max)), _) as sku)
+                        | Standalone(VCore(BusinessCritical(S_Gen5(_, max)), _) as sku)
+                        | Standalone(VCore(Hyperscale(S_Gen5(_, max)), _) as sku) -> (* Serverless *)
                             box
                                 {|
                                     name = sku.Name
@@ -173,32 +170,31 @@ module Servers =
                                     tier = sku.Edition
                                 |}
                         | Pool _ -> null
-                    properties =
-                        {|
-                            collation = this.Collation
-                            maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
-                            licenseType =
-                                match this.Sku with
-                                | Standalone (VCore (_, license)) -> license.ArmValue
-                                | Standalone (DTU _)
-                                | Pool _ -> null
-                            elasticPoolId =
-                                match this.Sku with
-                                | Standalone _ -> null
-                                | Pool pool -> elasticPools.resourceId(this.Server.ResourceName, pool).Eval()
-                            autoPauseDelay =
-                                match this.Sku with
-                                | Standalone (VCore (GeneralPurpose (S_Gen5 _), _))
-                                | Standalone (VCore (BusinessCritical (S_Gen5 _), _))
-                                | Standalone (VCore (Hyperscale (S_Gen5 _), _)) -> -1 |> box
-                                | _ -> null
-                            minCapacity =
-                                match this.Sku with
-                                | Standalone (VCore (GeneralPurpose (S_Gen5 (min, _)), _) as sku)
-                                | Standalone (VCore (BusinessCritical (S_Gen5 (min, _)), _) as sku)
-                                | Standalone (VCore (Hyperscale (S_Gen5 (min, _)), _) as sku) -> min |> box
-                                | _ -> null
-                        |}
+                    properties = {|
+                        collation = this.Collation
+                        maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
+                        licenseType =
+                            match this.Sku with
+                            | Standalone(VCore(_, license)) -> license.ArmValue
+                            | Standalone(DTU _)
+                            | Pool _ -> null
+                        elasticPoolId =
+                            match this.Sku with
+                            | Standalone _ -> null
+                            | Pool pool -> elasticPools.resourceId(this.Server.ResourceName, pool).Eval()
+                        autoPauseDelay =
+                            match this.Sku with
+                            | Standalone(VCore(GeneralPurpose(S_Gen5 _), _))
+                            | Standalone(VCore(BusinessCritical(S_Gen5 _), _))
+                            | Standalone(VCore(Hyperscale(S_Gen5 _), _)) -> -1 |> box
+                            | _ -> null
+                        minCapacity =
+                            match this.Sku with
+                            | Standalone(VCore(GeneralPurpose(S_Gen5(min, _)), _) as sku)
+                            | Standalone(VCore(BusinessCritical(S_Gen5(min, _)), _) as sku)
+                            | Standalone(VCore(Hyperscale(S_Gen5(min, _)), _) as sku) -> min |> box
+                            | _ -> null
+                    |}
                 |}
 
     module Databases =

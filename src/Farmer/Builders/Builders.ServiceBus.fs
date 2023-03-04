@@ -33,47 +33,45 @@ type ServiceBusQueueConfig =
     interface IBuilder with
         member this.ResourceId = queues.resourceId (this.Namespace.Name / this.Name)
 
-        member this.BuildResources location =
-            [
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Namespace = this.Namespace
+                LockDuration = this.LockDuration |> Option.map IsoDateTime.OfTimeSpan
+                DuplicateDetectionHistoryTimeWindow = this.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
+                Session = this.Session
+                DeadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration
+                DefaultMessageTimeToLive = this.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
+                ForwardTo = this.ForwardTo
+                MaxDeliveryCount = this.MaxDeliveryCount
+                MaxSizeInMegabytes = this.MaxSizeInMegabytes
+                EnablePartitioning = this.EnablePartitioning
+            }
+            for rule in this.AuthorizationRules do
                 {
-                    Name = this.Name
-                    Namespace = this.Namespace
-                    LockDuration = this.LockDuration |> Option.map IsoDateTime.OfTimeSpan
-                    DuplicateDetectionHistoryTimeWindow = this.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
-                    Session = this.Session
-                    DeadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration
-                    DefaultMessageTimeToLive = this.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
-                    ForwardTo = this.ForwardTo
-                    MaxDeliveryCount = this.MaxDeliveryCount
-                    MaxSizeInMegabytes = this.MaxSizeInMegabytes
-                    EnablePartitioning = this.EnablePartitioning
+                    QueueAuthorizationRule.Name =
+                        rule.Key.Map(fun name -> $"{this.Namespace.Name.Value}/{this.Name.Value}/%s{name}")
+                    Location = location
+                    Dependencies = [ namespaces.resourceId this.Name; queues.resourceId (this.Name, this.Name) ]
+                    Rights = rule.Value
                 }
-                for rule in this.AuthorizationRules do
-                    {
-                        QueueAuthorizationRule.Name =
-                            rule.Key.Map(fun name -> $"{this.Namespace.Name.Value}/{this.Name.Value}/%s{name}")
-                        Location = location
-                        Dependencies = [ namespaces.resourceId this.Name; queues.resourceId (this.Name, this.Name) ]
-                        Rights = rule.Value
-                    }
-            ]
+        ]
 
 type ServiceBusQueueBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Namespace = Managed(namespaces.resourceId ResourceName.Empty)
-            LockDuration = None
-            DuplicateDetection = None
-            Session = None
-            DeadLetteringOnMessageExpiration = None
-            DefaultMessageTimeToLive = None
-            ForwardTo = None
-            MaxDeliveryCount = None
-            MaxSizeInMegabytes = None
-            EnablePartitioning = None
-            AuthorizationRules = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Namespace = Managed(namespaces.resourceId ResourceName.Empty)
+        LockDuration = None
+        DuplicateDetection = None
+        Session = None
+        DeadLetteringOnMessageExpiration = None
+        DefaultMessageTimeToLive = None
+        ForwardTo = None
+        MaxDeliveryCount = None
+        MaxSizeInMegabytes = None
+        EnablePartitioning = None
+        AuthorizationRules = Map.empty
+    }
 
     /// The name of the queue.
     [<CustomOperation "name">]
@@ -196,38 +194,36 @@ type ServiceBusSubscriptionConfig =
         member this.ResourceId =
             subscriptions.resourceId (this.Topic.Name / this.Topic.ResourceId.Segments.[0] / this.Name)
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Topic = this.Topic
-                    LockDuration = this.LockDuration |> Option.map IsoDateTime.OfTimeSpan
-                    DuplicateDetectionHistoryTimeWindow = this.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
-                    DefaultMessageTimeToLive = this.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
-                    ForwardTo = this.ForwardTo
-                    MaxDeliveryCount = this.MaxDeliveryCount
-                    Session = this.Session
-                    DeadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration
-                    Rules = this.Rules
-                    DependsOn = this.DependsOn
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Topic = this.Topic
+                LockDuration = this.LockDuration |> Option.map IsoDateTime.OfTimeSpan
+                DuplicateDetectionHistoryTimeWindow = this.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
+                DefaultMessageTimeToLive = this.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
+                ForwardTo = this.ForwardTo
+                MaxDeliveryCount = this.MaxDeliveryCount
+                Session = this.Session
+                DeadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration
+                Rules = this.Rules
+                DependsOn = this.DependsOn
+            }
+        ]
 
 type ServiceBusSubscriptionBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Topic = Managed(namespaces.resourceId ResourceName.Empty)
-            LockDuration = None
-            DuplicateDetection = None
-            DefaultMessageTimeToLive = None
-            ForwardTo = None
-            MaxDeliveryCount = None
-            Session = None
-            DeadLetteringOnMessageExpiration = None
-            Rules = List.empty
-            DependsOn = Set.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Topic = Managed(namespaces.resourceId ResourceName.Empty)
+        LockDuration = None
+        DuplicateDetection = None
+        DefaultMessageTimeToLive = None
+        ForwardTo = None
+        MaxDeliveryCount = None
+        Session = None
+        DeadLetteringOnMessageExpiration = None
+        Rules = List.empty
+        DependsOn = Set.empty
+    }
 
     /// The name of the queue.
     [<CustomOperation "name">]
@@ -338,47 +334,45 @@ type ServiceBusTopicConfig =
     interface IBuilder with
         member this.ResourceId = this.ResourceId
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Dependencies =
-                        [
-                            match this.Namespace with
-                            | Managed resId -> resId // Only generate dependency if this is managed by Farmer (same template)
-                            | _ -> ()
-                        ]
-                        |> Set.ofList
-                    Namespace =
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Dependencies =
+                    [
                         match this.Namespace with
-                        | Managed resId
-                        | Unmanaged resId -> resId
-                    DuplicateDetectionHistoryTimeWindow = this.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
-                    DefaultMessageTimeToLive = this.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
-                    EnablePartitioning = this.EnablePartitioning
-                    MaxSizeInMegabytes = this.MaxSizeInMegabytes
-                }
-                for subscription in this.Subscriptions do
-                    let subscription =
-                        { subscription.Value with
-                            Topic = Managed this.ResourceId
-                        }
-                        :> IBuilder
+                        | Managed resId -> resId // Only generate dependency if this is managed by Farmer (same template)
+                        | _ -> ()
+                    ]
+                    |> Set.ofList
+                Namespace =
+                    match this.Namespace with
+                    | Managed resId
+                    | Unmanaged resId -> resId
+                DuplicateDetectionHistoryTimeWindow = this.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
+                DefaultMessageTimeToLive = this.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
+                EnablePartitioning = this.EnablePartitioning
+                MaxSizeInMegabytes = this.MaxSizeInMegabytes
+            }
+            for subscription in this.Subscriptions do
+                let subscription =
+                    { subscription.Value with
+                        Topic = Managed this.ResourceId
+                    }
+                    :> IBuilder
 
-                    yield! subscription.BuildResources location
-            ]
+                yield! subscription.BuildResources location
+        ]
 
 type ServiceBusTopicBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Namespace = Managed(namespaces.resourceId ResourceName.Empty)
-            DuplicateDetection = None
-            DefaultMessageTimeToLive = None
-            EnablePartitioning = None
-            MaxSizeInMegabytes = None
-            Subscriptions = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Namespace = Managed(namespaces.resourceId ResourceName.Empty)
+        DuplicateDetection = None
+        DefaultMessageTimeToLive = None
+        EnablePartitioning = None
+        MaxSizeInMegabytes = None
+        Subscriptions = Map.empty
+    }
 
     /// The name of the queue.
     [<CustomOperation "name">]
@@ -484,45 +478,44 @@ type ServiceBusConfig =
     interface IBuilder with
         member this.ResourceId = namespaces.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    Sku = this.Sku
-                    Dependencies = this.Dependencies
-                    DisablePublicNetworkAccess = this.DisablePublicNetworkAccess
-                    ZoneRedundant = this.ZoneRedundant
-                    MinTlsVersion = this.MinTlsVersion
-                    Tags = this.Tags
-                }
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Sku = this.Sku
+                Dependencies = this.Dependencies
+                DisablePublicNetworkAccess = this.DisablePublicNetworkAccess
+                ZoneRedundant = this.ZoneRedundant
+                MinTlsVersion = this.MinTlsVersion
+                Tags = this.Tags
+            }
 
-                for queue in this.Queues do
-                    let queue =
-                        { queue.Value with
-                            Namespace = Managed(namespaces.resourceId this.Name)
-                        }
-                        :> IBuilder
-
-                    yield! queue.BuildResources location
-
-                for topic in this.Topics do
-                    let topic =
-                        { topic.Value with
-                            Namespace = Managed(namespaces.resourceId this.Name)
-                        }
-                        :> IBuilder
-
-                    yield! topic.BuildResources location
-
-                for rule in this.AuthorizationRules do
-                    {
-                        Name = rule.Key.Map(fun rule -> $"{this.Name.Value}/%s{rule}")
-                        Location = location
-                        Dependencies = [ namespaces.resourceId this.Name ]
-                        Rights = rule.Value
+            for queue in this.Queues do
+                let queue =
+                    { queue.Value with
+                        Namespace = Managed(namespaces.resourceId this.Name)
                     }
-            ]
+                    :> IBuilder
+
+                yield! queue.BuildResources location
+
+            for topic in this.Topics do
+                let topic =
+                    { topic.Value with
+                        Namespace = Managed(namespaces.resourceId this.Name)
+                    }
+                    :> IBuilder
+
+                yield! topic.BuildResources location
+
+            for rule in this.AuthorizationRules do
+                {
+                    Name = rule.Key.Map(fun rule -> $"{this.Name.Value}/%s{rule}")
+                    Location = location
+                    Dependencies = [ namespaces.resourceId this.Name ]
+                    Rights = rule.Value
+                }
+        ]
 
 type ServiceBusBuilder() =
     interface IDependable<ServiceBusConfig> with
@@ -531,19 +524,18 @@ type ServiceBusBuilder() =
                 Dependencies = state.Dependencies + newDeps
             }
 
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sku = Basic
-            Queues = Map.empty
-            Topics = Map.empty
-            Dependencies = Set.empty
-            AuthorizationRules = Map.empty
-            DisablePublicNetworkAccess = None
-            ZoneRedundant = None
-            MinTlsVersion = None
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = Basic
+        Queues = Map.empty
+        Topics = Map.empty
+        Dependencies = Set.empty
+        AuthorizationRules = Map.empty
+        DisablePublicNetworkAccess = None
+        ZoneRedundant = None
+        MinTlsVersion = None
+        Tags = Map.empty
+    }
 
     member _.Run(state: ServiceBusConfig) =
         match state.ZoneRedundant, state.Sku with

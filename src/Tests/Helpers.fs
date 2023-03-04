@@ -4,19 +4,17 @@ module TestHelpers
 open Farmer
 open Microsoft.Rest.Serialization
 
-let createSimpleDeployment parameters =
-    {
-        Location = Location.NorthEurope
-        PostDeployTasks = []
-        Template =
-            {
-                Outputs = []
-                Parameters = parameters |> List.map SecureParameter
-                Resources = []
-            }
-        RequiredResourceGroups = []
-        Tags = Map.empty
+let createSimpleDeployment parameters = {
+    Location = Location.NorthEurope
+    PostDeployTasks = []
+    Template = {
+        Outputs = []
+        Parameters = parameters |> List.map SecureParameter
+        Resources = []
     }
+    RequiredResourceGroups = []
+    Tags = Map.empty
+}
 
 let convertTo<'T> = Serialization.toJson >> Serialization.ofJson<'T>
 
@@ -52,11 +50,10 @@ let getFirstResourceOrFail (template: TypedArmTemplate<'ResourceType>) =
     template.Resources.[0]
 
 let toTemplate loc (d: IBuilder) =
-    let a =
-        arm {
-            location loc
-            add_resource d
-        }
+    let a = arm {
+        location loc
+        add_resource d
+    }
 
     a.Template
 

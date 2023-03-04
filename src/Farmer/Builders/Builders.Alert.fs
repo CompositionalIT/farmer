@@ -21,32 +21,30 @@ type AlertConfig =
         member this.ResourceId = metricAlert.resourceId this.Name
 
         member this.BuildResources _ =
-            let a: AlertData =
-                {
-                    Name = this.Name
-                    Description = this.Description
-                    Severity = this.Severity
-                    Frequency = this.Frequency
-                    Window = this.Window
-                    Actions = this.Actions
-                    LinkedResources = this.LinkedResources |> List.map (fun r -> r.ResourceId)
-                    Criteria = this.Criteria
-                }
+            let a: AlertData = {
+                Name = this.Name
+                Description = this.Description
+                Severity = this.Severity
+                Frequency = this.Frequency
+                Window = this.Window
+                Actions = this.Actions
+                LinkedResources = this.LinkedResources |> List.map (fun r -> r.ResourceId)
+                Criteria = this.Criteria
+            }
 
             [ a ]
 
 type AlertBuilder() =
-    member __.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Description = ""
-            Severity = AlertSeverity.Error
-            Frequency = System.TimeSpan(0, 5, 0) |> IsoDateTime.OfTimeSpan
-            Window = System.TimeSpan(0, 15, 0) |> IsoDateTime.OfTimeSpan
-            Actions = List.empty
-            LinkedResources = List.empty
-            Criteria = SingleResourceMultipleMetricCriteria []
-        }
+    member __.Yield _ = {
+        Name = ResourceName.Empty
+        Description = ""
+        Severity = AlertSeverity.Error
+        Frequency = System.TimeSpan(0, 5, 0) |> IsoDateTime.OfTimeSpan
+        Window = System.TimeSpan(0, 15, 0) |> IsoDateTime.OfTimeSpan
+        Actions = List.empty
+        LinkedResources = List.empty
+        Criteria = SingleResourceMultipleMetricCriteria []
+    }
 
     [<CustomOperation "name">]
     /// Sets the name of the alert.

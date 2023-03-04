@@ -18,33 +18,31 @@ type DiskConfig =
     interface IBuilder with
         member this.ResourceId = disks.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    Sku = this.Sku
-                    Zones = this.Zones
-                    OsType = this.OsType
-                    CreationData = this.CreationData
-                    Tags = this.Tags
-                    Dependencies = this.Dependencies
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Sku = this.Sku
+                Zones = this.Zones
+                OsType = this.OsType
+                CreationData = this.CreationData
+                Tags = this.Tags
+                Dependencies = this.Dependencies
+            }
+        ]
 
 type DiskBuilder() =
 
     // Default yields a 1 terabyte disk partitioned for Windows.
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sku = None
-            Zones = []
-            OsType = OS.Windows
-            CreationData = Empty 1024<Gb>
-            Tags = Map.empty
-            Dependencies = Set.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = None
+        Zones = []
+        OsType = OS.Windows
+        CreationData = Empty 1024<Gb>
+        Tags = Map.empty
+        Dependencies = Set.empty
+    }
 
     [<CustomOperation "name">]
     member _.Name(config: DiskConfig, name) =

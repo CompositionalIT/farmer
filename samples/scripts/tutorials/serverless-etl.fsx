@@ -22,15 +22,11 @@ let etlProcessor = functions {
 
 let template = arm {
     location Location.WestEurope
-    add_resources [
-        transactionalDb
-        etlProcessor
-    ]
+    add_resources [ transactionalDb; etlProcessor ]
 }
 
 // Generate the ARM template here...
-template
-|> Writer.quickWrite @"generated-template"
+template |> Writer.quickWrite @"generated-template"
 
 // Or deploy it directly to Azure here... (required Azure CLI installed!)
 // template

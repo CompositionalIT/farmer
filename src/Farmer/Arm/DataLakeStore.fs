@@ -20,9 +20,8 @@ type Account =
 
         member this.JsonModel =
             {| accounts.Create(this.Name, this.Location, tags = this.Tags) with
-                properties =
-                    {|
-                        newTier = this.Sku.ToString()
-                        encryptionState = this.EncryptionState.ToString()
-                    |}
+                properties = {|
+                    newTier = this.Sku.ToString()
+                    encryptionState = this.EncryptionState.ToString()
+                |}
             |}

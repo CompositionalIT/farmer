@@ -18,48 +18,46 @@ type VirtualHubConfig =
     interface IBuilder with
         member this.ResourceId = virtualHubs.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    Dependencies =
-                        [
-                            match this.Vwan with
-                            | Some (Managed resId) -> resId // Only generate dependency if this is managed by Farmer (same template)
-                            | _ -> ()
-                        ]
-                        |> Set.ofList
-                    AddressPrefix = this.AddressPrefix
-                    AllowBranchToBranchTraffic = None
-                    AzureFirewall = None
-                    ExpressRouteGateway = None
-                    P2SVpnGateway = None
-                    RouteTable = []
-                    RoutingState = None
-                    SecurityProvider = None
-                    SecurityPartnerProvider = None
-                    VirtualHubRouteTableV2s = []
-                    VirtualHubSku = this.Sku
-                    VirtualRouterAsn = None
-                    VirtualRouterIps = []
-                    VpnGateway = None
-                    Vwan =
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Dependencies =
+                    [
                         match this.Vwan with
-                        | Some (Managed resId) -> Some resId
-                        | Some (Unmanaged resId) -> Some resId
-                        | _ -> None
-                }
-            ]
+                        | Some(Managed resId) -> resId // Only generate dependency if this is managed by Farmer (same template)
+                        | _ -> ()
+                    ]
+                    |> Set.ofList
+                AddressPrefix = this.AddressPrefix
+                AllowBranchToBranchTraffic = None
+                AzureFirewall = None
+                ExpressRouteGateway = None
+                P2SVpnGateway = None
+                RouteTable = []
+                RoutingState = None
+                SecurityProvider = None
+                SecurityPartnerProvider = None
+                VirtualHubRouteTableV2s = []
+                VirtualHubSku = this.Sku
+                VirtualRouterAsn = None
+                VirtualRouterIps = []
+                VpnGateway = None
+                Vwan =
+                    match this.Vwan with
+                    | Some(Managed resId) -> Some resId
+                    | Some(Unmanaged resId) -> Some resId
+                    | _ -> None
+            }
+        ]
 
 type VirtualHubBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            AddressPrefix = None
-            Vwan = None
-            Sku = Standard
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        AddressPrefix = None
+        Vwan = None
+        Sku = Standard
+    }
 
     [<CustomOperation "name">]
     /// Sets the name of the virtual hub.
@@ -114,49 +112,46 @@ type HubRouteTableConfig =
 
             hubRouteTables.resourceId (vhubResourceId.Name / this.Name)
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    VirtualHub =
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                VirtualHub =
+                    match this.Vhub with
+                    | Unmanaged resId
+                    | Managed resId -> resId
+                Dependencies =
+                    [
                         match this.Vhub with
-                        | Unmanaged resId
-                        | Managed resId -> resId
-                    Dependencies =
-                        [
-                            match this.Vhub with
-                            | Managed resId -> resId // Only generate dependency if this is managed by Farmer (same template)
-                            | _ -> ()
+                        | Managed resId -> resId // Only generate dependency if this is managed by Farmer (same template)
+                        | _ -> ()
 
-                            let routeDependencies =
-                                this.Routes
-                                |> List.map (fun r ->
-                                    [
-                                        match r.NextHop with
-                                        | NextHop.ResourceId (Managed resId) -> resId
-                                        | _ -> ()
-                                        match r.Destination with
-                                        | _ -> ()
-                                    ])
-                                |> List.concat
+                        let routeDependencies =
+                            this.Routes
+                            |> List.map (fun r -> [
+                                match r.NextHop with
+                                | NextHop.ResourceId(Managed resId) -> resId
+                                | _ -> ()
+                                match r.Destination with
+                                | _ -> ()
+                            ])
+                            |> List.concat
 
-                            for routeDep in routeDependencies do
-                                routeDep
-                        ]
-                        |> Set.ofList
-                    Routes = this.Routes
-                    Labels = this.Labels
-                }
-            ]
+                        for routeDep in routeDependencies do
+                            routeDep
+                    ]
+                    |> Set.ofList
+                Routes = this.Routes
+                Labels = this.Labels
+            }
+        ]
 
 type HubRouteTableBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Vhub = LinkedResource.Unmanaged(virtualHubs.resourceId ResourceName.Empty)
-            Routes = List.Empty
-            Labels = List.Empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Vhub = LinkedResource.Unmanaged(virtualHubs.resourceId ResourceName.Empty)
+        Routes = List.Empty
+        Labels = List.Empty
+    }
 
     [<CustomOperation "name">]
     /// Sets the name of the virtual hub.

@@ -8,28 +8,26 @@ open Farmer.NetworkSecurity
 open System.Net
 
 /// Network access policy
-type SecurityRuleConfig =
-    {
-        Name: ResourceName
-        Description: string option
-        Services: NetworkService list
-        Sources: (NetworkProtocol * Endpoint * Port) list
-        Destinations: Endpoint list
-        Operation: Operation
-        Direction: TrafficDirection
-    }
+type SecurityRuleConfig = {
+    Name: ResourceName
+    Description: string option
+    Services: NetworkService list
+    Sources: (NetworkProtocol * Endpoint * Port) list
+    Destinations: Endpoint list
+    Operation: Operation
+    Direction: TrafficDirection
+}
 
 type SecurityRuleBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Description = None
-            Services = []
-            Sources = []
-            Destinations = []
-            Operation = Allow
-            Direction = TrafficDirection.Inbound
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Description = None
+        Services = []
+        Sources = []
+        Destinations = []
+        Operation = Allow
+        Direction = TrafficDirection.Inbound
+    }
 
     /// Sets the name of the security rule
     [<CustomOperation "name">]
@@ -47,11 +45,10 @@ type SecurityRuleBuilder() =
     member _.Services(state: SecurityRuleConfig, services) = { state with Services = services }
 
     member this.Services(state: SecurityRuleConfig, services) =
-        let services =
-            [
-                for (name, port) in services do
-                    NetworkService(name, Port(uint16 port))
-            ]
+        let services = [
+            for (name, port) in services do
+                NetworkService(name, Port(uint16 port))
+        ]
 
         this.Services(state, services)
 
@@ -139,32 +136,31 @@ type SecurityRuleBuilder() =
 
 let securityRule = SecurityRuleBuilder()
 
-let internal buildNsgRule (nsgName: ResourceName) (rule: SecurityRuleConfig) (priority: int) =
-    {
-        Name = rule.Name
-        Description = None
-        SecurityGroup = nsgName
-        Protocol =
-            let protocols = rule.Sources |> List.map (fun (protocol, _, _) -> protocol) |> Set
+let internal buildNsgRule (nsgName: ResourceName) (rule: SecurityRuleConfig) (priority: int) = {
+    Name = rule.Name
+    Description = None
+    SecurityGroup = nsgName
+    Protocol =
+        let protocols = rule.Sources |> List.map (fun (protocol, _, _) -> protocol) |> Set
 
-            if protocols.Count > 1 then
-                AnyProtocol
-            else
-                protocols |> Seq.head
-        SourcePorts = rule.Sources |> List.map (fun (_, _, sourcePort) -> sourcePort) |> Set
-        SourceAddresses =
-            rule.Sources
-            |> List.map (fun (_, sourceAddress, _) -> sourceAddress)
-            |> List.distinct
-        DestinationPorts =
-            match rule.Services with
-            | [] -> Set [ AnyPort ]
-            | services -> services |> List.map (fun (NetworkService (_, port)) -> port) |> Set
-        DestinationAddresses = rule.Destinations
-        Access = rule.Operation
-        Direction = rule.Direction
-        Priority = priority
-    }
+        if protocols.Count > 1 then
+            AnyProtocol
+        else
+            protocols |> Seq.head
+    SourcePorts = rule.Sources |> List.map (fun (_, _, sourcePort) -> sourcePort) |> Set
+    SourceAddresses =
+        rule.Sources
+        |> List.map (fun (_, sourceAddress, _) -> sourceAddress)
+        |> List.distinct
+    DestinationPorts =
+        match rule.Services with
+        | [] -> Set [ AnyPort ]
+        | services -> services |> List.map (fun (NetworkService(_, port)) -> port) |> Set
+    DestinationAddresses = rule.Destinations
+    Access = rule.Operation
+    Direction = rule.Direction
+    Priority = priority
+}
 
 type NsgConfig =
     {
@@ -178,34 +174,29 @@ type NsgConfig =
     interface IBuilder with
         member this.ResourceId = networkSecurityGroups.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    SecurityRules =
-                        seq {
-                            // Policy Rules
-                            for priority, rule in List.indexed this.SecurityRules do
-                                buildNsgRule
-                                    this.Name
-                                    rule
-                                    (priority * this.PriorityIncrementor + this.InitialRulePriority)
-                        }
-                        |> List.ofSeq
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                SecurityRules =
+                    seq {
+                        // Policy Rules
+                        for priority, rule in List.indexed this.SecurityRules do
+                            buildNsgRule this.Name rule (priority * this.PriorityIncrementor + this.InitialRulePriority)
+                    }
+                    |> List.ofSeq
+                Tags = this.Tags
+            }
+        ]
 
 type NsgBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            SecurityRules = []
-            Tags = Map.empty
-            InitialRulePriority = 100
-            PriorityIncrementor = 100
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        SecurityRules = []
+        Tags = Map.empty
+        InitialRulePriority = 100
+        PriorityIncrementor = 100
+    }
 
     /// Sets the name of the network security group
     [<CustomOperation "name">]

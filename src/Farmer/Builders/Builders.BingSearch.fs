@@ -27,25 +27,23 @@ type BingSearchConfig =
     interface IBuilder with
         member this.ResourceId = accounts.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    Sku = this.Sku
-                    Tags = this.Tags
-                    Statistics = this.Statistics
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Sku = this.Sku
+                Tags = this.Tags
+                Statistics = this.Statistics
+            }
+        ]
 
 type BingSearchBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sku = F1
-            Tags = Map.empty
-            Statistics = FeatureFlag.Disabled
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = F1
+        Tags = Map.empty
+        Statistics = FeatureFlag.Disabled
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: BingSearchConfig, name) = { state with Name = ResourceName name }

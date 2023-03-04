@@ -42,23 +42,21 @@ type CommunicationServicesConfig =
     interface IBuilder with
         member this.ResourceId = communicationServices.resourceId this.Name
 
-        member this.BuildResources _ =
-            [
-                {
-                    CommunicationService.Name = this.Name
-                    Tags = this.Tags
-                    DataLocation = this.DataLocation
-                }
-            ]
+        member this.BuildResources _ = [
+            {
+                CommunicationService.Name = this.Name
+                Tags = this.Tags
+                DataLocation = this.DataLocation
+            }
+        ]
 
 type CommunicationServicesBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Tags = Map.empty
-            // We default to UnitedStates because all of the features are available there.
-            DataLocation = DataLocation.UnitedStates
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Tags = Map.empty
+        // We default to UnitedStates because all of the features are available there.
+        DataLocation = DataLocation.UnitedStates
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: CommunicationServicesConfig, name) = { state with Name = ResourceName name }

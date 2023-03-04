@@ -34,27 +34,25 @@ type SearchConfig =
     interface IBuilder with
         member this.ResourceId = this.ResourceId
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    Sku = this.Sku
-                    ReplicaCount = this.Replicas
-                    PartitionCount = this.Partitions
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Sku = this.Sku
+                ReplicaCount = this.Replicas
+                PartitionCount = this.Partitions
+                Tags = this.Tags
+            }
+        ]
 
 type SearchBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sku = Standard
-            Replicas = 1
-            Partitions = 1
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = Standard
+        Replicas = 1
+        Partitions = 1
+        Tags = Map.empty
+    }
 
     member _.Run(state: SearchConfig) =
         { state with

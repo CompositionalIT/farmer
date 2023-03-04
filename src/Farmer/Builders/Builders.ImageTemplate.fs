@@ -21,37 +21,35 @@ type ImageTemplateConfig =
     interface IBuilder with
         member this.ResourceId = imageTemplates.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    Identity = this.Identity
-                    BuildTimeoutInMinutes = this.BuildTimeoutInMinutes
-                    Source =
-                        match this.Source with
-                        | Some source -> source
-                        | None -> raiseFarmer "Image template requires a 'source'"
-                    Customize = this.Customize
-                    Distribute = this.Distribute
-                    Dependencies = this.Dependencies
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Identity = this.Identity
+                BuildTimeoutInMinutes = this.BuildTimeoutInMinutes
+                Source =
+                    match this.Source with
+                    | Some source -> source
+                    | None -> raiseFarmer "Image template requires a 'source'"
+                Customize = this.Customize
+                Distribute = this.Distribute
+                Dependencies = this.Dependencies
+                Tags = this.Tags
+            }
+        ]
 
 type ImageTemplateBuilder() =
 
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Identity = ManagedIdentity.Empty
-            BuildTimeoutInMinutes = None
-            Source = None
-            Customize = []
-            Distribute = []
-            Dependencies = Set.empty
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Identity = ManagedIdentity.Empty
+        BuildTimeoutInMinutes = None
+        Source = None
+        Customize = []
+        Distribute = []
+        Dependencies = Set.empty
+        Tags = Map.empty
+    }
 
     [<CustomOperation "name">]
     member _.Name(config: ImageTemplateConfig, name: string) =
@@ -73,17 +71,15 @@ type ImageTemplateBuilder() =
         }
 
     member this.PlatformImageSource(config: ImageTemplateConfig, image: Vm.ImageDefinition) =
-        let imageSource =
-            {
-                ImageIdentifier =
-                    {
-                        Publisher = image.Publisher.ArmValue
-                        Offer = image.Offer.ArmValue
-                        Sku = image.Sku.ArmValue
-                    }
-                PlanInfo = None
-                Version = "latest"
+        let imageSource = {
+            ImageIdentifier = {
+                Publisher = image.Publisher.ArmValue
+                Offer = image.Offer.ArmValue
+                Sku = image.Sku.ArmValue
             }
+            PlanInfo = None
+            Version = "latest"
+        }
 
         this.PlatformImageSource(config, imageSource)
 
@@ -132,13 +128,12 @@ type ImageTemplateBuilder() =
 let imageTemplate = ImageTemplateBuilder()
 
 type FileCustomizerBuilder() =
-    member _.Yield _ =
-        {
-            Name = null
-            SourceUri = null
-            Destination = null
-            Sha256Checksum = None
-        }
+    member _.Yield _ = {
+        Name = null
+        SourceUri = null
+        Destination = null
+        Sha256Checksum = None
+    }
 
     member _.Run(customizer: FileCustomizer) =
         if isNull customizer.SourceUri then
@@ -192,12 +187,11 @@ type ShellCustomizerBuilder() =
 let shellCustomizer = ShellCustomizerBuilder()
 
 type ShellScriptCustomizerBuilder() =
-    member _.Yield _ =
-        {
-            Name = null
-            ScriptUri = null
-            Sha256Checksum = None
-        }
+    member _.Yield _ = {
+        Name = null
+        ScriptUri = null
+        Sha256Checksum = None
+    }
 
     member _.Run(customizer: ShellScriptCustomizer) =
         if isNull customizer.ScriptUri then
@@ -224,14 +218,13 @@ type ShellScriptCustomizerBuilder() =
 let shellScriptCustomizer = ShellScriptCustomizerBuilder()
 
 type PowerShellCustomizerBuilder() =
-    member _.Yield _ =
-        {
-            Name = null
-            Inline = []
-            RunAsElevated = false
-            RunAsSystem = false
-            ValidExitCodes = []
-        }
+    member _.Yield _ = {
+        Name = null
+        Inline = []
+        RunAsElevated = false
+        RunAsSystem = false
+        ValidExitCodes = []
+    }
 
     member _.Run(customizer: PowerShellCustomizer) = Customizer.PowerShell customizer
 
@@ -267,15 +260,14 @@ let powerShellCustomizer: PowerShellCustomizerBuilder =
     PowerShellCustomizerBuilder()
 
 type PowerShellScriptCustomizerBuilder() =
-    member _.Yield _ =
-        {
-            Name = null
-            ScriptUri = null
-            Sha256Checksum = None
-            RunAsElevated = false
-            RunAsSystem = false
-            ValidExitCodes = []
-        }
+    member _.Yield _ = {
+        Name = null
+        ScriptUri = null
+        Sha256Checksum = None
+        RunAsElevated = false
+        RunAsSystem = false
+        ValidExitCodes = []
+    }
 
     member _.Run(customizer: PowerShellScriptCustomizer) = Customizer.PowerShellScript customizer
 
@@ -316,12 +308,11 @@ type PowerShellScriptCustomizerBuilder() =
 let powerShellScriptCustomizer = PowerShellScriptCustomizerBuilder()
 
 type WindowsRestartCustomizerBuilder() =
-    member _.Yield _ =
-        {
-            RestartCommand = None
-            RestartCheckCommand = None
-            RestartTimeout = None
-        }
+    member _.Yield _ = {
+        RestartCommand = None
+        RestartCheckCommand = None
+        RestartTimeout = None
+    }
 
     member _.Run(customizer: WindowsRestartCustomizer) = Customizer.WindowsRestart customizer
 
@@ -347,12 +338,11 @@ type WindowsRestartCustomizerBuilder() =
 let windowsRestartCustomizer = WindowsRestartCustomizerBuilder()
 
 type WindowsUpdateCustomizerBuilder() =
-    member _.Yield _ =
-        {
-            SearchCriteria = None
-            Filters = []
-            UpdateLimit = None
-        }
+    member _.Yield _ = {
+        SearchCriteria = None
+        Filters = []
+        UpdateLimit = None
+    }
 
     member _.Run(customizer: WindowsUpdateCustomizer) = Customizer.WindowsUpdate customizer
 
@@ -378,13 +368,12 @@ type WindowsUpdateCustomizerBuilder() =
 let windowsUpdateCustomizer = WindowsUpdateCustomizerBuilder()
 
 type ManagedImageDistributorBuilder() =
-    member _.Yield _ =
-        {
-            ImageId = images.resourceId ResourceName.Empty
-            RunOutputName = "managed-image-run"
-            Location = null
-            ArtifactTags = Map.empty
-        }
+    member _.Yield _ = {
+        ImageId = images.resourceId ResourceName.Empty
+        RunOutputName = "managed-image-run"
+        Location = null
+        ArtifactTags = Map.empty
+    }
 
     member _.Run(distributor: ManagedImageDistributor) =
         if distributor.ImageId = images.resourceId ResourceName.Empty then
@@ -430,14 +419,13 @@ type SharedImageDistributorBuilder() =
         ResourceType("Microsoft.Compute/galleries/images", "2020-09-30")
             .resourceId (ResourceName.Empty, ResourceName.Empty)
 
-    member _.Yield _ =
-        {
-            GalleryImageId = emptyGalleryImageId
-            RunOutputName = "shared-image-run"
-            ReplicationRegions = List.empty
-            ExcludeFromLatest = None
-            ArtifactTags = Map.empty
-        }
+    member _.Yield _ = {
+        GalleryImageId = emptyGalleryImageId
+        RunOutputName = "shared-image-run"
+        ReplicationRegions = List.empty
+        ExcludeFromLatest = None
+        ArtifactTags = Map.empty
+    }
 
     member _.Run(distributor: SharedImageDistributor) =
         if distributor.GalleryImageId = emptyGalleryImageId then
@@ -482,11 +470,10 @@ type SharedImageDistributorBuilder() =
 let sharedImageDistributor = SharedImageDistributorBuilder()
 
 type VhdDistributorBuilder() =
-    member _.Yield _ =
-        {
-            RunOutputName = "vhd-run"
-            ArtifactTags = Map.empty
-        }
+    member _.Yield _ = {
+        RunOutputName = "vhd-run"
+        ArtifactTags = Map.empty
+    }
 
     member _.Run(distributor: VhdDistributor) = Distibutor.VHD distributor
 

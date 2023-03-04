@@ -22,5 +22,4 @@ let template = arm {
 // WARNING:
 // since there is currently no free tier for PostgreSQL, actually deploying this
 // *will* incur spending on your subscription.
-template
-|> Writer.quickWrite "postgres-example"
+template |> Writer.quickWrite "postgres-example"

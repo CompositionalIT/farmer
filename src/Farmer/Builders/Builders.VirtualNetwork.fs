@@ -25,27 +25,25 @@ type SubnetConfig =
         PrivateLinkServiceNetworkPolicies: FeatureFlag option
     }
 
-    member internal this.AsSubnetResource =
-        {
-            Name = this.Name
-            Prefix = IPAddressCidr.format this.Prefix
-            VirtualNetwork = this.VirtualNetwork
-            NetworkSecurityGroup = this.NetworkSecurityGroup
-            Delegations =
-                this.Delegations
-                |> List.map (fun (SubnetDelegationService (delegation)) ->
-                    {
-                        Name = ResourceName delegation
-                        ServiceName = delegation
-                    })
-            NatGateway = this.NatGateway
-            ServiceEndpoints = this.ServiceEndpoints
-            AssociatedServiceEndpointPolicies = this.AssociatedServiceEndpointPolicies
-            // PrivateEndpointNetworkPolicies prevents the use of private endpoints so
-            // to ENable private endpoints we have to DISable PrivateEndpointNetworkPolicies
-            PrivateEndpointNetworkPolicies = this.AllowPrivateEndpoints |> Option.map FeatureFlag.invert
-            PrivateLinkServiceNetworkPolicies = this.PrivateLinkServiceNetworkPolicies
-        }
+    member internal this.AsSubnetResource = {
+        Name = this.Name
+        Prefix = IPAddressCidr.format this.Prefix
+        VirtualNetwork = this.VirtualNetwork
+        NetworkSecurityGroup = this.NetworkSecurityGroup
+        Delegations =
+            this.Delegations
+            |> List.map (fun (SubnetDelegationService(delegation)) -> {
+                Name = ResourceName delegation
+                ServiceName = delegation
+            })
+        NatGateway = this.NatGateway
+        ServiceEndpoints = this.ServiceEndpoints
+        AssociatedServiceEndpointPolicies = this.AssociatedServiceEndpointPolicies
+        // PrivateEndpointNetworkPolicies prevents the use of private endpoints so
+        // to ENable private endpoints we have to DISable PrivateEndpointNetworkPolicies
+        PrivateEndpointNetworkPolicies = this.AllowPrivateEndpoints |> Option.map FeatureFlag.invert
+        PrivateLinkServiceNetworkPolicies = this.PrivateLinkServiceNetworkPolicies
+    }
 
     interface IBuilder with
         member this.ResourceId =
@@ -56,23 +54,21 @@ type SubnetConfig =
         member this.BuildResources _ = [ this.AsSubnetResource ]
 
 type SubnetBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Prefix =
-                {
-                    Address = System.Net.IPAddress.Parse("10.100.0.0")
-                    Prefix = 16
-                }
-            VirtualNetwork = None
-            NetworkSecurityGroup = None
-            Delegations = []
-            NatGateway = None
-            ServiceEndpoints = []
-            AssociatedServiceEndpointPolicies = []
-            AllowPrivateEndpoints = None
-            PrivateLinkServiceNetworkPolicies = None
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Prefix = {
+            Address = System.Net.IPAddress.Parse("10.100.0.0")
+            Prefix = 16
         }
+        VirtualNetwork = None
+        NetworkSecurityGroup = None
+        Delegations = []
+        NatGateway = None
+        ServiceEndpoints = []
+        AssociatedServiceEndpointPolicies = []
+        AllowPrivateEndpoints = None
+        PrivateLinkServiceNetworkPolicies = None
+    }
 
     /// Sets the name of the subnet
     [<CustomOperation "name">]
@@ -223,51 +219,60 @@ type SubnetBuilder() =
 let subnet = SubnetBuilder()
 
 /// Specification for a subnet to build from an address space.
-type SubnetBuildSpec =
-    {
-        Name: string
-        Size: int
-        NetworkSecurityGroup: LinkedResource option
-        Delegations: SubnetDelegationService list
-        NatGateway: LinkedResource option
-        ServiceEndpoints: (EndpointServiceType * Location list) list
-        AssociatedServiceEndpointPolicies: ResourceId list
-        AllowPrivateEndpoints: FeatureFlag option
-        PrivateLinkServiceNetworkPolicies: FeatureFlag option
-    }
+type SubnetBuildSpec = {
+    Name: string
+    Size: int
+    NetworkSecurityGroup: LinkedResource option
+    Delegations: SubnetDelegationService list
+    NatGateway: LinkedResource option
+    ServiceEndpoints: (EndpointServiceType * Location list) list
+    AssociatedServiceEndpointPolicies: ResourceId list
+    AllowPrivateEndpoints: FeatureFlag option
+    PrivateLinkServiceNetworkPolicies: FeatureFlag option
+}
 
 /// Builds a subnet of a certain CIDR block size.
-let buildSubnet name size =
-    {
-        Name = name
-        Size = size
-        NetworkSecurityGroup = None
-        Delegations = []
-        NatGateway = None
-        ServiceEndpoints = []
-        AssociatedServiceEndpointPolicies = []
-        AllowPrivateEndpoints = None
-        PrivateLinkServiceNetworkPolicies = None
-    }
+let buildSubnet name size = {
+    Name = name
+    Size = size
+    NetworkSecurityGroup = None
+    Delegations = []
+    NatGateway = None
+    ServiceEndpoints = []
+    AssociatedServiceEndpointPolicies = []
+    AllowPrivateEndpoints = None
+    PrivateLinkServiceNetworkPolicies = None
+}
 
 /// Builds a subnet of a certain CIDR block size with service delegations.
-let buildSubnetDelegations name size delegations =
-    {
-        Name = name
-        Size = size
-        NetworkSecurityGroup = None
-        Delegations = delegations
-        NatGateway = None
-        ServiceEndpoints = []
-        AssociatedServiceEndpointPolicies = []
-        AllowPrivateEndpoints = None
-        PrivateLinkServiceNetworkPolicies = None
-    }
+let buildSubnetDelegations name size delegations = {
+    Name = name
+    Size = size
+    NetworkSecurityGroup = None
+    Delegations = delegations
+    NatGateway = None
+    ServiceEndpoints = []
+    AssociatedServiceEndpointPolicies = []
+    AllowPrivateEndpoints = None
+    PrivateLinkServiceNetworkPolicies = None
+}
 
-let buildSubnetAllowPrivateEndpoints name size =
-    {
-        Name = name
-        Size = size
+let buildSubnetAllowPrivateEndpoints name size = {
+    Name = name
+    Size = size
+    NetworkSecurityGroup = None
+    Delegations = []
+    NatGateway = None
+    ServiceEndpoints = []
+    AssociatedServiceEndpointPolicies = []
+    AllowPrivateEndpoints = None
+    PrivateLinkServiceNetworkPolicies = None
+}
+
+type SubnetSpecBuilder() =
+    member _.Yield _ = {
+        Name = ""
+        Size = 24
         NetworkSecurityGroup = None
         Delegations = []
         NatGateway = None
@@ -276,20 +281,6 @@ let buildSubnetAllowPrivateEndpoints name size =
         AllowPrivateEndpoints = None
         PrivateLinkServiceNetworkPolicies = None
     }
-
-type SubnetSpecBuilder() =
-    member _.Yield _ =
-        {
-            Name = ""
-            Size = 24
-            NetworkSecurityGroup = None
-            Delegations = []
-            NatGateway = None
-            ServiceEndpoints = []
-            AssociatedServiceEndpointPolicies = []
-            AllowPrivateEndpoints = None
-            PrivateLinkServiceNetworkPolicies = None
-        }
 
     /// Sets the name of the subnet to build
     [<CustomOperation "name">]
@@ -403,11 +394,10 @@ type SubnetSpecBuilder() =
 let subnetSpec = SubnetSpecBuilder()
 
 /// A specification building an address space and subnets.
-type AddressSpaceSpec =
-    {
-        Space: string
-        Subnets: SubnetBuildSpec list
-    }
+type AddressSpaceSpec = {
+    Space: string
+    Subnets: SubnetBuildSpec list
+}
 
 open System.Runtime.InteropServices
 
@@ -436,18 +426,17 @@ type AddressSpaceBuilder() =
             ?privateLinkServiceNetworkPolicies: FeatureFlag,
             ?nsg: LinkedResource
         ) =
-        let subnetBuildSpec =
-            {
-                Name = name
-                Size = size
-                NetworkSecurityGroup = nsg
-                Delegations = delegations |> Option.defaultValue []
-                NatGateway = None
-                ServiceEndpoints = serviceEndpoints |> Option.defaultValue []
-                AssociatedServiceEndpointPolicies = associatedServiceEndpointPolicies |> Option.defaultValue []
-                AllowPrivateEndpoints = allowPrivateEndpoints
-                PrivateLinkServiceNetworkPolicies = privateLinkServiceNetworkPolicies
-            }
+        let subnetBuildSpec = {
+            Name = name
+            Size = size
+            NetworkSecurityGroup = nsg
+            Delegations = delegations |> Option.defaultValue []
+            NatGateway = None
+            ServiceEndpoints = serviceEndpoints |> Option.defaultValue []
+            AssociatedServiceEndpointPolicies = associatedServiceEndpointPolicies |> Option.defaultValue []
+            AllowPrivateEndpoints = allowPrivateEndpoints
+            PrivateLinkServiceNetworkPolicies = privateLinkServiceNetworkPolicies
+        }
 
         { state with
             Subnets = state.Subnets @ [ subnetBuildSpec ]
@@ -468,14 +457,13 @@ type AddressSpaceBuilder() =
 
 let addressSpace = AddressSpaceBuilder()
 
-type VNetPeeringSpec =
-    {
-        RemoteVNet: LinkedResource
-        Direction: PeeringMode
-        Access: PeerAccess
-        Transit: GatewayTransit
-        DependsOn: ResourceId Set
-    }
+type VNetPeeringSpec = {
+    RemoteVNet: LinkedResource
+    Direction: PeeringMode
+    Access: PeerAccess
+    Transit: GatewayTransit
+    DependsOn: ResourceId Set
+}
 
 type VirtualNetworkConfig =
     {
@@ -496,62 +484,58 @@ type VirtualNetworkConfig =
     interface IBuilder with
         member this.ResourceId = this.ResourceId
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                AddressSpacePrefixes = this.AddressSpacePrefixes
+                Subnets = this.Subnets |> List.map (fun subnetConfig -> subnetConfig.AsSubnetResource)
+                Tags = this.Tags
+            }
+            for {
+                    RemoteVNet = remote
+                    Direction = direction
+                    Access = access
+                    Transit = transit
+                    DependsOn = deps
+                } in this.Peers do
+                match direction with
+                | OneWayToRemote
+                | TwoWay -> {
                     Location = location
-                    AddressSpacePrefixes = this.AddressSpacePrefixes
-                    Subnets = this.Subnets |> List.map (fun subnetConfig -> subnetConfig.AsSubnetResource)
-                    Tags = this.Tags
-                }
-                for {
-                        RemoteVNet = remote
-                        Direction = direction
-                        Access = access
-                        Transit = transit
-                        DependsOn = deps
-                    } in this.Peers do
-                    match direction with
-                    | OneWayToRemote
-                    | TwoWay ->
-                        {
-                            Location = location
-                            OwningVNet = Managed this.ResourceId
-                            RemoteVNet = remote
-                            RemoteAccess = access
-                            GatewayTransit = transit
-                            DependsOn = deps
-                        }
-                    | _ -> ()
+                    OwningVNet = Managed this.ResourceId
+                    RemoteVNet = remote
+                    RemoteAccess = access
+                    GatewayTransit = transit
+                    DependsOn = deps
+                  }
+                | _ -> ()
 
-                    match direction with
-                    | OneWayFromRemote
-                    | TwoWay ->
-                        {
-                            Location = location
-                            OwningVNet = remote
-                            RemoteVNet = Managed this.ResourceId
-                            RemoteAccess = access
-                            GatewayTransit =
-                                match transit with
-                                | UseRemoteGateway -> UseLocalGateway
-                                | UseLocalGateway -> UseRemoteGateway
-                                | GatewayTransitDisabled -> GatewayTransitDisabled
-                            DependsOn = deps
-                        }
-                    | _ -> ()
-            ]
+                match direction with
+                | OneWayFromRemote
+                | TwoWay -> {
+                    Location = location
+                    OwningVNet = remote
+                    RemoteVNet = Managed this.ResourceId
+                    RemoteAccess = access
+                    GatewayTransit =
+                        match transit with
+                        | UseRemoteGateway -> UseLocalGateway
+                        | UseLocalGateway -> UseRemoteGateway
+                        | GatewayTransitDisabled -> GatewayTransitDisabled
+                    DependsOn = deps
+                  }
+                | _ -> ()
+        ]
 
 type VirtualNetworkBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            AddressSpacePrefixes = []
-            Subnets = List.empty
-            Peers = List.empty
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        AddressSpacePrefixes = []
+        Subnets = List.empty
+        Peers = List.empty
+        Tags = Map.empty
+    }
 
     /// Sets the name of the virtual network
     [<CustomOperation "name">]
@@ -579,14 +563,13 @@ type VirtualNetworkBuilder() =
         }
 
     member this.AddPeers(state: VirtualNetworkConfig, peers: (LinkedResource * PeeringMode) list) =
-        let makeSpec (peer: LinkedResource, direction) =
-            {
-                RemoteVNet = Managed peer.ResourceId
-                Direction = direction
-                Access = AccessAndForward
-                Transit = GatewayTransitDisabled
-                DependsOn = Set.empty
-            }
+        let makeSpec (peer: LinkedResource, direction) = {
+            RemoteVNet = Managed peer.ResourceId
+            Direction = direction
+            Access = AccessAndForward
+            Transit = GatewayTransitDisabled
+            DependsOn = Set.empty
+        }
 
         this.AddPeers(state, peers |> List.map makeSpec)
 
@@ -620,16 +603,15 @@ type VirtualNetworkBuilder() =
             |> List.collect (fun addressSpaceConfig ->
                 let addressSpace = IPAddressCidr.parse addressSpaceConfig.Space
 
-                let sizes =
-                    [
-                        for subnet in addressSpaceConfig.Subnets do
-                            if subnet.Size > 29 then
-                                invalidArg
-                                    "size"
-                                    $"Subnet must be of /29 or larger, cannot carve subnet {subnet.Name} of /{subnet.Size}"
+                let sizes = [
+                    for subnet in addressSpaceConfig.Subnets do
+                        if subnet.Size > 29 then
+                            invalidArg
+                                "size"
+                                $"Subnet must be of /29 or larger, cannot carve subnet {subnet.Name} of /{subnet.Size}"
 
-                            subnet.Size
-                    ]
+                        subnet.Size
+                ]
 
                 IPAddressCidr.carveAddressSpace addressSpace sizes
                 |> List.zip (
@@ -645,27 +627,27 @@ type VirtualNetworkBuilder() =
                         s.NetworkSecurityGroup)
                 )
                 |> List.map
-                    (fun ((name,
-                           delegations,
-                           serviceEndpoints,
-                           serviceEndpointPolicies,
-                           allowPrivateEndpoints,
-                           privateLinkServiceNetworkPolicies,
-                           natGateway,
-                           nsg),
-                          cidr) ->
-                        {
-                            Name = ResourceName name
-                            Prefix = cidr
-                            VirtualNetwork = Some(Managed(virtualNetworks.resourceId state.Name))
-                            NetworkSecurityGroup = nsg
-                            Delegations = delegations
-                            NatGateway = natGateway
-                            ServiceEndpoints = serviceEndpoints
-                            AssociatedServiceEndpointPolicies = serviceEndpointPolicies
-                            AllowPrivateEndpoints = allowPrivateEndpoints
-                            PrivateLinkServiceNetworkPolicies = privateLinkServiceNetworkPolicies
-                        }))
+                    (fun
+                        ((name,
+                          delegations,
+                          serviceEndpoints,
+                          serviceEndpointPolicies,
+                          allowPrivateEndpoints,
+                          privateLinkServiceNetworkPolicies,
+                          natGateway,
+                          nsg),
+                         cidr) -> {
+                        Name = ResourceName name
+                        Prefix = cidr
+                        VirtualNetwork = Some(Managed(virtualNetworks.resourceId state.Name))
+                        NetworkSecurityGroup = nsg
+                        Delegations = delegations
+                        NatGateway = natGateway
+                        ServiceEndpoints = serviceEndpoints
+                        AssociatedServiceEndpointPolicies = serviceEndpointPolicies
+                        AllowPrivateEndpoints = allowPrivateEndpoints
+                        PrivateLinkServiceNetworkPolicies = privateLinkServiceNetworkPolicies
+                    }))
 
         let newAddressSpaces =
             addressSpaces |> List.map (fun addressSpace -> addressSpace.Space)
@@ -684,14 +666,13 @@ type VirtualNetworkBuilder() =
 let vnet = VirtualNetworkBuilder()
 
 type VNetPeeringSpecBuilder() =
-    member _.Yield _ =
-        {
-            RemoteVNet = Unmanaged(virtualNetworks.resourceId "")
-            Direction = TwoWay
-            Access = AccessAndForward
-            Transit = GatewayTransitDisabled
-            DependsOn = Set.empty
-        }
+    member _.Yield _ = {
+        RemoteVNet = Unmanaged(virtualNetworks.resourceId "")
+        Direction = TwoWay
+        Access = AccessAndForward
+        Transit = GatewayTransitDisabled
+        DependsOn = Set.empty
+    }
 
     [<CustomOperation "remote_vnet">]
     member _.VNet(state: VNetPeeringSpec, vnet) = { state with RemoteVNet = vnet }

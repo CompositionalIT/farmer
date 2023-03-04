@@ -32,26 +32,25 @@ type Disk =
                     |> Option.map (fun sku -> {| name = sku.ArmValue |} :> obj)
                     |> Option.toObj
                 zones = if this.Zones.IsEmpty then null else ResizeArray(this.Zones)
-                properties =
-                    {|
-                        creationData =
-                            match this.CreationData with
-                            | Empty _ -> {| createOption = "Empty" |} :> obj
-                            | Import (sourceUri, storageAccountId) ->
-                                {|
-                                    createOption = "Import"
-                                    sourceUri = sourceUri.AbsoluteUri
-                                    storageAccountId = storageAccountId.Eval()
-                                |}
-                                :> obj
-                        diskSizeGB =
-                            match this.CreationData with
-                            | Empty size -> size / 1<Gb> :> obj
-                            | _ -> null
-                        osType =
-                            this.OsType
-                            |> function
-                                | Linux -> "Linux"
-                                | Windows -> "Windows"
-                    |}
+                properties = {|
+                    creationData =
+                        match this.CreationData with
+                        | Empty _ -> {| createOption = "Empty" |} :> obj
+                        | Import(sourceUri, storageAccountId) ->
+                            {|
+                                createOption = "Import"
+                                sourceUri = sourceUri.AbsoluteUri
+                                storageAccountId = storageAccountId.Eval()
+                            |}
+                            :> obj
+                    diskSizeGB =
+                        match this.CreationData with
+                        | Empty size -> size / 1<Gb> :> obj
+                        | _ -> null
+                    osType =
+                        this.OsType
+                        |> function
+                            | Linux -> "Linux"
+                            | Windows -> "Windows"
+                |}
             |}

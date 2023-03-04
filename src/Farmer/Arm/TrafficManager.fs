@@ -23,26 +23,24 @@ type Endpoint =
         Location: Location option
     }
 
-    member this.JsonModel =
-        {|
-            name = this.Name.Value
-            ``type`` =
+    member this.JsonModel = {|
+        name = this.Name.Value
+        ``type`` =
+            match this.Target with
+            | External _ -> externalEndpoints.Type
+            | Website _ -> azureEndpoints.Type
+        properties = {|
+            endpointStatus = this.Status.ArmValue
+            weight = this.Weight |> Option.toNullable
+            priority = this.Priority |> Option.toNullable
+            endpointLocation = this.Location |> Option.map (fun l -> l.ArmValue) |> Option.toObj
+            targetResourceId =
                 match this.Target with
-                | External _ -> externalEndpoints.Type
-                | Website _ -> azureEndpoints.Type
-            properties =
-                {|
-                    endpointStatus = this.Status.ArmValue
-                    weight = this.Weight |> Option.toNullable
-                    priority = this.Priority |> Option.toNullable
-                    endpointLocation = this.Location |> Option.map (fun l -> l.ArmValue) |> Option.toObj
-                    targetResourceId =
-                        match this.Target with
-                        | External _ -> null
-                        | Website resourceName -> sites.resourceId(resourceName).Eval()
-                    target = this.Target.ArmValue
-                |}
+                | External _ -> null
+                | Website resourceName -> sites.resourceId(resourceName).Eval()
+            target = this.Target.ArmValue
         |}
+    |}
 
 type Profile =
     {
@@ -62,25 +60,22 @@ type Profile =
 
         member this.JsonModel =
             {| profiles.Create(this.Name, Location.Global, this.Dependencies, tags = this.Tags) with
-                properties =
-                    {|
-                        profileStatus = this.Status.ArmValue
-                        trafficRoutingMethod = this.RoutingMethod.ArmValue
-                        trafficViewEnrollmentStatus = this.TrafficViewEnrollmentStatus.ArmValue
-                        dnsConfig =
-                            {|
-                                relativeName = this.Name.Value
-                                ttl = this.DnsTtl
-                            |}
-                        monitorConfig =
-                            {|
-                                protocol = this.MonitorConfig.Protocol.ArmValue
-                                port = this.MonitorConfig.Port
-                                path = this.MonitorConfig.Path
-                                intervalInSeconds = int this.MonitorConfig.IntervalInSeconds
-                                toleratedNumberOfFailures = this.MonitorConfig.ToleratedNumberOfFailures
-                                timeoutInSeconds = int this.MonitorConfig.TimeoutInSeconds
-                            |}
-                        endpoints = this.Endpoints |> List.map (fun e -> e.JsonModel)
+                properties = {|
+                    profileStatus = this.Status.ArmValue
+                    trafficRoutingMethod = this.RoutingMethod.ArmValue
+                    trafficViewEnrollmentStatus = this.TrafficViewEnrollmentStatus.ArmValue
+                    dnsConfig = {|
+                        relativeName = this.Name.Value
+                        ttl = this.DnsTtl
                     |}
+                    monitorConfig = {|
+                        protocol = this.MonitorConfig.Protocol.ArmValue
+                        port = this.MonitorConfig.Port
+                        path = this.MonitorConfig.Path
+                        intervalInSeconds = int this.MonitorConfig.IntervalInSeconds
+                        toleratedNumberOfFailures = this.MonitorConfig.ToleratedNumberOfFailures
+                        timeoutInSeconds = int this.MonitorConfig.TimeoutInSeconds
+                    |}
+                    endpoints = this.Endpoints |> List.map (fun e -> e.JsonModel)
+                |}
             |}

@@ -22,42 +22,38 @@ type DatabricksConfig =
     interface IBuilder with
         member this.ResourceId = workspaces.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    ManagedResourceGroupId =
-                        this.ManagedResourceGroupId |> Option.defaultWith (fun () -> this.Name - "rg")
-                    Sku = this.Sku
-                    EnablePublicIp = this.EnablePublicIp
-                    KeyEncryption = this.KeyEncryption
-                    VnetConfig = this.VnetConfig
-                    Tags = this.Tags
-                    Dependencies =
-                        Set
-                            [
-                                match this.KeyEncryption with
-                                | Some (CustomerManaged config) -> config.Vault
-                                | Some InfrastructureManaged
-                                | None -> ()
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                ManagedResourceGroupId = this.ManagedResourceGroupId |> Option.defaultWith (fun () -> this.Name - "rg")
+                Sku = this.Sku
+                EnablePublicIp = this.EnablePublicIp
+                KeyEncryption = this.KeyEncryption
+                VnetConfig = this.VnetConfig
+                Tags = this.Tags
+                Dependencies =
+                    Set [
+                        match this.KeyEncryption with
+                        | Some(CustomerManaged config) -> config.Vault
+                        | Some InfrastructureManaged
+                        | None -> ()
 
-                                yield! this.VnetConfig |> Option.mapList (fun vnet -> vnet.Vnet)
-                            ]
-                }
-            ]
+                        yield! this.VnetConfig |> Option.mapList (fun vnet -> vnet.Vnet)
+                    ]
+            }
+        ]
 
 type WorkspaceBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            ManagedResourceGroupId = None
-            Sku = Standard
-            EnablePublicIp = Enabled
-            KeyEncryption = None
-            VnetConfig = None
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        ManagedResourceGroupId = None
+        Sku = Standard
+        EnablePublicIp = Enabled
+        KeyEncryption = None
+        VnetConfig = None
+        Tags = Map.empty
+    }
 
     member _.Run(state: DatabricksConfig) =
         match state with
@@ -119,7 +115,7 @@ type WorkspaceBuilder() =
         { state with
             KeyEncryption =
                 match state.KeyEncryption with
-                | Some (CustomerManaged config) ->
+                | Some(CustomerManaged config) ->
                     Some(
                         CustomerManaged
                             {| config with

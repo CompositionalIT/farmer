@@ -19,5 +19,4 @@ let template = arm {
     add_resource myCache
 }
 
-template
-|> Writer.quickWrite "my-resource-group-name"
+template |> Writer.quickWrite "my-resource-group-name"

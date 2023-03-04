@@ -16,25 +16,23 @@ type DataLakeConfig =
     interface IBuilder with
         member this.ResourceId = accounts.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    EncryptionState = this.EncryptionState
-                    Sku = this.Sku
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                EncryptionState = this.EncryptionState
+                Sku = this.Sku
+                Tags = this.Tags
+            }
+        ]
 
 type DataLakeBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName ""
-            EncryptionState = Disabled
-            Sku = Sku.Consumption
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName ""
+        EncryptionState = Disabled
+        Sku = Sku.Consumption
+        Tags = Map.empty
+    }
 
     /// Sets the name of the data lake.
     [<CustomOperation "name">]

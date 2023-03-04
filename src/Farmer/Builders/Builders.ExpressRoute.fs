@@ -7,48 +7,45 @@ open System.Net
 open Farmer.Arm.Network
 
 /// An IP address block in CIDR notation, such as 10.100.0.0/16.
-type ExpressRouteCircuitPeering =
-    {
-        PeeringType: PeeringType
-        AzureASN: int
-        PeerASN: int64
-        /// A /30 IP address block to use for the primary link
-        PrimaryPeerAddressPrefix: IPAddressCidr
-        /// A /30 IP address block to use for the secondary link
-        SecondaryPeerAddressPrefix: IPAddressCidr
-        SharedKey: string option
-        VlanId: int
-    }
+type ExpressRouteCircuitPeering = {
+    PeeringType: PeeringType
+    AzureASN: int
+    PeerASN: int64
+    /// A /30 IP address block to use for the primary link
+    PrimaryPeerAddressPrefix: IPAddressCidr
+    /// A /30 IP address block to use for the secondary link
+    SecondaryPeerAddressPrefix: IPAddressCidr
+    SharedKey: string option
+    VlanId: int
+}
 
-type ExpressRouteCircuitPeeringConfig =
-    {
-        /// The peering type
-        PeeringType: PeeringType
-        /// Azure-side BGP Autonomous System Number (ASN)
-        AzureASN: int
-        /// Peer-side BGP Autonomous System Number (ASN)
-        PeerASN: int64
-        /// A /30 IP address block to use for the primary link
-        PrimaryPeerAddressPrefix: IPAddressCidr
-        /// A /30 IP address block to use for the secondary link
-        SecondaryPeerAddressPrefix: IPAddressCidr
-        /// An optional shared key that can be used when creating the peering
-        SharedKey: string option
-        /// The VLAN tag.
-        VlanId: int
-    }
+type ExpressRouteCircuitPeeringConfig = {
+    /// The peering type
+    PeeringType: PeeringType
+    /// Azure-side BGP Autonomous System Number (ASN)
+    AzureASN: int
+    /// Peer-side BGP Autonomous System Number (ASN)
+    PeerASN: int64
+    /// A /30 IP address block to use for the primary link
+    PrimaryPeerAddressPrefix: IPAddressCidr
+    /// A /30 IP address block to use for the secondary link
+    SecondaryPeerAddressPrefix: IPAddressCidr
+    /// An optional shared key that can be used when creating the peering
+    SharedKey: string option
+    /// The VLAN tag.
+    VlanId: int
+}
 
 type ExpressRouteCircuitPeeringBuilder() =
-    member _.Yield _ =
-        {
-            PeeringType = AzurePrivatePeering
-            AzureASN = 0
-            PeerASN = 0L
-            PrimaryPeerAddressPrefix = { Address = IPAddress.None; Prefix = 0 }
-            SecondaryPeerAddressPrefix = { Address = IPAddress.None; Prefix = 0 }
-            SharedKey = None
-            VlanId = 0
-        }
+    member _.Yield _ = {
+        PeeringType = AzurePrivatePeering
+        AzureASN = 0
+        PeerASN = 0L
+        PrimaryPeerAddressPrefix = { Address = IPAddress.None; Prefix = 0 }
+        SecondaryPeerAddressPrefix = { Address = IPAddress.None; Prefix = 0 }
+        SharedKey = None
+        VlanId = 0
+    }
 
     /// Sets the peering type.
     [<CustomOperation "peering_type">]
@@ -133,19 +130,18 @@ type ExpressRouteConfig =
                 PeeringLocation = this.PeeringLocation
                 Bandwidth = this.Bandwidth
                 GlobalReachEnabled = this.GlobalReachEnabled
-                Peerings =
-                    [
-                        for peering in this.Peerings do
-                            {|
-                                PeeringType = peering.PeeringType
-                                AzureASN = peering.AzureASN
-                                PeerASN = peering.PeerASN
-                                PrimaryPeerAddressPrefix = peering.PrimaryPeerAddressPrefix
-                                SecondaryPeerAddressPrefix = peering.SecondaryPeerAddressPrefix
-                                SharedKey = peering.SharedKey
-                                VlanId = peering.VlanId
-                            |}
-                    ]
+                Peerings = [
+                    for peering in this.Peerings do
+                        {|
+                            PeeringType = peering.PeeringType
+                            AzureASN = peering.AzureASN
+                            PeerASN = peering.PeerASN
+                            PrimaryPeerAddressPrefix = peering.PrimaryPeerAddressPrefix
+                            SecondaryPeerAddressPrefix = peering.SecondaryPeerAddressPrefix
+                            SharedKey = peering.SharedKey
+                            VlanId = peering.VlanId
+                        |}
+                ]
                 Tags = this.Tags
             }
             :: (this.Authorizations
@@ -157,19 +153,18 @@ type ExpressRouteConfig =
                     :> IArmResource))
 
 type ExpressRouteBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Tier = Standard
-            Family = MeteredData
-            ServiceProviderName = ""
-            PeeringLocation = ""
-            Bandwidth = 50<Mbps>
-            GlobalReachEnabled = false
-            Peerings = []
-            Authorizations = []
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Tier = Standard
+        Family = MeteredData
+        ServiceProviderName = ""
+        PeeringLocation = ""
+        Bandwidth = 50<Mbps>
+        GlobalReachEnabled = false
+        Peerings = []
+        Authorizations = []
+        Tags = Map.empty
+    }
 
     /// Sets the name of the circuit
     [<CustomOperation "name">]

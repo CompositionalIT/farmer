@@ -13,12 +13,11 @@ type OMSProperties =
         ReferencedResources: IBuilder list
     }
 
-    static member Empty =
-        {
-            Workspace = None
-            ContainedResources = []
-            ReferencedResources = []
-        }
+    static member Empty = {
+        Workspace = None
+        ContainedResources = []
+        ReferencedResources = []
+    }
 
 type OMSPlan =
     {
@@ -27,12 +26,11 @@ type OMSPlan =
         Product: string
     }
 
-    static member Empty =
-        {
-            Name = ""
-            Publisher = ""
-            Product = ""
-        }
+    static member Empty = {
+        Name = ""
+        Publisher = ""
+        Product = ""
+    }
 
 type OMSConfig =
     {
@@ -45,39 +43,32 @@ type OMSConfig =
     interface IBuilder with
         member this.ResourceId = oms.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                match this.Properties.Workspace with
-                | Some workspace ->
-                    {
-                        Name = this.Name
-                        Location = location
-                        Plan =
-                            {|
-                                Name = this.Plan.Name
-                                Product = this.Plan.Product
-                                Publisher = this.Plan.Publisher
-                            |}
-                        Properties =
-                            {|
-                                WorkspaceResourceId = workspace.ResourceId
-                                ContainedResources =
-                                    this.Properties.ContainedResources |> List.map (fun cr -> cr.ResourceId)
-                                ReferencedResources =
-                                    this.Properties.ReferencedResources |> List.map (fun rr -> rr.ResourceId)
-                            |}
-                        Tags = this.Tags
-                    }
-                | None -> ()
-            ]
+        member this.BuildResources location = [
+            match this.Properties.Workspace with
+            | Some workspace -> {
+                Name = this.Name
+                Location = location
+                Plan = {|
+                    Name = this.Plan.Name
+                    Product = this.Plan.Product
+                    Publisher = this.Plan.Publisher
+                |}
+                Properties = {|
+                    WorkspaceResourceId = workspace.ResourceId
+                    ContainedResources = this.Properties.ContainedResources |> List.map (fun cr -> cr.ResourceId)
+                    ReferencedResources = this.Properties.ReferencedResources |> List.map (fun rr -> rr.ResourceId)
+                |}
+                Tags = this.Tags
+              }
+            | None -> ()
+        ]
 
 type OMSPropertiesBuilder() =
-    member _.Yield _ =
-        {
-            Workspace = None
-            ContainedResources = []
-            ReferencedResources = []
-        }
+    member _.Yield _ = {
+        Workspace = None
+        ContainedResources = []
+        ReferencedResources = []
+    }
 
     /// Sets the workspace resource id of the OMS Properties
     [<CustomOperation "workspace">]
@@ -117,12 +108,11 @@ type OMSPropertiesBuilder() =
 let omsProperties = OMSPropertiesBuilder()
 
 type OMSPlanBuilder() =
-    member _.Yield _ =
-        {
-            Name = ""
-            Publisher = "Microsoft"
-            Product = ""
-        }
+    member _.Yield _ = {
+        Name = ""
+        Publisher = "Microsoft"
+        Product = ""
+    }
 
     /// Sets the name of the OMS Plan
     [<CustomOperation "name">]
@@ -139,13 +129,12 @@ type OMSPlanBuilder() =
 let omsPlan = OMSPlanBuilder()
 
 type OMSBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Plan = OMSPlan.Empty
-            Properties = OMSProperties.Empty
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Plan = OMSPlan.Empty
+        Properties = OMSProperties.Empty
+        Tags = Map.empty
+    }
 
     /// Sets the name of the OMS
     [<CustomOperation "name">]

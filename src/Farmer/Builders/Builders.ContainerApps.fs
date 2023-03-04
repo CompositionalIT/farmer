@@ -14,20 +14,21 @@ type ContainerConfig =
         DockerImage: Containers.DockerImage option
         /// Volume mounts for the container
         VolumeMounts: Map<string, string>
-        Resources: {| CPU: float<VCores>
-                      Memory: float<Gb>
-                      EphemeralStorage: float<Gb> option |}
+        Resources: {|
+            CPU: float<VCores>
+            Memory: float<Gb>
+            EphemeralStorage: float<Gb> option
+        |}
     }
 
     member internal this.BuildContainer: Container =
         match this.DockerImage with
-        | Some dockerImage ->
-            {
-                Name = this.ContainerName
-                DockerImage = dockerImage
-                Resources = this.Resources
-                VolumeMounts = this.VolumeMounts
-            }
+        | Some dockerImage -> {
+            Name = this.ContainerName
+            DockerImage = dockerImage
+            Resources = this.Resources
+            VolumeMounts = this.VolumeMounts
+          }
         | None -> raiseFarmer $"Container '{this.ContainerName}' requires a docker image."
 
 type ContainerAppConfig =
@@ -69,86 +70,84 @@ type ContainerEnvironmentConfig =
     interface IBuilder with
         member this.ResourceId = managedEnvironments.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                let logAnalyticsResourceId = this.LogAnalytics.resourceId this
+        member this.BuildResources location = [
+            let logAnalyticsResourceId = this.LogAnalytics.resourceId this
 
+            {
+                Name = this.Name
+                InternalLoadBalancerState = this.InternalLoadBalancerState
+                LogAnalytics = logAnalyticsResourceId
+                Location = location
+                AppInsightsInstrumentationKey = this.AppInsights |> Option.map (fun r -> r.InstrumentationKey)
+                Dependencies = this.Dependencies.Add logAnalyticsResourceId
+                Tags = this.Tags
+            }
+
+            match this.LogAnalytics with
+            | DeployableResource this resourceId ->
+                let workspaceConfig =
+                    {
+                        Name = resourceId.Name
+                        RetentionPeriod = None
+                        IngestionSupport = None
+                        QuerySupport = None
+                        DailyCap = None
+                        Tags = Map.empty
+                    }
+                    :> IBuilder
+
+                yield! workspaceConfig.BuildResources location
+            | _ -> ()
+
+            for containerApp in this.ContainerApps do
                 {
-                    Name = this.Name
-                    InternalLoadBalancerState = this.InternalLoadBalancerState
-                    LogAnalytics = logAnalyticsResourceId
+                    Name = containerApp.Name
+                    Environment = managedEnvironments.resourceId this.Name
+                    ActiveRevisionsMode = containerApp.ActiveRevisionsMode
+                    Identity = containerApp.Identity
+                    IngressMode = containerApp.IngressMode
+                    ScaleRules = containerApp.ScaleRules
+                    Replicas = containerApp.Replicas
+                    DaprConfig = containerApp.DaprConfig
+                    Secrets = containerApp.Secrets
+                    EnvironmentVariables =
+                        let env = containerApp.EnvironmentVariables
+
+                        match this.AppInsights with
+                        | Some resource ->
+                            env.Add(
+                                EnvVar.createSecureExpression
+                                    "APPINSIGHTS_INSTRUMENTATIONKEY"
+                                    resource.InstrumentationKey
+                            )
+                        | None -> env
+                    ImageRegistryCredentials = containerApp.ImageRegistryCredentials
+                    Containers = containerApp.Containers |> List.map (fun c -> c.BuildContainer)
                     Location = location
-                    AppInsightsInstrumentationKey = this.AppInsights |> Option.map (fun r -> r.InstrumentationKey)
-                    Dependencies = this.Dependencies.Add logAnalyticsResourceId
-                    Tags = this.Tags
+                    Volumes = containerApp.Volumes
+                    Dependencies = containerApp.Dependencies
                 }
 
-                match this.LogAnalytics with
-                | DeployableResource this resourceId ->
-                    let workspaceConfig =
-                        {
-                            Name = resourceId.Name
-                            RetentionPeriod = None
-                            IngestionSupport = None
-                            QuerySupport = None
-                            DailyCap = None
-                            Tags = Map.empty
-                        }
-                        :> IBuilder
+            for app in this.ContainerApps do
+                let uniqueVolumes =
+                    app.Volumes
+                    |> Seq.choose (ManagedEnvironmentStorage.from (managedEnvironments.resourceId this.Name))
+                    |> Seq.distinctBy (fun v -> v.Name)
 
-                    yield! workspaceConfig.BuildResources location
-                | _ -> ()
-
-                for containerApp in this.ContainerApps do
-                    {
-                        Name = containerApp.Name
-                        Environment = managedEnvironments.resourceId this.Name
-                        ActiveRevisionsMode = containerApp.ActiveRevisionsMode
-                        Identity = containerApp.Identity
-                        IngressMode = containerApp.IngressMode
-                        ScaleRules = containerApp.ScaleRules
-                        Replicas = containerApp.Replicas
-                        DaprConfig = containerApp.DaprConfig
-                        Secrets = containerApp.Secrets
-                        EnvironmentVariables =
-                            let env = containerApp.EnvironmentVariables
-
-                            match this.AppInsights with
-                            | Some resource ->
-                                env.Add(
-                                    EnvVar.createSecureExpression
-                                        "APPINSIGHTS_INSTRUMENTATIONKEY"
-                                        resource.InstrumentationKey
-                                )
-                            | None -> env
-                        ImageRegistryCredentials = containerApp.ImageRegistryCredentials
-                        Containers = containerApp.Containers |> List.map (fun c -> c.BuildContainer)
-                        Location = location
-                        Volumes = containerApp.Volumes
-                        Dependencies = containerApp.Dependencies
-                    }
-
-                for app in this.ContainerApps do
-                    let uniqueVolumes =
-                        app.Volumes
-                        |> Seq.choose (ManagedEnvironmentStorage.from (managedEnvironments.resourceId this.Name))
-                        |> Seq.distinctBy (fun v -> v.Name)
-
-                    for volume in uniqueVolumes do
-                        volume
-            ]
+                for volume in uniqueVolumes do
+                    volume
+        ]
 
 type ContainerEnvironmentBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            InternalLoadBalancerState = Disabled
-            ContainerApps = []
-            AppInsights = None
-            LogAnalytics = derived (fun cfg -> Arm.LogAnalytics.workspaces.resourceId (cfg.Name - "workspace"))
-            Dependencies = Set.empty
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        InternalLoadBalancerState = Disabled
+        ContainerApps = []
+        AppInsights = None
+        LogAnalytics = derived (fun cfg -> Arm.LogAnalytics.workspaces.resourceId (cfg.Name - "workspace"))
+        Dependencies = Set.empty
+        Tags = Map.empty
+    }
 
     /// Sets the name of the Azure Container App Environment.
     [<CustomOperation "name">]
@@ -204,24 +203,22 @@ type ContainerEnvironmentBuilder() =
             }
 
 let private supportedResourceCombinations =
-    Set
-        [
-            0.25<VCores>, 0.5<Gb>
-            0.5<VCores>, 1.0<Gb>
-            0.75<VCores>, 1.5<Gb>
-            1.0<VCores>, 2.0<Gb>
-            1.25<VCores>, 2.5<Gb>
-            1.5<VCores>, 3.0<Gb>
-            1.75<VCores>, 3.5<Gb>
-            2.0<VCores>, 4.<Gb>
-        ]
+    Set [
+        0.25<VCores>, 0.5<Gb>
+        0.5<VCores>, 1.0<Gb>
+        0.75<VCores>, 1.5<Gb>
+        1.0<VCores>, 2.0<Gb>
+        1.25<VCores>, 2.5<Gb>
+        1.5<VCores>, 3.0<Gb>
+        1.75<VCores>, 3.5<Gb>
+        2.0<VCores>, 4.<Gb>
+    ]
 
-let private defaultResources =
-    {|
-        CPU = 0.25<VCores>
-        Memory = 0.5<Gb>
-        EphemeralStorage = None
-    |}
+let private defaultResources = {|
+    CPU = 0.25<VCores>
+    Memory = 0.5<Gb>
+    EphemeralStorage = None
+|}
 
 module Volume =
     let emptyDir volumeName = volumeName, Volume.EmptyDirectory
@@ -230,22 +227,21 @@ module Volume =
         volumeName, Volume.AzureFileShare(shareName, storageAccount, accessMode)
 
 type ContainerAppBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            ActiveRevisionsMode = ActiveRevisionsMode.Single
-            ImageRegistryCredentials = []
-            Containers = []
-            Replicas = None
-            ScaleRules = Map.empty
-            Secrets = Map.empty
-            IngressMode = None
-            Volumes = Map.empty
-            Identity = ManagedIdentity.Empty
-            EnvironmentVariables = Map.empty
-            DaprConfig = None
-            Dependencies = Set.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        ActiveRevisionsMode = ActiveRevisionsMode.Single
+        ImageRegistryCredentials = []
+        Containers = []
+        Replicas = None
+        ScaleRules = Map.empty
+        Secrets = Map.empty
+        IngressMode = None
+        Volumes = Map.empty
+        Identity = ManagedIdentity.Empty
+        EnvironmentVariables = Map.empty
+        DaprConfig = None
+        Dependencies = Set.empty
+    }
 
     member _.Run(state: ContainerAppConfig) =
         let resourceTotals =
@@ -335,13 +331,12 @@ type ContainerAppBuilder() =
         let state: ContainerAppConfig =
             this.AddSecretExpression(state, secretRef, storageAccount.Key)
 
-        let queueRule =
-            {
-                QueueName = queueName
-                QueueLength = queueLength
-                StorageConnectionSecretRef = secretRef
-                AccountName = storageAccount.Name.ResourceName.Value
-            }
+        let queueRule = {
+            QueueName = queueName
+            QueueLength = queueLength
+            StorageConnectionSecretRef = secretRef
+            AccountName = storageAccount.Name.ResourceName.Value
+        }
 
         { state with
             ScaleRules = state.ScaleRules.Add(name, ScaleRule.StorageQueue queueRule)
@@ -371,7 +366,7 @@ type ContainerAppBuilder() =
             IngressMode =
                 let existingTransport =
                     match state.IngressMode with
-                    | Some (External (_, transport)) -> transport
+                    | Some(External(_, transport)) -> transport
                     | Some InternalOnly
                     | None -> None
 
@@ -385,7 +380,7 @@ type ContainerAppBuilder() =
             IngressMode =
                 let existingPort =
                     match state.IngressMode with
-                    | Some (External (port, _)) -> port
+                    | Some(External(port, _)) -> port
                     | Some InternalOnly
                     | None -> 80us
 
@@ -501,13 +496,12 @@ type ContainerAppBuilder() =
 
     [<CustomOperation "add_simple_container">]
     member this.AddSimpleContainer(state: ContainerAppConfig, dockerImage, dockerVersion) =
-        let container =
-            {
-                ContainerConfig.ContainerName = state.Name.Value
-                DockerImage = Some(Containers.PublicImage(dockerImage, Some dockerVersion))
-                Resources = defaultResources
-                VolumeMounts = Map.empty
-            }
+        let container = {
+            ContainerConfig.ContainerName = state.Name.Value
+            DockerImage = Some(Containers.PublicImage(dockerImage, Some dockerVersion))
+            Resources = defaultResources
+            VolumeMounts = Map.empty
+        }
 
         this.AddContainers(state, [ container ])
 
@@ -530,13 +524,12 @@ type ContainerAppBuilder() =
             }
 
 type ContainerBuilder() =
-    member _.Yield _ =
-        {
-            ContainerName = ""
-            DockerImage = None
-            Resources = defaultResources
-            VolumeMounts = Map.empty
-        }
+    member _.Yield _ = {
+        ContainerName = ""
+        DockerImage = None
+        Resources = defaultResources
+        VolumeMounts = Map.empty
+    }
 
     /// Set docker credentials
     [<CustomOperation "name">]

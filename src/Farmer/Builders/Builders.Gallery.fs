@@ -20,31 +20,29 @@ type GalleryConfig =
     interface IBuilder with
         member this.ResourceId = galleries.resourceId this.Name.ResourceName
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    Description = this.Description
-                    SharingProfile = this.SharingProfile
-                    SoftDeletePolicy =
-                        this.SoftDelete
-                        |> Option.map (fun flag -> { IsSoftDeleteEnabled = flag.AsBoolean })
-                    Tags = this.Tags
-                    Dependencies = this.Dependencies
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Description = this.Description
+                SharingProfile = this.SharingProfile
+                SoftDeletePolicy =
+                    this.SoftDelete
+                    |> Option.map (fun flag -> { IsSoftDeleteEnabled = flag.AsBoolean })
+                Tags = this.Tags
+                Dependencies = this.Dependencies
+            }
+        ]
 
 type GalleryBuilder() =
-    member _.Yield _ =
-        {
-            Name = GalleryName.Empty
-            Description = None
-            SharingProfile = None
-            SoftDelete = None
-            Tags = Map.empty
-            Dependencies = Set.empty
-        }
+    member _.Yield _ = {
+        Name = GalleryName.Empty
+        Description = None
+        SharingProfile = None
+        SoftDelete = None
+        Tags = Map.empty
+        Dependencies = Set.empty
+    }
 
     [<CustomOperation "name">]
     member _.Name(config: GalleryConfig, name: string) =
@@ -104,53 +102,51 @@ type GalleryImageConfig =
         member this.ResourceId =
             galleryImages.resourceId (this.GalleryName.ResourceName, this.Name)
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    GalleryName = this.GalleryName
-                    Location = location
-                    Architecture = this.Architecture
-                    Description = this.Description |> Option.toObj
-                    Eula = this.Eula
-                    HyperVGeneration =
-                        this.HyperVGeneration
-                        |> Option.defaultWith (fun _ -> raiseFarmer "Gallery image 'hyperv_generation' is required.")
-                    Identifier =
-                        this.Identifier
-                        |> Option.defaultWith (fun _ -> raiseFarmer "Gallery image 'identifier' is required.")
-                    OsState = this.OsState |> Option.defaultValue Generalized
-                    OsType =
-                        this.OsType
-                        |> Option.defaultWith (fun _ -> raiseFarmer "Gallery image 'os_type' is required.")
-                    PrivacyStatementUri = this.PrivacyStatementUri
-                    PurchasePlan = this.PurchasePlan
-                    Recommended = this.Recommended |> Option.defaultValue RecommendedMachineConfiguration.Default
-                    ReleaseNoteUri = this.ReleaseNoteUri
-                    Tags = this.Tags
-                    Dependencies = this.Dependencies
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                GalleryName = this.GalleryName
+                Location = location
+                Architecture = this.Architecture
+                Description = this.Description |> Option.toObj
+                Eula = this.Eula
+                HyperVGeneration =
+                    this.HyperVGeneration
+                    |> Option.defaultWith (fun _ -> raiseFarmer "Gallery image 'hyperv_generation' is required.")
+                Identifier =
+                    this.Identifier
+                    |> Option.defaultWith (fun _ -> raiseFarmer "Gallery image 'identifier' is required.")
+                OsState = this.OsState |> Option.defaultValue Generalized
+                OsType =
+                    this.OsType
+                    |> Option.defaultWith (fun _ -> raiseFarmer "Gallery image 'os_type' is required.")
+                PrivacyStatementUri = this.PrivacyStatementUri
+                PurchasePlan = this.PurchasePlan
+                Recommended = this.Recommended |> Option.defaultValue RecommendedMachineConfiguration.Default
+                ReleaseNoteUri = this.ReleaseNoteUri
+                Tags = this.Tags
+                Dependencies = this.Dependencies
+            }
+        ]
 
 type GalleryImageBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            GalleryName = GalleryName.Empty
-            Architecture = None
-            Description = None
-            Eula = None
-            HyperVGeneration = None
-            Identifier = None
-            OsState = None
-            OsType = None
-            PrivacyStatementUri = None
-            PurchasePlan = None
-            Recommended = None
-            ReleaseNoteUri = None
-            Tags = Map.empty
-            Dependencies = Set.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        GalleryName = GalleryName.Empty
+        Architecture = None
+        Description = None
+        Eula = None
+        HyperVGeneration = None
+        Identifier = None
+        OsState = None
+        OsType = None
+        PrivacyStatementUri = None
+        PurchasePlan = None
+        Recommended = None
+        ReleaseNoteUri = None
+        Tags = Map.empty
+        Dependencies = Set.empty
+    }
 
     member _.Run(config: GalleryImageConfig) =
         if config.Name = ResourceName.Empty then

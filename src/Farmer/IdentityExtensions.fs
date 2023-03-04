@@ -9,36 +9,32 @@ module ManagedIdentityExtensions =
     type ManagedIdentity with
 
         /// Creates a single User-Assigned ResourceIdentity from a ResourceId
-        static member create(resourceId: ResourceId) =
-            {
-                SystemAssigned = Disabled
-                UserAssigned = [ UserAssignedIdentity resourceId ]
-            }
+        static member create(resourceId: ResourceId) = {
+            SystemAssigned = Disabled
+            UserAssigned = [ UserAssignedIdentity resourceId ]
+        }
 
         static member create(identity: Identity.UserAssignedIdentity) =
             match identity with
-            | LinkedUserAssignedIdentity rid ->
-                {
-                    SystemAssigned = Disabled
-                    UserAssigned = [ LinkedUserAssignedIdentity rid ]
-                }
-            | UserAssignedIdentity rid ->
-                {
-                    SystemAssigned = Disabled
-                    UserAssigned = [ UserAssignedIdentity rid ]
-                }
+            | LinkedUserAssignedIdentity rid -> {
+                SystemAssigned = Disabled
+                UserAssigned = [ LinkedUserAssignedIdentity rid ]
+              }
+            | UserAssignedIdentity rid -> {
+                SystemAssigned = Disabled
+                UserAssigned = [ UserAssignedIdentity rid ]
+              }
 
         /// Creates a resource identity from a resource name
         static member create(name: ResourceName) =
             userAssignedIdentities.resourceId name |> ManagedIdentity.create
 
 module Roles =
-    type RoleAssignment =
-        {
-            Role: RoleId
-            Principal: PrincipalId
-            Owner: ResourceId option
-        }
+    type RoleAssignment = {
+        Role: RoleId
+        Principal: PrincipalId
+        Owner: ResourceId option
+    }
 
     let private makeRoleId name (roleId: string) =
         RoleId

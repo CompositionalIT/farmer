@@ -22,28 +22,26 @@ type LogicAppConfig =
     interface IBuilder with
         member this.ResourceId = workflows.resourceId this.WorkflowName
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.LogicAppWorkflowName
-                    Location = location
-                    Definition =
-                        match this.Definition with
-                        | FileDefinition path ->
-                            let fileContent = File.ReadAllText(path)
-                            JsonDocument.Parse(fileContent)
-                        | ValueDefinition value -> JsonDocument.Parse(value)
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.LogicAppWorkflowName
+                Location = location
+                Definition =
+                    match this.Definition with
+                    | FileDefinition path ->
+                        let fileContent = File.ReadAllText(path)
+                        JsonDocument.Parse(fileContent)
+                    | ValueDefinition value -> JsonDocument.Parse(value)
+                Tags = this.Tags
+            }
+        ]
 
 type LogicAppBuilder() =
-    member _.Yield _ =
-        {
-            WorkflowName = ResourceName "logic-app-workflow"
-            Definition = ValueDefinition """{"name":"logic-app-workflow"}"""
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        WorkflowName = ResourceName "logic-app-workflow"
+        Definition = ValueDefinition """{"name":"logic-app-workflow"}"""
+        Tags = Map.empty
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: LogicAppConfig, name) =

@@ -16,27 +16,25 @@ type DashboardConfig =
     interface IBuilder with
         member this.ResourceId = dashboard.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Title = this.Title
-                    Location = location
-                    Metadata = this.Metadata
-                    LensParts = this.LensParts
-                    Dependencies = this.Dependencies
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Title = this.Title
+                Location = location
+                Metadata = this.Metadata
+                LensParts = this.LensParts
+                Dependencies = this.Dependencies
+            }
+        ]
 
 type DashboardBuilder() =
-    member __.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Title = None
-            Metadata = DashboardMetadata.EmptyMetadata
-            LensParts = List.empty
-            Dependencies = Set.empty
-        }
+    member __.Yield _ = {
+        Name = ResourceName.Empty
+        Title = None
+        Metadata = DashboardMetadata.EmptyMetadata
+        LensParts = List.empty
+        Dependencies = Set.empty
+    }
 
     [<CustomOperation "name">]
     /// Sets the name of the dashboard.

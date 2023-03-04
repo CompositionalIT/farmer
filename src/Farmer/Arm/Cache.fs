@@ -29,23 +29,21 @@ type Redis =
 
         member this.JsonModel =
             {| redis.Create(this.Name, this.Location, tags = this.Tags) with
-                properties =
-                    {|
-                        sku =
-                            {|
-                                name = string this.Sku.Sku
-                                family = this.Family
-                                capacity = this.Sku.Capacity
-                            |}
-                        enableNonSslPort = this.NonSslEnabled |> Option.toNullable
-                        shardCount = this.ShardCount |> Option.toNullable
-                        minimumTlsVersion =
-                            this.MinimumTlsVersion
-                            |> Option.map (function
-                                | Tls10 -> "1.0"
-                                | Tls11 -> "1.1"
-                                | Tls12 -> "1.2")
-                            |> Option.toObj
-                        redisConfiguration = this.RedisConfiguration
+                properties = {|
+                    sku = {|
+                        name = string this.Sku.Sku
+                        family = this.Family
+                        capacity = this.Sku.Capacity
                     |}
+                    enableNonSslPort = this.NonSslEnabled |> Option.toNullable
+                    shardCount = this.ShardCount |> Option.toNullable
+                    minimumTlsVersion =
+                        this.MinimumTlsVersion
+                        |> Option.map (function
+                            | Tls10 -> "1.0"
+                            | Tls11 -> "1.1"
+                            | Tls12 -> "1.2")
+                        |> Option.toObj
+                    redisConfiguration = this.RedisConfiguration
+                |}
             |}

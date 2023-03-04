@@ -8,15 +8,14 @@ open System
 open System.Net
 open Farmer.Arm
 
-type EndpointConfig =
-    {
-        Name: ResourceName
-        Status: FeatureFlag
-        Target: EndpointTarget
-        Weight: int option
-        Priority: int option
-        Dependencies: Set<ResourceId>
-    }
+type EndpointConfig = {
+    Name: ResourceName
+    Status: FeatureFlag
+    Target: EndpointTarget
+    Weight: int option
+    Priority: int option
+    Dependencies: Set<ResourceId>
+}
 
 type TrafficManagerConfig =
     {
@@ -63,22 +62,22 @@ type TrafficManagerConfig =
                                 Priority = e.Priority
                                 Location =
                                     match e.Target with
-                                    | External (_, l) -> Some l
+                                    | External(_, l) -> Some l
                                     | _ -> None
-                            }: Endpoint)
+                            }
+                            : Endpoint)
                 }
             ]
 
 type EndpointBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Status = Enabled
-            Target = EndpointTarget.Website ResourceName.Empty
-            Weight = None
-            Priority = None
-            Dependencies = Set.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Status = Enabled
+        Target = EndpointTarget.Website ResourceName.Empty
+        Weight = None
+        Priority = None
+        Dependencies = Set.empty
+    }
 
     /// Sets the name of the Endpoint
     [<CustomOperation "name">]
@@ -129,26 +128,24 @@ type EndpointBuilder() =
         }
 
 type TrafficManagerBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            DnsTtl = 30<Seconds>
-            Status = Enabled
-            RoutingMethod = RoutingMethod.Performance
-            TrafficViewEnrollmentStatus = Disabled
-            EndpointConfigs = []
-            MonitorConfig =
-                {
-                    Protocol = MonitorProtocol.Http
-                    Port = 80
-                    Path = "/"
-                    IntervalInSeconds = 30<Seconds>
-                    ToleratedNumberOfFailures = 3
-                    TimeoutInSeconds = 10<Seconds>
-                }
-            Dependencies = Set.empty
-            Tags = Map.empty
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        DnsTtl = 30<Seconds>
+        Status = Enabled
+        RoutingMethod = RoutingMethod.Performance
+        TrafficViewEnrollmentStatus = Disabled
+        EndpointConfigs = []
+        MonitorConfig = {
+            Protocol = MonitorProtocol.Http
+            Port = 80
+            Path = "/"
+            IntervalInSeconds = 30<Seconds>
+            ToleratedNumberOfFailures = 3
+            TimeoutInSeconds = 10<Seconds>
         }
+        Dependencies = Set.empty
+        Tags = Map.empty
+    }
 
     member _.Run(state: TrafficManagerConfig) = state
 

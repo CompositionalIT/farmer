@@ -29,24 +29,29 @@ let serverPort = 25565
 let storageAccountName = "mcworlddata"
 
 let operator = true
+
 /// Our list of minecraft users - their username, uuid, and whether they are an operator.
 let minecrafters = [
-        "McUser1", "a6a66bfb-6ff7-46e3-981e-518e6a3f0e71", operator
-        "McUser2", "d3f2e456-d6a4-47ac-a7f0-41a4dc8ed156", not operator
-        "McUser3", "ceb50330-681a-4d9d-8e84-f76133d0fd28", not operator
-    ]
+    "McUser1", "a6a66bfb-6ff7-46e3-981e-518e6a3f0e71", operator
+    "McUser2", "d3f2e456-d6a4-47ac-a7f0-41a4dc8ed156", not operator
+    "McUser3", "ceb50330-681a-4d9d-8e84-f76133d0fd28", not operator
+]
 
 /// Let's allow our list of minecrafters on the whitelist.
 let whitelist =
     minecrafters
-    |> List.map (fun (name, uuid, _) -> { Name=name; Uuid=uuid })
+    |> List.map (fun (name, uuid, _) -> { Name = name; Uuid = uuid })
     |> Whitelist.format
 
 /// Filter the minecrafters that aren't operators.
 let ops =
     minecrafters
     |> List.filter (fun (_, _, op) -> op) // Filter anyone that isn't an operator
-    |> List.map (fun (name, uuid, _) -> { Name=name; Level=OperatorLevel.Level4; Uuid=uuid })
+    |> List.map (fun (name, uuid, _) -> {
+        Name = name
+        Level = OperatorLevel.Level4
+        Uuid = uuid
+    })
     |> Ops.format
 
 
@@ -57,7 +62,7 @@ let eula = Eula.format true
 let serverProperties =
     [
         ServerPort serverPort
-        RconPort (serverPort + 10)
+        RconPort(serverPort + 10)
         EnforceWhitelist true
         WhiteList true
         Motd "Azure Minecraft Server"
@@ -76,9 +81,9 @@ let serverStorage = storageAccount {
 /// A deployment script to create the config in the file share.
 let deployConfig =
     /// Helper function to base64 encode the files for embedding them in the deployment script.
-    let b64 (s:string) =
+    let b64 (s: string) =
         s |> System.Text.Encoding.UTF8.GetBytes |> Convert.ToBase64String
-    
+
     /// Build a script that embeds the content of these files, writes to the deploymentScript instance and then copies
     /// to the storageAccount file share. We will include the contents of these files as base64 encoded strings so
     /// there is no need to worry about special characters in the embedded script.
@@ -90,25 +95,27 @@ let deployConfig =
             serverProperties, ServerProperties.Filename
         ]
         |> List.map (fun (content, filename) ->
-                     $"echo {b64 content} | base64 -d > {filename} && az storage file upload --account-name {storageAccountName} --share-name {worldName} --source {filename}")
+            $"echo {b64 content} | base64 -d > {filename} && az storage file upload --account-name {storageAccountName} --share-name {worldName} --source {filename}")
 
     /// The script will also need to download the server.jar and upload it.
     let uploadServerJar =
         let results = HtmlDocument.Load "https://www.minecraft.net/en-us/download/server"
         // Scrape for anchor tags from this download page.
-        results.Descendants ["a"]
+        results.Descendants [ "a" ]
         // where the inner text contains "minecraft_server" since that's what is displayed on that link
-        |> Seq.filter (fun (x:HtmlNode) -> x.InnerText().StartsWith "minecraft_server")
+        |> Seq.filter (fun (x: HtmlNode) -> x.InnerText().StartsWith "minecraft_server")
         // And choose the "href" attribute if present
-        |> Seq.choose(fun (x:HtmlNode) -> x.TryGetAttribute("href") |> Option.map(fun (a:HtmlAttribute) -> a.Value()))
+        |> Seq.choose (fun (x: HtmlNode) ->
+            x.TryGetAttribute("href") |> Option.map (fun (a: HtmlAttribute) -> a.Value()))
         |> Seq.head // If it wasn't found, we'll get an error here.
-        |> (fun url -> $"curl -O {url} && az storage file upload --account-name {storageAccountName} --share-name {worldName} --source server.jar")
+        |> (fun url ->
+            $"curl -O {url} && az storage file upload --account-name {storageAccountName} --share-name {worldName} --source server.jar")
 
     let scriptSource =
         uploadServerJar :: uploadConfig
         |> List.rev // do the server upload last so it won't start until the configs are in place.
         |> String.concat "; "
-    
+
     deploymentScript {
         name "deployMinecraftConfig"
         // Depend on the storage account so this won't run until it's there.
@@ -120,6 +127,7 @@ let deployConfig =
 let serverContainer = containerGroup {
     name "minecraft-server"
     public_dns "azmcworld1" [ TCP, uint16 serverPort ]
+
     add_instances [
         containerInstance {
             name "minecraftserver"
@@ -151,11 +159,7 @@ let serverContainer = containerGroup {
 /// Build the deployment with storage, deployment script, and container group.
 let deployment = arm {
     location Location.EastUS
-    add_resources [
-        serverStorage
-        deployConfig
-        serverContainer
-    ]
+    add_resources [ serverStorage; deployConfig; serverContainer ]
 }
 
 // Usually takes about 2 minutes to run, mostly the deploymentScript resources. Another minute later, the Minecraft

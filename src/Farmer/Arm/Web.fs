@@ -100,39 +100,37 @@ type ServerFarm =
 
         member this.JsonModel =
             {| serverFarms.Create(this.Name, this.Location, tags = this.Tags) with
-                sku =
-                    {|
-                        name =
-                            match this.Sku with
-                            | Free -> "F1"
-                            | Shared -> "D1"
-                            | Basic sku
-                            | Standard sku
-                            | Premium sku
-                            | PremiumV2 sku
-                            | PremiumV3 sku
-                            | ElasticPremium sku
-                            | Isolated sku -> sku
-                            | Dynamic -> "Y1"
-                        tier = this.Tier
-                        size =
-                            match this.WorkerSize with
-                            | Small -> "0"
-                            | Medium -> "1"
-                            | Large -> "2"
-                            | Serverless -> "Y1"
-                        family = if this.IsDynamic then "Y" else null
-                        capacity = if this.IsDynamic then 0 else this.WorkerCount
-                    |}
-                properties =
-                    {|
-                        name = this.Name.Value
-                        computeMode = if this.IsDynamic then "Dynamic" else null
-                        perSiteScaling = if this.IsDynamic then Nullable() else Nullable false
-                        reserved = this.Reserved
-                        maximumElasticWorkerCount = this.MaximumElasticWorkerCount |> Option.toNullable
-                        zoneRedundant = this.ZoneRedundant |> Option.map (fun f -> f.AsBoolean) |> Option.toNullable
-                    |}
+                sku = {|
+                    name =
+                        match this.Sku with
+                        | Free -> "F1"
+                        | Shared -> "D1"
+                        | Basic sku
+                        | Standard sku
+                        | Premium sku
+                        | PremiumV2 sku
+                        | PremiumV3 sku
+                        | ElasticPremium sku
+                        | Isolated sku -> sku
+                        | Dynamic -> "Y1"
+                    tier = this.Tier
+                    size =
+                        match this.WorkerSize with
+                        | Small -> "0"
+                        | Medium -> "1"
+                        | Large -> "2"
+                        | Serverless -> "Y1"
+                    family = if this.IsDynamic then "Y" else null
+                    capacity = if this.IsDynamic then 0 else this.WorkerCount
+                |}
+                properties = {|
+                    name = this.Name.Value
+                    computeMode = if this.IsDynamic then "Dynamic" else null
+                    perSiteScaling = if this.IsDynamic then Nullable() else Nullable false
+                    reserved = this.Reserved
+                    maximumElasticWorkerCount = this.MaximumElasticWorkerCount |> Option.toNullable
+                    zoneRedundant = this.ZoneRedundant |> Option.map (fun f -> f.AsBoolean) |> Option.toNullable
+                |}
                 kind = this.Kind |> Option.toObj
             |}
 
@@ -265,7 +263,7 @@ type Site =
         member this.Run resourceGroupName =
             match this with
             | {
-                  ZipDeployPath = Some (path, target, slot)
+                  ZipDeployPath = Some(path, target, slot)
                   SiteType = siteType
               } ->
                 let path =
@@ -319,108 +317,101 @@ type Site =
                         Unchecked.defaultof<_>
                     else
                         this.Identity.ToArmJson
-                properties =
-                    {|
-                        serverFarmId = this.ServicePlan.Eval()
-                        httpsOnly = this.HTTPSOnly
-                        clientAffinityEnabled =
-                            match this.ClientAffinityEnabled with
-                            | Some v -> box v
+                properties = {|
+                    serverFarmId = this.ServicePlan.Eval()
+                    httpsOnly = this.HTTPSOnly
+                    clientAffinityEnabled =
+                        match this.ClientAffinityEnabled with
+                        | Some v -> box v
+                        | None -> null
+                    keyVaultReferenceIdentity = keyvaultId
+                    virtualNetworkSubnetId =
+                        match this.LinkToSubnet with
+                        | None -> null
+                        | Some id -> id.ResourceId.ArmExpression.Eval()
+                    siteConfig = {|
+                        alwaysOn = this.AlwaysOn
+                        appSettings = this.AppSettings |> mapOrNull (fun (k, v) -> {| name = k; value = v.Value |})
+                        connectionStrings =
+                            this.ConnectionStrings
+                            |> mapOrNull (fun (k, (v, t)) -> {|
+                                name = k
+                                connectionString = v.Value
+                                ``type`` = t.ToString()
+                            |})
+                        ftpsState =
+                            match this.FTPState with
+                            | Some FTPState.AllAllowed -> "AllAllowed"
+                            | Some FTPState.FtpsOnly -> "FtpsOnly"
+                            | Some FTPState.Disabled -> "Disabled"
                             | None -> null
-                        keyVaultReferenceIdentity = keyvaultId
-                        virtualNetworkSubnetId =
-                            match this.LinkToSubnet with
-                            | None -> null
-                            | Some id -> id.ResourceId.ArmExpression.Eval()
-                        siteConfig =
-                            {|
-                                alwaysOn = this.AlwaysOn
-                                appSettings =
-                                    this.AppSettings |> mapOrNull (fun (k, v) -> {| name = k; value = v.Value |})
-                                connectionStrings =
-                                    this.ConnectionStrings
-                                    |> mapOrNull (fun (k, (v, t)) ->
+                        linuxFxVersion = this.LinuxFxVersion |> Option.toObj
+                        appCommandLine = this.AppCommandLine |> Option.toObj
+                        netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj
+                        use32BitWorkerProcess =
+                            this.WorkerProcess
+                            |> Option.map (function
+                                | Bits32 -> true
+                                | Bits64 -> false)
+                            |> Option.toNullable
+                        javaVersion = this.JavaVersion |> Option.toObj
+                        javaContainer = this.JavaContainer |> Option.toObj
+                        javaContainerVersion = this.JavaContainerVersion |> Option.toObj
+                        phpVersion = this.PhpVersion |> Option.toObj
+                        ipSecurityRestrictions =
+                            match this.IpSecurityRestrictions with
+                            | [] -> null
+                            | restrictions ->
+                                restrictions
+                                |> List.mapi (fun index restriction -> {|
+                                    ipAddress = IPAddressCidr.format restriction.IpAddressCidr
+                                    name = restriction.Name
+                                    action = restriction.Action.ToString()
+                                    priority = index + 1
+                                |})
+                                |> box
+                        pythonVersion = this.PythonVersion |> Option.toObj
+                        http20Enabled = this.HTTP20Enabled |> Option.toNullable
+                        webSocketsEnabled = this.WebSocketsEnabled |> Option.toNullable
+                        metadata = [
+                            for key, value in this.Metadata do
+                                {| name = key; value = value |}
+                        ]
+                        cors =
+                            this.Cors
+                            |> Option.map (function
+                                | AllOrigins -> box {| allowedOrigins = [ "*" ] |}
+                                | SpecificOrigins(origins, credentials) ->
+                                    box
                                         {|
-                                            name = k
-                                            connectionString = v.Value
-                                            ``type`` = t.ToString()
+                                            allowedOrigins = origins
+                                            supportCredentials = credentials |> Option.toNullable
                                         |})
-                                ftpsState =
-                                    match this.FTPState with
-                                    | Some FTPState.AllAllowed -> "AllAllowed"
-                                    | Some FTPState.FtpsOnly -> "FtpsOnly"
-                                    | Some FTPState.Disabled -> "Disabled"
-                                    | None -> null
-                                linuxFxVersion = this.LinuxFxVersion |> Option.toObj
-                                appCommandLine = this.AppCommandLine |> Option.toObj
-                                netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj
-                                use32BitWorkerProcess =
-                                    this.WorkerProcess
-                                    |> Option.map (function
-                                        | Bits32 -> true
-                                        | Bits64 -> false)
-                                    |> Option.toNullable
-                                javaVersion = this.JavaVersion |> Option.toObj
-                                javaContainer = this.JavaContainer |> Option.toObj
-                                javaContainerVersion = this.JavaContainerVersion |> Option.toObj
-                                phpVersion = this.PhpVersion |> Option.toObj
-                                ipSecurityRestrictions =
-                                    match this.IpSecurityRestrictions with
-                                    | [] -> null
-                                    | restrictions ->
-                                        restrictions
-                                        |> List.mapi (fun index restriction ->
-                                            {|
-                                                ipAddress = IPAddressCidr.format restriction.IpAddressCidr
-                                                name = restriction.Name
-                                                action = restriction.Action.ToString()
-                                                priority = index + 1
-                                            |})
-                                        |> box
-                                pythonVersion = this.PythonVersion |> Option.toObj
-                                http20Enabled = this.HTTP20Enabled |> Option.toNullable
-                                webSocketsEnabled = this.WebSocketsEnabled |> Option.toNullable
-                                metadata =
-                                    [
-                                        for key, value in this.Metadata do
-                                            {| name = key; value = value |}
-                                    ]
-                                cors =
-                                    this.Cors
-                                    |> Option.map (function
-                                        | AllOrigins -> box {| allowedOrigins = [ "*" ] |}
-                                        | SpecificOrigins (origins, credentials) ->
-                                            box
-                                                {|
-                                                    allowedOrigins = origins
-                                                    supportCredentials = credentials |> Option.toNullable
-                                                |})
-                                    |> Option.toObj
-                                healthCheckPath = this.HealthCheckPath |> Option.toObj
-                                autoSwapSlotName = this.AutoSwapSlotName |> Option.toObj
-                                vnetName =
-                                    this.LinkToSubnet
-                                    |> Option.map (fun x -> x.ResourceId.Segments[0].Value)
-                                    |> Option.toObj
-                                vnetRouteAllEnabled =
-                                    this.LinkToSubnet
-                                    |> function
-                                        | Some _ -> Nullable true
-                                        | None -> Nullable()
-                                virtualApplications =
-                                    if this.VirtualApplications.IsEmpty then
-                                        null
-                                    else
-                                        this.VirtualApplications
-                                        |> Seq.map (fun virtualAppKvp ->
-                                            {|
-                                                virtualPath = virtualAppKvp.Key
-                                                physicalPath = virtualAppKvp.Value.PhysicalPath
-                                                preloadEnabled = virtualAppKvp.Value.PreloadEnabled |> Option.toNullable
-                                            |})
-                                        |> box
-                            |}
+                            |> Option.toObj
+                        healthCheckPath = this.HealthCheckPath |> Option.toObj
+                        autoSwapSlotName = this.AutoSwapSlotName |> Option.toObj
+                        vnetName =
+                            this.LinkToSubnet
+                            |> Option.map (fun x -> x.ResourceId.Segments[0].Value)
+                            |> Option.toObj
+                        vnetRouteAllEnabled =
+                            this.LinkToSubnet
+                            |> function
+                                | Some _ -> Nullable true
+                                | None -> Nullable()
+                        virtualApplications =
+                            if this.VirtualApplications.IsEmpty then
+                                null
+                            else
+                                this.VirtualApplications
+                                |> Seq.map (fun virtualAppKvp -> {|
+                                    virtualPath = virtualAppKvp.Key
+                                    physicalPath = virtualAppKvp.Value.PhysicalPath
+                                    preloadEnabled = virtualAppKvp.Value.PreloadEnabled |> Option.toNullable
+                                |})
+                                |> box
                     |}
+                |}
             |}
 
 module Sites =
@@ -440,12 +431,11 @@ module Sites =
 
             member this.JsonModel =
                 {| sourceControls.Create(this.Name, this.Location, [ sites.resourceId this.Website ]) with
-                    properties =
-                        {|
-                            repoUrl = this.Repository.ToString()
-                            branch = this.Branch
-                            isManualIntegration = this.ContinuousIntegration.AsBoolean |> not
-                        |}
+                    properties = {|
+                        repoUrl = this.Repository.ToString()
+                        branch = this.Branch
+                        isManualIntegration = this.ContinuousIntegration.AsBoolean |> not
+                    |}
                 |}
 
 type VirtualNetworkConnection =
@@ -468,11 +458,10 @@ type VirtualNetworkConnection =
                 | Slot _ -> slotsVirtualNetworkConnections
 
             {| resourceType.Create(this.Name, dependsOn = [ this.SiteId; yield! this.Dependencies ]) with
-                properties =
-                    {|
-                        vnetResourceId = this.Subnet.ArmExpression.Eval()
-                        isSwift = true
-                    |}
+                properties = {|
+                    vnetResourceId = this.Subnet.ArmExpression.Eval()
+                    isSwift = true
+                |}
             |}
             :> _
 
@@ -493,18 +482,16 @@ type StaticSite =
 
         member this.JsonModel =
             {| staticSites.Create(this.Name, this.Location) with
-                properties =
-                    {|
-                        repositoryUrl = this.Repository.ToString()
-                        branch = this.Branch
-                        repositoryToken = this.RepositoryToken.ArmExpression.Eval()
-                        buildProperties =
-                            {|
-                                appLocation = this.AppLocation
-                                apiLocation = this.ApiLocation |> Option.toObj
-                                appArtifactLocation = this.AppArtifactLocation |> Option.toObj
-                            |}
+                properties = {|
+                    repositoryUrl = this.Repository.ToString()
+                    branch = this.Branch
+                    repositoryToken = this.RepositoryToken.ArmExpression.Eval()
+                    buildProperties = {|
+                        appLocation = this.AppLocation
+                        apiLocation = this.ApiLocation |> Option.toObj
+                        appArtifactLocation = this.AppArtifactLocation |> Option.toObj
                     |}
+                |}
                 sku = {| Tier = "Free"; Name = "Free" |}
             |}
 
@@ -562,7 +549,7 @@ type HostNameBinding =
                             thumbprint = thumbprint.Eval()
                         |}
                         :> obj
-                    | SslDisabled -> {|  |} :> obj
+                    | SslDisabled -> {| |} :> obj
             |}
 
 type Certificate =
@@ -591,21 +578,19 @@ type Certificate =
         member this.JsonModel =
             let dependencies =
                 match this.SiteId with
-                | Managed r ->
-                    [
-                        r
-                        { hostNameBindings.resourceId (r.Name, ResourceName this.DomainName) with
-                            ResourceGroup = r.ResourceGroup
-                        }
-                    ]
+                | Managed r -> [
+                    r
+                    { hostNameBindings.resourceId (r.Name, ResourceName this.DomainName) with
+                        ResourceGroup = r.ResourceGroup
+                    }
+                  ]
                 | _ -> []
 
             {| certificates.Create(this.ResourceName, this.Location, dependencies) with
-                properties =
-                    {|
-                        serverFarmId = this.ServicePlanId.ResourceId.Eval()
-                        canonicalName = this.DomainName
-                    |}
+                properties = {|
+                    serverFarmId = this.ServicePlanId.ResourceId.Eval()
+                    canonicalName = this.DomainName
+                |}
             |}
 
 [<AutoOpen>]

@@ -20,35 +20,32 @@ type HostGroupConfig =
         member this.ResourceId = hostGroups.resourceId this.Name
 
         member this.BuildResources location =
-            let hostGroup: HostGroup =
-                {
-                    Name = this.Name
-                    Location = location
-                    AvailabilityZone =
-                        this.AvailabilityZone
-                        |> Option.map (fun zone -> [ zone ])
-                        |> Option.defaultValue []
-                    SupportAutomaticPlacement =
-                        this.SupportAutomaticPlacement |> Option.defaultValue FeatureFlag.Disabled
-                    PlatformFaultDomainCount =
-                        this.PlatformFaultDomainCount
-                        |> Option.defaultValue (PlatformFaultDomainCount 1)
-                    DependsOn = this.DependsOn
-                    Tags = this.Tags
-                }
+            let hostGroup: HostGroup = {
+                Name = this.Name
+                Location = location
+                AvailabilityZone =
+                    this.AvailabilityZone
+                    |> Option.map (fun zone -> [ zone ])
+                    |> Option.defaultValue []
+                SupportAutomaticPlacement = this.SupportAutomaticPlacement |> Option.defaultValue FeatureFlag.Disabled
+                PlatformFaultDomainCount =
+                    this.PlatformFaultDomainCount
+                    |> Option.defaultValue (PlatformFaultDomainCount 1)
+                DependsOn = this.DependsOn
+                Tags = this.Tags
+            }
 
             [ hostGroup ]
 
 type HostGroupBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            AvailabilityZone = None
-            SupportAutomaticPlacement = None
-            PlatformFaultDomainCount = None
-            DependsOn = Set.empty
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        AvailabilityZone = None
+        SupportAutomaticPlacement = None
+        PlatformFaultDomainCount = None
+        DependsOn = Set.empty
+        Tags = Map.empty
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: HostGroupConfig, name: string) = { state with Name = ResourceName name }
@@ -105,34 +102,31 @@ type HostConfig =
             | "", _ -> raiseFarmer "Hosts must have a linked host group"
             | _, None -> raiseFarmer "Hosts must have a sku"
             | _, Some sku ->
-                let host: Compute.Host =
-                    {
-                        Name = this.Name
-                        Location = location
-                        Sku = sku
-                        ParentHostGroupName = this.HostGroupName.ResourceId.Name
-                        AutoReplaceOnFailure = FeatureFlag.Enabled
-                        LicenseType = HostLicenseType.NoLicense
-                        DependsOn = this.DependsOn
-                        PlatformFaultDomain =
-                            this.PlatformFaultDomain |> Option.defaultValue (PlatformFaultDomainCount 1)
-                        Tags = this.Tags
-                    }
+                let host: Compute.Host = {
+                    Name = this.Name
+                    Location = location
+                    Sku = sku
+                    ParentHostGroupName = this.HostGroupName.ResourceId.Name
+                    AutoReplaceOnFailure = FeatureFlag.Enabled
+                    LicenseType = HostLicenseType.NoLicense
+                    DependsOn = this.DependsOn
+                    PlatformFaultDomain = this.PlatformFaultDomain |> Option.defaultValue (PlatformFaultDomainCount 1)
+                    Tags = this.Tags
+                }
 
                 [ host ]
 
 type HostBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            AutoReplaceOnFailure = None
-            LicenseType = None
-            HostSku = None
-            DependsOn = Set.empty
-            PlatformFaultDomain = None
-            HostGroupName = Managed(ResourceId.create (hostGroups, ResourceName.Empty))
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        AutoReplaceOnFailure = None
+        LicenseType = None
+        HostSku = None
+        DependsOn = Set.empty
+        PlatformFaultDomain = None
+        HostGroupName = Managed(ResourceId.create (hostGroups, ResourceName.Empty))
+        Tags = Map.empty
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: HostConfig, name: string) = { state with Name = ResourceName name }

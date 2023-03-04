@@ -8,28 +8,34 @@ open System.Net
 open Servers
 open Databases
 
-type SqlAzureDbConfig =
-    {
-        Name: ResourceName
-        Sku: DbPurchaseModel option
-        MaxSize: int<Mb> option
-        Collation: string
-        Encryption: FeatureFlag
-    }
+type SqlAzureDbConfig = {
+    Name: ResourceName
+    Sku: DbPurchaseModel option
+    MaxSize: int<Mb> option
+    Collation: string
+    Encryption: FeatureFlag
+}
 
 type SqlAzureConfig =
     {
         Name: SqlAccountName
-        AdministratorCredentials: {| UserName: string
-                                     Password: SecureParameter |}
+        AdministratorCredentials: {|
+            UserName: string
+            Password: SecureParameter
+        |}
         MinTlsVersion: TlsVersion option
-        FirewallRules: {| Name: ResourceName
-                          Start: IPAddress
-                          End: IPAddress |} list
-        ElasticPoolSettings: {| Name: ResourceName option
-                                Sku: PoolSku
-                                PerDbLimits: {| Min: int<DTU>; Max: int<DTU> |} option
-                                Capacity: int<Mb> option |}
+        FirewallRules:
+            {|
+                Name: ResourceName
+                Start: IPAddress
+                End: IPAddress
+            |} list
+        ElasticPoolSettings: {|
+            Name: ResourceName option
+            Sku: PoolSku
+            PerDbLimits: {| Min: int<DTU>; Max: int<DTU> |} option
+            Capacity: int<Mb> option
+        |}
         Databases: SqlAzureDbConfig list
         GeoReplicaServer: GeoReplicationSettings option
         Tags: Map<string, string>
@@ -38,14 +44,13 @@ type SqlAzureConfig =
     /// Gets a basic .NET connection string using the administrator username / password.
     member this.ConnectionString(database: SqlAzureDbConfig) =
         let expr =
-            ArmExpression.concat
-                [
-                    ArmExpression.literal
-                        $"Server=tcp:{this.Name.ResourceName.Value}.database.windows.net,1433;Initial Catalog={database.Name.Value};Persist Security Info=False;User ID={this.AdministratorCredentials.UserName};Password="
-                    this.AdministratorCredentials.Password.ArmExpression
-                    ArmExpression.literal
-                        ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
-                ]
+            ArmExpression.concat [
+                ArmExpression.literal
+                    $"Server=tcp:{this.Name.ResourceName.Value}.database.windows.net,1433;Initial Catalog={database.Name.Value};Persist Security Info=False;User ID={this.AdministratorCredentials.UserName};Password="
+                this.AdministratorCredentials.Password.ArmExpression
+                ArmExpression.literal
+                    ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+            ]
 
         expr.WithOwner(databases.resourceId (this.Name.ResourceName, database.Name))
 
@@ -64,150 +69,140 @@ type SqlAzureConfig =
     interface IBuilder with
         member this.ResourceId = servers.resourceId this.Name.ResourceName
 
-        member this.BuildResources location =
-            [
-                let elasticPoolName =
-                    this.ElasticPoolSettings.Name
-                    |> Option.defaultValue (this.Name.ResourceName - "pool")
+        member this.BuildResources location = [
+            let elasticPoolName =
+                this.ElasticPoolSettings.Name
+                |> Option.defaultValue (this.Name.ResourceName - "pool")
 
+            {
+                ServerName = this.Name
+                Location = location
+                Credentials = {|
+                    Username = this.AdministratorCredentials.UserName
+                    Password = this.AdministratorCredentials.Password
+                |}
+                MinTlsVersion = this.MinTlsVersion
+                Tags = this.Tags
+            }
+
+            for database in this.Databases do
                 {
-                    ServerName = this.Name
+                    Name = database.Name
+                    Server = this.Name
                     Location = location
-                    Credentials =
-                        {|
+                    MaxSizeBytes =
+                        match database.Sku, database.MaxSize with
+                        | Some _, Some maxSize -> Some(Mb.toBytes maxSize)
+                        | _ -> None
+                    Sku =
+                        match database.Sku with
+                        | Some dbSku -> Standalone dbSku
+                        | None -> Pool elasticPoolName
+                    Collation = database.Collation
+                }
+
+                match database.Encryption with
+                | Enabled -> {
+                    Server = this.Name
+                    Database = database.Name
+                  }
+                | Disabled -> ()
+
+            for rule in this.FirewallRules do
+                {
+                    Name = rule.Name
+                    Start = rule.Start
+                    End = rule.End
+                    Location = location
+                    Server = this.Name
+                }
+
+            if this.Databases |> List.exists (fun db -> db.Sku.IsNone) then
+                {
+                    Name = elasticPoolName
+                    Server = this.Name
+                    Location = location
+                    Sku = this.ElasticPoolSettings.Sku
+                    MaxSizeBytes = this.ElasticPoolSettings.Capacity |> Option.map Mb.toBytes
+                    MinMax = this.ElasticPoolSettings.PerDbLimits |> Option.map (fun l -> l.Min, l.Max)
+                }
+
+            match this.GeoReplicaServer with
+            | Some replica ->
+                if replica.Location.ArmValue = location.ArmValue then
+                    raiseFarmer
+                        $"Geo-replica cannot be deployed to the same location than the main database {this.Name}: {location.ArmValue}"
+                else
+                    let replicaServerName =
+                        match (this.Name.ResourceName.Value + replica.NameSuffix) |> SqlAccountName.Create with
+                        | Ok x -> x
+                        | Error e -> raiseFarmer e
+
+                    {
+                        ServerName = replicaServerName
+                        Location = replica.Location
+                        Credentials = {|
                             Username = this.AdministratorCredentials.UserName
                             Password = this.AdministratorCredentials.Password
                         |}
-                    MinTlsVersion = this.MinTlsVersion
-                    Tags = this.Tags
-                }
-
-                for database in this.Databases do
-                    {
-                        Name = database.Name
-                        Server = this.Name
-                        Location = location
-                        MaxSizeBytes =
-                            match database.Sku, database.MaxSize with
-                            | Some _, Some maxSize -> Some(Mb.toBytes maxSize)
-                            | _ -> None
-                        Sku =
-                            match database.Sku with
-                            | Some dbSku -> Standalone dbSku
-                            | None -> Pool elasticPoolName
-                        Collation = database.Collation
+                        MinTlsVersion = this.MinTlsVersion
+                        Tags = this.Tags
                     }
 
-                    match database.Encryption with
-                    | Enabled ->
-                        {
-                            Server = this.Name
-                            Database = database.Name
-                        }
-                    | Disabled -> ()
+                    for database in this.Databases do
+                        let geoSku =
+                            match replica.DbSku, database.Sku with
+                            | Some relicaSku, _ -> relicaSku.Name, relicaSku.Edition
+                            | None, Some dbSku -> dbSku.Name, dbSku.Edition
+                            | None, None -> this.ElasticPoolSettings.Sku.Name, this.ElasticPoolSettings.Sku.Edition
 
-                for rule in this.FirewallRules do
-                    {
-                        Name = rule.Name
-                        Start = rule.Start
-                        End = rule.End
-                        Location = location
-                        Server = this.Name
-                    }
+                        let primaryDatabaseFullId =
+                            ArmExpression
+                                .create(
+                                    $"concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Sql/servers/', '{this.Name.ResourceName.Value}', '/databases/','{database.Name.Value}')"
+                                )
+                                .Eval()
 
-                if this.Databases |> List.exists (fun db -> db.Sku.IsNone) then
-                    {
-                        Name = elasticPoolName
-                        Server = this.Name
-                        Location = location
-                        Sku = this.ElasticPoolSettings.Sku
-                        MaxSizeBytes = this.ElasticPoolSettings.Capacity |> Option.map Mb.toBytes
-                        MinMax = this.ElasticPoolSettings.PerDbLimits |> Option.map (fun l -> l.Min, l.Max)
-                    }
-
-                match this.GeoReplicaServer with
-                | Some replica ->
-                    if replica.Location.ArmValue = location.ArmValue then
-                        raiseFarmer
-                            $"Geo-replica cannot be deployed to the same location than the main database {this.Name}: {location.ArmValue}"
-                    else
-                        let replicaServerName =
-                            match (this.Name.ResourceName.Value + replica.NameSuffix) |> SqlAccountName.Create with
-                            | Ok x -> x
-                            | Error e -> raiseFarmer e
-
-                        {
-                            ServerName = replicaServerName
-                            Location = replica.Location
-                            Credentials =
-                                {|
-                                    Username = this.AdministratorCredentials.UserName
-                                    Password = this.AdministratorCredentials.Password
-                                |}
-                            MinTlsVersion = this.MinTlsVersion
-                            Tags = this.Tags
-                        }
-
-                        for database in this.Databases do
-                            let geoSku =
-                                match replica.DbSku, database.Sku with
-                                | Some relicaSku, _ -> relicaSku.Name, relicaSku.Edition
-                                | None, Some dbSku -> dbSku.Name, dbSku.Edition
-                                | None, None -> this.ElasticPoolSettings.Sku.Name, this.ElasticPoolSettings.Sku.Edition
-
-                            let primaryDatabaseFullId =
-                                ArmExpression
-                                    .create(
-                                        $"concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Sql/servers/', '{this.Name.ResourceName.Value}', '/databases/','{database.Name.Value}')"
-                                    )
+                        {|
+                            apiVersion = "2021-02-01-preview"
+                            location = replica.Location.ArmValue
+                            dependsOn = [
+                                Farmer.ResourceId
+                                    .create(Farmer.Arm.Sql.servers, replicaServerName.ResourceName)
                                     .Eval()
-
-                            {|
-                                apiVersion = "2021-02-01-preview"
-                                location = replica.Location.ArmValue
-                                dependsOn =
-                                    [
-                                        Farmer
-                                            .ResourceId
-                                            .create(Farmer.Arm.Sql.servers, replicaServerName.ResourceName)
-                                            .Eval()
-                                        primaryDatabaseFullId
-                                    ]
-                                name =
-                                    $"{replicaServerName.ResourceName.Value}/{database.Name.Value + replica.NameSuffix}"
-                                ``type`` = Farmer.Arm.Sql.databases.Type
-                                sku =
-                                    {|
-                                        name = fst geoSku
-                                        tier = snd geoSku
-                                    |}
-                                properties =
-                                    {|
-                                        createMode = "OnlineSecondary"
-                                        secondaryType = "Geo"
-                                        sourceDatabaseId = primaryDatabaseFullId
-                                        zoneRedundant = false
-                                        licenseType = ""
-                                        readScale = "Disabled"
-                                        highAvailabilityReplicaCount = 0
-                                        minCapacity = ""
-                                        autoPauseDelay = ""
-                                        requestedBackupStorageRedundancy = ""
-                                    |}
+                                primaryDatabaseFullId
+                            ]
+                            name = $"{replicaServerName.ResourceName.Value}/{database.Name.Value + replica.NameSuffix}"
+                            ``type`` = Farmer.Arm.Sql.databases.Type
+                            sku = {|
+                                name = fst geoSku
+                                tier = snd geoSku
                             |}
-                            |> Farmer.Resource.ofObj
-                | None -> ()
-            ]
+                            properties = {|
+                                createMode = "OnlineSecondary"
+                                secondaryType = "Geo"
+                                sourceDatabaseId = primaryDatabaseFullId
+                                zoneRedundant = false
+                                licenseType = ""
+                                readScale = "Disabled"
+                                highAvailabilityReplicaCount = 0
+                                minCapacity = ""
+                                autoPauseDelay = ""
+                                requestedBackupStorageRedundancy = ""
+                            |}
+                        |}
+                        |> Farmer.Resource.ofObj
+            | None -> ()
+        ]
 
 type SqlDbBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName ""
-            Collation = "SQL_Latin1_General_CP1_CI_AS"
-            Sku = None
-            MaxSize = None
-            Encryption = Disabled
-        }
+    member _.Yield _ = {
+        Name = ResourceName ""
+        Collation = "SQL_Latin1_General_CP1_CI_AS"
+        Sku = None
+        MaxSize = None
+        Encryption = Disabled
+    }
 
     /// Sets the name of the database.
     [<CustomOperation "name">]
@@ -244,8 +239,8 @@ type SqlDbBuilder() =
         { state with
             Sku =
                 match state.Sku with
-                | Some (VCore (v, _)) -> Some(VCore(v, AzureHybridBenefit))
-                | Some (DTU _)
+                | Some(VCore(v, _)) -> Some(VCore(v, AzureHybridBenefit))
+                | Some(DTU _)
                 | None ->
                     raiseFarmer
                         "You can only set licensing on VCore databases. Ensure that you have already set the SKU to a VCore model."
@@ -269,27 +264,24 @@ type SqlDbBuilder() =
 type SqlServerBuilder() =
     let makeIp (text: string) = IPAddress.Parse text
 
-    member _.Yield _ =
-        {
-            Name = SqlAccountName.Empty
-            AdministratorCredentials =
-                {|
-                    UserName = ""
-                    Password = SecureParameter ""
-                |}
-            ElasticPoolSettings =
-                {|
-                    Name = None
-                    Sku = PoolSku.Basic50
-                    PerDbLimits = None
-                    Capacity = None
-                |}
-            Databases = []
-            FirewallRules = []
-            MinTlsVersion = None
-            GeoReplicaServer = None
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = SqlAccountName.Empty
+        AdministratorCredentials = {|
+            UserName = ""
+            Password = SecureParameter ""
+        |}
+        ElasticPoolSettings = {|
+            Name = None
+            Sku = PoolSku.Basic50
+            PerDbLimits = None
+            Capacity = None
+        |}
+        Databases = []
+        FirewallRules = []
+        MinTlsVersion = None
+        GeoReplicaServer = None
+        Tags = Map.empty
+    }
 
     member _.Run state : SqlAzureConfig =
         if state.Name.ResourceName = ResourceName.Empty then
@@ -380,12 +372,11 @@ type SqlServerBuilder() =
     member _.AddFirewallRules(state: SqlAzureConfig, listOfRules: (string * string * string) list) =
         let newRules =
             listOfRules
-            |> List.map (fun (name, startRange, endRange) ->
-                {|
-                    Name = ResourceName name
-                    Start = makeIp startRange
-                    End = makeIp endRange
-                |})
+            |> List.map (fun (name, startRange, endRange) -> {|
+                Name = ResourceName name
+                Start = makeIp startRange
+                End = makeIp endRange
+            |})
 
         { state with
             FirewallRules = newRules @ state.FirewallRules

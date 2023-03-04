@@ -129,20 +129,19 @@ type SlotConfig =
         }
 
 type SlotBuilder() =
-    member this.Yield _ =
-        {
-            Name = "staging"
-            AutoSwapSlotName = None
-            AppSettings = Map.empty
-            ConnectionStrings = Map.empty
-            DockerRegistryPath = None
-            StartupCommand = None
-            Identity = ManagedIdentity.Empty
-            KeyVaultReferenceIdentity = None
-            Tags = Map.empty
-            Dependencies = Set.empty
-            IpSecurityRestrictions = []
-        }
+    member this.Yield _ = {
+        Name = "staging"
+        AutoSwapSlotName = None
+        AppSettings = Map.empty
+        ConnectionStrings = Map.empty
+        DockerRegistryPath = None
+        StartupCommand = None
+        Identity = ManagedIdentity.Empty
+        KeyVaultReferenceIdentity = None
+        Tags = Map.empty
+        Dependencies = Set.empty
+        IpSecurityRestrictions = []
+    }
 
     [<CustomOperation "name">]
     member this.Name(state, name) : SlotConfig = { state with Name = name }
@@ -280,20 +279,18 @@ type SlotBuilder() =
 
 let appSlot = SlotBuilder()
 
-type VirtualApplicationConfig =
-    {
-        VirtualPath: string
-        PhysicalPath: string
-        PreloadEnabled: bool option
-    }
+type VirtualApplicationConfig = {
+    VirtualPath: string
+    PhysicalPath: string
+    PreloadEnabled: bool option
+}
 
 type VirtualApplicationBuilder() =
-    member this.Yield _ =
-        {
-            VirtualPath = ""
-            PhysicalPath = ""
-            PreloadEnabled = None
-        }
+    member this.Yield _ = {
+        VirtualPath = ""
+        PhysicalPath = ""
+        PreloadEnabled = None
+    }
 
     member _.Run(config: VirtualApplicationConfig) =
         if String.IsNullOrWhiteSpace config.VirtualPath then
@@ -386,14 +383,20 @@ type WebAppConfig =
         RunFromPackage: bool
         WebsiteNodeDefaultVersion: string option
         Runtime: Runtime
-        SourceControlSettings: {| Repository: Uri
-                                  Branch: string
-                                  ContinuousIntegration: FeatureFlag |} option
+        SourceControlSettings:
+            {|
+                Repository: Uri
+                Branch: string
+                ContinuousIntegration: FeatureFlag
+            |} option
         DockerRegistryPath: string option
         StartupCommand: string option
         DockerCi: bool
-        DockerAcrCredentials: {| RegistryName: string
-                                 Password: SecureParameter |} option
+        DockerAcrCredentials:
+            {|
+                RegistryName: string
+                Password: SecureParameter
+            |} option
         AutomaticLoggingExtension: bool
         SiteExtensions: ExtensionName Set
         PrivateEndpoints: (LinkedResource * string option) Set
@@ -426,479 +429,458 @@ type WebAppConfig =
     interface IBuilder with
         member this.ResourceId = this.ResourceId
 
-        member this.BuildResources location =
-            [
-                let keyVault, secrets =
-                    match this.CommonWebConfig.SecretStore with
-                    | KeyVault (DeployableResource (this.CommonWebConfig) vaultName) ->
-                        let store =
-                            keyVault {
-                                name vaultName.Name
+        member this.BuildResources location = [
+            let keyVault, secrets =
+                match this.CommonWebConfig.SecretStore with
+                | KeyVault(DeployableResource (this.CommonWebConfig) vaultName) ->
+                    let store = keyVault {
+                        name vaultName.Name
 
-                                add_access_policy (
-                                    AccessPolicy.create (this.SystemIdentity.PrincipalId, [ KeyVault.Secret.Get ])
-                                )
+                        add_access_policy (
+                            AccessPolicy.create (this.SystemIdentity.PrincipalId, [ KeyVault.Secret.Get ])
+                        )
 
-                                add_secrets
-                                    [
-                                        for setting in this.CommonWebConfig.Settings do
-                                            match setting.Value with
-                                            | LiteralSetting _ -> ()
-                                            | ParameterSetting _ -> SecretConfig.create (setting.Key)
-                                            | ExpressionSetting expr -> SecretConfig.create (setting.Key, expr)
-                                    ]
+                        add_secrets [
+                            for setting in this.CommonWebConfig.Settings do
+                                match setting.Value with
+                                | LiteralSetting _ -> ()
+                                | ParameterSetting _ -> SecretConfig.create (setting.Key)
+                                | ExpressionSetting expr -> SecretConfig.create (setting.Key, expr)
+                        ]
+                    }
+
+                    Some store, []
+                | KeyVault(ExternalResource vaultName) ->
+                    let secrets = [
+                        for setting in this.CommonWebConfig.Settings do
+                            let secret =
+                                match setting.Value with
+                                | LiteralSetting _ -> None
+                                | ParameterSetting _ -> SecretConfig.create setting.Key |> Some
+                                | ExpressionSetting expr -> SecretConfig.create (setting.Key, expr) |> Some
+
+                            match secret with
+                            | Some secret ->
+                                {
+                                    Secret.Name = vaultName.Name / secret.SecretName
+                                    Value = secret.Value
+                                    ContentType = secret.ContentType
+                                    Enabled = secret.Enabled
+                                    ActivationDate = secret.ActivationDate
+                                    ExpirationDate = secret.ExpirationDate
+                                    Location = location
+                                    Dependencies = secret.Dependencies.Add vaultName
+                                    Tags = secret.Tags
+                                }
+                                :> IArmResource
+                            | None -> ()
+                    ]
+
+                    None, secrets
+                | KeyVault _
+                | AppService -> None, []
+
+            yield! secrets
+
+            let siteSettings =
+                let literalSettings = [
+                    if this.RunFromPackage then
+                        AppSettings.RunFromPackage
+                    yield!
+                        this.WebsiteNodeDefaultVersion
+                        |> Option.mapList AppSettings.WebsiteNodeDefaultVersion
+                    yield!
+                        this.CommonWebConfig.AppInsights
+                        |> Option.mapList (fun resource ->
+                            "APPINSIGHTS_INSTRUMENTATIONKEY",
+                            AppInsights
+                                .getInstrumentationKey(resource.resourceId this.Name.ResourceName)
+                                .Eval())
+                    match this.CommonWebConfig.OperatingSystem, this.CommonWebConfig.AppInsights with
+                    | Windows, Some _ ->
+                        "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
+                        "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
+                        "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
+                        "DiagnosticServices_EXTENSION_VERSION", "~3"
+                        "InstrumentationEngine_EXTENSION_VERSION", "~1"
+                        "SnapshotDebugger_EXTENSION_VERSION", "~1"
+                        "XDT_MicrosoftApplicationInsights_BaseExtensions", "~1"
+                        "XDT_MicrosoftApplicationInsights_Mode", "recommended"
+                    | Linux, Some _
+                    | _, None -> ()
+
+                    yield! this.DockerPort |> Option.mapList AppSettings.WebsitesPort
+
+                    if this.DockerCi then
+                        "DOCKER_ENABLE_CI", "true"
+                ]
+
+                let dockerSettings = [
+                    match this.DockerAcrCredentials with
+                    | Some credentials ->
+                        "DOCKER_REGISTRY_SERVER_PASSWORD", ParameterSetting credentials.Password
+
+                        Setting.AsLiteral(
+                            "DOCKER_REGISTRY_SERVER_URL",
+                            $"https://{credentials.RegistryName}.azurecr.io"
+                        )
+
+                        Setting.AsLiteral("DOCKER_REGISTRY_SERVER_USERNAME", credentials.RegistryName)
+                    | None -> ()
+                ]
+
+                literalSettings
+                |> List.map Setting.AsLiteral
+                |> List.append dockerSettings
+                |> List.append (
+                    (match this.CommonWebConfig.SecretStore with
+                     | AppService -> this.CommonWebConfig.Settings
+                     | KeyVault r ->
+                         let name = r.resourceId (this.CommonWebConfig)
+
+                         [
+                             for setting in this.CommonWebConfig.Settings do
+                                 match setting.Value with
+                                 | LiteralSetting _ -> setting.Key, setting.Value
+                                 | ParameterSetting _
+                                 | ExpressionSetting _ ->
+                                     setting.Key,
+                                     LiteralSetting
+                                         $"@Microsoft.KeyVault(SecretUri=https://{name.Name.Value}.vault.azure.net/secrets/{setting.Key})"
+                         ]
+                         |> Map.ofList)
+                    |> Map.toList
+                )
+                |> Map
+
+            let site = {
+                SiteType = Site this.Name
+                Location = location
+                ServicePlan = this.ServicePlanId
+                HTTPSOnly = this.CommonWebConfig.HTTPSOnly
+                FTPState = this.CommonWebConfig.FTPState
+                HTTP20Enabled = this.HTTP20Enabled
+                ClientAffinityEnabled = this.ClientAffinityEnabled
+                WebSocketsEnabled = this.WebSocketsEnabled
+                Identity = this.CommonWebConfig.Identity
+                KeyVaultReferenceIdentity = this.CommonWebConfig.KeyVaultReferenceIdentity
+                Cors = this.CommonWebConfig.Cors
+                Tags = this.Tags
+                ConnectionStrings = Some this.CommonWebConfig.ConnectionStrings
+                WorkerProcess = this.CommonWebConfig.WorkerProcess
+                AppSettings = Some siteSettings
+                Kind =
+                    [
+                        "app"
+                        match this.CommonWebConfig.OperatingSystem with
+                        | Linux -> "linux"
+                        | Windows -> ()
+                        if this.DockerRegistryPath.IsSome then
+                            "container"
+                    ]
+                    |> String.concat ","
+                Dependencies =
+                    Set [
+                        match this.CommonWebConfig.ServicePlan with
+                        | DependableResource this.Name.ResourceName resourceId -> resourceId
+                        | _ -> ()
+
+                        yield! this.Dependencies
+
+                        match this.CommonWebConfig.SecretStore with
+                        | AppService ->
+                            for setting in this.CommonWebConfig.Settings do
+                                match setting.Value with
+                                | ExpressionSetting expr -> yield! Option.toList expr.Owner
+                                | ParameterSetting _
+                                | LiteralSetting _ -> ()
+                        | KeyVault _ -> ()
+
+                        match this.CommonWebConfig.AppInsights with
+                        | Some(DependableResource this.Name.ResourceName resourceId) -> resourceId
+                        | Some _
+                        | None -> ()
+                    ]
+                AlwaysOn = this.CommonWebConfig.AlwaysOn
+                LinuxFxVersion =
+                    match this.CommonWebConfig.OperatingSystem with
+                    | Windows -> None
+                    | Linux ->
+                        match this.DockerRegistryPath with
+                        | Some image -> Some("DOCKER|" + image)
+                        | None ->
+                            match this.Runtime with
+                            | DotNetCore version -> Some $"DOTNETCORE|{version}"
+                            | DotNet version -> Some $"DOTNETCORE|{version}"
+                            | Node version -> Some $"NODE|{version}"
+                            | Php version -> Some $"PHP|{version}"
+                            | Ruby version -> Some $"RUBY|{version}"
+                            | Java(runtime, JavaSE) -> Some $"JAVA|{runtime.Version}-{runtime.Jre}"
+                            | Java(runtime, (Tomcat version)) -> Some $"TOMCAT|{version}-{runtime.Jre}"
+                            | Java(Java8, WildFly14) -> Some $"WILDFLY|14-{Java8.Jre}"
+                            | Python(linuxVersion, _) -> Some $"PYTHON|{linuxVersion}"
+                            | _ -> None
+                NetFrameworkVersion =
+                    match this.Runtime with
+                    | AspNet version
+                    | DotNet("5.0" as version)
+                    | DotNet version -> Some $"v{version}"
+                    | _ -> None
+                JavaVersion =
+                    match this.Runtime, this.CommonWebConfig.OperatingSystem with
+                    | Java(Java11, Tomcat _), Windows -> Some "11"
+                    | Java(Java8, Tomcat _), Windows -> Some "1.8"
+                    | _ -> None
+                JavaContainer =
+                    match this.Runtime, this.CommonWebConfig.OperatingSystem with
+                    | Java(_, Tomcat _), Windows -> Some "Tomcat"
+                    | _ -> None
+                JavaContainerVersion =
+                    match this.Runtime, this.CommonWebConfig.OperatingSystem with
+                    | Java(_, Tomcat version), Windows -> Some version
+                    | _ -> None
+                PhpVersion =
+                    match this.Runtime, this.CommonWebConfig.OperatingSystem with
+                    | Php version, Windows -> Some version
+                    | _ -> None
+                PythonVersion =
+                    match this.Runtime, this.CommonWebConfig.OperatingSystem with
+                    | Python(_, windowsVersion), Windows -> Some windowsVersion
+                    | _ -> None
+                Metadata =
+                    match this.Runtime, this.CommonWebConfig.OperatingSystem with
+                    | Java(_, Tomcat _), Windows -> Some "java"
+                    | Php _, _ -> Some "php"
+                    | Python _, Windows -> Some "python"
+                    | DotNetCore _, Windows -> Some "dotnetcore"
+                    | AspNet _, _
+                    | DotNet _, Windows -> Some "dotnet"
+                    | _ -> None
+                    |> Option.map (fun stack -> "CURRENT_STACK", stack)
+                    |> Option.toList
+                AppCommandLine = this.StartupCommand
+                AutoSwapSlotName = None
+                ZipDeployPath =
+                    this.CommonWebConfig.ZipDeployPath
+                    |> Option.map (fun (path, slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot)
+                HealthCheckPath = this.CommonWebConfig.HealthCheckPath
+                IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
+                LinkToSubnet = this.CommonWebConfig.IntegratedSubnet
+                VirtualApplications = this.VirtualApplications
+            }
+
+            match keyVault with
+            | Some keyVault ->
+                let builder = keyVault :> IBuilder
+                yield! builder.BuildResources location
+            | None -> ()
+
+            match this.SourceControlSettings with
+            | Some settings -> {
+                Website = this.Name.ResourceName
+                Location = location
+                Repository = settings.Repository
+                Branch = settings.Branch
+                ContinuousIntegration = settings.ContinuousIntegration
+              }
+            | None -> ()
+
+            match this.CommonWebConfig.AppInsights with
+            | Some(DeployableResource this.Name.ResourceName resourceId) -> {
+                Name = resourceId.Name
+                Location = location
+                DisableIpMasking = false
+                SamplingPercentage = 100
+                InstanceKind = Classic
+                Dependencies = Set.empty
+                LinkedWebsite =
+                    match this.CommonWebConfig.OperatingSystem with
+                    | Windows -> Some this.Name.ResourceName
+                    | Linux -> None
+                Tags = this.Tags
+              }
+            | Some _
+            | None -> ()
+
+            match this.CommonWebConfig.ServicePlan with
+            | DeployableResource this.Name.ResourceName resourceId -> {
+                Name = resourceId.Name
+                Location = location
+                Sku = this.CommonWebConfig.Sku
+                WorkerSize = this.WorkerSize
+                WorkerCount = this.WorkerCount
+                MaximumElasticWorkerCount = this.MaximumElasticWorkerCount
+                OperatingSystem = this.CommonWebConfig.OperatingSystem
+                ZoneRedundant = this.ZoneRedundant
+                Tags = this.Tags
+              }
+            | _ -> ()
+
+            for (ExtensionName extension) in this.SiteExtensions do
+                {
+                    Name = ResourceName extension
+                    SiteName = this.Name.ResourceName
+                    Location = location
+                }
+
+            if Map.isEmpty this.CommonWebConfig.Slots then
+                site
+            else
+                { site with
+                    AppSettings = None
+                    ConnectionStrings = None
+                } // Don't deploy production slot settings as they could cause an app restart
+
+                for (_, slot) in this.CommonWebConfig.Slots |> Map.toSeq do
+                    slot.ToSite site
+
+            // Need to rename `location` binding to prevent conflict with `location` operator in resource group
+            let resourceLocation = location
+
+            // Host Name Bindings must be deployed sequentially to avoid an error, as the site cannot be modified concurrently.
+            // To do so we add a dependency to the previous binding deployment.
+            let mutable previousHostNameCertificateLinkingDeployment = None
+
+            for customDomain in this.CustomDomains |> Map.toSeq |> Seq.map snd do
+                let hostNameBinding = {
+                    Location = location
+                    SiteId = Managed(Arm.Web.sites.resourceId this.Name.ResourceName)
+                    DomainName = customDomain.DomainName
+                    SslState = SslDisabled
+                } // Initially create non-secure host name binding, we link the certificate in a nested deployment below
+
+                let dependsOn: ResourceId list =
+                    match previousHostNameCertificateLinkingDeployment with
+                    | Some previous -> [ previous; this.ResourceId ]
+                    | None -> [ this.ResourceId ]
+
+                let hostNameBindingDeployment = resourceGroup {
+                    name "[resourceGroup().name]"
+                    location resourceLocation
+                    add_resource hostNameBinding
+                    depends_on dependsOn
+                }
+
+                yield! ((hostNameBindingDeployment :> IBuilder).BuildResources location)
+
+                match customDomain with
+                | SecureDomain(customDomain, certOptions) ->
+                    let cert = {
+                        Location = location
+                        SiteId = Managed this.ResourceId
+                        ServicePlanId = Managed this.ServicePlanId
+                        DomainName = customDomain
+                    }
+
+                    // Get the resource group which contains the app service plan
+                    let aspRgName =
+                        match this.CommonWebConfig.ServicePlan with
+                        | LinkedResource linked -> linked.ResourceId.ResourceGroup
+                        | _ -> None
+
+                    // Create a nested resource group deployment for the certificate - this isn't strictly necessary when the app & app service plan are in the same resource group
+                    // however, when they are in different resource groups this is required to make the deployment succeed (there is an ARM bug which causes a Not Found / Conflict otherwise)
+                    // To keep the code simple, I opted to always nest the certificate deployment. - TheRSP 2021-12-14
+                    let certificateDeployment = resourceGroup {
+                        name (aspRgName |> Option.defaultValue "[resourceGroup().name]")
+
+                        add_resource
+                            { cert with
+                                SiteId = Unmanaged cert.SiteId.ResourceId
+                                ServicePlanId = Unmanaged cert.ServicePlanId.ResourceId
                             }
 
-                        Some store, []
-                    | KeyVault (ExternalResource vaultName) ->
-                        let secrets =
-                            [
-                                for setting in this.CommonWebConfig.Settings do
-                                    let secret =
-                                        match setting.Value with
-                                        | LiteralSetting _ -> None
-                                        | ParameterSetting _ -> SecretConfig.create setting.Key |> Some
-                                        | ExpressionSetting expr -> SecretConfig.create (setting.Key, expr) |> Some
-
-                                    match secret with
-                                    | Some secret ->
-                                        {
-                                            Secret.Name = vaultName.Name / secret.SecretName
-                                            Value = secret.Value
-                                            ContentType = secret.ContentType
-                                            Enabled = secret.Enabled
-                                            ActivationDate = secret.ActivationDate
-                                            ExpirationDate = secret.ExpirationDate
-                                            Location = location
-                                            Dependencies = secret.Dependencies.Add vaultName
-                                            Tags = secret.Tags
-                                        }
-                                        :> IArmResource
-                                    | None -> ()
-                            ]
-
-                        None, secrets
-                    | KeyVault _
-                    | AppService -> None, []
-
-                yield! secrets
-
-                let siteSettings =
-                    let literalSettings =
-                        [
-                            if this.RunFromPackage then
-                                AppSettings.RunFromPackage
-                            yield!
-                                this.WebsiteNodeDefaultVersion
-                                |> Option.mapList AppSettings.WebsiteNodeDefaultVersion
-                            yield!
-                                this.CommonWebConfig.AppInsights
-                                |> Option.mapList (fun resource ->
-                                    "APPINSIGHTS_INSTRUMENTATIONKEY",
-                                    AppInsights
-                                        .getInstrumentationKey(resource.resourceId this.Name.ResourceName)
-                                        .Eval())
-                            match this.CommonWebConfig.OperatingSystem, this.CommonWebConfig.AppInsights with
-                            | Windows, Some _ ->
-                                "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
-                                "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
-                                "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
-                                "DiagnosticServices_EXTENSION_VERSION", "~3"
-                                "InstrumentationEngine_EXTENSION_VERSION", "~1"
-                                "SnapshotDebugger_EXTENSION_VERSION", "~1"
-                                "XDT_MicrosoftApplicationInsights_BaseExtensions", "~1"
-                                "XDT_MicrosoftApplicationInsights_Mode", "recommended"
-                            | Linux, Some _
-                            | _, None -> ()
-
-                            yield! this.DockerPort |> Option.mapList AppSettings.WebsitesPort
-
-                            if this.DockerCi then
-                                "DOCKER_ENABLE_CI", "true"
-                        ]
-
-                    let dockerSettings =
-                        [
-                            match this.DockerAcrCredentials with
-                            | Some credentials ->
-                                "DOCKER_REGISTRY_SERVER_PASSWORD", ParameterSetting credentials.Password
-
-                                Setting.AsLiteral(
-                                    "DOCKER_REGISTRY_SERVER_URL",
-                                    $"https://{credentials.RegistryName}.azurecr.io"
-                                )
-
-                                Setting.AsLiteral("DOCKER_REGISTRY_SERVER_USERNAME", credentials.RegistryName)
-                            | None -> ()
-                        ]
-
-                    literalSettings
-                    |> List.map Setting.AsLiteral
-                    |> List.append dockerSettings
-                    |> List.append (
-                        (match this.CommonWebConfig.SecretStore with
-                         | AppService -> this.CommonWebConfig.Settings
-                         | KeyVault r ->
-                             let name = r.resourceId (this.CommonWebConfig)
-
-                             [
-                                 for setting in this.CommonWebConfig.Settings do
-                                     match setting.Value with
-                                     | LiteralSetting _ -> setting.Key, setting.Value
-                                     | ParameterSetting _
-                                     | ExpressionSetting _ ->
-                                         setting.Key,
-                                         LiteralSetting
-                                             $"@Microsoft.KeyVault(SecretUri=https://{name.Name.Value}.vault.azure.net/secrets/{setting.Key})"
-                             ]
-                             |> Map.ofList)
-                        |> Map.toList
-                    )
-                    |> Map
-
-                let site =
-                    {
-                        SiteType = Site this.Name
-                        Location = location
-                        ServicePlan = this.ServicePlanId
-                        HTTPSOnly = this.CommonWebConfig.HTTPSOnly
-                        FTPState = this.CommonWebConfig.FTPState
-                        HTTP20Enabled = this.HTTP20Enabled
-                        ClientAffinityEnabled = this.ClientAffinityEnabled
-                        WebSocketsEnabled = this.WebSocketsEnabled
-                        Identity = this.CommonWebConfig.Identity
-                        KeyVaultReferenceIdentity = this.CommonWebConfig.KeyVaultReferenceIdentity
-                        Cors = this.CommonWebConfig.Cors
-                        Tags = this.Tags
-                        ConnectionStrings = Some this.CommonWebConfig.ConnectionStrings
-                        WorkerProcess = this.CommonWebConfig.WorkerProcess
-                        AppSettings = Some siteSettings
-                        Kind =
-                            [
-                                "app"
-                                match this.CommonWebConfig.OperatingSystem with
-                                | Linux -> "linux"
-                                | Windows -> ()
-                                if this.DockerRegistryPath.IsSome then
-                                    "container"
-                            ]
-                            |> String.concat ","
-                        Dependencies =
-                            Set
-                                [
-                                    match this.CommonWebConfig.ServicePlan with
-                                    | DependableResource this.Name.ResourceName resourceId -> resourceId
-                                    | _ -> ()
-
-                                    yield! this.Dependencies
-
-                                    match this.CommonWebConfig.SecretStore with
-                                    | AppService ->
-                                        for setting in this.CommonWebConfig.Settings do
-                                            match setting.Value with
-                                            | ExpressionSetting expr -> yield! Option.toList expr.Owner
-                                            | ParameterSetting _
-                                            | LiteralSetting _ -> ()
-                                    | KeyVault _ -> ()
-
-                                    match this.CommonWebConfig.AppInsights with
-                                    | Some (DependableResource this.Name.ResourceName resourceId) -> resourceId
-                                    | Some _
-                                    | None -> ()
-                                ]
-                        AlwaysOn = this.CommonWebConfig.AlwaysOn
-                        LinuxFxVersion =
-                            match this.CommonWebConfig.OperatingSystem with
-                            | Windows -> None
-                            | Linux ->
-                                match this.DockerRegistryPath with
-                                | Some image -> Some("DOCKER|" + image)
-                                | None ->
-                                    match this.Runtime with
-                                    | DotNetCore version -> Some $"DOTNETCORE|{version}"
-                                    | DotNet version -> Some $"DOTNETCORE|{version}"
-                                    | Node version -> Some $"NODE|{version}"
-                                    | Php version -> Some $"PHP|{version}"
-                                    | Ruby version -> Some $"RUBY|{version}"
-                                    | Java (runtime, JavaSE) -> Some $"JAVA|{runtime.Version}-{runtime.Jre}"
-                                    | Java (runtime, (Tomcat version)) -> Some $"TOMCAT|{version}-{runtime.Jre}"
-                                    | Java (Java8, WildFly14) -> Some $"WILDFLY|14-{Java8.Jre}"
-                                    | Python (linuxVersion, _) -> Some $"PYTHON|{linuxVersion}"
-                                    | _ -> None
-                        NetFrameworkVersion =
-                            match this.Runtime with
-                            | AspNet version
-                            | DotNet ("5.0" as version)
-                            | DotNet version -> Some $"v{version}"
-                            | _ -> None
-                        JavaVersion =
-                            match this.Runtime, this.CommonWebConfig.OperatingSystem with
-                            | Java (Java11, Tomcat _), Windows -> Some "11"
-                            | Java (Java8, Tomcat _), Windows -> Some "1.8"
-                            | _ -> None
-                        JavaContainer =
-                            match this.Runtime, this.CommonWebConfig.OperatingSystem with
-                            | Java (_, Tomcat _), Windows -> Some "Tomcat"
-                            | _ -> None
-                        JavaContainerVersion =
-                            match this.Runtime, this.CommonWebConfig.OperatingSystem with
-                            | Java (_, Tomcat version), Windows -> Some version
-                            | _ -> None
-                        PhpVersion =
-                            match this.Runtime, this.CommonWebConfig.OperatingSystem with
-                            | Php version, Windows -> Some version
-                            | _ -> None
-                        PythonVersion =
-                            match this.Runtime, this.CommonWebConfig.OperatingSystem with
-                            | Python (_, windowsVersion), Windows -> Some windowsVersion
-                            | _ -> None
-                        Metadata =
-                            match this.Runtime, this.CommonWebConfig.OperatingSystem with
-                            | Java (_, Tomcat _), Windows -> Some "java"
-                            | Php _, _ -> Some "php"
-                            | Python _, Windows -> Some "python"
-                            | DotNetCore _, Windows -> Some "dotnetcore"
-                            | AspNet _, _
-                            | DotNet _, Windows -> Some "dotnet"
-                            | _ -> None
-                            |> Option.map (fun stack -> "CURRENT_STACK", stack)
-                            |> Option.toList
-                        AppCommandLine = this.StartupCommand
-                        AutoSwapSlotName = None
-                        ZipDeployPath =
-                            this.CommonWebConfig.ZipDeployPath
-                            |> Option.map (fun (path, slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot)
-                        HealthCheckPath = this.CommonWebConfig.HealthCheckPath
-                        IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
-                        LinkToSubnet = this.CommonWebConfig.IntegratedSubnet
-                        VirtualApplications = this.VirtualApplications
+                        depends_on cert.SiteId
+                        depends_on hostNameBindingDeployment.ResourceId
                     }
 
-                match keyVault with
-                | Some keyVault ->
-                    let builder = keyVault :> IBuilder
-                    yield! builder.BuildResources location
-                | None -> ()
+                    yield! ((certificateDeployment :> IBuilder).BuildResources location)
 
-                match this.SourceControlSettings with
-                | Some settings ->
-                    {
-                        Website = this.Name.ResourceName
-                        Location = location
-                        Repository = settings.Repository
-                        Branch = settings.Branch
-                        ContinuousIntegration = settings.ContinuousIntegration
-                    }
-                | None -> ()
+                    // Deployment to update hostname binding with specified SSL options
+                    let hostNameCertificateLinkingDeployment = resourceGroup {
+                        name "[resourceGroup().name]"
+                        location resourceLocation
 
-                match this.CommonWebConfig.AppInsights with
-                | Some (DeployableResource this.Name.ResourceName resourceId) ->
-                    {
-                        Name = resourceId.Name
-                        Location = location
-                        DisableIpMasking = false
-                        SamplingPercentage = 100
-                        InstanceKind = Classic
-                        Dependencies = Set.empty
-                        LinkedWebsite =
-                            match this.CommonWebConfig.OperatingSystem with
-                            | Windows -> Some this.Name.ResourceName
-                            | Linux -> None
-                        Tags = this.Tags
-                    }
-                | Some _
-                | None -> ()
+                        add_resource
+                            { hostNameBinding with
+                                SiteId =
+                                    match hostNameBinding.SiteId with
+                                    | Managed id -> Unmanaged id
+                                    | x -> x
+                                SslState =
+                                    match certOptions with
+                                    | AppManagedCertificate -> SniBased(cert.GetThumbprintReference aspRgName)
+                                    | CustomCertificate thumbprint -> SniBased thumbprint
+                            }
 
-                match this.CommonWebConfig.ServicePlan with
-                | DeployableResource this.Name.ResourceName resourceId ->
-                    {
-                        Name = resourceId.Name
-                        Location = location
-                        Sku = this.CommonWebConfig.Sku
-                        WorkerSize = this.WorkerSize
-                        WorkerCount = this.WorkerCount
-                        MaximumElasticWorkerCount = this.MaximumElasticWorkerCount
-                        OperatingSystem = this.CommonWebConfig.OperatingSystem
-                        ZoneRedundant = this.ZoneRedundant
-                        Tags = this.Tags
+                        depends_on certificateDeployment.ResourceId
                     }
+
+                    yield! ((hostNameCertificateLinkingDeployment :> IBuilder).BuildResources location)
+
+                    previousHostNameCertificateLinkingDeployment <- Some hostNameCertificateLinkingDeployment.ResourceId
                 | _ -> ()
 
-                for (ExtensionName extension) in this.SiteExtensions do
-                    {
-                        Name = ResourceName extension
-                        SiteName = this.Name.ResourceName
-                        Location = location
-                    }
+            match this.CommonWebConfig.IntegratedSubnet with
+            | None -> ()
+            | Some subnetRef -> {
+                Site = site
+                Subnet = subnetRef.ResourceId
+                Dependencies = subnetRef.Dependency |> Option.toList
+              }
 
-                if Map.isEmpty this.CommonWebConfig.Slots then
-                    site
-                else
-                    { site with
-                        AppSettings = None
-                        ConnectionStrings = None
-                    } // Don't deploy production slot settings as they could cause an app restart
-
-                    for (_, slot) in this.CommonWebConfig.Slots |> Map.toSeq do
-                        slot.ToSite site
-
-                // Need to rename `location` binding to prevent conflict with `location` operator in resource group
-                let resourceLocation = location
-
-                // Host Name Bindings must be deployed sequentially to avoid an error, as the site cannot be modified concurrently.
-                // To do so we add a dependency to the previous binding deployment.
-                let mutable previousHostNameCertificateLinkingDeployment = None
-
-                for customDomain in this.CustomDomains |> Map.toSeq |> Seq.map snd do
-                    let hostNameBinding =
-                        {
-                            Location = location
-                            SiteId = Managed(Arm.Web.sites.resourceId this.Name.ResourceName)
-                            DomainName = customDomain.DomainName
-                            SslState = SslDisabled
-                        } // Initially create non-secure host name binding, we link the certificate in a nested deployment below
-
-                    let dependsOn: ResourceId list =
-                        match previousHostNameCertificateLinkingDeployment with
-                        | Some previous -> [ previous; this.ResourceId ]
-                        | None -> [ this.ResourceId ]
-
-                    let hostNameBindingDeployment =
-                        resourceGroup {
-                            name "[resourceGroup().name]"
-                            location resourceLocation
-                            add_resource hostNameBinding
-                            depends_on dependsOn
-                        }
-
-                    yield! ((hostNameBindingDeployment :> IBuilder).BuildResources location)
-
-                    match customDomain with
-                    | SecureDomain (customDomain, certOptions) ->
-                        let cert =
-                            {
-                                Location = location
-                                SiteId = Managed this.ResourceId
-                                ServicePlanId = Managed this.ServicePlanId
-                                DomainName = customDomain
-                            }
-
-                        // Get the resource group which contains the app service plan
-                        let aspRgName =
-                            match this.CommonWebConfig.ServicePlan with
-                            | LinkedResource linked -> linked.ResourceId.ResourceGroup
-                            | _ -> None
-
-                        // Create a nested resource group deployment for the certificate - this isn't strictly necessary when the app & app service plan are in the same resource group
-                        // however, when they are in different resource groups this is required to make the deployment succeed (there is an ARM bug which causes a Not Found / Conflict otherwise)
-                        // To keep the code simple, I opted to always nest the certificate deployment. - TheRSP 2021-12-14
-                        let certificateDeployment =
-                            resourceGroup {
-                                name (aspRgName |> Option.defaultValue "[resourceGroup().name]")
-
-                                add_resource
-                                    { cert with
-                                        SiteId = Unmanaged cert.SiteId.ResourceId
-                                        ServicePlanId = Unmanaged cert.ServicePlanId.ResourceId
-                                    }
-
-                                depends_on cert.SiteId
-                                depends_on hostNameBindingDeployment.ResourceId
-                            }
-
-                        yield! ((certificateDeployment :> IBuilder).BuildResources location)
-
-                        // Deployment to update hostname binding with specified SSL options
-                        let hostNameCertificateLinkingDeployment =
-                            resourceGroup {
-                                name "[resourceGroup().name]"
-                                location resourceLocation
-
-                                add_resource
-                                    { hostNameBinding with
-                                        SiteId =
-                                            match hostNameBinding.SiteId with
-                                            | Managed id -> Unmanaged id
-                                            | x -> x
-                                        SslState =
-                                            match certOptions with
-                                            | AppManagedCertificate -> SniBased(cert.GetThumbprintReference aspRgName)
-                                            | CustomCertificate thumbprint -> SniBased thumbprint
-                                    }
-
-                                depends_on certificateDeployment.ResourceId
-                            }
-
-                        yield! ((hostNameCertificateLinkingDeployment :> IBuilder).BuildResources location)
-
-                        previousHostNameCertificateLinkingDeployment <-
-                            Some hostNameCertificateLinkingDeployment.ResourceId
-                    | _ -> ()
-
-                match this.CommonWebConfig.IntegratedSubnet with
-                | None -> ()
-                | Some subnetRef ->
-                    {
-                        Site = site
-                        Subnet = subnetRef.ResourceId
-                        Dependencies = subnetRef.Dependency |> Option.toList
-                    }
-
-                yield!
-                    (PrivateEndpoint.create location this.ResourceId [ "sites" ] this.CommonWebConfig.PrivateEndpoints)
-            ]
+            yield! (PrivateEndpoint.create location this.ResourceId [ "sites" ] this.CommonWebConfig.PrivateEndpoints)
+        ]
 
 type WebAppBuilder() =
-    member _.Yield _ =
-        {
-            CommonWebConfig =
-                {
-                    Name = WebAppName.Empty
-                    AlwaysOn = false
-                    AppInsights = Some(derived (fun name -> components.resourceId (name - "ai")))
-                    ConnectionStrings = Map.empty
-                    Cors = None
-                    HTTPSOnly = false
-                    Identity = ManagedIdentity.Empty
-                    FTPState = None
-                    KeyVaultReferenceIdentity = None
-                    OperatingSystem = Windows
-                    SecretStore = AppService
-                    ServicePlan = derived (fun name -> serverFarms.resourceId (name - "farm"))
-                    Settings = Map.empty
-                    Sku = Sku.F1
-                    Slots = Map.empty
-                    WorkerProcess = None
-                    ZipDeployPath = None
-                    HealthCheckPath = None
-                    IpSecurityRestrictions = []
-                    IntegratedSubnet = None
-                    PrivateEndpoints = Set.empty
-                }
-            WorkerSize = Small
-            WorkerCount = 1
-            MaximumElasticWorkerCount = None
-            RunFromPackage = false
-            WebsiteNodeDefaultVersion = None
-            HTTP20Enabled = None
-            ClientAffinityEnabled = None
-            WebSocketsEnabled = None
-            Tags = Map.empty
-            Dependencies = Set.empty
-            Runtime = Runtime.DotNetCoreLts
-            DockerRegistryPath = None
-            StartupCommand = None
-            DockerCi = false
-            SourceControlSettings = None
-            DockerAcrCredentials = None
-            AutomaticLoggingExtension = true
-            SiteExtensions = Set.empty
+    member _.Yield _ = {
+        CommonWebConfig = {
+            Name = WebAppName.Empty
+            AlwaysOn = false
+            AppInsights = Some(derived (fun name -> components.resourceId (name - "ai")))
+            ConnectionStrings = Map.empty
+            Cors = None
+            HTTPSOnly = false
+            Identity = ManagedIdentity.Empty
+            FTPState = None
+            KeyVaultReferenceIdentity = None
+            OperatingSystem = Windows
+            SecretStore = AppService
+            ServicePlan = derived (fun name -> serverFarms.resourceId (name - "farm"))
+            Settings = Map.empty
+            Sku = Sku.F1
+            Slots = Map.empty
+            WorkerProcess = None
+            ZipDeployPath = None
+            HealthCheckPath = None
+            IpSecurityRestrictions = []
+            IntegratedSubnet = None
             PrivateEndpoints = Set.empty
-            CustomDomains = Map.empty
-            DockerPort = None
-            ZoneRedundant = None
-            VirtualApplications = Map []
         }
+        WorkerSize = Small
+        WorkerCount = 1
+        MaximumElasticWorkerCount = None
+        RunFromPackage = false
+        WebsiteNodeDefaultVersion = None
+        HTTP20Enabled = None
+        ClientAffinityEnabled = None
+        WebSocketsEnabled = None
+        Tags = Map.empty
+        Dependencies = Set.empty
+        Runtime = Runtime.DotNetCoreLts
+        DockerRegistryPath = None
+        StartupCommand = None
+        DockerCi = false
+        SourceControlSettings = None
+        DockerAcrCredentials = None
+        AutomaticLoggingExtension = true
+        SiteExtensions = Set.empty
+        PrivateEndpoints = Set.empty
+        CustomDomains = Map.empty
+        DockerPort = None
+        ZoneRedundant = None
+        VirtualApplications = Map []
+    }
 
     member _.Run(state: WebAppConfig) =
         if state.Name.ResourceName = ResourceName.Empty then
@@ -1096,14 +1078,13 @@ type WebAppBuilder() =
     member this.AddVirtualApplications(state: WebAppConfig, newVirtualApps) =
         let currentVirtualApps =
             if state.VirtualApplications.IsEmpty then
-                Map
-                    [
-                        ("/",
-                         {
-                             PhysicalPath = "site\\wwwroot"
-                             PreloadEnabled = None
-                         })
-                    ]
+                Map [
+                    ("/",
+                     {
+                         PhysicalPath = "site\\wwwroot"
+                         PreloadEnabled = None
+                     })
+                ]
             else
                 state.VirtualApplications
 
@@ -1412,7 +1393,7 @@ module Extensions =
                 Cors =
                     current.Cors
                     |> Option.map (function
-                        | SpecificOrigins (origins, _) -> SpecificOrigins(origins, Some true)
+                        | SpecificOrigins(origins, _) -> SpecificOrigins(origins, Some true)
                         | AllOrigins ->
                             raiseFarmer "You cannot enable CORS Credentials if you have already set CORS to AllOrigins.")
             }

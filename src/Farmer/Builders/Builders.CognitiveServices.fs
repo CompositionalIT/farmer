@@ -27,25 +27,23 @@ type CognitiveServicesConfig =
     interface IBuilder with
         member this.ResourceId = accounts.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    Sku = this.Sku
-                    Kind = this.Api
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Sku = this.Sku
+                Kind = this.Api
+                Tags = this.Tags
+            }
+        ]
 
 type CognitiveServicesBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sku = F0
-            Api = AllInOne
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = F0
+        Api = AllInOne
+        Tags = Map.empty
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: CognitiveServicesConfig, name) = { state with Name = ResourceName name }

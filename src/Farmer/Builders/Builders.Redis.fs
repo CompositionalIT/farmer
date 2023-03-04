@@ -29,36 +29,33 @@ type RedisConfig =
     interface IBuilder with
         member this.ResourceId = this.ResourceId
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    Sku =
-                        {|
-                            Sku = this.Sku
-                            Capacity = this.Capacity
-                        |}
-                    RedisConfiguration = this.RedisConfiguration
-                    NonSslEnabled = this.NonSslEnabled
-                    ShardCount = this.ShardCount
-                    MinimumTlsVersion = this.MinimumTlsVersion
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Sku = {|
+                    Sku = this.Sku
+                    Capacity = this.Capacity
+                |}
+                RedisConfiguration = this.RedisConfiguration
+                NonSslEnabled = this.NonSslEnabled
+                ShardCount = this.ShardCount
+                MinimumTlsVersion = this.MinimumTlsVersion
+                Tags = this.Tags
+            }
+        ]
 
 type RedisBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sku = Basic
-            Capacity = 1
-            RedisConfiguration = Map.empty
-            NonSslEnabled = None
-            ShardCount = None
-            MinimumTlsVersion = None
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = Basic
+        Capacity = 1
+        RedisConfiguration = Map.empty
+        NonSslEnabled = None
+        ShardCount = None
+        MinimumTlsVersion = None
+        Tags = Map.empty
+    }
 
     member _.Run(state: RedisConfig) =
         { state with

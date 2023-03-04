@@ -16,13 +16,12 @@ type FrontendIpConfig =
         Subnet: LinkedResource option
     }
 
-    static member BuildResource frontend =
-        {|
-            Name = frontend.Name
-            PrivateIpAllocationMethod = frontend.PrivateIpAllocationMethod
-            PublicIp = frontend.PublicIp |> Option.map (fun linkedRes -> linkedRes.ResourceId)
-            Subnet = frontend.Subnet |> Option.map (fun linkedRes -> linkedRes.ResourceId)
-        |}
+    static member BuildResource frontend = {|
+        Name = frontend.Name
+        PrivateIpAllocationMethod = frontend.PrivateIpAllocationMethod
+        PublicIp = frontend.PublicIp |> Option.map (fun linkedRes -> linkedRes.ResourceId)
+        Subnet = frontend.Subnet |> Option.map (fun linkedRes -> linkedRes.ResourceId)
+    |}
 
     static member BuildIp
         (frontend: FrontendIpConfig)
@@ -31,7 +30,7 @@ type FrontendIpConfig =
         (location: Location)
         : PublicIpAddress option =
         match frontend.PublicIp with
-        | Some (Managed resId) ->
+        | Some(Managed resId) ->
             {
                 Name = resId.Name
                 AllocationMethod = AllocationMethod.Static
@@ -49,13 +48,12 @@ type FrontendIpConfig =
 
 
 type FrontendIpBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            PrivateIpAllocationMethod = PrivateIpAddress.DynamicPrivateIp
-            PublicIp = None
-            Subnet = None
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        PrivateIpAllocationMethod = PrivateIpAddress.DynamicPrivateIp
+        PublicIp = None
+        Subnet = None
+    }
 
     /// Sets the name of the frontend IP configuration.
     [<CustomOperation "name">]
@@ -120,23 +118,21 @@ type BackendAddressPoolConfig =
                         LoadBalancer = this.LoadBalancer
                         LoadBalancerBackendAddresses =
                             this.LoadBalancerBackendAddresses
-                            |> List.mapi (fun idx addr ->
-                                {|
-                                    Name = ResourceName $"addr{idx}"
-                                    VirtualNetwork = this.VirtualNetwork
-                                    IpAddress = addr
-                                |})
+                            |> List.mapi (fun idx addr -> {|
+                                Name = ResourceName $"addr{idx}"
+                                VirtualNetwork = this.VirtualNetwork
+                                IpAddress = addr
+                            |})
                     }
                 ]
 
 type BackendAddressPoolBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            LoadBalancer = ResourceName.Empty
-            LoadBalancerBackendAddresses = []
-            VirtualNetwork = None
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        LoadBalancer = ResourceName.Empty
+        LoadBalancerBackendAddresses = []
+        VirtualNetwork = None
+    }
 
     /// Sets the name of the backend address pool.
     [<CustomOperation "name">]
@@ -215,26 +211,24 @@ type ProbeConfig =
         NumberOfProbes: int
     }
 
-    static member BuildResource probe =
-        {|
-            Name = probe.Name
-            Protocol = probe.Protocol |> Option.defaultValue LoadBalancerProbeProtocol.TCP
-            Port = probe.Port |> Option.defaultValue 0us
-            RequestPath = probe.RequestPath |> Option.toObj
-            IntervalInSeconds = probe.IntervalInSeconds
-            NumberOfProbes = probe.NumberOfProbes
-        |}
+    static member BuildResource probe = {|
+        Name = probe.Name
+        Protocol = probe.Protocol |> Option.defaultValue LoadBalancerProbeProtocol.TCP
+        Port = probe.Port |> Option.defaultValue 0us
+        RequestPath = probe.RequestPath |> Option.toObj
+        IntervalInSeconds = probe.IntervalInSeconds
+        NumberOfProbes = probe.NumberOfProbes
+    |}
 
 type ProbeBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Protocol = None
-            Port = None
-            RequestPath = None
-            IntervalInSeconds = 15
-            NumberOfProbes = 2
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Protocol = None
+        Port = None
+        RequestPath = None
+        IntervalInSeconds = 15
+        NumberOfProbes = 2
+    }
 
     member _.Run(config: ProbeConfig) =
         match config.Port with
@@ -309,36 +303,34 @@ type LoadBalancingRuleConfig =
         DisableOutboundSnat: bool option
     } // default true
 
-    static member BuildResource rule =
-        {|
-            Name = rule.Name
-            FrontendIpConfiguration = rule.FrontendIpConfiguration
-            BackendAddressPool = rule.BackendAddressPool
-            Probe = rule.Probe
-            FrontendPort = rule.FrontendPort
-            BackendPort = rule.BackendPort
-            Protocol = rule.Protocol
-            IdleTimeoutMinutes = rule.IdleTimeoutMinutes
-            LoadDistribution = rule.LoadDistribution
-            EnableTcpReset = rule.EnableTcpReset
-            DisableOutboundSnat = rule.DisableOutboundSnat
-        |}
+    static member BuildResource rule = {|
+        Name = rule.Name
+        FrontendIpConfiguration = rule.FrontendIpConfiguration
+        BackendAddressPool = rule.BackendAddressPool
+        Probe = rule.Probe
+        FrontendPort = rule.FrontendPort
+        BackendPort = rule.BackendPort
+        Protocol = rule.Protocol
+        IdleTimeoutMinutes = rule.IdleTimeoutMinutes
+        LoadDistribution = rule.LoadDistribution
+        EnableTcpReset = rule.EnableTcpReset
+        DisableOutboundSnat = rule.DisableOutboundSnat
+    |}
 
 type LoadBalancingRuleBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            FrontendIpConfiguration = ResourceName.Empty
-            BackendAddressPool = ResourceName.Empty
-            Probe = None
-            FrontendPort = 0us
-            BackendPort = 0us
-            Protocol = None // default "All"
-            IdleTimeoutMinutes = None // default 4 minutes
-            LoadDistribution = Farmer.LoadBalancer.LoadDistributionPolicy.Default
-            EnableTcpReset = None
-            DisableOutboundSnat = None // default true
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        FrontendIpConfiguration = ResourceName.Empty
+        BackendAddressPool = ResourceName.Empty
+        Probe = None
+        FrontendPort = 0us
+        BackendPort = 0us
+        Protocol = None // default "All"
+        IdleTimeoutMinutes = None // default 4 minutes
+        LoadDistribution = Farmer.LoadBalancer.LoadDistributionPolicy.Default
+        EnableTcpReset = None
+        DisableOutboundSnat = None // default true
+    }
 
     /// Sets the name of the load balancing rule.
     [<CustomOperation "name">]
@@ -486,21 +478,19 @@ type LoadBalancerConfig =
 
 
 type LoadBalancerBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sku =
-                {
-                    Name = LoadBalancer.Sku.Basic
-                    Tier = LoadBalancer.Tier.Regional
-                }
-            FrontendIpConfigs = []
-            BackendAddressPools = []
-            LoadBalancingRules = []
-            Probes = []
-            Dependencies = Set.empty
-            Tags = Map.empty
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = {
+            Name = LoadBalancer.Sku.Basic
+            Tier = LoadBalancer.Tier.Regional
         }
+        FrontendIpConfigs = []
+        BackendAddressPools = []
+        LoadBalancingRules = []
+        Probes = []
+        Dependencies = Set.empty
+        Tags = Map.empty
+    }
 
     /// Sets the name of the load balancer.
     [<CustomOperation "name">]

@@ -46,30 +46,28 @@ type AppInsightsConfig =
     interface IBuilder with
         member this.ResourceId = components.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    LinkedWebsite = None
-                    DisableIpMasking = this.DisableIpMasking
-                    SamplingPercentage = this.SamplingPercentage
-                    Dependencies = this.Dependencies
-                    InstanceKind = this.InstanceKind
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                LinkedWebsite = None
+                DisableIpMasking = this.DisableIpMasking
+                SamplingPercentage = this.SamplingPercentage
+                Dependencies = this.Dependencies
+                InstanceKind = this.InstanceKind
+                Tags = this.Tags
+            }
+        ]
 
 type AppInsightsBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            DisableIpMasking = false
-            SamplingPercentage = 100
-            Tags = Map.empty
-            Dependencies = Set.empty
-            InstanceKind = Classic
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        DisableIpMasking = false
+        SamplingPercentage = 100
+        Tags = Map.empty
+        Dependencies = Set.empty
+        InstanceKind = Classic
+    }
 
     [<CustomOperation "name">]
     /// Sets the name of the App Insights instance.

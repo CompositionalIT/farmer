@@ -19,5 +19,4 @@ let deployment = arm {
 }
 
 // Generate the ARM template here...
-deployment
-|> Deploy.execute "my-resource-group" []
+deployment |> Deploy.execute "my-resource-group" []

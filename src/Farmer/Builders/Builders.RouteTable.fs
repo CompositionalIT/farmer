@@ -5,13 +5,12 @@ open Farmer
 open Farmer.Arm
 open Farmer.Route
 
-type RouteConfig =
-    {
-        Name: ResourceName
-        AddressPrefix: IPAddressCidr option
-        NextHopType: Route.HopType
-        HasBgpOverride: FeatureFlag option
-    }
+type RouteConfig = {
+    Name: ResourceName
+    AddressPrefix: IPAddressCidr option
+    NextHopType: Route.HopType
+    HasBgpOverride: FeatureFlag option
+}
 
 type RouteTableConfig =
     {
@@ -30,34 +29,30 @@ type RouteTableConfig =
                 |> List.map (fun r ->
                     match r.AddressPrefix with
                     | None -> raiseFarmer ("address prefix is required")
-                    | Some addressPrefix ->
-                        {
-                            Name = r.Name
-                            AddressPrefix = addressPrefix
-                            NextHopType = r.NextHopType
-                            HasBgpOverride = r.HasBgpOverride |> Option.defaultValue FeatureFlag.Disabled
-                        })
+                    | Some addressPrefix -> {
+                        Name = r.Name
+                        AddressPrefix = addressPrefix
+                        NextHopType = r.NextHopType
+                        HasBgpOverride = r.HasBgpOverride |> Option.defaultValue FeatureFlag.Disabled
+                      })
 
-            let routeTable: Network.RouteTable =
-                {
-                    RouteTable.Name = this.Name
-                    Location = location
-                    DisableBGPRoutePropagation =
-                        this.DisableBGPRoutePropagation |> Option.defaultValue FeatureFlag.Disabled
-                    Routes = routes
-                    Tags = this.Tags
-                }
+            let routeTable: Network.RouteTable = {
+                RouteTable.Name = this.Name
+                Location = location
+                DisableBGPRoutePropagation = this.DisableBGPRoutePropagation |> Option.defaultValue FeatureFlag.Disabled
+                Routes = routes
+                Tags = this.Tags
+            }
 
             [ routeTable ]
 
 type RouteTableBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Routes = []
-            DisableBGPRoutePropagation = None
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Routes = []
+        DisableBGPRoutePropagation = None
+        Tags = Map.empty
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: RouteTableConfig, name: string) = { state with Name = ResourceName name }
@@ -77,13 +72,12 @@ type RouteTableBuilder() =
 let routeTable = RouteTableBuilder()
 
 type RouteBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            AddressPrefix = None
-            NextHopType = Route.HopType.Nothing
-            HasBgpOverride = None
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        AddressPrefix = None
+        NextHopType = Route.HopType.Nothing
+        HasBgpOverride = None
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: RouteConfig, name: string) = { state with Name = ResourceName name }

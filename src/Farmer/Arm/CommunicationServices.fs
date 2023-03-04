@@ -18,8 +18,7 @@ type CommunicationService =
 
         member this.JsonModel =
             {| communicationServices.Create(this.Name, Location.Global, tags = this.Tags) with
-                properties =
-                    {|
-                        dataLocation = this.DataLocation.ArmValue
-                    |}
+                properties = {|
+                    dataLocation = this.DataLocation.ArmValue
+                |}
             |}

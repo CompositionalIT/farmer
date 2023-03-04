@@ -28,36 +28,34 @@ type WorkspaceConfig =
     interface IBuilder with
         member this.ResourceId = workspaces.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    RetentionPeriod = this.RetentionPeriod
-                    IngestionSupport = this.IngestionSupport
-                    QuerySupport = this.QuerySupport
-                    DailyCap = this.DailyCap
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                RetentionPeriod = this.RetentionPeriod
+                IngestionSupport = this.IngestionSupport
+                QuerySupport = this.QuerySupport
+                DailyCap = this.DailyCap
+                Tags = this.Tags
+            }
+        ]
 
 type WorkspaceBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            RetentionPeriod = None
-            DailyCap = None
-            IngestionSupport = None
-            QuerySupport = None
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        RetentionPeriod = None
+        DailyCap = None
+        IngestionSupport = None
+        QuerySupport = None
+        Tags = Map.empty
+    }
 
     member _.Run(state: WorkspaceConfig) =
         match state.RetentionPeriod with
-        | Some (OutOfBounds days) ->
+        | Some(OutOfBounds days) ->
             raiseFarmer $"The retention period must be between 30 and 730 days. It is currently {days}."
         | None
-        | Some (InBounds _) -> ()
+        | Some(InBounds _) -> ()
 
         state
 

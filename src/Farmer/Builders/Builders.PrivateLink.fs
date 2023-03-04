@@ -21,24 +21,22 @@ type PrivateLinkServiceIpConfig =
         | None -> raiseFarmer "Private link service IP config requires a subnet"
         | Some subnetId when subnetId.Type <> Farmer.Arm.Network.subnets ->
             raiseFarmer "Private link service IP config subnet resource ID must be a subnet resource Id"
-        | Some subnetId ->
-            {|
-                Name = ipConfig.Name.IfEmpty $"{subnetId.Name.Value}-{subnetId.Segments.Head.Value}"
-                Primary = ipConfig.Primary
-                PrivateIpAllocationMethod = ipConfig.PrivateIpAllocationMethod
-                PrivateIpAddressVersion = ipConfig.PrivateIpAddressVersion
-                SubnetId = subnetId
-            |}
+        | Some subnetId -> {|
+            Name = ipConfig.Name.IfEmpty $"{subnetId.Name.Value}-{subnetId.Segments.Head.Value}"
+            Primary = ipConfig.Primary
+            PrivateIpAllocationMethod = ipConfig.PrivateIpAllocationMethod
+            PrivateIpAddressVersion = ipConfig.PrivateIpAddressVersion
+            SubnetId = subnetId
+          |}
 
 type PrivateLinkServiceIpConfigBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            PrivateIpAllocationMethod = AllocationMethod.DynamicPrivateIp
-            PrivateIpAddressVersion = AddressFamily.InterNetwork
-            Primary = false
-            SubnetId = None
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        PrivateIpAllocationMethod = AllocationMethod.DynamicPrivateIp
+        PrivateIpAddressVersion = AddressFamily.InterNetwork
+        Primary = false
+        SubnetId = None
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: PrivateLinkServiceIpConfig, name) = { state with Name = ResourceName name }
@@ -78,33 +76,31 @@ type PrivateLinkServiceConfig =
     interface IBuilder with
         member this.ResourceId = privateLinkServices.resourceId (this.Name)
 
-        member this.BuildResources location =
-            [
-                {
-                    PrivateLinkService.Name = this.Name
-                    Location = location
-                    Dependencies = this.Dependencies
-                    AutoApprovedSubscriptions = this.AutoApprovedSubscriptions
-                    EnableProxyProtocol = this.EnableProxyProtocol |> Option.defaultValue false
-                    LoadBalancerFrontendIpConfigIds = this.LoadBalancerFrontendIpConfigIds
-                    IpConfigs = this.IpConfigs |> List.map PrivateLinkServiceIpConfig.BuildResource
-                    VisibleToSubscriptions = this.VisibleToSubscriptions
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                PrivateLinkService.Name = this.Name
+                Location = location
+                Dependencies = this.Dependencies
+                AutoApprovedSubscriptions = this.AutoApprovedSubscriptions
+                EnableProxyProtocol = this.EnableProxyProtocol |> Option.defaultValue false
+                LoadBalancerFrontendIpConfigIds = this.LoadBalancerFrontendIpConfigIds
+                IpConfigs = this.IpConfigs |> List.map PrivateLinkServiceIpConfig.BuildResource
+                VisibleToSubscriptions = this.VisibleToSubscriptions
+                Tags = this.Tags
+            }
+        ]
 
 type PrivateLinkBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Dependencies = Set.empty
-            AutoApprovedSubscriptions = []
-            EnableProxyProtocol = None
-            LoadBalancerFrontendIpConfigIds = []
-            IpConfigs = []
-            VisibleToSubscriptions = []
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Dependencies = Set.empty
+        AutoApprovedSubscriptions = []
+        EnableProxyProtocol = None
+        LoadBalancerFrontendIpConfigIds = []
+        IpConfigs = []
+        VisibleToSubscriptions = []
+        Tags = Map.empty
+    }
 
     interface IDependable<PrivateLinkServiceConfig> with
         member _.Add state newDeps =

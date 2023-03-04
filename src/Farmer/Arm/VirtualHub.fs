@@ -25,11 +25,10 @@ type RoutingState =
         | Failed -> "Failed"
         | None -> "None"
 
-type Route =
-    {
-        AddressPrefixes: IPAddressCidr list
-        NextHopIpAddress: System.Net.IPAddress
-    }
+type Route = {
+    AddressPrefixes: IPAddressCidr list
+    NextHopIpAddress: System.Net.IPAddress
+}
 
 // none of the VirtualHub Properties Objects are required so are being set as options
 type VirtualHub =
@@ -73,20 +72,19 @@ type VirtualHub =
 
         member this.JsonModel =
             {| virtualHubs.Create(this.Name, this.Location, this.Dependencies) with
-                properties =
-                    {|
-                        addressPrefix =
-                            this.AddressPrefix
-                            |> Option.map IPAddressCidr.format
-                            |> Option.defaultValue null
-                        azureFirewall = this.AzureFirewall |> Option.defaultValue Unchecked.defaultof<ResourceId>
-                        routeTable = {| routes = this.RouteTable |}
-                        sku = this.VirtualHubSku.ArmValue
-                        virtualWan =
-                            this.Vwan
-                            |> Option.map (fun resId -> box {| id = resId.ArmExpression.Eval() |})
-                            |> Option.defaultValue null
-                    |}
+                properties = {|
+                    addressPrefix =
+                        this.AddressPrefix
+                        |> Option.map IPAddressCidr.format
+                        |> Option.defaultValue null
+                    azureFirewall = this.AzureFirewall |> Option.defaultValue Unchecked.defaultof<ResourceId>
+                    routeTable = {| routes = this.RouteTable |}
+                    sku = this.VirtualHubSku.ArmValue
+                    virtualWan =
+                        this.Vwan
+                        |> Option.map (fun resId -> box {| id = resId.ArmExpression.Eval() |})
+                        |> Option.defaultValue null
+                |}
             |}
 
 open Farmer.VirtualHub.HubRouteTable
@@ -98,14 +96,13 @@ type HubRoute =
         NextHop: NextHop
     }
 
-    member this.JsonModel =
-        {|
-            name = this.Name
-            destinationType = this.Destination.DestinationTypeArmValue
-            destinations = this.Destination.DestinationsArmValue
-            nextHopType = this.NextHop.NextHopTypeArmValue
-            nextHop = this.NextHop.NextHopArmValue
-        |}
+    member this.JsonModel = {|
+        name = this.Name
+        destinationType = this.Destination.DestinationTypeArmValue
+        destinations = this.Destination.DestinationsArmValue
+        nextHopType = this.NextHop.NextHopTypeArmValue
+        nextHop = this.NextHop.NextHopArmValue
+    |}
 
 // https://docs.microsoft.com/en-us/azure/templates/microsoft.network/virtualhubs/hubroutetables
 type HubRouteTable =
@@ -122,9 +119,8 @@ type HubRouteTable =
 
         member this.JsonModel =
             {| hubRouteTables.Create(this.VirtualHub.Name / this.Name, dependsOn = this.Dependencies) with
-                properties =
-                    {|
-                        routes = this.Routes |> List.map (fun r -> r.JsonModel)
-                        labels = this.Labels
-                    |}
+                properties = {|
+                    routes = this.Routes |> List.map (fun r -> r.JsonModel)
+                    labels = this.Labels
+                |}
             |}

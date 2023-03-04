@@ -44,14 +44,13 @@ type VirtualWan =
 
         member this.JsonModel =
             {| virtualWans.Create(this.Name, this.Location) with
-                properties =
-                    {|
-                        allowBranchToBranchTraffic = this.AllowBranchToBranchTraffic |> Option.defaultValue false
-                        disableVpnEncryption = this.DisableVpnEncryption |> Option.defaultValue false
-                        office365LocalBreakoutCategory =
-                            (this.Office365LocalBreakoutCategory
-                             |> Option.defaultValue Office365LocalBreakoutCategory.None)
-                                .ArmValue
-                        ``type`` = this.VwanType.ArmValue
-                    |}
+                properties = {|
+                    allowBranchToBranchTraffic = this.AllowBranchToBranchTraffic |> Option.defaultValue false
+                    disableVpnEncryption = this.DisableVpnEncryption |> Option.defaultValue false
+                    office365LocalBreakoutCategory =
+                        (this.Office365LocalBreakoutCategory
+                         |> Option.defaultValue Office365LocalBreakoutCategory.None)
+                            .ArmValue
+                    ``type`` = this.VwanType.ArmValue
+                |}
             |}

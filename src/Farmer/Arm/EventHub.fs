@@ -29,23 +29,21 @@ type Namespace =
 
         member this.JsonModel =
             {| namespaces.Create(this.Name, this.Location, tags = this.Tags) with
-                sku =
-                    {|
-                        name = string this.Sku.Name
-                        tier = string this.Sku.Name
-                        capacity = this.Sku.Capacity
-                    |}
-                properties =
-                    {|
-                        zoneRedundant = this.ZoneRedundant |> Option.toNullable
-                        isAutoInflateEnabled =
-                            this.AutoInflateSettings
-                            |> Option.map (function
-                                | AutoInflate _ -> true
-                                | ManualInflate -> false)
-                            |> Option.toNullable
-                        maximumThroughputUnits = this.MaxThroughputUnits |> Option.toNullable
-                    |}
+                sku = {|
+                    name = string this.Sku.Name
+                    tier = string this.Sku.Name
+                    capacity = this.Sku.Capacity
+                |}
+                properties = {|
+                    zoneRedundant = this.ZoneRedundant |> Option.toNullable
+                    isAutoInflateEnabled =
+                        this.AutoInflateSettings
+                        |> Option.map (function
+                            | AutoInflate _ -> true
+                            | ManualInflate -> false)
+                        |> Option.toNullable
+                    maximumThroughputUnits = this.MaxThroughputUnits |> Option.toNullable
+                |}
             |}
 
 module Namespaces =
@@ -71,31 +69,27 @@ module Namespaces =
 
             member this.JsonModel =
                 {| eventHubs.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
-                    properties =
-                        {|
-                            messageRetentionInDays = this.MessageRetentionDays |> Option.toNullable
-                            partitionCount = this.Partitions
-                            status = "Active"
-                            captureDescription =
-                                match this.CaptureDestination with
-                                | Some (StorageAccount (name, container)) ->
-                                    {|
-                                        enabled = true
-                                        encoding = "Avro"
-                                        destination =
-                                            {|
-                                                name = "EventHubArchive.AzureBlockBlob"
-                                                properties =
-                                                    {|
-                                                        storageAccountResourceId =
-                                                            storageAccounts.resourceId(name).Eval()
-                                                        blobContainer = container
-                                                    |}
-                                            |}
+                    properties = {|
+                        messageRetentionInDays = this.MessageRetentionDays |> Option.toNullable
+                        partitionCount = this.Partitions
+                        status = "Active"
+                        captureDescription =
+                            match this.CaptureDestination with
+                            | Some(StorageAccount(name, container)) ->
+                                {|
+                                    enabled = true
+                                    encoding = "Avro"
+                                    destination = {|
+                                        name = "EventHubArchive.AzureBlockBlob"
+                                        properties = {|
+                                            storageAccountResourceId = storageAccounts.resourceId(name).Eval()
+                                            blobContainer = container
+                                        |}
                                     |}
-                                    |> box
-                                | None -> null
-                        |}
+                                |}
+                                |> box
+                            | None -> null
+                    |}
                 |}
 
     module EventHubs =
@@ -133,8 +127,7 @@ module Namespaces =
 
                 member this.JsonModel =
                     {| authorizationRules.Create(this.Name, this.Location, this.Dependencies) with
-                        properties =
-                            {|
-                                rights = this.Rights |> Set.map string |> Set.toList
-                            |}
+                        properties = {|
+                            rights = this.Rights |> Set.map string |> Set.toList
+                        |}
                     |}

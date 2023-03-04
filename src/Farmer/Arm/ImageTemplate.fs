@@ -231,28 +231,25 @@ type Customizer =
         | WindowsRestart customizer -> customizer.JsonModel
         | WindowsUpdate customizer -> customizer.JsonModel
 
-type ManagedImageDistributor =
-    {
-        ImageId: ResourceId
-        RunOutputName: string
-        Location: string
-        ArtifactTags: Map<string, string>
-    }
+type ManagedImageDistributor = {
+    ImageId: ResourceId
+    RunOutputName: string
+    Location: string
+    ArtifactTags: Map<string, string>
+}
 
-type SharedImageDistributor =
-    {
-        GalleryImageId: ResourceId
-        RunOutputName: string
-        ReplicationRegions: Location list
-        ExcludeFromLatest: bool option
-        ArtifactTags: Map<string, string>
-    }
+type SharedImageDistributor = {
+    GalleryImageId: ResourceId
+    RunOutputName: string
+    ReplicationRegions: Location list
+    ExcludeFromLatest: bool option
+    ArtifactTags: Map<string, string>
+}
 
-type VhdDistributor =
-    {
-        RunOutputName: string
-        ArtifactTags: Map<string, string>
-    }
+type VhdDistributor = {
+    RunOutputName: string
+    ArtifactTags: Map<string, string>
+}
 
 [<RequireQualifiedAccess>]
 type Distibutor =
@@ -274,19 +271,18 @@ type Distibutor =
                         distributor.ArtifactTags :> obj
             |}
             :> obj
-        | SharedImage distributor ->
-            {|
-                ``type`` = "SharedImage"
-                galleryImageId = distributor.GalleryImageId.Eval()
-                replicationRegions = distributor.ReplicationRegions |> List.map (fun location -> location.ArmValue)
-                runOutputName = distributor.RunOutputName
-                excludeFromLatest = distributor.ExcludeFromLatest |> Option.map box |> Option.toObj
-                artifactTags =
-                    if distributor.ArtifactTags.IsEmpty then
-                        null
-                    else
-                        distributor.ArtifactTags :> obj
-            |}
+        | SharedImage distributor -> {|
+            ``type`` = "SharedImage"
+            galleryImageId = distributor.GalleryImageId.Eval()
+            replicationRegions = distributor.ReplicationRegions |> List.map (fun location -> location.ArmValue)
+            runOutputName = distributor.RunOutputName
+            excludeFromLatest = distributor.ExcludeFromLatest |> Option.map box |> Option.toObj
+            artifactTags =
+                if distributor.ArtifactTags.IsEmpty then
+                    null
+                else
+                    distributor.ArtifactTags :> obj
+          |}
         | VHD distributor ->
             {|
                 ``type`` = "VHD"
@@ -325,11 +321,10 @@ type ImageBuilder =
 
             {| imageTemplates.Create(this.Name, this.Location, dependsOn = dependencies, tags = this.Tags) with
                 identity = this.Identity.ToArmJson
-                properties =
-                    {|
-                        buildTimeoutInMinutes = this.BuildTimeoutInMinutes |> Option.map box |> Option.toObj
-                        source = this.Source.JsonModel
-                        customize = this.Customize |> List.map (fun customizer -> customizer.JsonModel)
-                        distribute = this.Distribute |> List.map (fun distributor -> distributor.JsonModel)
-                    |}
+                properties = {|
+                    buildTimeoutInMinutes = this.BuildTimeoutInMinutes |> Option.map box |> Option.toObj
+                    source = this.Source.JsonModel
+                    customize = this.Customize |> List.map (fun customizer -> customizer.JsonModel)
+                    distribute = this.Distribute |> List.map (fun distributor -> distributor.JsonModel)
+                |}
             |}

@@ -19,38 +19,36 @@ let deployTo resourceGroupName parameters (deployment: IDeploymentSource) =
     | _, Error e -> raiseFarmer $"Something went wrong during the delete: {e}"
 
 let endToEndTests =
-    testList
-        "End to end tests"
-        [
-            test "Deploys and deletes a resource group" {
-                let resourceGroupName = sprintf "farmer-integration-test-delete-%O" (Guid.NewGuid())
-                arm { location Location.NorthEurope } |> deployTo resourceGroupName []
-            }
+    testList "End to end tests" [
+        test "Deploys and deletes a resource group" {
+            let resourceGroupName = sprintf "farmer-integration-test-delete-%O" (Guid.NewGuid())
+            arm { location Location.NorthEurope } |> deployTo resourceGroupName []
+        }
 
-            test "If parameters are missing, deployment is immediately rejected" {
-                let deployment = createSimpleDeployment [ "p1" ]
-                let result = deployment |> Deploy.tryExecute "sample-rg" []
-                Expect.equal result (Error "The following parameters are missing: p1. Please add them.") ""
-            }
-        ]
+        test "If parameters are missing, deployment is immediately rejected" {
+            let deployment = createSimpleDeployment [ "p1" ]
+            let result = deployment |> Deploy.tryExecute "sample-rg" []
+            Expect.equal result (Error "The following parameters are missing: p1. Please add them.") ""
+        }
+    ]
 
 let tests =
-    testList
-        "Azure CLI"
-        [
-            test "Can connect to Az CLI" {
-                match Deploy.Az.checkVersion Deploy.Az.MinimumVersion with
-                | Ok _ -> ()
-                | Error msg -> raiseFarmer $"Version check failed: {msg}"
-            }
+    testList "Azure CLI" [
+        test "Can connect to Az CLI" {
+            match Deploy.Az.checkVersion Deploy.Az.MinimumVersion with
+            | Ok _ -> ()
+            | Error msg -> raiseFarmer $"Version check failed: {msg}"
+        }
 
-            test "Az output is always JSON" {
-                // account list always defaults to table, regardless of defaults?
-                Deploy.Az.az "account list --all"
-                |> Result.map
-                    Serialization.ofJson<{| id: Guid
-                                            tenantId: Guid
-                                            isDefault: bool |} array>
-                |> ignore
-            }
-        ]
+        test "Az output is always JSON" {
+            // account list always defaults to table, regardless of defaults?
+            Deploy.Az.az "account list --all"
+            |> Result.map
+                Serialization.ofJson<{|
+                    id: Guid
+                    tenantId: Guid
+                    isDefault: bool
+                |} array>
+            |> ignore
+        }
+    ]

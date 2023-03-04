@@ -25,36 +25,33 @@ type DiagnosticSettingsConfig =
         member this.ResourceId =
             diagnosticSettingsType(this.MetricsSource.Type).resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    MetricsSource = this.MetricsSource
-                    Sinks = this.Sinks
-                    Logs = this.Logs
-                    Metrics = this.Metrics
-                    Dependencies = this.Dependencies
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                MetricsSource = this.MetricsSource
+                Sinks = this.Sinks
+                Logs = this.Logs
+                Metrics = this.Metrics
+                Dependencies = this.Dependencies
+                Tags = this.Tags
+            }
+        ]
 
 type DiagnosticSettingsBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sinks =
-                {
-                    StorageAccount = None
-                    EventHub = None
-                    LogAnalyticsWorkspace = None
-                }
-            Metrics = Set.empty
-            Logs = Set.empty
-            MetricsSource = ResourceId.create (ResourceType("", ""), ResourceName "")
-            Dependencies = Set.empty
-            Tags = Map.empty
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sinks = {
+            StorageAccount = None
+            EventHub = None
+            LogAnalyticsWorkspace = None
         }
+        Metrics = Set.empty
+        Logs = Set.empty
+        MetricsSource = ResourceId.create (ResourceType("", ""), ResourceName "")
+        Dependencies = Set.empty
+        Tags = Map.empty
+    }
 
     member _.Run(state: DiagnosticSettingsConfig) =
         let (|EmptySet|_|) theSet =
@@ -177,7 +174,7 @@ type DiagnosticSettingsBuilder() =
     [<CustomOperation "loganalytics_output_type">]
     member _.DedicatedLogAnalyticsDestination(state: DiagnosticSettingsConfig, outputType) =
         match state.Sinks.LogAnalyticsWorkspace with
-        | Some (resourceId, _) ->
+        | Some(resourceId, _) ->
             { state with
                 Sinks =
                     { state.Sinks with

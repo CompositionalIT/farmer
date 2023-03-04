@@ -6,14 +6,16 @@ open Farmer.PublicIpAddress
 open Farmer.VirtualNetworkGateway
 open Farmer.Arm.Network
 
-type VpnClientConfig =
-    {
-        ClientAddressPools: IPAddressCidr list
-        ClientRootCertificates: {| Name: string
-                                   PublicCertData: string |} list
-        ClientRevokedCertificates: {| Name: string; Thumbprint: string |} list
-        ClientProtocols: VPNClientProtocol list
-    }
+type VpnClientConfig = {
+    ClientAddressPools: IPAddressCidr list
+    ClientRootCertificates:
+        {|
+            Name: string
+            PublicCertData: string
+        |} list
+    ClientRevokedCertificates: {| Name: string; Thumbprint: string |} list
+    ClientProtocols: VPNClientProtocol list
+}
 
 type VNetGatewayConfig =
     {
@@ -43,60 +45,56 @@ type VNetGatewayConfig =
     interface IBuilder with
         member this.ResourceId = virtualNetworkGateways.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                if this.GatewayPublicIpName = ResourceName.Empty then
-                    { // No public IP set, so generate one named after the gateway
-                        Name = ResourceName $"{this.Name.Value}-ip"
-                        AvailabilityZone = None
-                        AllocationMethod = AllocationMethod.Dynamic
-                        Location = location
-                        Sku = PublicIpAddress.Sku.Basic
-                        DomainNameLabel = None
-                        Tags = this.Tags
-                    }
-                {
-                    Name = this.Name
+        member this.BuildResources location = [
+            if this.GatewayPublicIpName = ResourceName.Empty then
+                { // No public IP set, so generate one named after the gateway
+                    Name = ResourceName $"{this.Name.Value}-ip"
+                    AvailabilityZone = None
+                    AllocationMethod = AllocationMethod.Dynamic
                     Location = location
-                    IpConfigs =
-                        [
-                            {|
-                                Name = ResourceName "default"
-                                PrivateIpAllocationMethod = this.GatewayPrivateIpAllocationMethod
-                                PublicIpName = this.GatewayPublicIpName.IfEmpty $"{this.Name.Value}-ip"
-                            |}
-                            if this.ActiveActivePublicIpName.IsSome then
-                                {|
-                                    Name = ResourceName "redundant"
-                                    PrivateIpAllocationMethod = this.ActiveActivePrivateIpAllocationMethod
-                                    PublicIpName = this.ActiveActivePublicIpName.Value
-                                |}
-                        ]
-                    VirtualNetwork = this.VirtualNetwork
-                    GatewayType = this.GatewayType
-                    VpnType = this.VpnType
-                    EnableBgp = this.EnableBgp
-                    VpnClientConfiguration =
-                        this.VpnClientConfiguration
-                        |> Option.map (fun config ->
-                            {
-                                VpnClientConfiguration.ClientAddressPools = config.ClientAddressPools
-                                ClientRootCertificates = config.ClientRootCertificates
-                                ClientRevokedCertificates = config.ClientRevokedCertificates
-                                ClientProtocols = config.ClientProtocols
-                            })
+                    Sku = PublicIpAddress.Sku.Basic
+                    DomainNameLabel = None
                     Tags = this.Tags
                 }
-            ]
+            {
+                Name = this.Name
+                Location = location
+                IpConfigs = [
+                    {|
+                        Name = ResourceName "default"
+                        PrivateIpAllocationMethod = this.GatewayPrivateIpAllocationMethod
+                        PublicIpName = this.GatewayPublicIpName.IfEmpty $"{this.Name.Value}-ip"
+                    |}
+                    if this.ActiveActivePublicIpName.IsSome then
+                        {|
+                            Name = ResourceName "redundant"
+                            PrivateIpAllocationMethod = this.ActiveActivePrivateIpAllocationMethod
+                            PublicIpName = this.ActiveActivePublicIpName.Value
+                        |}
+                ]
+                VirtualNetwork = this.VirtualNetwork
+                GatewayType = this.GatewayType
+                VpnType = this.VpnType
+                EnableBgp = this.EnableBgp
+                VpnClientConfiguration =
+                    this.VpnClientConfiguration
+                    |> Option.map (fun config -> {
+                        VpnClientConfiguration.ClientAddressPools = config.ClientAddressPools
+                        ClientRootCertificates = config.ClientRootCertificates
+                        ClientRevokedCertificates = config.ClientRevokedCertificates
+                        ClientProtocols = config.ClientProtocols
+                    })
+                Tags = this.Tags
+            }
+        ]
 
 type VpnClientConfigurationBuilder() =
-    member _.Yield _ =
-        {
-            ClientAddressPools = []
-            ClientRootCertificates = []
-            ClientRevokedCertificates = []
-            ClientProtocols = []
-        }
+    member _.Yield _ = {
+        ClientAddressPools = []
+        ClientRootCertificates = []
+        ClientRevokedCertificates = []
+        ClientProtocols = []
+    }
 
     member _.Run(state: VpnClientConfig) =
         match state.ClientProtocols with
@@ -169,20 +167,19 @@ type VpnClientConfigurationBuilder() =
 let vpnclient = VpnClientConfigurationBuilder()
 
 type VnetGatewayBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            GatewayPrivateIpAllocationMethod = PrivateIpAddress.DynamicPrivateIp
-            GatewayPublicIpName = ResourceName.Empty
-            ActiveActivePrivateIpAllocationMethod = PrivateIpAddress.DynamicPrivateIp
-            ActiveActivePublicIpName = None
-            VirtualNetwork = ResourceName.Empty
-            GatewayType = GatewayType.Vpn VpnGatewaySku.VpnGw1
-            VpnType = VpnType.RouteBased
-            EnableBgp = true
-            VpnClientConfiguration = None
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        GatewayPrivateIpAllocationMethod = PrivateIpAddress.DynamicPrivateIp
+        GatewayPublicIpName = ResourceName.Empty
+        ActiveActivePrivateIpAllocationMethod = PrivateIpAddress.DynamicPrivateIp
+        ActiveActivePublicIpName = None
+        VirtualNetwork = ResourceName.Empty
+        GatewayType = GatewayType.Vpn VpnGatewaySku.VpnGw1
+        VpnType = VpnType.RouteBased
+        EnableBgp = true
+        VpnClientConfiguration = None
+        Tags = Map.empty
+    }
 
     /// Sets the name of the gateway
     [<CustomOperation "name">]
@@ -271,33 +268,31 @@ type ConnectionConfig =
     interface IBuilder with
         member this.ResourceId = connections.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    ConnectionType = this.ConnectionType
-                    VirtualNetworkGateway1 = this.VirtualNetworkGateway1
-                    VirtualNetworkGateway2 = this.VirtualNetworkGateway2
-                    LocalNetworkGateway = this.LocalNetworkGateway
-                    PeerId = this.PeerId
-                    AuthorizationKey = this.AuthorizationKey
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                ConnectionType = this.ConnectionType
+                VirtualNetworkGateway1 = this.VirtualNetworkGateway1
+                VirtualNetworkGateway2 = this.VirtualNetworkGateway2
+                LocalNetworkGateway = this.LocalNetworkGateway
+                PeerId = this.PeerId
+                AuthorizationKey = this.AuthorizationKey
+                Tags = this.Tags
+            }
+        ]
 
 type ConnectionBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            ConnectionType = ConnectionType.ExpressRoute
-            VirtualNetworkGateway1 = ResourceName.Empty
-            VirtualNetworkGateway2 = None
-            LocalNetworkGateway = None
-            PeerId = None
-            AuthorizationKey = None
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        ConnectionType = ConnectionType.ExpressRoute
+        VirtualNetworkGateway1 = ResourceName.Empty
+        VirtualNetworkGateway2 = None
+        LocalNetworkGateway = None
+        PeerId = None
+        AuthorizationKey = None
+        Tags = Map.empty
+    }
 
     /// Sets the name of the connection
     [<CustomOperation "name">]

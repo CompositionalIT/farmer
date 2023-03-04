@@ -26,41 +26,37 @@ let toArmJson =
     | {
           SystemAssigned = Disabled
           UserAssigned = []
-      } ->
-        {|
-            ``type`` = "None"
-            userAssignedIdentities = null
-        |}
+      } -> {|
+        ``type`` = "None"
+        userAssignedIdentities = null
+      |}
     | {
           SystemAssigned = Enabled
           UserAssigned = []
-      } ->
-        {|
-            ``type`` = "SystemAssigned"
-            userAssignedIdentities = null
-        |}
+      } -> {|
+        ``type`` = "SystemAssigned"
+        userAssignedIdentities = null
+      |}
     | {
           SystemAssigned = Disabled
           UserAssigned = identities
-      } ->
-        {|
-            ``type`` = "UserAssigned"
-            userAssignedIdentities =
-                identities
-                |> List.map (fun identity -> identity.ResourceId.Eval(), obj ())
-                |> dict
-        |}
+      } -> {|
+        ``type`` = "UserAssigned"
+        userAssignedIdentities =
+            identities
+            |> List.map (fun identity -> identity.ResourceId.Eval(), obj ())
+            |> dict
+      |}
     | {
           SystemAssigned = Enabled
           UserAssigned = identities
-      } ->
-        {|
-            ``type`` = "SystemAssigned, UserAssigned"
-            userAssignedIdentities =
-                identities
-                |> List.map (fun identity -> identity.ResourceId.Eval(), obj ())
-                |> dict
-        |}
+      } -> {|
+        ``type`` = "SystemAssigned, UserAssigned"
+        userAssignedIdentities =
+            identities
+            |> List.map (fun identity -> identity.ResourceId.Eval(), obj ())
+            |> dict
+      |}
 
 type ManagedIdentity with
 

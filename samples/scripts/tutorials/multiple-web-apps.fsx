@@ -8,13 +8,11 @@ let plan = servicePlan {
     sku WebApp.Sku.F1
 }
 
-let ai = appInsights {
-    name "insights"
-}
+let ai = appInsights { name "insights" }
 
 let planets = [ "jupiter"; "mars"; "pluto"; "venus" ]
 
-let webApps : IBuilder list = [
+let webApps: IBuilder list = [
     for planet in planets do
         webApp {
             name ("mywebapp-" + planet)
@@ -30,5 +28,4 @@ let template = arm {
     add_resources webApps
 }
 
-template
-|> Writer.quickWrite "my-resource-group-name"
+template |> Writer.quickWrite "my-resource-group-name"

@@ -21,11 +21,9 @@ let (|SingleEndpoint|ManyEndpoints|) endpoints =
             | Tag _ -> true
             | _ -> false)
         |> function
-            | Some (Tag tag) -> SingleEndpoint(Tag tag)
+            | Some(Tag tag) -> SingleEndpoint(Tag tag)
             | None
-            | Some (AnyEndpoint
-            | Network _
-            | Host _) -> ManyEndpoints(List.ofSeq endpoints)
+            | Some(AnyEndpoint | Network _ | Host _) -> ManyEndpoints(List.ofSeq endpoints)
 
 let private (|SinglePort|ManyPorts|) (ports: _ Set) =
     if ports.Contains AnyPort then
@@ -69,22 +67,21 @@ type SecurityRule =
         Priority: int
     }
 
-    member this.PropertiesModel =
-        {|
-            description = this.Description |> Option.toObj
-            protocol = this.Protocol.ArmValue
-            sourcePortRange = this.SourcePorts |> EndpointWriter.toRange
-            sourcePortRanges = this.SourcePorts |> EndpointWriter.toRanges
-            destinationPortRange = this.DestinationPorts |> EndpointWriter.toRange
-            destinationPortRanges = this.DestinationPorts |> EndpointWriter.toRanges
-            sourceAddressPrefix = this.SourceAddresses |> EndpointWriter.toPrefix
-            sourceAddressPrefixes = this.SourceAddresses |> EndpointWriter.toPrefixes
-            destinationAddressPrefix = this.DestinationAddresses |> EndpointWriter.toPrefix
-            destinationAddressPrefixes = this.DestinationAddresses |> EndpointWriter.toPrefixes
-            access = this.Access.ArmValue
-            priority = this.Priority
-            direction = this.Direction.ArmValue
-        |}
+    member this.PropertiesModel = {|
+        description = this.Description |> Option.toObj
+        protocol = this.Protocol.ArmValue
+        sourcePortRange = this.SourcePorts |> EndpointWriter.toRange
+        sourcePortRanges = this.SourcePorts |> EndpointWriter.toRanges
+        destinationPortRange = this.DestinationPorts |> EndpointWriter.toRange
+        destinationPortRanges = this.DestinationPorts |> EndpointWriter.toRanges
+        sourceAddressPrefix = this.SourceAddresses |> EndpointWriter.toPrefix
+        sourceAddressPrefixes = this.SourceAddresses |> EndpointWriter.toPrefixes
+        destinationAddressPrefix = this.DestinationAddresses |> EndpointWriter.toPrefix
+        destinationAddressPrefixes = this.DestinationAddresses |> EndpointWriter.toPrefixes
+        access = this.Access.ArmValue
+        priority = this.Priority
+        direction = this.Direction.ArmValue
+    |}
 
     interface IArmResource with
         member this.ResourceId = securityRules.resourceId (this.SecurityGroup / this.Name)
@@ -109,15 +106,13 @@ type NetworkSecurityGroup =
 
         member this.JsonModel =
             {| networkSecurityGroups.Create(this.Name, this.Location, tags = this.Tags) with
-                properties =
-                    {|
-                        securityRules =
-                            this.SecurityRules
-                            |> List.map (fun rule ->
-                                {|
-                                    name = rule.Name.Value
-                                    ``type`` = securityRules.Type
-                                    properties = rule.PropertiesModel
-                                |})
-                    |}
+                properties = {|
+                    securityRules =
+                        this.SecurityRules
+                        |> List.map (fun rule -> {|
+                            name = rule.Name.Value
+                            ``type`` = securityRules.Type
+                            properties = rule.PropertiesModel
+                        |})
+                |}
             |}

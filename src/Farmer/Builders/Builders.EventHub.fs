@@ -51,92 +51,84 @@ type EventHubConfig =
     interface IBuilder with
         member this.ResourceId = namespaces.resourceId this.EventHubNamespaceName
 
-        member this.BuildResources location =
-            [
-                let eventHubName =
-                    this.Name.Map(fun hubName -> $"{this.EventHubNamespaceName.Value}/{hubName}")
+        member this.BuildResources location = [
+            let eventHubName =
+                this.Name.Map(fun hubName -> $"{this.EventHubNamespaceName.Value}/{hubName}")
 
-                // Namespace
-                match this.EventHubNamespace with
-                | DeployableResource this _ ->
-                    {
-                        Name = this.EventHubNamespaceName
-                        Location = location
-                        Sku =
-                            {|
-                                Name = this.Sku
-                                Capacity = this.Capacity
-                            |}
-                        ZoneRedundant = this.ZoneRedundant
-                        AutoInflateSettings = this.ThroughputSettings
-                        Tags = this.Tags
-                    }
-                | _ -> ()
+            // Namespace
+            match this.EventHubNamespace with
+            | DeployableResource this _ -> {
+                Name = this.EventHubNamespaceName
+                Location = location
+                Sku = {|
+                    Name = this.Sku
+                    Capacity = this.Capacity
+                |}
+                ZoneRedundant = this.ZoneRedundant
+                AutoInflateSettings = this.ThroughputSettings
+                Tags = this.Tags
+              }
+            | _ -> ()
 
-                // Event hub
+            // Event hub
+            {
+                Name = eventHubName
+                Location = location
+                MessageRetentionDays = this.MessageRetentionInDays
+                Partitions = this.Partitions
+                CaptureDestination = this.CaptureDestination
+                Dependencies =
+                    Set [
+                        namespaces.resourceId this.EventHubNamespaceName
+                        yield!
+                            this.CaptureDestination
+                            |> Option.mapList (fun (StorageAccount(name, _)) -> storageAccounts.resourceId name)
+                        yield! this.Dependencies
+                    ]
+                Tags = this.Tags
+            }
+
+            // Consumer groups
+            for consumerGroup in this.ConsumerGroups do
                 {
-                    Name = eventHubName
+                    ConsumerGroupName = consumerGroup
+                    EventHub = eventHubName
                     Location = location
-                    MessageRetentionDays = this.MessageRetentionInDays
-                    Partitions = this.Partitions
-                    CaptureDestination = this.CaptureDestination
-                    Dependencies =
-                        Set
-                            [
-                                namespaces.resourceId this.EventHubNamespaceName
-                                yield!
-                                    this.CaptureDestination
-                                    |> Option.mapList (fun (StorageAccount (name, _)) -> storageAccounts.resourceId name)
-                                yield! this.Dependencies
-                            ]
-                    Tags = this.Tags
+                    Dependencies = [
+                        namespaces.resourceId this.EventHubNamespaceName
+                        eventHubs.resourceId (this.EventHubNamespaceName, this.Name)
+                    ]
                 }
 
-                // Consumer groups
-                for consumerGroup in this.ConsumerGroups do
-                    {
-                        ConsumerGroupName = consumerGroup
-                        EventHub = eventHubName
-                        Location = location
-                        Dependencies =
-                            [
-                                namespaces.resourceId this.EventHubNamespaceName
-                                eventHubs.resourceId (this.EventHubNamespaceName, this.Name)
-                            ]
-                    }
-
-                // Auth rules
-                for rule in this.AuthorizationRules do
-                    {
-                        Name =
-                            rule.Key.Map(fun rule -> $"{this.EventHubNamespaceName.Value}/{this.Name.Value}/%s{rule}")
-                        Location = location
-                        Dependencies =
-                            [
-                                namespaces.resourceId this.EventHubNamespaceName
-                                eventHubs.resourceId (this.EventHubNamespaceName, this.Name)
-                            ]
-                        Rights = rule.Value
-                    }
-            ]
+            // Auth rules
+            for rule in this.AuthorizationRules do
+                {
+                    Name = rule.Key.Map(fun rule -> $"{this.EventHubNamespaceName.Value}/{this.Name.Value}/%s{rule}")
+                    Location = location
+                    Dependencies = [
+                        namespaces.resourceId this.EventHubNamespaceName
+                        eventHubs.resourceId (this.EventHubNamespaceName, this.Name)
+                    ]
+                    Rights = rule.Value
+                }
+        ]
 
 type EventHubBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName "hub"
-            EventHubNamespace = derived (fun config -> namespaces.resourceId (config.Name - "ns"))
-            Sku = Standard
-            Capacity = 1
-            ZoneRedundant = None
-            ThroughputSettings = None
-            MessageRetentionInDays = None
-            Partitions = 1
-            CaptureDestination = None
-            ConsumerGroups = Set.empty
-            AuthorizationRules = Map.empty
-            Dependencies = Set.empty
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName "hub"
+        EventHubNamespace = derived (fun config -> namespaces.resourceId (config.Name - "ns"))
+        Sku = Standard
+        Capacity = 1
+        ZoneRedundant = None
+        ThroughputSettings = None
+        MessageRetentionInDays = None
+        Partitions = 1
+        CaptureDestination = None
+        ConsumerGroups = Set.empty
+        AuthorizationRules = Map.empty
+        Dependencies = Set.empty
+        Tags = Map.empty
+    }
 
     /// Sets the name of the Event Hub instance.
     [<CustomOperation "name">]

@@ -185,44 +185,45 @@ type EventGridConfig<'T> =
     {
         TopicName: ResourceName
         Source: ResourceName * TopicType
-        Subscriptions: {| Name: ResourceName
-                          Destination: ResourceName
-                          Endpoint: EndpointType
-                          SystemEvents: EventGridEvent<'T> list |} list
+        Subscriptions:
+            {|
+                Name: ResourceName
+                Destination: ResourceName
+                Endpoint: EndpointType
+                SystemEvents: EventGridEvent<'T> list
+            |} list
         Tags: Map<string, string>
     }
 
     interface IBuilder with
         member this.ResourceId = systemTopics.resourceId this.TopicName
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.TopicName
-                    Location = location
-                    Source = fst this.Source
-                    TopicType = snd this.Source
-                    Tags = this.Tags
-                }
+        member this.BuildResources location = [
+            {
+                Name = this.TopicName
+                Location = location
+                Source = fst this.Source
+                TopicType = snd this.Source
+                Tags = this.Tags
+            }
 
-                for sub in this.Subscriptions do
-                    {
-                        Name = sub.Name
-                        Topic = this.TopicName
-                        Destination = sub.Destination
-                        DestinationEndpoint = sub.Endpoint
-                        Events = sub.SystemEvents
-                    }
-            ]
+            for sub in this.Subscriptions do
+                {
+                    Name = sub.Name
+                    Topic = this.TopicName
+                    Destination = sub.Destination
+                    DestinationEndpoint = sub.Endpoint
+                    Events = sub.SystemEvents
+                }
+        ]
 
 type EventGridBuilder() =
-    static member private ChangeTopic<'TNew>(state: EventGridConfig<_>, source, topic) : EventGridConfig<'TNew> =
-        {
-            TopicName = state.TopicName
-            Source = source, topic
-            Subscriptions = []
-            Tags = Map.empty
-        }
+    static member private ChangeTopic<'TNew>(state: EventGridConfig<_>, source, topic) : EventGridConfig<'TNew> = {
+        TopicName = state.TopicName
+        Source = source, topic
+        Subscriptions = []
+        Tags = Map.empty
+    }
 
     static member private AddSub(state: EventGridConfig<'T>, name, destination: ResourceName, endpoint, events) =
         let name = destination.Value + "-" + name
@@ -238,13 +239,12 @@ type EventGridBuilder() =
                 :: state.Subscriptions
         }
 
-    member _.Yield _ =
-        {
-            TopicName = ResourceName.Empty
-            Source = ResourceName.Empty, TopicType(ResourceType("", ""), "")
-            Subscriptions = []
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        TopicName = ResourceName.Empty
+        Source = ResourceName.Empty, TopicType(ResourceType("", ""), "")
+        Subscriptions = []
+        Tags = Map.empty
+    }
 
     [<CustomOperation "topic_name">]
     member _.Name(state: EventGridConfig<'T>, name) =

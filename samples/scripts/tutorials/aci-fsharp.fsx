@@ -1,6 +1,7 @@
 #r "nuget: Farmer"
 
-let script = """
+let script =
+    """
 #r "nuget: Suave, Version=2.6.0"
 open Suave
 let config = { defaultConfig with bindings = [ HttpBinding.createSimple HTTP "0.0.0.0" 8080 ] }
@@ -12,6 +13,7 @@ open Farmer.Builders
 
 let containers = containerGroup {
     name "my-app"
+
     add_instances [
         containerInstance {
             name "fsi"
@@ -23,14 +25,13 @@ let containers = containerGroup {
             memory 0.5<Gb>
         }
     ]
+
     public_dns "my-app-fsi-suave" [ TCP, 8080us ]
-    add_volumes [
-        volume_mount.secret_string "script-source" "main.fsx" script
-    ]
+    add_volumes [ volume_mount.secret_string "script-source" "main.fsx" script ]
 }
+
 arm {
     location Location.EastUS
-    add_resources [
-        containers
-    ]
-} |> Writer.quickWrite "aci-fsharp"
+    add_resources [ containers ]
+}
+|> Writer.quickWrite "aci-fsharp"

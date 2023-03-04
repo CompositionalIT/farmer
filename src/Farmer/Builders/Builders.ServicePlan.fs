@@ -20,33 +20,31 @@ type ServicePlanConfig =
     interface IBuilder with
         member this.ResourceId = serverFarms.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    Sku = this.Sku
-                    WorkerSize = this.WorkerSize
-                    OperatingSystem = this.OperatingSystem
-                    WorkerCount = this.WorkerCount
-                    MaximumElasticWorkerCount = this.MaximumElasticWorkerCount
-                    ZoneRedundant = this.ZoneRedundant
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Sku = this.Sku
+                WorkerSize = this.WorkerSize
+                OperatingSystem = this.OperatingSystem
+                WorkerCount = this.WorkerCount
+                MaximumElasticWorkerCount = this.MaximumElasticWorkerCount
+                ZoneRedundant = this.ZoneRedundant
+                Tags = this.Tags
+            }
+        ]
 
 type ServicePlanBuilder() =
-    member _.Yield _ : ServicePlanConfig =
-        {
-            Name = ResourceName.Empty
-            Sku = Free
-            WorkerSize = Small
-            WorkerCount = 1
-            MaximumElasticWorkerCount = None
-            OperatingSystem = Windows
-            ZoneRedundant = None
-            Tags = Map.empty
-        }
+    member _.Yield _ : ServicePlanConfig = {
+        Name = ResourceName.Empty
+        Sku = Free
+        WorkerSize = Small
+        WorkerCount = 1
+        MaximumElasticWorkerCount = None
+        OperatingSystem = Windows
+        ZoneRedundant = None
+        Tags = Map.empty
+    }
 
     [<CustomOperation "name">]
     /// Sets the name of the Server Farm.

@@ -26,22 +26,20 @@ type SearchService =
 
         member this.JsonModel =
             {| searchServices.Create(this.Name, this.Location, tags = this.Tags) with
-                sku =
-                    {|
-                        name =
-                            match this.Sku with
-                            | Free -> "free"
-                            | Basic -> "basic"
-                            | Standard -> "standard"
-                            | Standard2 -> "standard2"
-                            | Standard3 _ -> "standard3"
-                            | StorageOptimisedL1 -> "storage_optimized_l1"
-                            | StorageOptimisedL2 -> "storage_optimized_l2"
-                    |}
-                properties =
-                    {|
-                        replicaCount = this.ReplicaCount
-                        partitionCount = this.PartitionCount
-                        hostingMode = this.HostingMode
-                    |}
+                sku = {|
+                    name =
+                        match this.Sku with
+                        | Free -> "free"
+                        | Basic -> "basic"
+                        | Standard -> "standard"
+                        | Standard2 -> "standard2"
+                        | Standard3 _ -> "standard3"
+                        | StorageOptimisedL1 -> "storage_optimized_l1"
+                        | StorageOptimisedL2 -> "storage_optimized_l2"
+                |}
+                properties = {|
+                    replicaCount = this.ReplicaCount
+                    partitionCount = this.PartitionCount
+                    hostingMode = this.HostingMode
+                |}
             |}

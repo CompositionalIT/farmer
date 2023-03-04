@@ -56,14 +56,13 @@ type CosmosDb =
     static member getConnectionString(name: ResourceName, connectionStringKind) =
         CosmosDb.getConnectionString (databaseAccounts.resourceId name, connectionStringKind)
 
-type CosmosDbContainerConfig =
-    {
-        Name: ResourceName
-        PartitionKey: string list * IndexKind
-        Indexes: (string * (IndexDataType * IndexKind) list) list
-        UniqueKeys: Set<string list>
-        ExcludedPaths: string list
-    }
+type CosmosDbContainerConfig = {
+    Name: ResourceName
+    PartitionKey: string list * IndexKind
+    Indexes: (string * (IndexDataType * IndexKind) list) list
+    UniqueKeys: Set<string list>
+    ExcludedPaths: string list
+}
 
 type CosmosDbConfig =
     {
@@ -107,73 +106,66 @@ type CosmosDbConfig =
     interface IBuilder with
         member this.ResourceId = this.AccountResourceId
 
-        member this.BuildResources location =
-            [
-                // Account
-                match this.AccountName with
-                | DeployableResource this _ ->
-                    {
-                        Name = this.AccountResourceId.Name
-                        Location = location
-                        Kind = this.Kind
-                        ConsistencyPolicy = this.AccountConsistencyPolicy
-                        Serverless =
-                            match this.DbThroughput with
-                            | Serverless -> Enabled
-                            | Provisioned _ -> Disabled
-                        PublicNetworkAccess = this.PublicNetworkAccess
-                        FailoverPolicy = this.AccountFailoverPolicy
-                        FreeTier = this.FreeTier
-                        Tags = this.Tags
-                    }
-                | _ -> ()
+        member this.BuildResources location = [
+            // Account
+            match this.AccountName with
+            | DeployableResource this _ -> {
+                Name = this.AccountResourceId.Name
+                Location = location
+                Kind = this.Kind
+                ConsistencyPolicy = this.AccountConsistencyPolicy
+                Serverless =
+                    match this.DbThroughput with
+                    | Serverless -> Enabled
+                    | Provisioned _ -> Disabled
+                PublicNetworkAccess = this.PublicNetworkAccess
+                FailoverPolicy = this.AccountFailoverPolicy
+                FreeTier = this.FreeTier
+                Tags = this.Tags
+              }
+            | _ -> ()
 
-                // Database
+            // Database
+            {
+                Name = this.DbName
+                Account = this.AccountResourceId.Name
+                Throughput = this.DbThroughput
+                Kind = this.Kind
+            }
+
+            // Containers
+            for container in this.Containers do
                 {
-                    Name = this.DbName
+                    Name = container.Name
                     Account = this.AccountResourceId.Name
-                    Throughput = this.DbThroughput
-                    Kind = this.Kind
+                    Database = this.DbName
+                    PartitionKey = {|
+                        Paths = fst container.PartitionKey
+                        Kind = snd container.PartitionKey
+                    |}
+                    UniqueKeyPolicy = {|
+                        UniqueKeys =
+                            container.UniqueKeys
+                            |> Set.map (fun uniqueKeyPath -> {| Paths = uniqueKeyPath |})
+                    |}
+                    IndexingPolicy = {|
+                        ExcludedPaths = container.ExcludedPaths
+                        IncludedPaths = [
+                            for (path, indexes) in container.Indexes do
+                                {| Path = path; Indexes = indexes |}
+                        ]
+                    |}
                 }
-
-                // Containers
-                for container in this.Containers do
-                    {
-                        Name = container.Name
-                        Account = this.AccountResourceId.Name
-                        Database = this.DbName
-                        PartitionKey =
-                            {|
-                                Paths = fst container.PartitionKey
-                                Kind = snd container.PartitionKey
-                            |}
-                        UniqueKeyPolicy =
-                            {|
-                                UniqueKeys =
-                                    container.UniqueKeys
-                                    |> Set.map (fun uniqueKeyPath -> {| Paths = uniqueKeyPath |})
-                            |}
-                        IndexingPolicy =
-                            {|
-                                ExcludedPaths = container.ExcludedPaths
-                                IncludedPaths =
-                                    [
-                                        for (path, indexes) in container.Indexes do
-                                            {| Path = path; Indexes = indexes |}
-                                    ]
-                            |}
-                    }
-            ]
+        ]
 
 type CosmosDbContainerBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName ""
-            PartitionKey = [], Hash
-            Indexes = []
-            UniqueKeys = Set.empty
-            ExcludedPaths = []
-        }
+    member _.Yield _ = {
+        Name = ResourceName ""
+        PartitionKey = [], Hash
+        Indexes = []
+        UniqueKeys = Set.empty
+        ExcludedPaths = []
+    }
 
     member _.Run state =
         match state.PartitionKey with
@@ -224,30 +216,29 @@ type CosmosDbContainerBuilder() =
         }
 
 type CosmosDbBuilder() =
-    member _.Yield _ =
-        {
-            DbName = ResourceName.Empty
-            AccountName =
-                derived (fun config ->
-                    let dbName = config.DbName.Value.ToLower()
-                    let maxLength = 36 // 44 less "-account"
+    member _.Yield _ = {
+        DbName = ResourceName.Empty
+        AccountName =
+            derived (fun config ->
+                let dbName = config.DbName.Value.ToLower()
+                let maxLength = 36 // 44 less "-account"
 
-                    if config.DbName.Value.Length > maxLength then
-                        dbName.Substring maxLength
-                    else
-                        dbName
-                    |> sprintf "%s-account"
-                    |> ResourceName
-                    |> databaseAccounts.resourceId)
-            AccountConsistencyPolicy = Eventual
-            AccountFailoverPolicy = NoFailover
-            DbThroughput = Provisioned 400<RU>
-            Containers = []
-            PublicNetworkAccess = Enabled
-            FreeTier = false
-            Tags = Map.empty
-            Kind = DatabaseKind.Document
-        }
+                if config.DbName.Value.Length > maxLength then
+                    dbName.Substring maxLength
+                else
+                    dbName
+                |> sprintf "%s-account"
+                |> ResourceName
+                |> databaseAccounts.resourceId)
+        AccountConsistencyPolicy = Eventual
+        AccountFailoverPolicy = NoFailover
+        DbThroughput = Provisioned 400<RU>
+        Containers = []
+        PublicNetworkAccess = Enabled
+        FreeTier = false
+        Tags = Map.empty
+        Kind = DatabaseKind.Document
+    }
 
     /// Sets the name of the CosmosDB server.
     [<CustomOperation "account_name">]

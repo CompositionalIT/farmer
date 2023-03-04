@@ -21,43 +21,41 @@ type StaticWebAppConfig =
     interface IBuilder with
         member this.ResourceId = staticSites.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                match this with
-                | { Repository = Some uri } ->
-                    {
-                        Name = this.Name
-                        Location = location
-                        Repository = uri
-                        Branch = this.Branch
-                        RepositoryToken = this.RepositoryToken
-                        AppLocation = this.AppLocation
-                        ApiLocation = this.ApiLocation
-                        AppArtifactLocation = this.AppArtifactLocation
-                    }
+        member this.BuildResources location = [
+            match this with
+            | { Repository = Some uri } ->
+                {
+                    Name = this.Name
+                    Location = location
+                    Repository = uri
+                    Branch = this.Branch
+                    RepositoryToken = this.RepositoryToken
+                    AppLocation = this.AppLocation
+                    ApiLocation = this.ApiLocation
+                    AppArtifactLocation = this.AppArtifactLocation
+                }
 
-                    if not this.AppSettings.IsEmpty then
-                        {
-                            Config.StaticSite = this.Name
-                            Properties = this.AppSettings
-                        }
-                | _ -> raiseFarmer "You must set the repository URI."
-            ]
+                if not this.AppSettings.IsEmpty then
+                    {
+                        Config.StaticSite = this.Name
+                        Properties = this.AppSettings
+                    }
+            | _ -> raiseFarmer "You must set the repository URI."
+        ]
 
     member this.RepositoryParameter = $"repositorytoken-for-{this.Name.Value}"
 
 type StaticWebAppBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Repository = None
-            Branch = "master"
-            RepositoryToken = SecureParameter ""
-            AppLocation = ""
-            ApiLocation = None
-            AppArtifactLocation = None
-            AppSettings = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Repository = None
+        Branch = "master"
+        RepositoryToken = SecureParameter ""
+        AppLocation = ""
+        ApiLocation = None
+        AppArtifactLocation = None
+        AppSettings = Map.empty
+    }
 
     member _.Run(state: StaticWebAppConfig) =
         { state with

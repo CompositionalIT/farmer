@@ -13,23 +13,20 @@ let client =
     new MapsManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 
 let tests =
-    testList
-        "Maps"
-        [
-            test "Can create a basic maps account" {
-                let resource =
-                    let account =
-                        maps {
-                            name "mymaps~@"
-                            sku S0
-                        }
+    testList "Maps" [
+        test "Can create a basic maps account" {
+            let resource =
+                let account = maps {
+                    name "mymaps~@"
+                    sku S0
+                }
 
-                    arm { add_resource account }
-                    |> findAzureResources<MapsAccount> client.SerializationSettings
-                    |> List.head
+                arm { add_resource account }
+                |> findAzureResources<MapsAccount> client.SerializationSettings
+                |> List.head
 
-                resource.Validate()
-                Expect.equal resource.Name "mymaps" ""
-                Expect.equal resource.Sku.Name "S0" ""
-            }
-        ]
+            resource.Validate()
+            Expect.equal resource.Name "mymaps" ""
+            Expect.equal resource.Sku.Name "S0" ""
+        }
+    ]

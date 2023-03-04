@@ -22,8 +22,7 @@ type Registries =
         member this.JsonModel =
             {| registries.Create(this.Name, this.Location, tags = this.Tags) with
                 sku = {| name = this.Sku.ToString() |}
-                properties =
-                    {|
-                        adminUserEnabled = this.AdminUserEnabled
-                    |}
+                properties = {|
+                    adminUserEnabled = this.AdminUserEnabled
+                |}
             |}

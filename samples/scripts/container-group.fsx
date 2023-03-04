@@ -8,7 +8,7 @@ let nginx = containerInstance {
     name "nginx"
     image "nginx:1.17.6-alpine"
     add_ports PublicPort [ 80us; 443us ]
-    add_ports InternalPort [ 9090us; ]
+    add_ports InternalPort [ 9090us ]
     memory 0.5<Gb>
     cpu_cores 1
 }
@@ -27,4 +27,3 @@ let g = containerGroup {
     add_instances [ nginx ]
     network_profile profile
 }
-

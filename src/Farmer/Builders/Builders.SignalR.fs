@@ -22,18 +22,17 @@ type SignalRConfig =
     interface IBuilder with
         member this.ResourceId = this.ResourceId
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    Sku = this.Sku
-                    Capacity = this.Capacity
-                    AllowedOrigins = this.AllowedOrigins
-                    ServiceMode = this.ServiceMode
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Sku = this.Sku
+                Capacity = this.Capacity
+                AllowedOrigins = this.AllowedOrigins
+                ServiceMode = this.ServiceMode
+                Tags = this.Tags
+            }
+        ]
 
     member private this.GetKeyExpr field =
         let expr =
@@ -45,15 +44,14 @@ type SignalRConfig =
     member this.ConnectionString = this.GetKeyExpr "primaryConnectionString"
 
 type SignalRBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sku = Free
-            Capacity = None
-            AllowedOrigins = []
-            ServiceMode = Default
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = Free
+        Capacity = None
+        AllowedOrigins = []
+        ServiceMode = Default
+        Tags = Map.empty
+    }
 
     member _.Run(state: SignalRConfig) =
         { state with

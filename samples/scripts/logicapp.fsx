@@ -22,7 +22,7 @@ let emptyLogicApp =
 let myValueLogicApp = logicApp {
     name "value-test-logic-app"
     definition (ValueDefinition emptyLogicApp)
-    add_tags [("environment", "dev"); ("created-by", "farmer")]
+    add_tags [ ("environment", "dev"); ("created-by", "farmer") ]
 }
 
 let deployment = arm {
@@ -30,5 +30,4 @@ let deployment = arm {
     add_resource myValueLogicApp
 }
 
-deployment
-|> Writer.quickWrite "logicApp"
+deployment |> Writer.quickWrite "logicApp"

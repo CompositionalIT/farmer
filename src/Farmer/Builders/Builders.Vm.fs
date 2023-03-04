@@ -155,11 +155,10 @@ type VmConfig =
                     Priority = this.Priority
                     Credentials =
                         match this.Username with
-                        | Some username ->
-                            {|
-                                Username = username
-                                Password = SecureParameter this.PasswordParameterArm
-                            |}
+                        | Some username -> {|
+                            Username = username
+                            Password = SecureParameter this.PasswordParameterArm
+                          |}
                         | None -> raiseFarmer $"You must specify a username for virtual machine {this.Name.Value}"
                     CustomData = this.CustomData
                     DisablePasswordAuthentication = this.DisablePasswordAuthentication
@@ -187,90 +186,84 @@ type VmConfig =
 
                 // VNET
                 match this.VNet with
-                | DeployableResource this vnet ->
-                    {
-                        Name = this.VNet.resourceId(this).Name
-                        Location = location
-                        AddressSpacePrefixes = [ this.AddressPrefix ]
-                        Subnets =
-                            [
-                                {
-                                    Name = subnetId.Name
-                                    Prefix = this.SubnetPrefix
-                                    VirtualNetwork = Some(Managed vnet)
-                                    NetworkSecurityGroup = nsgId |> Option.map (fun x -> Managed x)
-                                    Delegations = []
-                                    NatGateway = None
-                                    ServiceEndpoints = []
-                                    AssociatedServiceEndpointPolicies = []
-                                    PrivateEndpointNetworkPolicies = None
-                                    PrivateLinkServiceNetworkPolicies = None
-                                }
-                            ]
-                        Tags = this.Tags
-                    }
+                | DeployableResource this vnet -> {
+                    Name = this.VNet.resourceId(this).Name
+                    Location = location
+                    AddressSpacePrefixes = [ this.AddressPrefix ]
+                    Subnets = [
+                        {
+                            Name = subnetId.Name
+                            Prefix = this.SubnetPrefix
+                            VirtualNetwork = Some(Managed vnet)
+                            NetworkSecurityGroup = nsgId |> Option.map (fun x -> Managed x)
+                            Delegations = []
+                            NatGateway = None
+                            ServiceEndpoints = []
+                            AssociatedServiceEndpointPolicies = []
+                            PrivateEndpointNetworkPolicies = None
+                            PrivateLinkServiceNetworkPolicies = None
+                        }
+                    ]
+                    Tags = this.Tags
+                  }
                 | _ -> ()
 
                 // IP Address
                 match this.PublicIp with
-                | Some ref ->
-                    {
-                        Name = (ref.resourceId this).Name
-                        Location = location
-                        AllocationMethod =
-                            match this.IpAllocation with
-                            | Some x -> x
-                            | None when this.AvailabilityZone.IsSome -> PublicIpAddress.AllocationMethod.Static
-                            | None -> PublicIpAddress.AllocationMethod.Dynamic
-                        Sku =
-                            if this.AvailabilityZone.IsSome then
-                                PublicIpAddress.Sku.Standard
-                            else
-                                PublicIpAddress.Sku.Basic
-                        DomainNameLabel = this.DomainNamePrefix
-                        Tags = this.Tags
-                        AvailabilityZone = this.AvailabilityZone
-                    }
+                | Some ref -> {
+                    Name = (ref.resourceId this).Name
+                    Location = location
+                    AllocationMethod =
+                        match this.IpAllocation with
+                        | Some x -> x
+                        | None when this.AvailabilityZone.IsSome -> PublicIpAddress.AllocationMethod.Static
+                        | None -> PublicIpAddress.AllocationMethod.Dynamic
+                    Sku =
+                        if this.AvailabilityZone.IsSome then
+                            PublicIpAddress.Sku.Standard
+                        else
+                            PublicIpAddress.Sku.Basic
+                    DomainNameLabel = this.DomainNamePrefix
+                    Tags = this.Tags
+                    AvailabilityZone = this.AvailabilityZone
+                  }
                 | None -> ()
 
                 // Storage account - optional
                 match this.DiagnosticsStorageAccount with
-                | Some (DeployableResource this resourceId) ->
-                    {
-                        Name = Storage.StorageAccountName.Create(resourceId.Name).OkValue
-                        Location = location
-                        Dependencies = []
-                        Sku = Storage.Sku.Standard_LRS
-                        NetworkAcls = None
-                        StaticWebsite = None
-                        EnableHierarchicalNamespace = None
-                        MinTlsVersion = None
-                        Tags = this.Tags
-                        DnsZoneType = None
-                        DisablePublicNetworkAccess = None
-                        DisableBlobPublicAccess = None
-                        DisableSharedKeyAccess = None
-                        DefaultToOAuthAuthentication = None
-                    }
+                | Some(DeployableResource this resourceId) -> {
+                    Name = Storage.StorageAccountName.Create(resourceId.Name).OkValue
+                    Location = location
+                    Dependencies = []
+                    Sku = Storage.Sku.Standard_LRS
+                    NetworkAcls = None
+                    StaticWebsite = None
+                    EnableHierarchicalNamespace = None
+                    MinTlsVersion = None
+                    Tags = this.Tags
+                    DnsZoneType = None
+                    DisablePublicNetworkAccess = None
+                    DisableBlobPublicAccess = None
+                    DisableSharedKeyAccess = None
+                    DefaultToOAuthAuthentication = None
+                  }
                 | Some _
                 | None -> ()
 
                 // Custom Script - optional
                 match this.CustomScript, this.CustomScriptFiles with
-                | Some script, files ->
-                    {
-                        Name = this.Name.Map(sprintf "%s-custom-script")
-                        Location = location
-                        VirtualMachine = this.Name
-                        OS =
-                            match this.OsDisk with
-                            | FromImage (image, _) -> image.OS
-                            | _ ->
-                                raiseFarmer "Unable to determine OS for custom script when attaching an existing disk"
-                        ScriptContents = script
-                        FileUris = files
-                        Tags = this.Tags
-                    }
+                | Some script, files -> {
+                    Name = this.Name.Map(sprintf "%s-custom-script")
+                    Location = location
+                    VirtualMachine = this.Name
+                    OS =
+                        match this.OsDisk with
+                        | FromImage(image, _) -> image.OS
+                        | _ -> raiseFarmer "Unable to determine OS for custom script when attaching an existing disk"
+                    ScriptContents = script
+                    FileUris = files
+                    Tags = this.Tags
+                  }
                 | None, [] -> ()
                 | None, _ ->
                     raiseFarmer
@@ -278,20 +271,19 @@ type VmConfig =
 
                 // Azure AD SSH login extension
                 match this.AadSshLogin, this.OsDisk with
-                | FeatureFlag.Enabled, FromImage (image, _) when
+                | FeatureFlag.Enabled, FromImage(image, _) when
                     image.OS = Linux && this.Identity.SystemAssigned = Disabled
                     ->
                     raiseFarmer
                         "AAD SSH login requires that system assigned identity be enabled on the virtual machine."
-                | FeatureFlag.Enabled, FromImage (image, _) when image.OS = Windows ->
+                | FeatureFlag.Enabled, FromImage(image, _) when image.OS = Windows ->
                     raiseFarmer "AAD SSH login is only supported for Linux Virtual Machines"
                 // Assuming a user that attaches a disk knows to only using this extension for Linux images.
-                | FeatureFlag.Enabled, _ ->
-                    {
-                        AadSshLoginExtension.Location = location
-                        VirtualMachine = this.Name
-                        Tags = this.Tags
-                    }
+                | FeatureFlag.Enabled, _ -> {
+                    AadSshLoginExtension.Location = location
+                    VirtualMachine = this.Name
+                    Tags = this.Tags
+                  }
                 | FeatureFlag.Disabled, _ -> ()
             ]
 
@@ -301,44 +293,43 @@ type VirtualMachineBuilder() =
         |> AutoGeneratedResource
         |> Some
 
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            AvailabilityZone = None
-            DiagnosticsEnabled = None
-            DiagnosticsStorageAccount = None
-            Priority = None
-            Size = Basic_A0
-            Username = None
-            PasswordParameter = None
-            DataDisks = Some []
-            Identity = ManagedIdentity.Empty
-            CustomScript = None
-            CustomScriptFiles = []
-            DomainNamePrefix = None
-            CustomData = None
-            DisablePasswordAuthentication = None
-            SshPathAndPublicKeys = None
-            AadSshLogin = FeatureFlag.Disabled
-            OsDisk = FromImage(WindowsServer_2012Datacenter, { Size = 128; DiskType = Standard_LRS })
-            AddressPrefix = "10.0.0.0/16"
-            SubnetPrefix = "10.0.0.0/24"
-            VNet = derived (fun config -> config.DeriveResourceName virtualNetworks "vnet")
-            Subnet = Derived(fun config -> config.DeriveResourceName subnets "subnet")
-            PublicIp = automaticPublicIp
-            IpAllocation = None
-            AcceleratedNetworking = None
-            IpForwarding = None
-            IpConfigs = []
-            PrivateIpAllocation = None
-            LoadBalancerBackendAddressPools = []
-            NetworkSecurityGroup = None
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        AvailabilityZone = None
+        DiagnosticsEnabled = None
+        DiagnosticsStorageAccount = None
+        Priority = None
+        Size = Basic_A0
+        Username = None
+        PasswordParameter = None
+        DataDisks = Some []
+        Identity = ManagedIdentity.Empty
+        CustomScript = None
+        CustomScriptFiles = []
+        DomainNamePrefix = None
+        CustomData = None
+        DisablePasswordAuthentication = None
+        SshPathAndPublicKeys = None
+        AadSshLogin = FeatureFlag.Disabled
+        OsDisk = FromImage(WindowsServer_2012Datacenter, { Size = 128; DiskType = Standard_LRS })
+        AddressPrefix = "10.0.0.0/16"
+        SubnetPrefix = "10.0.0.0/24"
+        VNet = derived (fun config -> config.DeriveResourceName virtualNetworks "vnet")
+        Subnet = Derived(fun config -> config.DeriveResourceName subnets "subnet")
+        PublicIp = automaticPublicIp
+        IpAllocation = None
+        AcceleratedNetworking = None
+        IpForwarding = None
+        IpConfigs = []
+        PrivateIpAllocation = None
+        LoadBalancerBackendAddressPools = []
+        NetworkSecurityGroup = None
+        Tags = Map.empty
+    }
 
     member _.Run(state: VmConfig) =
         match state.AcceleratedNetworking with
-        | Some (Enabled) ->
+        | Some(Enabled) ->
             match state.Size with
             | NetworkInterface.AcceleratedNetworkingUnsupported ->
                 raiseFarmer $"Accelerated networking unsupported for specified VM size '{state.Size.ArmValue}'."
@@ -349,14 +340,13 @@ type VirtualMachineBuilder() =
             DataDisks =
                 state.DataDisks
                 |> Option.map (function
-                    | [] ->
-                        [
-                            {
-                                Size = 1024
-                                DiskType = DiskType.Standard_LRS
-                            }
-                            |> DataDiskCreateOption.Empty
-                        ]
+                    | [] -> [
+                        {
+                            Size = 1024
+                            DiskType = DiskType.Standard_LRS
+                        }
+                        |> DataDiskCreateOption.Empty
+                      ]
                     | other -> other)
         }
 
@@ -421,19 +411,18 @@ type VirtualMachineBuilder() =
     member _.ConfigureOs(state: VmConfig, image) =
         let osDisk =
             match state.OsDisk with
-            | FromImage (_, diskInfo) -> FromImage(image, diskInfo)
+            | FromImage(_, diskInfo) -> FromImage(image, diskInfo)
             | AttachOsDisk _ -> raiseFarmer "Operating system from attached disk will be used"
 
         { state with OsDisk = osDisk }
 
     member this.ConfigureOs(state: VmConfig, (os, offer, publisher, sku)) =
-        let image =
-            {
-                OS = os
-                Offer = Offer offer
-                Publisher = Publisher publisher
-                Sku = ImageSku sku
-            }
+        let image = {
+            OS = os
+            Offer = Offer offer
+            Publisher = Publisher publisher
+            Sku = ImageSku sku
+        }
 
         this.ConfigureOs(state, image)
 
@@ -445,7 +434,7 @@ type VirtualMachineBuilder() =
 
         let osDisk =
             match state.OsDisk with
-            | FromImage (image, diskInfo) ->
+            | FromImage(image, diskInfo) ->
                 let updatedDiskInfo =
                     { diskInfo with
                         DiskType = diskType
@@ -495,7 +484,7 @@ type VirtualMachineBuilder() =
 
     member this.AttachDataDisk(state: VmConfig, disk: DiskConfig) =
         match disk.Sku with
-        | Some (UltraSSD_LRS) ->
+        | Some(UltraSSD_LRS) ->
             let existingDisks = state.DataDisks
             let diskId = (disk :> IBuilder).ResourceId
 
@@ -527,7 +516,7 @@ type VirtualMachineBuilder() =
 
     member this.AttachExistingDataDisk(state: VmConfig, disk: DiskConfig) =
         match disk.Sku with
-        | Some (UltraSSD_LRS) ->
+        | Some(UltraSSD_LRS) ->
             let existingDisks = state.DataDisks
             let diskId = (disk :> IBuilder).ResourceId
 
@@ -831,14 +820,13 @@ type VirtualMachineBuilder() =
 let vm = VirtualMachineBuilder()
 
 type IpConfigBuilder() =
-    member _.Yield _ =
-        {
-            SubnetName = ResourceName.Empty
-            PublicIpAddress = None
-            LoadBalancerBackendAddressPools = []
-            PrivateIpAllocation = None
-            Primary = None
-        }
+    member _.Yield _ = {
+        SubnetName = ResourceName.Empty
+        PublicIpAddress = None
+        LoadBalancerBackendAddressPools = []
+        PrivateIpAllocation = None
+        Primary = None
+    }
 
     [<CustomOperation "subnet_name">]
     member _.SubnetName(state: IpConfiguration, name: ResourceName) = { state with SubnetName = name }

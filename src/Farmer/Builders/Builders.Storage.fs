@@ -24,14 +24,13 @@ type StorageAccount =
 
         StorageAccount.getConnectionString(resourceId).WithOwner(resourceId)
 
-type StoragePolicy =
-    {
-        CoolBlobAfter: int<Days> option
-        ArchiveBlobAfter: int<Days> option
-        DeleteBlobAfter: int<Days> option
-        DeleteSnapshotAfter: int<Days> option
-        Filters: string list
-    }
+type StoragePolicy = {
+    CoolBlobAfter: int<Days> option
+    ArchiveBlobAfter: int<Days> option
+    DeleteBlobAfter: int<Days> option
+    DeleteSnapshotAfter: int<Days> option
+    Filters: string list
+}
 
 type StorageAccountConfig =
     {
@@ -55,9 +54,12 @@ type StorageAccountConfig =
         Rules: Map<ResourceName, StoragePolicy>
         RoleAssignments: Roles.RoleAssignment Set
         /// Static Website Settings
-        StaticWebsite: {| IndexPage: string
-                          ContentPath: string
-                          ErrorPage: string option |} option
+        StaticWebsite:
+            {|
+                IndexPage: string
+                ContentPath: string
+                ErrorPage: string option
+            |} option
         /// The CORS rules for a storage service
         CorsRules: List<Storage.StorageService * CorsRule>
         /// The Policies for a storage service
@@ -98,150 +100,145 @@ type StorageAccountConfig =
     interface IBuilder with
         member this.ResourceId = this.ResourceId
 
-        member this.BuildResources location =
-            [
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Sku = this.Sku
+                EnableHierarchicalNamespace = this.EnableDataLake
+                Dependencies =
+                    this.RoleAssignments
+                    |> Seq.choose (fun roleAssignment -> roleAssignment.Principal.ArmExpression.Owner)
+                    |> Seq.append (
+                        match this.NetworkAcls with
+                        | Some acl ->
+                            acl.VirtualNetworkRules
+                            |> Seq.map (fun r -> r.VirtualNetwork)
+                            |> Seq.distinct
+                            |> Seq.map Arm.Network.virtualNetworks.resourceId
+                        | None -> Seq.empty
+                    )
+                    |> Seq.toList
+                NetworkAcls = this.NetworkAcls
+                StaticWebsite = this.StaticWebsite
+                MinTlsVersion = this.MinTlsVersion
+                DnsZoneType = this.DnsZoneType
+                DisablePublicNetworkAccess = this.DisablePublicNetworkAccess
+                DisableBlobPublicAccess = this.DisableBlobPublicAccess
+                DisableSharedKeyAccess = this.DisableSharedKeyAccess
+                DefaultToOAuthAuthentication = this.DefaultToOAuthAuthentication
+                Tags = this.Tags
+            }
+            for name, access in this.Containers do
                 {
-                    Name = this.Name
-                    Location = location
-                    Sku = this.Sku
-                    EnableHierarchicalNamespace = this.EnableDataLake
-                    Dependencies =
-                        this.RoleAssignments
-                        |> Seq.choose (fun roleAssignment -> roleAssignment.Principal.ArmExpression.Owner)
-                        |> Seq.append (
-                            match this.NetworkAcls with
-                            | Some acl ->
-                                acl.VirtualNetworkRules
-                                |> Seq.map (fun r -> r.VirtualNetwork)
-                                |> Seq.distinct
-                                |> Seq.map Arm.Network.virtualNetworks.resourceId
-                            | None -> Seq.empty
-                        )
-                        |> Seq.toList
-                    NetworkAcls = this.NetworkAcls
-                    StaticWebsite = this.StaticWebsite
-                    MinTlsVersion = this.MinTlsVersion
-                    DnsZoneType = this.DnsZoneType
-                    DisablePublicNetworkAccess = this.DisablePublicNetworkAccess
-                    DisableBlobPublicAccess = this.DisableBlobPublicAccess
-                    DisableSharedKeyAccess = this.DisableSharedKeyAccess
-                    DefaultToOAuthAuthentication = this.DefaultToOAuthAuthentication
-                    Tags = this.Tags
+                    Name = name
+                    StorageAccount = this.Name.ResourceName
+                    Accessibility = access
                 }
-                for name, access in this.Containers do
-                    {
-                        Name = name
-                        StorageAccount = this.Name.ResourceName
-                        Accessibility = access
-                    }
-                for (name, shareQuota) in this.FileShares do
-                    {
-                        Name = name
-                        ShareQuota = shareQuota
-                        StorageAccount = this.Name.ResourceName
-                    }
-                for queue in this.Queues do
-                    {
-                        Queues.Queue.Name = queue
-                        Queues.Queue.StorageAccount = this.Name.ResourceName
-                    }
-                for table in this.Tables do
-                    {
-                        Tables.Table.Name = table
-                        Tables.Table.StorageAccount = this.Name.ResourceName
-                    }
-                match this.Rules |> Map.toList with
-                | [] -> ()
-                | rules ->
-                    {
-                        ManagementPolicies.ManagementPolicy.StorageAccount = this.Name.ResourceName
-                        ManagementPolicies.ManagementPolicy.Rules =
-                            [
-                                for name, rule in rules do
-                                    {| rule with Name = name |}
-                            ]
-                    }
-                for roleAssignment in this.RoleAssignments do
-                    let uniqueName =
-                        $"{this.Name.ResourceName.Value}{roleAssignment.Principal.ArmExpression.Value}{roleAssignment.Role.Id}"
-                        |> DeterministicGuid.create
-                        |> string
-                        |> ResourceName
+            for (name, shareQuota) in this.FileShares do
+                {
+                    Name = name
+                    ShareQuota = shareQuota
+                    StorageAccount = this.Name.ResourceName
+                }
+            for queue in this.Queues do
+                {
+                    Queues.Queue.Name = queue
+                    Queues.Queue.StorageAccount = this.Name.ResourceName
+                }
+            for table in this.Tables do
+                {
+                    Tables.Table.Name = table
+                    Tables.Table.StorageAccount = this.Name.ResourceName
+                }
+            match this.Rules |> Map.toList with
+            | [] -> ()
+            | rules -> {
+                ManagementPolicies.ManagementPolicy.StorageAccount = this.Name.ResourceName
+                ManagementPolicies.ManagementPolicy.Rules = [
+                    for name, rule in rules do
+                        {| rule with Name = name |}
+                ]
+              }
+            for roleAssignment in this.RoleAssignments do
+                let uniqueName =
+                    $"{this.Name.ResourceName.Value}{roleAssignment.Principal.ArmExpression.Value}{roleAssignment.Role.Id}"
+                    |> DeterministicGuid.create
+                    |> string
+                    |> ResourceName
 
-                    {
-                        Name = uniqueName
-                        RoleDefinitionId = roleAssignment.Role
-                        PrincipalId = roleAssignment.Principal
-                        PrincipalType = PrincipalType.ServicePrincipal
-                        Scope = ResourceGroup
-                        Dependencies =
-                            Set
-                                [
-                                    ResourceId.create (storageAccounts, this.Name.ResourceName)
-                                    yield! roleAssignment.Owner |> Option.toList
-                                ]
-                    }
+                {
+                    Name = uniqueName
+                    RoleDefinitionId = roleAssignment.Role
+                    PrincipalId = roleAssignment.Principal
+                    PrincipalType = PrincipalType.ServicePrincipal
+                    Scope = ResourceGroup
+                    Dependencies =
+                        Set [
+                            ResourceId.create (storageAccounts, this.Name.ResourceName)
+                            yield! roleAssignment.Owner |> Option.toList
+                        ]
+                }
 
-                let storageResourceName = StorageResourceName.Create(this.Name.ResourceName).OkValue
+            let storageResourceName = StorageResourceName.Create(this.Name.ResourceName).OkValue
 
-                let rules = this.CorsRules |> List.groupBy fst
-                let versioning = this.IsVersioningEnabled |> List.groupBy fst
-                let policies = this.Policies |> List.groupBy fst
+            let rules = this.CorsRules |> List.groupBy fst
+            let versioning = this.IsVersioningEnabled |> List.groupBy fst
+            let policies = this.Policies |> List.groupBy fst
 
-                let allSvcs =
-                    rules
-                    |> List.map fst
-                    |> (@) (versioning |> List.map fst)
-                    |> (@) (policies |> List.map fst)
-                    |> List.distinct
+            let allSvcs =
+                rules
+                |> List.map fst
+                |> (@) (versioning |> List.map fst)
+                |> (@) (policies |> List.map fst)
+                |> List.distinct
 
-                for svc in allSvcs do
-                    {
-                        ResourceType =
-                            match svc with
-                            | StorageService.Blobs -> blobServices
-                            | StorageService.Queues -> queueServices
-                            | StorageService.Tables -> tableServices
-                            | StorageService.Files -> fileServices
-                        StorageAccount = storageResourceName
-                        CorsRules = this.CorsRules |> List.filter (fst >> (=) svc) |> List.map (fun (_, s) -> s)
-                        Policies =
-                            this.Policies
-                            |> List.filter (fst >> (=) svc)
-                            |> List.map (fun (_, s) -> s)
-                            |> List.collect id
-                        IsVersioningEnabled =
-                            this.IsVersioningEnabled
-                            |> List.filter (fst >> (=) svc)
-                            |> List.forall (fun (_, ive) -> ive = true)
-                    }
-            ]
+            for svc in allSvcs do
+                {
+                    ResourceType =
+                        match svc with
+                        | StorageService.Blobs -> blobServices
+                        | StorageService.Queues -> queueServices
+                        | StorageService.Tables -> tableServices
+                        | StorageService.Files -> fileServices
+                    StorageAccount = storageResourceName
+                    CorsRules = this.CorsRules |> List.filter (fst >> (=) svc) |> List.map (fun (_, s) -> s)
+                    Policies =
+                        this.Policies
+                        |> List.filter (fst >> (=) svc)
+                        |> List.map (fun (_, s) -> s)
+                        |> List.collect id
+                    IsVersioningEnabled =
+                        this.IsVersioningEnabled
+                        |> List.filter (fst >> (=) svc)
+                        |> List.forall (fun (_, ive) -> ive = true)
+                }
+        ]
 
 type StorageAccountBuilder() =
-    member _.Yield _ =
-        {
-            Name = StorageAccountName.Empty
-            Sku = Sku.Standard_LRS
-            EnableDataLake = None
-            Containers = []
-            FileShares = []
-            Rules = Map.empty
-            Queues = Set.empty
-            NetworkAcls = None
-            Tables = Set.empty
-            RoleAssignments = Set.empty
-            StaticWebsite = None
-            CorsRules = []
-            Policies = []
-            IsVersioningEnabled = []
-            MinTlsVersion = None
-            Tags = Map.empty
-            DnsZoneType = None
-            DisablePublicNetworkAccess = None
-            DisableBlobPublicAccess = None
-            DisableSharedKeyAccess = None
-            DefaultToOAuthAuthentication = None
-        }
+    member _.Yield _ = {
+        Name = StorageAccountName.Empty
+        Sku = Sku.Standard_LRS
+        EnableDataLake = None
+        Containers = []
+        FileShares = []
+        Rules = Map.empty
+        Queues = Set.empty
+        NetworkAcls = None
+        Tables = Set.empty
+        RoleAssignments = Set.empty
+        StaticWebsite = None
+        CorsRules = []
+        Policies = []
+        IsVersioningEnabled = []
+        MinTlsVersion = None
+        Tags = Map.empty
+        DnsZoneType = None
+        DisablePublicNetworkAccess = None
+        DisableBlobPublicAccess = None
+        DisableSharedKeyAccess = None
+        DefaultToOAuthAuthentication = None
+    }
 
     member _.Run state =
         if state.Name.ResourceName = ResourceName.Empty then
@@ -357,30 +354,29 @@ type StorageAccountBuilder() =
     /// Adds a lifecycle rule
     [<CustomOperation "add_lifecycle_rule">]
     member _.AddLifecycleRule(state: StorageAccountConfig, ruleName, actions, filters) =
-        let rule =
-            {
-                Filters = filters
-                CoolBlobAfter =
-                    actions
-                    |> List.tryPick (function
-                        | CoolAfter days -> Some days
-                        | _ -> None)
-                ArchiveBlobAfter =
-                    actions
-                    |> List.tryPick (function
-                        | ArchiveAfter days -> Some days
-                        | _ -> None)
-                DeleteBlobAfter =
-                    actions
-                    |> List.tryPick (function
-                        | DeleteAfter days -> Some days
-                        | _ -> None)
-                DeleteSnapshotAfter =
-                    actions
-                    |> List.tryPick (function
-                        | DeleteSnapshotAfter days -> Some days
-                        | _ -> None)
-            }
+        let rule = {
+            Filters = filters
+            CoolBlobAfter =
+                actions
+                |> List.tryPick (function
+                    | CoolAfter days -> Some days
+                    | _ -> None)
+            ArchiveBlobAfter =
+                actions
+                |> List.tryPick (function
+                    | ArchiveAfter days -> Some days
+                    | _ -> None)
+            DeleteBlobAfter =
+                actions
+                |> List.tryPick (function
+                    | DeleteAfter days -> Some days
+                    | _ -> None)
+            DeleteSnapshotAfter =
+                actions
+                |> List.tryPick (function
+                    | DeleteSnapshotAfter days -> Some days
+                    | _ -> None)
+        }
 
         { state with
             Rules = state.Rules.Add(ResourceName ruleName, rule)
@@ -427,8 +423,8 @@ type StorageAccountBuilder() =
         { state with
             Sku =
                 match state.Sku with
-                | Blobs (replication, _) -> Blobs(replication, Some tier)
-                | GeneralPurpose (V2 (replication, _)) -> GeneralPurpose(V2(replication, Some tier))
+                | Blobs(replication, _) -> Blobs(replication, Some tier)
+                | GeneralPurpose(V2(replication, _)) -> GeneralPurpose(V2(replication, Some tier))
                 | other ->
                     raiseFarmer
                         $"You can only set the default access tier for Blobs or General Purpose V2 storage accounts. This account is %A{other}."
@@ -444,12 +440,11 @@ type StorageAccountBuilder() =
     /// Restrict access to this storage account to a subnet on a virtual network.
     [<CustomOperation "restrict_to_subnet">]
     member _.RestrictToSubnet(state: StorageAccountConfig, vnet: string, subnet: string) =
-        let allowVnet =
-            {
-                Subnet = ResourceName subnet
-                VirtualNetwork = ResourceName vnet
-                Action = RuleAction.Allow
-            }
+        let allowVnet = {
+            Subnet = ResourceName subnet
+            VirtualNetwork = ResourceName vnet
+            Action = RuleAction.Allow
+        }
 
         match state.NetworkAcls with
         | None ->
@@ -475,11 +470,10 @@ type StorageAccountBuilder() =
     /// Restrict access to this storage account to a IP address network prefix.
     [<CustomOperation "restrict_to_prefix">]
     member _.RestrictToPrefix(state: StorageAccountConfig, cidr: string) =
-        let allowIp =
-            {
-                Value = IpRulePrefix(IPAddressCidr.parse cidr)
-                Action = RuleAction.Allow
-            }
+        let allowIp = {
+            Value = IpRulePrefix(IPAddressCidr.parse cidr)
+            Action = RuleAction.Allow
+        }
 
         match state.NetworkAcls with
         | None ->
@@ -505,11 +499,10 @@ type StorageAccountBuilder() =
     /// Restrict access to this storage account to an IP address.
     [<CustomOperation "restrict_to_ip">]
     member this.RestrictToIp(state: StorageAccountConfig, ip: string) =
-        let allowIp =
-            {
-                Value = IpRuleAddress(System.Net.IPAddress.Parse ip)
-                Action = RuleAction.Allow
-            }
+        let allowIp = {
+            Value = IpRuleAddress(System.Net.IPAddress.Parse ip)
+            Action = RuleAction.Allow
+        }
 
         match state.NetworkAcls with
         | None ->

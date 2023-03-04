@@ -61,7 +61,7 @@ type SubnetReference =
 
     member this.ResourceId: ResourceId =
         match this with
-        | ViaManagedVNet (vnetId, subnet) ->
+        | ViaManagedVNet(vnetId, subnet) ->
             { vnetId with
                 Type = subnets
                 Segments = [ subnet ]
@@ -70,8 +70,8 @@ type SubnetReference =
 
     member this.Dependency =
         match this with
-        | ViaManagedVNet (id, _)
-        | Direct (Managed id) -> Some id
+        | ViaManagedVNet(id, _)
+        | Direct(Managed id) -> Some id
         | _ -> None
 
     static member create(vnetRef: LinkedResource, subnetName: ResourceName) =
@@ -103,19 +103,18 @@ type Route =
         HasBgpOverride: FeatureFlag
     }
 
-    member internal this.JsonModelProperties =
-        {|
-            addressPrefix = IPAddressCidr.format this.AddressPrefix
-            nextHopType = this.NextHopType.ArmValue
-            nextHopIpAddress =
-                match this.NextHopType with
-                | VirtualAppliance ip ->
-                    ip
-                    |> Option.map (fun x -> x.ToString())
-                    |> Option.defaultValue Unchecked.defaultof<_>
-                | _ -> Unchecked.defaultof<_>
-            hasBgpOverride = this.HasBgpOverride.AsBoolean
-        |}
+    member internal this.JsonModelProperties = {|
+        addressPrefix = IPAddressCidr.format this.AddressPrefix
+        nextHopType = this.NextHopType.ArmValue
+        nextHopIpAddress =
+            match this.NextHopType with
+            | VirtualAppliance ip ->
+                ip
+                |> Option.map (fun x -> x.ToString())
+                |> Option.defaultValue Unchecked.defaultof<_>
+            | _ -> Unchecked.defaultof<_>
+        hasBgpOverride = this.HasBgpOverride.AsBoolean
+    |}
 
     interface IArmResource with
         member this.ResourceId = routes.resourceId this.Name
@@ -134,17 +133,15 @@ type RouteTable =
         Routes: Route list
     }
 
-    member internal this.JsonModelProperties =
-        {|
-            disableBgpRoutePropagation = this.DisableBGPRoutePropagation.AsBoolean
-            routes =
-                this.Routes
-                |> Seq.map (fun x ->
-                    {|
-                        name = x.Name.Value
-                        properties = x.JsonModelProperties
-                    |})
-        |}
+    member internal this.JsonModelProperties = {|
+        disableBgpRoutePropagation = this.DisableBGPRoutePropagation.AsBoolean
+        routes =
+            this.Routes
+            |> Seq.map (fun x -> {|
+                name = x.Name.Value
+                properties = x.JsonModelProperties
+            |})
+    |}
 
     interface IArmResource with
         member this.ResourceId = routeTables.resourceId this.Name
@@ -171,14 +168,13 @@ type PublicIpAddress =
         member this.JsonModel =
             {| publicIPAddresses.Create(this.Name, this.Location, tags = this.Tags) with
                 sku = {| name = this.Sku.ArmValue |}
-                properties =
-                    {|
-                        publicIPAllocationMethod = this.AllocationMethod.ArmValue
-                        dnsSettings =
-                            match this.DomainNameLabel with
-                            | Some label -> box {| domainNameLabel = label.ToLower() |}
-                            | None -> null
-                    |}
+                properties = {|
+                    publicIPAllocationMethod = this.AllocationMethod.ArmValue
+                    dnsSettings =
+                        match this.DomainNameLabel with
+                        | Some label -> box {| domainNameLabel = label.ToLower() |}
+                        | None -> null
+                |}
                 zones = this.AvailabilityZone |> Option.map ResizeArray |> Option.toObj
             |}
 
@@ -208,23 +204,20 @@ type PublicIpPrefix =
 
         member this.JsonModel =
             {| publicIPPrefixes.Create(this.Name, this.Location, tags = this.Tags) with
-                sku =
-                    {|
-                        name = "Standard"
-                        tier = this.Tier.ArmValue
-                    |}
-                properties =
-                    {|
-                        prefixLength = this.PrefixLength
-                        publicIPAddressVersion = "IPv4"
-                    |}
+                sku = {|
+                    name = "Standard"
+                    tier = this.Tier.ArmValue
+                |}
+                properties = {|
+                    prefixLength = this.PrefixLength
+                    publicIPAddressVersion = "IPv4"
+                |}
             |}
 
-type SubnetDelegation =
-    {
-        Name: ResourceName
-        ServiceName: string
-    }
+type SubnetDelegation = {
+    Name: ResourceName
+    ServiceName: string
+}
 
 type Subnet =
     {
@@ -240,64 +233,59 @@ type Subnet =
         PrivateLinkServiceNetworkPolicies: FeatureFlag option
     }
 
-    member internal this.JsonModelProperties =
-        {|
-            addressPrefix = this.Prefix
-            natGateway =
-                this.NatGateway
-                |> Option.map LinkedResource.AsIdObject
-                |> Option.defaultValue Unchecked.defaultof<_>
-            networkSecurityGroup =
-                this.NetworkSecurityGroup
-                |> Option.map (fun nsg ->
-                    {|
-                        id = nsg.ResourceId.ArmExpression.Eval()
-                    |})
-                |> Option.defaultValue Unchecked.defaultof<_>
-            delegations =
-                this.Delegations
-                |> List.map (fun delegation ->
-                    {|
-                        name = delegation.Name.Value
-                        properties =
-                            {|
-                                serviceName = delegation.ServiceName
-                            |}
-                    |})
-            serviceEndpoints =
-                if this.ServiceEndpoints.IsEmpty then
-                    Unchecked.defaultof<_>
-                else
-                    this.ServiceEndpoints
-                    |> List.map (fun (Network.EndpointServiceType (serviceEndpoint), locations) ->
-                        {|
-                            service = serviceEndpoint
-                            locations = locations |> List.map (fun location -> location.ArmValue)
-                        |})
-            serviceEndpointPolicies =
-                if this.AssociatedServiceEndpointPolicies.IsEmpty then
-                    Unchecked.defaultof<_>
-                else
-                    this.AssociatedServiceEndpointPolicies
-                    |> List.map (fun policyId -> {| id = policyId.ArmExpression.Eval() |})
-            privateEndpointNetworkPolicies =
-                this.PrivateEndpointNetworkPolicies
-                |> Option.map (fun x -> x.ArmValue)
-                |> Option.defaultValue Unchecked.defaultof<_>
-            privateLinkServiceNetworkPolicies =
-                this.PrivateLinkServiceNetworkPolicies
-                |> Option.map (fun x -> x.ArmValue)
-                |> Option.defaultValue Unchecked.defaultof<_>
-        |}
+    member internal this.JsonModelProperties = {|
+        addressPrefix = this.Prefix
+        natGateway =
+            this.NatGateway
+            |> Option.map LinkedResource.AsIdObject
+            |> Option.defaultValue Unchecked.defaultof<_>
+        networkSecurityGroup =
+            this.NetworkSecurityGroup
+            |> Option.map (fun nsg -> {|
+                id = nsg.ResourceId.ArmExpression.Eval()
+            |})
+            |> Option.defaultValue Unchecked.defaultof<_>
+        delegations =
+            this.Delegations
+            |> List.map (fun delegation -> {|
+                name = delegation.Name.Value
+                properties = {|
+                    serviceName = delegation.ServiceName
+                |}
+            |})
+        serviceEndpoints =
+            if this.ServiceEndpoints.IsEmpty then
+                Unchecked.defaultof<_>
+            else
+                this.ServiceEndpoints
+                |> List.map (fun (Network.EndpointServiceType(serviceEndpoint), locations) -> {|
+                    service = serviceEndpoint
+                    locations = locations |> List.map (fun location -> location.ArmValue)
+                |})
+        serviceEndpointPolicies =
+            if this.AssociatedServiceEndpointPolicies.IsEmpty then
+                Unchecked.defaultof<_>
+            else
+                this.AssociatedServiceEndpointPolicies
+                |> List.map (fun policyId -> {| id = policyId.ArmExpression.Eval() |})
+        privateEndpointNetworkPolicies =
+            this.PrivateEndpointNetworkPolicies
+            |> Option.map (fun x -> x.ArmValue)
+            |> Option.defaultValue Unchecked.defaultof<_>
+        privateLinkServiceNetworkPolicies =
+            this.PrivateLinkServiceNetworkPolicies
+            |> Option.map (fun x -> x.ArmValue)
+            |> Option.defaultValue Unchecked.defaultof<_>
+    |}
 
     interface IArmResource with
         member this.JsonModel =
             match this.VirtualNetwork with
-            | Some (Managed vnet) ->
+            | Some(Managed vnet) ->
                 {| subnets.Create(vnet.Name / this.Name, dependsOn = [ vnet ]) with
                     properties = this.JsonModelProperties
                 |}
-            | Some (Unmanaged vnet) ->
+            | Some(Unmanaged vnet) ->
                 {| subnets.Create(vnet.Name / this.Name) with
                     properties = this.JsonModelProperties
                 |}
@@ -326,30 +314,27 @@ type VirtualNetwork =
                 seq {
                     for subnet in this.Subnets do
                         match subnet.NetworkSecurityGroup with
-                        | Some (Managed id) -> id
+                        | Some(Managed id) -> id
                         | _ -> ()
 
                         match subnet.NatGateway with
-                        | Some (Managed id) -> id
+                        | Some(Managed id) -> id
                         | _ -> ()
                 }
                 |> Set
 
             {| virtualNetworks.Create(this.Name, this.Location, dependsOn = dependencies, tags = this.Tags) with
-                properties =
-                    {|
-                        addressSpace =
-                            {|
-                                addressPrefixes = this.AddressSpacePrefixes
-                            |}
-                        subnets =
-                            this.Subnets
-                            |> List.map (fun subnet ->
-                                {|
-                                    name = subnet.Name.Value
-                                    properties = subnet.JsonModelProperties
-                                |})
+                properties = {|
+                    addressSpace = {|
+                        addressPrefixes = this.AddressSpacePrefixes
                     |}
+                    subnets =
+                        this.Subnets
+                        |> List.map (fun subnet -> {|
+                            name = subnet.Name.Value
+                            properties = subnet.JsonModelProperties
+                        |})
+                |}
             |}
 
 type VPNClientProtocol =
@@ -357,22 +342,27 @@ type VPNClientProtocol =
     | SSTP
     | OpenVPN
 
-type VpnClientConfiguration =
-    {
-        ClientAddressPools: IPAddressCidr list
-        ClientRootCertificates: {| Name: string
-                                   PublicCertData: string |} list
-        ClientRevokedCertificates: {| Name: string; Thumbprint: string |} list
-        ClientProtocols: VPNClientProtocol list
-    }
+type VpnClientConfiguration = {
+    ClientAddressPools: IPAddressCidr list
+    ClientRootCertificates:
+        {|
+            Name: string
+            PublicCertData: string
+        |} list
+    ClientRevokedCertificates: {| Name: string; Thumbprint: string |} list
+    ClientProtocols: VPNClientProtocol list
+}
 
 type VirtualNetworkGateway =
     {
         Name: ResourceName
         Location: Location
-        IpConfigs: {| Name: ResourceName
-                      PrivateIpAllocationMethod: PrivateIpAddress.AllocationMethod
-                      PublicIpName: ResourceName |} list
+        IpConfigs:
+            {|
+                Name: ResourceName
+                PrivateIpAllocationMethod: PrivateIpAddress.AllocationMethod
+                PublicIpName: ResourceName
+            |} list
         VirtualNetwork: ResourceName
         GatewayType: GatewayType
         VpnType: VpnType
@@ -387,107 +377,91 @@ type VirtualNetworkGateway =
         member this.ResourceId = virtualNetworkGateways.resourceId this.Name
 
         member this.JsonModel =
-            let dependsOn =
-                [
-                    virtualNetworks.resourceId this.VirtualNetwork
-                    for config in this.IpConfigs do
-                        publicIPAddresses.resourceId config.PublicIpName
-                ]
+            let dependsOn = [
+                virtualNetworks.resourceId this.VirtualNetwork
+                for config in this.IpConfigs do
+                    publicIPAddresses.resourceId config.PublicIpName
+            ]
 
             {| virtualNetworkGateways.Create(this.Name, this.Location, dependsOn, this.Tags) with
-                properties =
-                    {|
-                        ipConfigurations =
-                            this.IpConfigs
-                            |> List.mapi (fun index ipConfig ->
-                                {|
-                                    name = $"ipconfig{index + 1}"
-                                    properties =
-                                        let allocationMethod, ip =
-                                            match ipConfig.PrivateIpAllocationMethod with
-                                            | DynamicPrivateIp -> "Dynamic", null
-                                            | StaticPrivateIp ip -> "Static", string ip
+                properties = {|
+                    ipConfigurations =
+                        this.IpConfigs
+                        |> List.mapi (fun index ipConfig -> {|
+                            name = $"ipconfig{index + 1}"
+                            properties =
+                                let allocationMethod, ip =
+                                    match ipConfig.PrivateIpAllocationMethod with
+                                    | DynamicPrivateIp -> "Dynamic", null
+                                    | StaticPrivateIp ip -> "Static", string ip
 
-                                        {|
-                                            privateIpAllocationMethod = allocationMethod
-                                            privateIpAddress = ip
-                                            publicIPAddress =
-                                                {|
-                                                    id = publicIPAddresses.resourceId(ipConfig.PublicIpName).Eval()
-                                                |}
-                                            subnet =
-                                                {|
-                                                    id =
-                                                        subnets
-                                                            .resourceId(
-                                                                this.VirtualNetwork,
-                                                                ResourceName "GatewaySubnet"
-                                                            )
-                                                            .Eval()
-                                                |}
-                                        |}
-                                |})
-                        sku =
-                            match this.GatewayType with
-                            | GatewayType.ExpressRoute sku ->
                                 {|
-                                    name = sku.ArmValue
-                                    tier = sku.ArmValue
-                                |}
-                            | GatewayType.Vpn sku ->
-                                {|
-                                    name = sku.ArmValue
-                                    tier = sku.ArmValue
-                                |}
-                        gatewayType = this.GatewayType.ArmValue
-                        vpnType = this.VpnType.ArmValue
-                        enableBgp = this.EnableBgp
-                        vpnClientConfiguration =
-                            match this.VpnClientConfiguration with
-                            | Some vpnClientConfig ->
-                                box
-                                    {|
-                                        vpnClientAddressPool =
-                                            {|
-                                                addressPrefixes =
-                                                    [
-                                                        for prefix in vpnClientConfig.ClientAddressPools do
-                                                            IPAddressCidr.format prefix
-                                                    ]
-                                            |}
-                                        vpnClientProtocols =
-                                            [
-                                                for protocol in vpnClientConfig.ClientProtocols do
-                                                    match protocol with
-                                                    | SSTP -> "SSTP"
-                                                    | IkeV2 -> "IkeV2"
-                                                    | OpenVPN -> "OpenVPN"
-                                            ]
-                                        vpnClientRootCertificates =
-                                            [
-                                                for cert in vpnClientConfig.ClientRootCertificates do
-                                                    {|
-                                                        name = cert.Name
-                                                        properties =
-                                                            {|
-                                                                publicCertData = cert.PublicCertData
-                                                            |}
-                                                    |}
-                                            ]
-                                        vpnClientRevokedCertificates =
-                                            [
-                                                for cert in vpnClientConfig.ClientRevokedCertificates do
-                                                    {|
-                                                        name = cert.Name
-                                                        properties = {| thumbprint = cert.Thumbprint |}
-                                                    |}
-                                            ]
-                                        radiusServers = []
-                                        vpnClientIpsecPolicies = []
+                                    privateIpAllocationMethod = allocationMethod
+                                    privateIpAddress = ip
+                                    publicIPAddress = {|
+                                        id = publicIPAddresses.resourceId(ipConfig.PublicIpName).Eval()
                                     |}
-                            | None -> null
-                        activeActive = this.IpConfigs |> List.length > 1
-                    |}
+                                    subnet = {|
+                                        id =
+                                            subnets
+                                                .resourceId(this.VirtualNetwork, ResourceName "GatewaySubnet")
+                                                .Eval()
+                                    |}
+                                |}
+                        |})
+                    sku =
+                        match this.GatewayType with
+                        | GatewayType.ExpressRoute sku -> {|
+                            name = sku.ArmValue
+                            tier = sku.ArmValue
+                          |}
+                        | GatewayType.Vpn sku -> {|
+                            name = sku.ArmValue
+                            tier = sku.ArmValue
+                          |}
+                    gatewayType = this.GatewayType.ArmValue
+                    vpnType = this.VpnType.ArmValue
+                    enableBgp = this.EnableBgp
+                    vpnClientConfiguration =
+                        match this.VpnClientConfiguration with
+                        | Some vpnClientConfig ->
+                            box
+                                {|
+                                    vpnClientAddressPool = {|
+                                        addressPrefixes = [
+                                            for prefix in vpnClientConfig.ClientAddressPools do
+                                                IPAddressCidr.format prefix
+                                        ]
+                                    |}
+                                    vpnClientProtocols = [
+                                        for protocol in vpnClientConfig.ClientProtocols do
+                                            match protocol with
+                                            | SSTP -> "SSTP"
+                                            | IkeV2 -> "IkeV2"
+                                            | OpenVPN -> "OpenVPN"
+                                    ]
+                                    vpnClientRootCertificates = [
+                                        for cert in vpnClientConfig.ClientRootCertificates do
+                                            {|
+                                                name = cert.Name
+                                                properties = {|
+                                                    publicCertData = cert.PublicCertData
+                                                |}
+                                            |}
+                                    ]
+                                    vpnClientRevokedCertificates = [
+                                        for cert in vpnClientConfig.ClientRevokedCertificates do
+                                            {|
+                                                name = cert.Name
+                                                properties = {| thumbprint = cert.Thumbprint |}
+                                            |}
+                                    ]
+                                    radiusServers = []
+                                    vpnClientIpsecPolicies = []
+                                |}
+                        | None -> null
+                    activeActive = this.IpConfigs |> List.length > 1
+                |}
             |}
 
 type Connection =
@@ -525,38 +499,35 @@ type Connection =
                 |> List.choose id
 
             {| connections.Create(this.Name, this.Location, dependsOn, this.Tags) with
-                properties =
-                    {|
-                        authorizationKey = this.AuthorizationKey |> Option.toObj
-                        connectionType = this.ConnectionType.ArmValue
-                        virtualNetworkGateway1 =
-                            {|
-                                id = this.VNetGateway1ResourceId.Eval()
-                            |}
-                        virtualNetworkGateway2 =
-                            match this.VNetGateway2ResourceId with
-                            | Some vng2 -> box {| id = vng2.Eval() |}
-                            | None -> null
-                        localNetworkGateway2 =
-                            match this.LocalNetworkGatewayResourceId with
-                            | Some lng -> box {| id = lng.Eval() |}
-                            | None -> null
-                        peer =
-                            match this.PeerId with
-                            | Some peerId -> box {| id = peerId |}
-                            | None -> null
+                properties = {|
+                    authorizationKey = this.AuthorizationKey |> Option.toObj
+                    connectionType = this.ConnectionType.ArmValue
+                    virtualNetworkGateway1 = {|
+                        id = this.VNetGateway1ResourceId.Eval()
                     |}
+                    virtualNetworkGateway2 =
+                        match this.VNetGateway2ResourceId with
+                        | Some vng2 -> box {| id = vng2.Eval() |}
+                        | None -> null
+                    localNetworkGateway2 =
+                        match this.LocalNetworkGatewayResourceId with
+                        | Some lng -> box {| id = lng.Eval() |}
+                        | None -> null
+                    peer =
+                        match this.PeerId with
+                        | Some peerId -> box {| id = peerId |}
+                        | None -> null
+                |}
             |}
 
 /// IP configuration for a network interface.
-type IpConfiguration =
-    {
-        SubnetName: ResourceName
-        PublicIpAddress: LinkedResource option
-        LoadBalancerBackendAddressPools: LinkedResource list
-        PrivateIpAllocation: PrivateIpAddress.AllocationMethod option
-        Primary: bool option
-    }
+type IpConfiguration = {
+    SubnetName: ResourceName
+    PublicIpAddress: LinkedResource option
+    LoadBalancerBackendAddressPools: LinkedResource list
+    PrivateIpAllocation: PrivateIpAddress.AllocationMethod option
+    Primary: bool option
+}
 
 module NetworkInterface =
     open Vm
@@ -594,70 +565,65 @@ type NetworkInterface =
         member this.ResourceId = networkInterfaces.resourceId this.Name
 
         member this.JsonModel =
-            let dependsOn =
-                [
-                    match this.VirtualNetwork with
-                    | Managed resId -> resId
+            let dependsOn = [
+                match this.VirtualNetwork with
+                | Managed resId -> resId
+                | _ -> ()
+                for config in this.IpConfigs do
+                    match config.PublicIpAddress with
+                    | Some ipName -> ipName.ResourceId
                     | _ -> ()
-                    for config in this.IpConfigs do
-                        match config.PublicIpAddress with
-                        | Some ipName -> ipName.ResourceId
+
+                    for linkedResource in config.LoadBalancerBackendAddressPools do
+                        match linkedResource with
+                        | Managed resId -> resId
                         | _ -> ()
+                if this.NetworkSecurityGroup.IsSome then
+                    this.NetworkSecurityGroup.Value
+            ]
 
-                        for linkedResource in config.LoadBalancerBackendAddressPools do
-                            match linkedResource with
-                            | Managed resId -> resId
-                            | _ -> ()
-                    if this.NetworkSecurityGroup.IsSome then
-                        this.NetworkSecurityGroup.Value
-                ]
+            let props = {|
+                primary = this.Primary |> Option.map box |> Option.toObj
+                enableAcceleratedNetworking = this.EnableAcceleratedNetworking |> Option.map box |> Option.toObj
+                enableIPForwarding = this.EnableIpForwarding |> Option.map box |> Option.toObj
+                ipConfigurations =
+                    this.IpConfigs
+                    |> List.mapi (fun index ipConfig -> {|
+                        name = $"ipconfig{index + 1}"
+                        properties =
+                            let allocationMethod, ip =
+                                match ipConfig.PrivateIpAllocation with
+                                | Some(StaticPrivateIp ip) -> "Static", string ip
+                                | _ -> "Dynamic", null
 
-            let props =
-                {|
-                    primary = this.Primary |> Option.map box |> Option.toObj
-                    enableAcceleratedNetworking = this.EnableAcceleratedNetworking |> Option.map box |> Option.toObj
-                    enableIPForwarding = this.EnableIpForwarding |> Option.map box |> Option.toObj
-                    ipConfigurations =
-                        this.IpConfigs
-                        |> List.mapi (fun index ipConfig ->
                             {|
-                                name = $"ipconfig{index + 1}"
-                                properties =
-                                    let allocationMethod, ip =
-                                        match ipConfig.PrivateIpAllocation with
-                                        | Some (StaticPrivateIp ip) -> "Static", string ip
-                                        | _ -> "Dynamic", null
-
-                                    {|
-                                        loadBalancerBackendAddressPools =
-                                            match ipConfig.LoadBalancerBackendAddressPools with
-                                            | [] -> null // Don't emit the field if there are none set.
-                                            | backendPools ->
-                                                backendPools
-                                                |> List.map (fun lr -> lr.ResourceId |> ResourceId.AsIdObject)
-                                                |> box
-                                        primary = ipConfig.Primary |> Option.map box |> Option.toObj
-                                        privateIPAllocationMethod = allocationMethod
-                                        privateIPAddress = ip
-                                        publicIPAddress =
-                                            ipConfig.PublicIpAddress
-                                            |> Option.map (fun pip ->
-                                                {|
-                                                    id = pip.ResourceId.ArmExpression.Eval()
-                                                |})
-                                            |> Option.defaultValue Unchecked.defaultof<_>
-                                        subnet =
-                                            {|
-                                                id =
-                                                    { this.VirtualNetwork.ResourceId with
-                                                        Type = subnets
-                                                        Segments = [ ipConfig.SubnetName ]
-                                                    }
-                                                        .Eval()
-                                            |}
-                                    |}
-                            |})
-                |}
+                                loadBalancerBackendAddressPools =
+                                    match ipConfig.LoadBalancerBackendAddressPools with
+                                    | [] -> null // Don't emit the field if there are none set.
+                                    | backendPools ->
+                                        backendPools
+                                        |> List.map (fun lr -> lr.ResourceId |> ResourceId.AsIdObject)
+                                        |> box
+                                primary = ipConfig.Primary |> Option.map box |> Option.toObj
+                                privateIPAllocationMethod = allocationMethod
+                                privateIPAddress = ip
+                                publicIPAddress =
+                                    ipConfig.PublicIpAddress
+                                    |> Option.map (fun pip -> {|
+                                        id = pip.ResourceId.ArmExpression.Eval()
+                                    |})
+                                    |> Option.defaultValue Unchecked.defaultof<_>
+                                subnet = {|
+                                    id =
+                                        { this.VirtualNetwork.ResourceId with
+                                            Type = subnets
+                                            Segments = [ ipConfig.SubnetName ]
+                                        }
+                                            .Eval()
+                                |}
+                            |}
+                    |})
+            |}
 
             match this.NetworkSecurityGroup with
             | None ->
@@ -677,8 +643,14 @@ type NetworkProfile =
         Name: ResourceName
         Location: Location
         Dependencies: ResourceId Set
-        ContainerNetworkInterfaceConfigurations: {| IpConfigs: {| Name: ResourceName
-                                                                  SubnetName: ResourceName |} list |} list
+        ContainerNetworkInterfaceConfigurations:
+            {|
+                IpConfigs:
+                    {|
+                        Name: ResourceName
+                        SubnetName: ResourceName
+                    |} list
+            |} list
         VirtualNetwork: ResourceId
         Tags: Map<string, string>
     }
@@ -688,39 +660,32 @@ type NetworkProfile =
 
         member this.JsonModel =
             {| networkProfiles.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
-                properties =
-                    {|
-                        containerNetworkInterfaceConfigurations =
-                            this.ContainerNetworkInterfaceConfigurations
-                            |> List.mapi (fun index containerIfConfig ->
-                                {|
-                                    name = $"eth{index}"
-                                    properties =
-                                        {|
-                                            ipConfigurations =
-                                                containerIfConfig.IpConfigs
-                                                |> List.mapi (fun index ipConfig ->
-                                                    {|
-                                                        name = (ipConfig.Name.IfEmpty $"ipconfig{index + 1}").Value
-                                                        properties =
-                                                            {|
-                                                                subnet =
-                                                                    {|
-                                                                        id =
-                                                                            { subnets.resourceId (
-                                                                                  this.VirtualNetwork.Name,
-                                                                                  ipConfig.SubnetName
-                                                                              ) with
-                                                                                ResourceGroup =
-                                                                                    this.VirtualNetwork.ResourceGroup
-                                                                            }
-                                                                                .Eval()
-                                                                    |}
-                                                            |}
-                                                    |})
+                properties = {|
+                    containerNetworkInterfaceConfigurations =
+                        this.ContainerNetworkInterfaceConfigurations
+                        |> List.mapi (fun index containerIfConfig -> {|
+                            name = $"eth{index}"
+                            properties = {|
+                                ipConfigurations =
+                                    containerIfConfig.IpConfigs
+                                    |> List.mapi (fun index ipConfig -> {|
+                                        name = (ipConfig.Name.IfEmpty $"ipconfig{index + 1}").Value
+                                        properties = {|
+                                            subnet = {|
+                                                id =
+                                                    { subnets.resourceId (
+                                                          this.VirtualNetwork.Name,
+                                                          ipConfig.SubnetName
+                                                      ) with
+                                                        ResourceGroup = this.VirtualNetwork.ResourceGroup
+                                                    }
+                                                        .Eval()
+                                            |}
                                         |}
-                                |})
-                    |}
+                                    |})
+                            |}
+                        |})
+                |}
             |}
 
 type ExpressRouteCircuit =
@@ -733,13 +698,16 @@ type ExpressRouteCircuit =
         PeeringLocation: string
         Bandwidth: int<Mbps>
         GlobalReachEnabled: bool
-        Peerings: {| PeeringType: PeeringType
-                     AzureASN: int
-                     PeerASN: int64
-                     PrimaryPeerAddressPrefix: IPAddressCidr
-                     SecondaryPeerAddressPrefix: IPAddressCidr
-                     SharedKey: string option
-                     VlanId: int |} list
+        Peerings:
+            {|
+                PeeringType: PeeringType
+                AzureASN: int
+                PeerASN: int64
+                PrimaryPeerAddressPrefix: IPAddressCidr
+                SecondaryPeerAddressPrefix: IPAddressCidr
+                SharedKey: string option
+                VlanId: int
+            |} list
         Tags: Map<string, string>
     }
 
@@ -748,41 +716,34 @@ type ExpressRouteCircuit =
 
         member this.JsonModel =
             {| expressRouteCircuits.Create(this.Name, this.Location, tags = this.Tags) with
-                sku =
-                    {|
-                        name = $"{this.Tier}_{this.Family}"
-                        tier = string this.Tier
-                        family = string this.Family
-                    |}
-                properties =
-                    {|
-                        peerings =
-                            [
-                                for peer in this.Peerings do
-                                    {|
-                                        name = peer.PeeringType.Value
-                                        properties =
-                                            {|
-                                                peeringType = peer.PeeringType.Value
-                                                azureASN = peer.AzureASN
-                                                peerASN = peer.PeerASN
-                                                primaryPeerAddressPrefix =
-                                                    IPAddressCidr.format peer.PrimaryPeerAddressPrefix
-                                                secondaryPeerAddressPrefix =
-                                                    IPAddressCidr.format peer.SecondaryPeerAddressPrefix
-                                                vlanId = peer.VlanId
-                                                sharedKey = peer.SharedKey
-                                            |}
-                                    |}
-                            ]
-                        serviceProviderProperties =
+                sku = {|
+                    name = $"{this.Tier}_{this.Family}"
+                    tier = string this.Tier
+                    family = string this.Family
+                |}
+                properties = {|
+                    peerings = [
+                        for peer in this.Peerings do
                             {|
-                                serviceProviderName = this.ServiceProviderName
-                                peeringLocation = this.PeeringLocation
-                                bandwidthInMbps = this.Bandwidth
+                                name = peer.PeeringType.Value
+                                properties = {|
+                                    peeringType = peer.PeeringType.Value
+                                    azureASN = peer.AzureASN
+                                    peerASN = peer.PeerASN
+                                    primaryPeerAddressPrefix = IPAddressCidr.format peer.PrimaryPeerAddressPrefix
+                                    secondaryPeerAddressPrefix = IPAddressCidr.format peer.SecondaryPeerAddressPrefix
+                                    vlanId = peer.VlanId
+                                    sharedKey = peer.SharedKey
+                                |}
                             |}
-                        globalReachEnabled = this.GlobalReachEnabled
+                    ]
+                    serviceProviderProperties = {|
+                        serviceProviderName = this.ServiceProviderName
+                        peeringLocation = this.PeeringLocation
+                        bandwidthInMbps = this.Bandwidth
                     |}
+                    globalReachEnabled = this.GlobalReachEnabled
+                |}
             |}
 
 type ExpressRouteCircuitAuthorization =
@@ -832,31 +793,27 @@ type PrivateEndpoint =
         member this.ResourceId = privateEndpoints.resourceId this.Name
 
         member this.JsonModel =
-            let dependencies =
-                [
-                    yield! this.Subnet.Dependency |> Option.toList
-                    match this.Resource with
-                    | Managed x -> x
-                    | _ -> ()
-                ]
+            let dependencies = [
+                yield! this.Subnet.Dependency |> Option.toList
+                match this.Resource with
+                | Managed x -> x
+                | _ -> ()
+            ]
 
             {| privateEndpoints.Create(this.Name, this.Location, dependencies) with
-                properties =
-                    {|
-                        subnet = {| id = this.Subnet.ResourceId.Eval() |}
-                        customNetworkInterfaceName = this.CustomNetworkInterfaceName |> Option.toObj
-                        privateLinkServiceConnections =
-                            [
-                                {|
-                                    name = this.Name.Value
-                                    properties =
-                                        {|
-                                            privateLinkServiceId = this.Resource.ResourceId.Eval()
-                                            groupIds = this.GroupIds
-                                        |}
-                                |}
-                            ]
-                    |}
+                properties = {|
+                    subnet = {| id = this.Subnet.ResourceId.Eval() |}
+                    customNetworkInterfaceName = this.CustomNetworkInterfaceName |> Option.toObj
+                    privateLinkServiceConnections = [
+                        {|
+                            name = this.Name.Value
+                            properties = {|
+                                privateLinkServiceId = this.Resource.ResourceId.Eval()
+                                groupIds = this.GroupIds
+                            |}
+                        |}
+                    ]
+                |}
             |}
 
 type GatewayTransit =
@@ -886,47 +843,44 @@ type NetworkPeering =
         member this.ResourceId = virtualNetworkPeering.resourceId this.Name
 
         member this.JsonModel =
-            let deps =
-                [
-                    match this.OwningVNet with
-                    | Managed id -> id
-                    | _ -> ()
-                    match this.RemoteVNet with
-                    | Managed id -> id
-                    | _ -> ()
-                    yield! this.DependsOn
-                ]
+            let deps = [
+                match this.OwningVNet with
+                | Managed id -> id
+                | _ -> ()
+                match this.RemoteVNet with
+                | Managed id -> id
+                | _ -> ()
+                yield! this.DependsOn
+            ]
 
             {| virtualNetworkPeering.Create(this.Name, this.Location, deps) with
-                properties =
-                    {|
-                        allowVirtualNetworkAccess =
-                            match this.RemoteAccess with
-                            | AccessOnly
-                            | AccessAndForward -> true
-                            | _ -> false
-                        allowForwardedTraffic =
-                            match this.RemoteAccess with
-                            | ForwardOnly
-                            | AccessAndForward -> true
-                            | _ -> false
-                        allowGatewayTransit =
-                            match this.GatewayTransit with
-                            | UseLocalGateway
-                            | UseRemoteGateway -> true
-                            | _ -> false
-                        useRemoteGateways =
-                            match this.GatewayTransit with
-                            | UseRemoteGateway -> true
-                            | _ -> false
-                        remoteVirtualNetwork =
-                            {|
-                                id =
-                                    match this.RemoteVNet with
-                                    | Managed id
-                                    | Unmanaged id -> id.ArmExpression.Eval()
-                            |}
+                properties = {|
+                    allowVirtualNetworkAccess =
+                        match this.RemoteAccess with
+                        | AccessOnly
+                        | AccessAndForward -> true
+                        | _ -> false
+                    allowForwardedTraffic =
+                        match this.RemoteAccess with
+                        | ForwardOnly
+                        | AccessAndForward -> true
+                        | _ -> false
+                    allowGatewayTransit =
+                        match this.GatewayTransit with
+                        | UseLocalGateway
+                        | UseRemoteGateway -> true
+                        | _ -> false
+                    useRemoteGateways =
+                        match this.GatewayTransit with
+                        | UseRemoteGateway -> true
+                        | _ -> false
+                    remoteVirtualNetwork = {|
+                        id =
+                            match this.RemoteVNet with
+                            | Managed id
+                            | Unmanaged id -> id.ArmExpression.Eval()
                     |}
+                |}
             |}
 
 type NatGateway =
@@ -954,10 +908,9 @@ type NatGateway =
 
             {| natGateways.Create(this.Name, this.Location, dependsOn = dependencies, tags = this.Tags) with
                 sku = {| name = "Standard" |}
-                properties =
-                    {|
-                        idleTimeoutInMinutes = this.IdleTimeout
-                        publicIpAddresses = this.PublicIpAddresses |> List.map LinkedResource.AsIdObject
-                        publicIpPrefixes = this.PublicIpPrefixes |> List.map LinkedResource.AsIdObject
-                    |}
+                properties = {|
+                    idleTimeoutInMinutes = this.IdleTimeout
+                    publicIpAddresses = this.PublicIpAddresses |> List.map LinkedResource.AsIdObject
+                    publicIpPrefixes = this.PublicIpPrefixes |> List.map LinkedResource.AsIdObject
+                |}
             |}

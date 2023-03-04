@@ -7,7 +7,12 @@ let myStorage = storageAccount {
     name "mystorage"
     sku Storage.Sku.Standard_LRS
     add_lifecycle_rule "cleanup" [ Storage.DeleteAfter 7<Days> ] Storage.NoRuleFilters
-    add_lifecycle_rule "test" [ Storage.DeleteAfter 1<Days>; Storage.DeleteAfter 2<Days>; Storage.ArchiveAfter 1<Days>; ] [ "foo/bar" ]
+
+    add_lifecycle_rule "test" [
+        Storage.DeleteAfter 1<Days>
+        Storage.DeleteAfter 2<Days>
+        Storage.ArchiveAfter 1<Days>
+    ] [ "foo/bar" ]
 }
 
 let myWebApp = webApp {
@@ -27,5 +32,4 @@ let deployment = arm {
     output "web_password" myWebApp.PublishingPassword
 }
 
-deployment
-|> Deploy.execute "my-resource-group-name" Deploy.NoParameters
+deployment |> Deploy.execute "my-resource-group-name" Deploy.NoParameters

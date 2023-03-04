@@ -17,28 +17,26 @@ type VirtualWanConfig =
     interface IBuilder with
         member this.ResourceId = virtualWans.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    AllowBranchToBranchTraffic = this.AllowBranchToBranchTraffic
-                    DisableVpnEncryption = this.DisableVpnEncryption
-                    Office365LocalBreakoutCategory = this.Office365LocalBreakoutCategory
-                    VwanType = this.VwanType
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                AllowBranchToBranchTraffic = this.AllowBranchToBranchTraffic
+                DisableVpnEncryption = this.DisableVpnEncryption
+                Office365LocalBreakoutCategory = this.Office365LocalBreakoutCategory
+                VwanType = this.VwanType
+            }
+        ]
 
 type VirtualWanBuilder() =
     /// Yield sets everything to sane defaults.
-    member _.Yield _ : VirtualWanConfig =
-        {
-            Name = ResourceName.Empty
-            AllowBranchToBranchTraffic = None
-            DisableVpnEncryption = None
-            Office365LocalBreakoutCategory = None
-            VwanType = VwanType.Basic
-        }
+    member _.Yield _ : VirtualWanConfig = {
+        Name = ResourceName.Empty
+        AllowBranchToBranchTraffic = None
+        DisableVpnEncryption = None
+        Office365LocalBreakoutCategory = None
+        VwanType = VwanType.Basic
+    }
 
     /// Sets the name to a ResourceName from the given string.
     [<CustomOperation "name">]

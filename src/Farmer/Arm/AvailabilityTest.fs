@@ -74,28 +74,24 @@ type AvailabilityTest =
                         location = this.Location.ArmValue
                         dependsOn = [ Farmer.ResourceId.create(components, this.AppInsightsName).Eval() ]
                         tags = Farmer.Serialization.ofJson ("{\"" + appInsightResource + "\": \"Resource\"}")
-                        properties =
-                            {|
-                                SyntheticMonitorId =
-                                    $"{this.Name.Value.ToLower()}-{this.AppInsightsName.Value.ToLower()}"
-                                Name = this.Name.Value
-                                Enabled = true
-                                Frequency = this.VisitFrequency
-                                Timeout = this.Timeout
-                                Kind = "ping"
-                                RetryEnabled = true
-                                Locations =
-                                    this.Locations
-                                    |> List.map (fun (AvailabilityTest.AvailabilityTestSite lo) ->
-                                        {| Id = lo.ArmValue |})
-                                Configuration =
-                                    {|
-                                        WebTest =
-                                            System.Text.RegularExpressions.Regex.Replace(
-                                                testString.Replace("\r\n", "").Replace("\n", ""),
-                                                @"\s+",
-                                                " "
-                                            )
-                                    |}
+                        properties = {|
+                            SyntheticMonitorId = $"{this.Name.Value.ToLower()}-{this.AppInsightsName.Value.ToLower()}"
+                            Name = this.Name.Value
+                            Enabled = true
+                            Frequency = this.VisitFrequency
+                            Timeout = this.Timeout
+                            Kind = "ping"
+                            RetryEnabled = true
+                            Locations =
+                                this.Locations
+                                |> List.map (fun (AvailabilityTest.AvailabilityTestSite lo) -> {| Id = lo.ArmValue |})
+                            Configuration = {|
+                                WebTest =
+                                    System.Text.RegularExpressions.Regex.Replace(
+                                        testString.Replace("\r\n", "").Replace("\n", ""),
+                                        @"\s+",
+                                        " "
+                                    )
                             |}
+                        |}
                     |}

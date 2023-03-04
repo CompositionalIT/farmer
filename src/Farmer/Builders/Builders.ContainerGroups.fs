@@ -42,46 +42,44 @@ type volume_mount =
         volumeName, Volume.Secret [ SecretFileParameter(file, SecureParameter secretParameterName) ]
 
 /// Represents configuration for a single Container.
-type ContainerInstanceConfig =
-    {
-        /// The name of the container instance
-        Name: ResourceName
-        /// The container instance image
-        Image: Containers.DockerImage option
-        /// The commands to execute within the container instance in exec form
-        Command: string list
-        /// List of ports the container instance listens on
-        Ports: Map<uint16, PortAccess>
-        /// Max number of CPU cores the container instance may use
-        Cpu: float
-        /// Max gigabytes of memory the container instance may use
-        Memory: float<Gb>
-        // Container instances gpu
-        Gpu: ContainerInstanceGpu option
-        /// Environment variables for the container
-        EnvironmentVariables: Map<string, EnvVar>
-        /// Liveness probe for checking the container's health.
-        LivenessProbe: ContainerProbe option
-        /// Readiness probe to wait for the container to be ready to accept requests.
-        ReadinessProbe: ContainerProbe option
-        /// Volume mounts for the container
-        VolumeMounts: Map<string, string>
-    }
+type ContainerInstanceConfig = {
+    /// The name of the container instance
+    Name: ResourceName
+    /// The container instance image
+    Image: Containers.DockerImage option
+    /// The commands to execute within the container instance in exec form
+    Command: string list
+    /// List of ports the container instance listens on
+    Ports: Map<uint16, PortAccess>
+    /// Max number of CPU cores the container instance may use
+    Cpu: float
+    /// Max gigabytes of memory the container instance may use
+    Memory: float<Gb>
+    // Container instances gpu
+    Gpu: ContainerInstanceGpu option
+    /// Environment variables for the container
+    EnvironmentVariables: Map<string, EnvVar>
+    /// Liveness probe for checking the container's health.
+    LivenessProbe: ContainerProbe option
+    /// Readiness probe to wait for the container to be ready to accept requests.
+    ReadinessProbe: ContainerProbe option
+    /// Volume mounts for the container
+    VolumeMounts: Map<string, string>
+}
 
 /// Represents configuration for an init container that runs on container group startup.
-type InitContainerConfig =
-    {
-        /// The name of the container instance
-        Name: ResourceName
-        /// The container instance image
-        Image: Containers.DockerImage option
-        /// The commands to execute within the container instance in exec form
-        Command: string list
-        /// Environment variables for the container
-        EnvironmentVariables: Map<string, EnvVar>
-        /// Volume mounts for the container
-        VolumeMounts: Map<string, string>
-    }
+type InitContainerConfig = {
+    /// The name of the container instance
+    Name: ResourceName
+    /// The container instance image
+    Image: Containers.DockerImage option
+    /// The commands to execute within the container instance in exec form
+    Command: string list
+    /// Environment variables for the container
+    EnvironmentVariables: Map<string, EnvVar>
+    /// Volume mounts for the container
+    VolumeMounts: Map<string, string>
+}
 
 type ContainerGroupConfig =
     {
@@ -127,99 +125,93 @@ type ContainerGroupConfig =
     interface IBuilder with
         member this.ResourceId = this.ResourceId
 
-        member this.BuildResources location =
-            [
-                {
-                    Location = location
-                    Name = this.Name
-                    AvailabilityZone =
-                        if this.AvailabilityZone.IsSome && this.NetworkProfile.IsSome then
-                            raiseFarmer $"Cannot specify availability zone when using network profiles."
-                        else
-                            this.AvailabilityZone
-                    ContainerInstances =
-                        [
-                            for instance in this.Instances do
-                                match instance.Image with
-                                | None -> raiseFarmer $"Missing image tag for container named '{instance.Name}'."
-                                | Some image ->
-                                    {|
-                                        Name = instance.Name
-                                        Image = image
-                                        Command = instance.Command
-                                        Ports = instance.Ports |> Map.toSeq |> Seq.map fst |> Set
-                                        Cpu = instance.Cpu
-                                        Memory = instance.Memory
-                                        Gpu = instance.Gpu
-                                        EnvironmentVariables = instance.EnvironmentVariables
-                                        LivenessProbe = instance.LivenessProbe
-                                        ReadinessProbe = instance.ReadinessProbe
-                                        VolumeMounts = instance.VolumeMounts
-                                    |}
-                        ]
-                    Diagnostics = this.Diagnostics
-                    DnsConfig =
-                        if this.DnsConfig.IsSome && this.NetworkProfile.IsNone then
-                            raiseFarmer "DNS configuration can only be set when attached to a virtual network."
-                        else
-                            this.DnsConfig
-                    OperatingSystem = this.OperatingSystem
-                    RestartPolicy = this.RestartPolicy
-                    Identity = this.Identity
-                    ImageRegistryCredentials = this.ImageRegistryCredentials
-                    InitContainers =
-                        [
-                            for initContainer in this.InitContainers do
-                                match initContainer.Image with
-                                | None ->
-                                    raiseFarmer $"Missing image tag for initContainer named '{initContainer.Name}'."
-                                | Some image ->
-                                    {|
-                                        Name = initContainer.Name
-                                        Image = image
-                                        Command = initContainer.Command
-                                        EnvironmentVariables = initContainer.EnvironmentVariables
-                                        VolumeMounts = initContainer.VolumeMounts
-                                    |}
-                        ]
-                    IpAddress = this.IpAddress
-                    NetworkProfile =
-                        if
-                            this.NetworkProfile.IsSome
-                            && (this.VirtualNetwork.IsSome || this.SubnetName.IsSome)
-                        then
-                            raiseFarmer
-                                $"Should not set network profile on container group '{this.Name.Value}' when using vnet and subnet."
-                        else
-                            this.NetworkProfile
-                    SubnetIds =
-                        match this.VirtualNetwork, this.SubnetName with
-                        | None, None -> []
-                        | Some (Managed vnetId), Some subnet ->
-                            { vnetId with
-                                Type = subnets
-                                Segments = [ subnet ]
-                            }
-                            |> Managed
-                            |> List.singleton
-                        | Some (Unmanaged vnetId), Some subnet ->
-                            { vnetId with
-                                Type = subnets
-                                Segments = [ subnet ]
-                            }
-                            |> Unmanaged
-                            |> List.singleton
-                        | Some vnetId, None ->
-                            raiseFarmer
-                                $"Missing subnet for attaching container group '{this.Name.Value}' to vnet '{vnetId.Name.Value}'."
-                        | None, subnetName ->
-                            raiseFarmer
-                                $"Missing vnet for attaching container group '{this.Name.Value}' to subnet '{subnetName.Value}'."
-                    Volumes = this.Volumes
-                    Tags = this.Tags
-                    Dependencies = this.Dependencies
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Location = location
+                Name = this.Name
+                AvailabilityZone =
+                    if this.AvailabilityZone.IsSome && this.NetworkProfile.IsSome then
+                        raiseFarmer $"Cannot specify availability zone when using network profiles."
+                    else
+                        this.AvailabilityZone
+                ContainerInstances = [
+                    for instance in this.Instances do
+                        match instance.Image with
+                        | None -> raiseFarmer $"Missing image tag for container named '{instance.Name}'."
+                        | Some image -> {|
+                            Name = instance.Name
+                            Image = image
+                            Command = instance.Command
+                            Ports = instance.Ports |> Map.toSeq |> Seq.map fst |> Set
+                            Cpu = instance.Cpu
+                            Memory = instance.Memory
+                            Gpu = instance.Gpu
+                            EnvironmentVariables = instance.EnvironmentVariables
+                            LivenessProbe = instance.LivenessProbe
+                            ReadinessProbe = instance.ReadinessProbe
+                            VolumeMounts = instance.VolumeMounts
+                          |}
+                ]
+                Diagnostics = this.Diagnostics
+                DnsConfig =
+                    if this.DnsConfig.IsSome && this.NetworkProfile.IsNone then
+                        raiseFarmer "DNS configuration can only be set when attached to a virtual network."
+                    else
+                        this.DnsConfig
+                OperatingSystem = this.OperatingSystem
+                RestartPolicy = this.RestartPolicy
+                Identity = this.Identity
+                ImageRegistryCredentials = this.ImageRegistryCredentials
+                InitContainers = [
+                    for initContainer in this.InitContainers do
+                        match initContainer.Image with
+                        | None -> raiseFarmer $"Missing image tag for initContainer named '{initContainer.Name}'."
+                        | Some image -> {|
+                            Name = initContainer.Name
+                            Image = image
+                            Command = initContainer.Command
+                            EnvironmentVariables = initContainer.EnvironmentVariables
+                            VolumeMounts = initContainer.VolumeMounts
+                          |}
+                ]
+                IpAddress = this.IpAddress
+                NetworkProfile =
+                    if
+                        this.NetworkProfile.IsSome
+                        && (this.VirtualNetwork.IsSome || this.SubnetName.IsSome)
+                    then
+                        raiseFarmer
+                            $"Should not set network profile on container group '{this.Name.Value}' when using vnet and subnet."
+                    else
+                        this.NetworkProfile
+                SubnetIds =
+                    match this.VirtualNetwork, this.SubnetName with
+                    | None, None -> []
+                    | Some(Managed vnetId), Some subnet ->
+                        { vnetId with
+                            Type = subnets
+                            Segments = [ subnet ]
+                        }
+                        |> Managed
+                        |> List.singleton
+                    | Some(Unmanaged vnetId), Some subnet ->
+                        { vnetId with
+                            Type = subnets
+                            Segments = [ subnet ]
+                        }
+                        |> Unmanaged
+                        |> List.singleton
+                    | Some vnetId, None ->
+                        raiseFarmer
+                            $"Missing subnet for attaching container group '{this.Name.Value}' to vnet '{vnetId.Name.Value}'."
+                    | None, subnetName ->
+                        raiseFarmer
+                            $"Missing vnet for attaching container group '{this.Name.Value}' to subnet '{subnetName.Value}'."
+                Volumes = this.Volumes
+                Tags = this.Tags
+                Dependencies = this.Dependencies
+            }
+        ]
 
 type ContainerGpuConfig = { Count: int; Sku: Gpu.Sku }
 
@@ -227,18 +219,16 @@ type ContainerProbeType =
     | LivenessProbe
     | ReadinessProbe
 
-type ContainerProbeConfig =
-    {
-        ProbeType: ContainerProbeType
-        Probe: ContainerProbe
-    }
+type ContainerProbeConfig = {
+    ProbeType: ContainerProbeType
+    Probe: ContainerProbe
+}
 
 type ContainerNetworkInterfaceIpConfig = { Name: ResourceName; Subnet: string }
 
-type ContainerNetworkInterfaceConfiguration =
-    {
-        IpConfigs: ContainerNetworkInterfaceIpConfig list
-    }
+type ContainerNetworkInterfaceConfiguration = {
+    IpConfigs: ContainerNetworkInterfaceIpConfig list
+}
 
 type NetworkProfileConfig =
     {
@@ -251,37 +241,34 @@ type NetworkProfileConfig =
     interface IBuilder with
         member this.ResourceId = networkProfiles.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    Dependencies =
-                        [
-                            match this.VirtualNetwork with
-                            | Managed resId -> resId // Only generate dependency if this is managed by Farmer (same template)
-                            | _ -> ()
-                        ]
-                        |> Set.ofList
-                    ContainerNetworkInterfaceConfigurations =
-                        this.ContainerNetworkInterfaceConfigurations
-                        |> List.map (fun ifconfig ->
-                            {|
-                                IpConfigs =
-                                    ifconfig.IpConfigs
-                                    |> List.map (fun ipConfig ->
-                                        {|
-                                            Name = ipConfig.Name
-                                            SubnetName = ResourceName ipConfig.Subnet
-                                        |})
-                            |})
-                    VirtualNetwork =
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Dependencies =
+                    [
                         match this.VirtualNetwork with
-                        | Managed resId
-                        | Unmanaged resId -> resId
-                    Tags = this.Tags
-                }
-            ]
+                        | Managed resId -> resId // Only generate dependency if this is managed by Farmer (same template)
+                        | _ -> ()
+                    ]
+                    |> Set.ofList
+                ContainerNetworkInterfaceConfigurations =
+                    this.ContainerNetworkInterfaceConfigurations
+                    |> List.map (fun ifconfig -> {|
+                        IpConfigs =
+                            ifconfig.IpConfigs
+                            |> List.map (fun ipConfig -> {|
+                                Name = ipConfig.Name
+                                SubnetName = ResourceName ipConfig.Subnet
+                            |})
+                    |})
+                VirtualNetwork =
+                    match this.VirtualNetwork with
+                    | Managed resId
+                    | Unmanaged resId -> resId
+                Tags = this.Tags
+            }
+        ]
 
 type ContainerGroupBuilder() =
     member private _.AddPort(state, portType, port) : ContainerGroupConfig =
@@ -301,26 +288,25 @@ type ContainerGroupBuilder() =
                     |> Some
         }
 
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Diagnostics = None
-            DnsConfig = None
-            OperatingSystem = Linux
-            RestartPolicy = AlwaysRestart
-            Identity = ManagedIdentity.Empty
-            ImageRegistryCredentials = []
-            InitContainers = []
-            IpAddress = None
-            NetworkProfile = None
-            SubnetName = None
-            VirtualNetwork = None
-            Instances = []
-            Volumes = Map.empty
-            AvailabilityZone = None
-            Tags = Map.empty
-            Dependencies = Set.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Diagnostics = None
+        DnsConfig = None
+        OperatingSystem = Linux
+        RestartPolicy = AlwaysRestart
+        Identity = ManagedIdentity.Empty
+        ImageRegistryCredentials = []
+        InitContainers = []
+        IpAddress = None
+        NetworkProfile = None
+        SubnetName = None
+        VirtualNetwork = None
+        Instances = []
+        Volumes = Map.empty
+        AvailabilityZone = None
+        Tags = Map.empty
+        Dependencies = Set.empty
+    }
 
     member this.Run(state: ContainerGroupConfig) =
         // Automatically apply all public-facing ports to the container group itself.
@@ -555,12 +541,11 @@ type ContainerGroupBuilder() =
     member _.DnsNameServers(state: ContainerGroupConfig, nameServers: string list) =
         let dns =
             match state.DnsConfig with
-            | None ->
-                {
-                    NameServers = nameServers
-                    Options = []
-                    SearchDomains = []
-                }
+            | None -> {
+                NameServers = nameServers
+                Options = []
+                SearchDomains = []
+              }
             | Some dnsConfig ->
                 { dnsConfig with
                     NameServers = nameServers
@@ -573,12 +558,11 @@ type ContainerGroupBuilder() =
     member _.DnsOptions(state: ContainerGroupConfig, options: string list) =
         let dns =
             match state.DnsConfig with
-            | None ->
-                {
-                    NameServers = []
-                    Options = options
-                    SearchDomains = []
-                }
+            | None -> {
+                NameServers = []
+                Options = options
+                SearchDomains = []
+              }
             | Some dnsConfig -> { dnsConfig with Options = options }
 
         { state with DnsConfig = Some dns }
@@ -588,12 +572,11 @@ type ContainerGroupBuilder() =
     member _.DnsSearchDomains(state: ContainerGroupConfig, searchDomains: string list) =
         let dns =
             match state.DnsConfig with
-            | None ->
-                {
-                    NameServers = []
-                    Options = []
-                    SearchDomains = searchDomains
-                }
+            | None -> {
+                NameServers = []
+                Options = []
+                SearchDomains = searchDomains
+              }
             | Some dnsConfig ->
                 { dnsConfig with
                     SearchDomains = searchDomains
@@ -620,29 +603,27 @@ type ContainerGroupBuilder() =
             }
 
 /// Creates an image registry credential with a generated SecureParameter for the password.
-let registry (server: string) (username: string) (managedIdentity: ManagedIdentity) =
-    {
-        Server = server
-        Username = username
-        Password = SecureParameter $"{server}-password"
-        Identity = managedIdentity
-    }
+let registry (server: string) (username: string) (managedIdentity: ManagedIdentity) = {
+    Server = server
+    Username = username
+    Password = SecureParameter $"{server}-password"
+    Identity = managedIdentity
+}
 
 type ContainerInstanceBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Image = None
-            Command = List.empty
-            Ports = Map.empty
-            Cpu = 1.0
-            Memory = 1.5<Gb>
-            Gpu = None
-            EnvironmentVariables = Map.empty
-            LivenessProbe = None
-            ReadinessProbe = None
-            VolumeMounts = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Image = None
+        Command = List.empty
+        Ports = Map.empty
+        Cpu = 1.0
+        Memory = 1.5<Gb>
+        Gpu = None
+        EnvironmentVariables = Map.empty
+        LivenessProbe = None
+        ReadinessProbe = None
+        VolumeMounts = Map.empty
+    }
 
     /// Sets the name of the container instance.
     [<CustomOperation "name">]
@@ -757,20 +738,18 @@ type ContainerInstanceBuilder() =
         }
 
 type ProbeBuilder(probeType: ContainerProbeType) =
-    member _.Yield _ =
-        {
-            ProbeType = probeType
-            Probe =
-                {
-                    Exec = []
-                    HttpGet = None
-                    InitialDelaySeconds = None
-                    PeriodSeconds = None
-                    FailureThreshold = None
-                    SuccessThreshold = None
-                    TimeoutSeconds = None
-                }
+    member _.Yield _ = {
+        ProbeType = probeType
+        Probe = {
+            Exec = []
+            HttpGet = None
+            InitialDelaySeconds = None
+            PeriodSeconds = None
+            FailureThreshold = None
+            SuccessThreshold = None
+            TimeoutSeconds = None
         }
+    }
 
     /// The URI for a GET request for a health or readiness check on this container. The hostname in the URI is ignored.
     [<CustomOperation "http">]
@@ -862,14 +841,13 @@ type GpuBuilder() =
 let containerInstanceGpu = GpuBuilder()
 
 type InitContainerBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Image = None
-            Command = List.empty
-            EnvironmentVariables = Map.empty
-            VolumeMounts = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Image = None
+        Command = List.empty
+        EnvironmentVariables = Map.empty
+        VolumeMounts = Map.empty
+    }
 
     /// Sets the name of the init container.
     [<CustomOperation "name">]
@@ -929,13 +907,12 @@ let containerInstance = ContainerInstanceBuilder()
 let initContainer = InitContainerBuilder()
 
 type NetworkProfileBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            ContainerNetworkInterfaceConfigurations = []
-            VirtualNetwork = Managed(virtualNetworks.resourceId ResourceName.Empty)
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        ContainerNetworkInterfaceConfigurations = []
+        VirtualNetwork = Managed(virtualNetworks.resourceId ResourceName.Empty)
+        Tags = Map.empty
+    }
 
     /// Sets the name of the network profile instance
     [<CustomOperation "name">]
@@ -945,36 +922,32 @@ type NetworkProfileBuilder() =
     [<CustomOperation "subnet">]
     member _.SubnetName(state: NetworkProfileConfig, subnet) =
         { state with
-            ContainerNetworkInterfaceConfigurations =
-                [
-                    {
-                        IpConfigs =
-                            [
-                                {
-                                    Name = ResourceName "ipconfig"
-                                    Subnet = subnet
-                                }
-                            ]
-                    }
-                ]
+            ContainerNetworkInterfaceConfigurations = [
+                {
+                    IpConfigs = [
+                        {
+                            Name = ResourceName "ipconfig"
+                            Subnet = subnet
+                        }
+                    ]
+                }
+            ]
         }
 
     /// Sets a single target named ip configuration for the network profile (typical case of single subnet)
     [<CustomOperation "ip_config">]
     member _.IpConfig(state: NetworkProfileConfig, ipConfigName: string, subnetName: string) =
         { state with
-            ContainerNetworkInterfaceConfigurations =
-                [
-                    {
-                        IpConfigs =
-                            [
-                                {
-                                    Name = ResourceName ipConfigName
-                                    Subnet = subnetName
-                                }
-                            ]
-                    }
-                ]
+            ContainerNetworkInterfaceConfigurations = [
+                {
+                    IpConfigs = [
+                        {
+                            Name = ResourceName ipConfigName
+                            Subnet = subnetName
+                        }
+                    ]
+                }
+            ]
         }
 
     /// Sets multiple subnet IP configs for the network profile to connect to multiple subnets.

@@ -13,5 +13,4 @@ let template = arm {
     add_resource myWebApp
 }
 
-template
-|> Deploy.execute "mywebapp" Deploy.NoParameters
+template |> Deploy.execute "mywebapp" Deploy.NoParameters

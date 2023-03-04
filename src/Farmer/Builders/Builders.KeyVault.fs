@@ -7,42 +7,41 @@ open Farmer.Arm.KeyVault
 open System
 open Vaults
 
-type AccessPolicyConfig =
-    {
-        ObjectId: ArmExpression
-        ApplicationId: Guid option
-        Permissions: {| Keys: KeyVault.Key Set
-                        Secrets: KeyVault.Secret Set
-                        Certificates: Certificate Set
-                        Storage: Storage Set |}
-    }
+type AccessPolicyConfig = {
+    ObjectId: ArmExpression
+    ApplicationId: Guid option
+    Permissions: {|
+        Keys: KeyVault.Key Set
+        Secrets: KeyVault.Secret Set
+        Certificates: Certificate Set
+        Storage: Storage Set
+    |}
+}
 
 type CreateMode =
     | Recover of NonEmptyList<AccessPolicyConfig>
     | Default of AccessPolicyConfig list
     | Unspecified of AccessPolicyConfig list
 
-type KeyVaultConfigSettings =
-    {
-        /// Specifies whether Azure Virtual Machines are permitted to retrieve certificates stored as secrets from the key vault.
-        VirtualMachineAccess: FeatureFlag option
-        /// Specifies whether Azure Resource Manager is permitted to retrieve secrets from the key vault.
-        ResourceManagerAccess: FeatureFlag option
-        /// Specifies whether Azure Disk Encryption is permitted to retrieve secrets from the vault and unwrap keys.
-        AzureDiskEncryptionAccess: FeatureFlag option
-        /// Specifies whether Soft Deletion is enabled for the vault
-        SoftDelete: SoftDeletionMode option
-        /// Specifies whether Azure role based authorization is used for data retrieval instead of any access policies on the key vault.
-        RbacAuthorization: FeatureFlag option
-    }
+type KeyVaultConfigSettings = {
+    /// Specifies whether Azure Virtual Machines are permitted to retrieve certificates stored as secrets from the key vault.
+    VirtualMachineAccess: FeatureFlag option
+    /// Specifies whether Azure Resource Manager is permitted to retrieve secrets from the key vault.
+    ResourceManagerAccess: FeatureFlag option
+    /// Specifies whether Azure Disk Encryption is permitted to retrieve secrets from the vault and unwrap keys.
+    AzureDiskEncryptionAccess: FeatureFlag option
+    /// Specifies whether Soft Deletion is enabled for the vault
+    SoftDelete: SoftDeletionMode option
+    /// Specifies whether Azure role based authorization is used for data retrieval instead of any access policies on the key vault.
+    RbacAuthorization: FeatureFlag option
+}
 
-type NetworkAcl =
-    {
-        IpRules: string list
-        VnetRules: string list
-        DefaultAction: DefaultAction option
-        Bypass: Bypass option
-    }
+type NetworkAcl = {
+    IpRules: string list
+    VnetRules: string list
+    DefaultAction: DefaultAction option
+    Bypass: Bypass option
+}
 
 type SecretConfig =
     {
@@ -57,18 +56,17 @@ type SecretConfig =
         Tags: Map<string, string>
     }
 
-    static member internal createUnsafe key =
-        {
-            SecretName = key
-            Vault = None
-            Value = ParameterSecret(SecureParameter key)
-            ContentType = None
-            Enabled = None
-            ActivationDate = None
-            ExpirationDate = None
-            Dependencies = Set.empty
-            Tags = Map.empty
-        }
+    static member internal createUnsafe key = {
+        SecretName = key
+        Vault = None
+        Value = ParameterSecret(SecureParameter key)
+        ContentType = None
+        Enabled = None
+        ActivationDate = None
+        ExpirationDate = None
+        Dependencies = Set.empty
+        Tags = Map.empty
+    }
 
     static member internal isValid key =
         let charRulesPassed =
@@ -112,27 +110,25 @@ type SecretConfig =
             | None -> SecretConfig.HandleNoVault()
             | Some id -> id
 
-        member this.BuildResources location =
-            [
-                match this.ResourceName with
-                | None -> SecretConfig.HandleNoVault()
-                | Some name ->
-                    {
-                        Name = name
-                        Value = this.Value
-                        ContentType = this.ContentType
-                        Enabled = this.Enabled
-                        ActivationDate = this.ActivationDate
-                        ExpirationDate = this.ExpirationDate
-                        Location = location
-                        Dependencies =
-                            match this.Vault with
-                            | Some (Managed id) -> this.Dependencies.Add id
-                            | Some (Unmanaged _) -> this.Dependencies
-                            | None -> SecretConfig.HandleNoVault()
-                        Tags = this.Tags
-                    }
-            ]
+        member this.BuildResources location = [
+            match this.ResourceName with
+            | None -> SecretConfig.HandleNoVault()
+            | Some name -> {
+                Name = name
+                Value = this.Value
+                ContentType = this.ContentType
+                Enabled = this.Enabled
+                ActivationDate = this.ActivationDate
+                ExpirationDate = this.ExpirationDate
+                Location = location
+                Dependencies =
+                    match this.Vault with
+                    | Some(Managed id) -> this.Dependencies.Add id
+                    | Some(Unmanaged _) -> this.Dependencies
+                    | None -> SecretConfig.HandleNoVault()
+                Tags = this.Tags
+              }
+        ]
 
 type KeyConfig =
     {
@@ -161,24 +157,23 @@ type KeyConfig =
                 ResourceGroup = this.vault.ResourceId.ResourceGroup
             }
 
-        member this.BuildResources location =
-            [
-                {
-                    KeyName = this.KeyName
-                    VaultName = this.vault.Name
-                    KeyOps = this.KeyOps
-                    KTY = this.KTY
-                    Location = location
-                    Enabled = this.Enabled
-                    ActivationDate = this.ActivationDate
-                    ExpirationDate = this.ExpirationDate
-                    Dependencies =
-                        match this.vault with
-                        | Managed id -> this.Dependencies.Add id
-                        | Unmanaged _ -> this.Dependencies
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                KeyName = this.KeyName
+                VaultName = this.vault.Name
+                KeyOps = this.KeyOps
+                KTY = this.KTY
+                Location = location
+                Enabled = this.Enabled
+                ActivationDate = this.ActivationDate
+                ExpirationDate = this.ExpirationDate
+                Dependencies =
+                    match this.vault with
+                    | Managed id -> this.Dependencies.Add id
+                    | Unmanaged _ -> this.Dependencies
+                Tags = this.Tags
+            }
+        ]
 
 type KeyVaultConfig =
     {
@@ -205,86 +200,81 @@ type KeyVaultConfig =
     interface IBuilder with
         member this.ResourceId = this.ResourceId
 
-        member this.BuildResources location =
-            [
-                let keyVault =
-                    {
-                        Name = this.Name
-                        Location = location
-                        TenantId = this.TenantId |> ArmExpression.Eval
-                        Sku = this.Sku
-                        TemplateDeployment = this.Access.ResourceManagerAccess
-                        DiskEncryption = this.Access.AzureDiskEncryptionAccess
-                        Deployment = this.Access.VirtualMachineAccess
-                        RbacAuthorization = this.Access.RbacAuthorization
-                        SoftDelete = this.Access.SoftDelete
-                        CreateMode =
-                            match this.Policies with
-                            | Unspecified _ -> None
-                            | Recover _ -> Some Arm.KeyVault.Recover
-                            | Default _ -> Some Arm.KeyVault.Default
-                        AccessPolicies =
-                            let policies =
-                                match this.Policies with
-                                | Unspecified policies -> policies
-                                | Recover list -> list.Value
-                                | Default policies -> policies
+        member this.BuildResources location = [
+            let keyVault = {
+                Name = this.Name
+                Location = location
+                TenantId = this.TenantId |> ArmExpression.Eval
+                Sku = this.Sku
+                TemplateDeployment = this.Access.ResourceManagerAccess
+                DiskEncryption = this.Access.AzureDiskEncryptionAccess
+                Deployment = this.Access.VirtualMachineAccess
+                RbacAuthorization = this.Access.RbacAuthorization
+                SoftDelete = this.Access.SoftDelete
+                CreateMode =
+                    match this.Policies with
+                    | Unspecified _ -> None
+                    | Recover _ -> Some Arm.KeyVault.Recover
+                    | Default _ -> Some Arm.KeyVault.Default
+                AccessPolicies =
+                    let policies =
+                        match this.Policies with
+                        | Unspecified policies -> policies
+                        | Recover list -> list.Value
+                        | Default policies -> policies
 
-                            [
-                                for policy in policies do
-                                    {|
-                                        ObjectId = policy.ObjectId
-                                        ApplicationId = policy.ApplicationId
-                                        Permissions =
-                                            {|
-                                                Certificates = policy.Permissions.Certificates
-                                                Storage = policy.Permissions.Storage
-                                                Keys = policy.Permissions.Keys
-                                                Secrets = policy.Permissions.Secrets
-                                            |}
-                                    |}
-                            ]
-                        Uri = this.Uri
-                        DefaultAction = this.NetworkAcl.DefaultAction
-                        Bypass = this.NetworkAcl.Bypass
-                        IpRules = this.NetworkAcl.IpRules
-                        VnetRules = this.NetworkAcl.VnetRules
-                        DisablePublicNetworkAccess = this.DisablePublicNetworkAccess
-                        Tags = this.Tags
-                    }
+                    [
+                        for policy in policies do
+                            {|
+                                ObjectId = policy.ObjectId
+                                ApplicationId = policy.ApplicationId
+                                Permissions = {|
+                                    Certificates = policy.Permissions.Certificates
+                                    Storage = policy.Permissions.Storage
+                                    Keys = policy.Permissions.Keys
+                                    Secrets = policy.Permissions.Secrets
+                                |}
+                            |}
+                    ]
+                Uri = this.Uri
+                DefaultAction = this.NetworkAcl.DefaultAction
+                Bypass = this.NetworkAcl.Bypass
+                IpRules = this.NetworkAcl.IpRules
+                VnetRules = this.NetworkAcl.VnetRules
+                DisablePublicNetworkAccess = this.DisablePublicNetworkAccess
+                Tags = this.Tags
+            }
 
-                keyVault
+            keyVault
 
-                yield!
-                    this.Keys
-                    |> List.map (fun s ->
-                        { s with
-                            Vault = Some(Managed this.ResourceId)
-                        })
-                    |> List.collect (fun s -> (s :> IBuilder).BuildResources location)
+            yield!
+                this.Keys
+                |> List.map (fun s ->
+                    { s with
+                        Vault = Some(Managed this.ResourceId)
+                    })
+                |> List.collect (fun s -> (s :> IBuilder).BuildResources location)
 
-                yield!
-                    this.Secrets
-                    |> List.map (fun s ->
-                        { s with
-                            Vault = Some(Managed this.ResourceId)
-                        })
-                    |> List.collect (fun s -> (s :> IBuilder).BuildResources location)
-            ]
+            yield!
+                this.Secrets
+                |> List.map (fun s ->
+                    { s with
+                        Vault = Some(Managed this.ResourceId)
+                    })
+                |> List.collect (fun s -> (s :> IBuilder).BuildResources location)
+        ]
 
 type AccessPolicyBuilder() =
-    member _.Yield _ =
-        {
-            ObjectId = ArmExpression.create (string Guid.Empty)
-            ApplicationId = None
-            Permissions =
-                {|
-                    Keys = Set.empty
-                    Secrets = Set.empty
-                    Certificates = Set.empty
-                    Storage = Set.empty
-                |}
-        }
+    member _.Yield _ = {
+        ObjectId = ArmExpression.create (string Guid.Empty)
+        ApplicationId = None
+        Permissions = {|
+            Keys = Set.empty
+            Secrets = Set.empty
+            Certificates = Set.empty
+            Storage = Set.empty
+        |}
+    }
 
     /// Sets the Object ID of the permission set.
     [<CustomOperation "object_id">]
@@ -351,11 +341,10 @@ let accessPolicy = AccessPolicyBuilder()
 
 type AccessPolicy =
     /// Quickly creates an access policy for the supplied Principal. If no permissions are supplied, defaults to GET and LIST.
-    static member create(principal: PrincipalId, ?permissions) =
-        accessPolicy {
-            object_id principal
-            secret_permissions (permissions |> Option.defaultValue Secret.ReadSecrets)
-        }
+    static member create(principal: PrincipalId, ?permissions) = accessPolicy {
+        object_id principal
+        secret_permissions (permissions |> Option.defaultValue Secret.ReadSecrets)
+    }
 
     /// Quickly creates an access policy for the supplied Identity. If no permissions are supplied, defaults to GET and LIST.
     static member create(identity: UserAssignedIdentityConfig, ?permissions) =
@@ -366,11 +355,10 @@ type AccessPolicy =
         AccessPolicy.create (identity.PrincipalId, ?permissions = permissions)
 
     /// Quickly creates an access policy for the supplied ObjectId. If no permissions are supplied, defaults to GET and LIST.
-    static member create(objectId: ObjectId, ?permissions) =
-        accessPolicy {
-            object_id objectId
-            secret_permissions (permissions |> Option.defaultValue Secret.ReadSecrets)
-        }
+    static member create(objectId: ObjectId, ?permissions) = accessPolicy {
+        object_id objectId
+        secret_permissions (permissions |> Option.defaultValue Secret.ReadSecrets)
+    }
 
     static member private findEntity(searchField, values, searcher) =
         values
@@ -379,8 +367,10 @@ type AccessPolicy =
         |> sprintf "\"%s\""
         |> searcher
         |> Result.map (
-            Serialization.ofJson<{| DisplayName: string
-                                    ObjectId: Guid |} array>
+            Serialization.ofJson<{|
+                DisplayName: string
+                ObjectId: Guid
+            |} array>
         )
         |> Result.toOption
         |> Option.map (
@@ -404,73 +394,68 @@ type SimpleCreateMode =
     | Recover
     | Default
 
-type KeyVaultBuilderState =
-    {
-        Name: ResourceName
-        Access: KeyVaultConfigSettings
-        Sku: Sku
-        TenantId: ArmExpression
-        NetworkAcl: NetworkAcl
-        CreateMode: SimpleCreateMode option
-        Policies: AccessPolicyConfig list
-        Uri: Uri option
-        Secrets: SecretConfig list
-        Keys: KeyConfig list
-        DisablePublicNetworkAccess: FeatureFlag option
-        Tags: Map<string, string>
-    }
+type KeyVaultBuilderState = {
+    Name: ResourceName
+    Access: KeyVaultConfigSettings
+    Sku: Sku
+    TenantId: ArmExpression
+    NetworkAcl: NetworkAcl
+    CreateMode: SimpleCreateMode option
+    Policies: AccessPolicyConfig list
+    Uri: Uri option
+    Secrets: SecretConfig list
+    Keys: KeyConfig list
+    DisablePublicNetworkAccess: FeatureFlag option
+    Tags: Map<string, string>
+}
 
 type KeyVaultBuilder() =
-    member _.Yield(_: unit) =
-        {
-            Name = ResourceName.Empty
-            TenantId = Subscription.TenantId
-            Access =
-                {
-                    VirtualMachineAccess = None
-                    RbacAuthorization = None
-                    ResourceManagerAccess = Some Enabled
-                    AzureDiskEncryptionAccess = None
-                    SoftDelete = None
-                }
-            Sku = Standard
-            NetworkAcl =
-                {
-                    IpRules = []
-                    VnetRules = []
-                    Bypass = None
-                    DefaultAction = None
-                }
-            Policies = []
-            CreateMode = None
-            Uri = None
-            Secrets = []
-            Keys = []
-            DisablePublicNetworkAccess = None
-            Tags = Map.empty
+    member _.Yield(_: unit) = {
+        Name = ResourceName.Empty
+        TenantId = Subscription.TenantId
+        Access = {
+            VirtualMachineAccess = None
+            RbacAuthorization = None
+            ResourceManagerAccess = Some Enabled
+            AzureDiskEncryptionAccess = None
+            SoftDelete = None
         }
+        Sku = Standard
+        NetworkAcl = {
+            IpRules = []
+            VnetRules = []
+            Bypass = None
+            DefaultAction = None
+        }
+        Policies = []
+        CreateMode = None
+        Uri = None
+        Secrets = []
+        Keys = []
+        DisablePublicNetworkAccess = None
+        Tags = Map.empty
+    }
 
-    member _.Run(state: KeyVaultBuilderState) : KeyVaultConfig =
-        {
-            Name = state.Name
-            Access = state.Access
-            Sku = state.Sku
-            NetworkAcl = state.NetworkAcl
-            TenantId = state.TenantId
-            Policies =
-                match state.CreateMode, state.Policies with
-                | None, policies -> Unspecified policies
-                | Some SimpleCreateMode.Default, policies -> Default policies
-                | Some SimpleCreateMode.Recover, [] ->
-                    raiseFarmer
-                        "Setting the creation mode to Recover requires at least one access policy. Use the accessPolicy builder to create a policy, and add it to the vault configuration using add_access_policy."
-                | Some SimpleCreateMode.Recover, policies -> Recover(NonEmptyList.create policies)
-            Keys = state.Keys
-            Secrets = state.Secrets
-            Uri = state.Uri
-            DisablePublicNetworkAccess = state.DisablePublicNetworkAccess
-            Tags = state.Tags
-        }
+    member _.Run(state: KeyVaultBuilderState) : KeyVaultConfig = {
+        Name = state.Name
+        Access = state.Access
+        Sku = state.Sku
+        NetworkAcl = state.NetworkAcl
+        TenantId = state.TenantId
+        Policies =
+            match state.CreateMode, state.Policies with
+            | None, policies -> Unspecified policies
+            | Some SimpleCreateMode.Default, policies -> Default policies
+            | Some SimpleCreateMode.Recover, [] ->
+                raiseFarmer
+                    "Setting the creation mode to Recover requires at least one access policy. Use the accessPolicy builder to create a policy, and add it to the vault configuration using add_access_policy."
+            | Some SimpleCreateMode.Recover, policies -> Recover(NonEmptyList.create policies)
+        Keys = state.Keys
+        Secrets = state.Secrets
+        Uri = state.Uri
+        DisablePublicNetworkAccess = state.DisablePublicNetworkAccess
+        Tags = state.Tags
+    }
 
     /// Sets the name of the vault.
     [<CustomOperation "name">]
@@ -733,18 +718,17 @@ type KeyVaultBuilder() =
             }
 
 type KeyBuilder() =
-    member _.Yield _ : KeyConfig =
-        {
-            KeyName = ResourceName.Empty
-            Vault = None
-            Enabled = None
-            ActivationDate = None
-            ExpirationDate = None
-            KeyOps = []
-            KTY = KeyType.RSA_2048
-            Dependencies = Set.empty
-            Tags = Map.empty
-        }
+    member _.Yield _ : KeyConfig = {
+        KeyName = ResourceName.Empty
+        Vault = None
+        Enabled = None
+        ActivationDate = None
+        ExpirationDate = None
+        KeyOps = []
+        KTY = KeyType.RSA_2048
+        Dependencies = Set.empty
+        Tags = Map.empty
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: KeyConfig, name) =
@@ -890,27 +874,24 @@ type KeyVaultAddPoliciesConfig =
             match this.KeyVault with
             | None ->
                 raiseFarmer "Key vault policy addition must be linked to a key vault to properly assign the resourceId."
-            | Some kv ->
-                [
-                    {
-                        VaultAddPolicies.KeyVault = kv
-                        TenantId = this.TenantId
-                        AccessPolicies =
-                            this.AccessPolicies
-                            |> List.map (fun policy ->
-                                {|
-                                    ObjectId = policy.ObjectId
-                                    ApplicationId = policy.ApplicationId
-                                    Permissions =
-                                        {|
-                                            Certificates = policy.Permissions.Certificates
-                                            Storage = policy.Permissions.Storage
-                                            Keys = policy.Permissions.Keys
-                                            Secrets = policy.Permissions.Secrets
-                                        |}
-                                |})
-                    }
-                ]
+            | Some kv -> [
+                {
+                    VaultAddPolicies.KeyVault = kv
+                    TenantId = this.TenantId
+                    AccessPolicies =
+                        this.AccessPolicies
+                        |> List.map (fun policy -> {|
+                            ObjectId = policy.ObjectId
+                            ApplicationId = policy.ApplicationId
+                            Permissions = {|
+                                Certificates = policy.Permissions.Certificates
+                                Storage = policy.Permissions.Storage
+                                Keys = policy.Permissions.Keys
+                                Secrets = policy.Permissions.Secrets
+                            |}
+                        |})
+                }
+              ]
 
         member this.ResourceId =
             match this.KeyVault with
@@ -920,12 +901,11 @@ type KeyVaultAddPoliciesConfig =
 
 /// Builder for adding policies to an existing key vault.
 type KeyVaultAddPoliciesBuilder() =
-    member _.Yield _ =
-        {
-            KeyVault = None
-            TenantId = None
-            AccessPolicies = []
-        }
+    member _.Yield _ = {
+        KeyVault = None
+        TenantId = None
+        AccessPolicies = []
+    }
 
     /// The key vault where the policies should be added.
     [<CustomOperation "key_vault">]

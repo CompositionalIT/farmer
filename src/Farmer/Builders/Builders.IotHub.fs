@@ -35,50 +35,48 @@ type IotHubConfig =
     interface IBuilder with
         member this.ResourceId = this.ResourceId
 
-        member this.BuildResources location =
-            [
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Sku =
+                    match this.Sku with
+                    | F1 -> Free
+                    | B1 -> Devices.Sku.B1 this.Capacity
+                    | B2 -> Devices.Sku.B2 this.Capacity
+                    | B3 -> Devices.Sku.B3 this.Capacity
+                    | S1 -> Devices.Sku.S1 this.Capacity
+                    | S2 -> Devices.Sku.S2 this.Capacity
+                    | S3 -> Devices.Sku.S3 this.Capacity
+                RetentionDays = this.RetentionDays
+                PartitionCount = this.PartitionCount
+                DefaultTtl = None
+                MaxDeliveryCount = None
+                Feedback = None
+                FileNotifications = None
+                Tags = this.Tags
+            }
+
+            if this.DeviceProvisioning = Enabled then
                 {
-                    Name = this.Name
+                    Name = this.Name.Map(sprintf "%s-dps")
                     Location = location
-                    Sku =
-                        match this.Sku with
-                        | F1 -> Free
-                        | B1 -> Devices.Sku.B1 this.Capacity
-                        | B2 -> Devices.Sku.B2 this.Capacity
-                        | B3 -> Devices.Sku.B3 this.Capacity
-                        | S1 -> Devices.Sku.S1 this.Capacity
-                        | S2 -> Devices.Sku.S2 this.Capacity
-                        | S3 -> Devices.Sku.S3 this.Capacity
-                    RetentionDays = this.RetentionDays
-                    PartitionCount = this.PartitionCount
-                    DefaultTtl = None
-                    MaxDeliveryCount = None
-                    Feedback = None
-                    FileNotifications = None
+                    IotHubKey = this.GetKey IotHubOwner
+                    IotHubName = this.Name
                     Tags = this.Tags
                 }
-
-                if this.DeviceProvisioning = Enabled then
-                    {
-                        Name = this.Name.Map(sprintf "%s-dps")
-                        Location = location
-                        IotHubKey = this.GetKey IotHubOwner
-                        IotHubName = this.Name
-                        Tags = this.Tags
-                    }
-            ]
+        ]
 
 type IotHubBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sku = F1
-            Capacity = 1
-            RetentionDays = None
-            PartitionCount = None
-            DeviceProvisioning = Disabled
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = F1
+        Capacity = 1
+        RetentionDays = None
+        PartitionCount = None
+        DeviceProvisioning = Disabled
+        Tags = Map.empty
+    }
 
     member _.Run state =
         match state.PartitionCount with

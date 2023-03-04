@@ -18,128 +18,117 @@ let getVirtualWanResource =
 
 /// Collection of tests for the VirtualWan resource and builders. Needs to be included in AllTests.fs
 let tests =
-    testList
-        "VirtualWan"
-        [
-            test "Can create a basic VirtualWan" {
-                let vwan =
-                    arm {
-                        location Location.WestUS
-                        add_resources [ vwan { name "my-vwan" } ]
-                    }
-                    |> getVirtualWanResource
+    testList "VirtualWan" [
+        test "Can create a basic VirtualWan" {
+            let vwan =
+                arm {
+                    location Location.WestUS
+                    add_resources [ vwan { name "my-vwan" } ]
+                }
+                |> getVirtualWanResource
 
-                Expect.equal vwan.Name "my-vwan" "Incorrect Resource Name"
-                Expect.equal vwan.Location "westus" "Incorrect Location"
-                Expect.equal vwan.VirtualWANType "Basic" "Default should be 'Basic'"
-                Expect.isFalse vwan.AllowBranchToBranchTraffic.Value "AllowBranchToBranchTraffic should be false"
-                Expect.isFalse vwan.DisableVpnEncryption.Value "DisableVpnEncryption should not have a value"
+            Expect.equal vwan.Name "my-vwan" "Incorrect Resource Name"
+            Expect.equal vwan.Location "westus" "Incorrect Location"
+            Expect.equal vwan.VirtualWANType "Basic" "Default should be 'Basic'"
+            Expect.isFalse vwan.AllowBranchToBranchTraffic.Value "AllowBranchToBranchTraffic should be false"
+            Expect.isFalse vwan.DisableVpnEncryption.Value "DisableVpnEncryption should not have a value"
 
-                Expect.equal
-                    vwan.Office365LocalBreakoutCategory
-                    "None"
-                    "Office365LocalBreakoutCategory should be 'None'"
-            }
-            test "Can create a standard VirtualWan" {
-                let vwan =
-                    arm {
-                        location Location.WestUS
+            Expect.equal vwan.Office365LocalBreakoutCategory "None" "Office365LocalBreakoutCategory should be 'None'"
+        }
+        test "Can create a standard VirtualWan" {
+            let vwan =
+                arm {
+                    location Location.WestUS
 
-                        add_resources
-                            [
-                                vwan {
-                                    name "my-vwan"
-                                    standard_vwan
-                                }
-                            ]
-                    }
-                    |> getVirtualWanResource
+                    add_resources [
+                        vwan {
+                            name "my-vwan"
+                            standard_vwan
+                        }
+                    ]
+                }
+                |> getVirtualWanResource
 
-                Expect.equal vwan.VirtualWANType "Standard" ""
-            }
-            test "Can create a VirtualWan with DisableVpnEncryption" {
-                let vwan =
-                    arm {
-                        location Location.WestUS
+            Expect.equal vwan.VirtualWANType "Standard" ""
+        }
+        test "Can create a VirtualWan with DisableVpnEncryption" {
+            let vwan =
+                arm {
+                    location Location.WestUS
 
-                        add_resources
-                            [
-                                vwan {
-                                    name "my-vwan"
-                                    disable_vpn_encryption
-                                }
-                            ]
-                    }
-                    |> getVirtualWanResource
+                    add_resources [
+                        vwan {
+                            name "my-vwan"
+                            disable_vpn_encryption
+                        }
+                    ]
+                }
+                |> getVirtualWanResource
 
-                Expect.equal vwan.DisableVpnEncryption (Nullable true) ""
-            }
-            test "Can create a VirtualWan with AllowBranchToBranchTraffic" {
-                let vwan =
-                    arm {
-                        location Location.WestUS
+            Expect.equal vwan.DisableVpnEncryption (Nullable true) ""
+        }
+        test "Can create a VirtualWan with AllowBranchToBranchTraffic" {
+            let vwan =
+                arm {
+                    location Location.WestUS
 
-                        add_resources
-                            [
-                                vwan {
-                                    name "my-vwan"
-                                    allow_branch_to_branch_traffic
-                                }
-                            ]
-                    }
-                    |> getVirtualWanResource
+                    add_resources [
+                        vwan {
+                            name "my-vwan"
+                            allow_branch_to_branch_traffic
+                        }
+                    ]
+                }
+                |> getVirtualWanResource
 
-                Expect.equal vwan.AllowBranchToBranchTraffic (Nullable true) ""
-            }
-            test "Can create a VirtualWan with Office365LocalBreakoutCategory.All" {
-                let vwan =
-                    arm {
-                        location Location.WestUS
+            Expect.equal vwan.AllowBranchToBranchTraffic (Nullable true) ""
+        }
+        test "Can create a VirtualWan with Office365LocalBreakoutCategory.All" {
+            let vwan =
+                arm {
+                    location Location.WestUS
 
-                        add_resources
-                            [
-                                vwan {
-                                    name "my-vwan"
-                                    office_365_local_breakout_category Office365LocalBreakoutCategory.All
-                                }
-                            ]
-                    }
-                    |> getVirtualWanResource
+                    add_resources [
+                        vwan {
+                            name "my-vwan"
+                            office_365_local_breakout_category Office365LocalBreakoutCategory.All
+                        }
+                    ]
+                }
+                |> getVirtualWanResource
 
-                Expect.equal vwan.Office365LocalBreakoutCategory "All" ""
-            }
-            test "Can create a VirtualWan with Office365LocalBreakoutCategory.Optimize" {
-                let vwan =
-                    arm {
-                        location Location.WestUS
+            Expect.equal vwan.Office365LocalBreakoutCategory "All" ""
+        }
+        test "Can create a VirtualWan with Office365LocalBreakoutCategory.Optimize" {
+            let vwan =
+                arm {
+                    location Location.WestUS
 
-                        add_resources
-                            [
-                                vwan {
-                                    name "my-vwan"
-                                    office_365_local_breakout_category Office365LocalBreakoutCategory.Optimize
-                                }
-                            ]
-                    }
-                    |> getVirtualWanResource
+                    add_resources [
+                        vwan {
+                            name "my-vwan"
+                            office_365_local_breakout_category Office365LocalBreakoutCategory.Optimize
+                        }
+                    ]
+                }
+                |> getVirtualWanResource
 
-                Expect.equal vwan.Office365LocalBreakoutCategory "Optimize" ""
-            }
-            test "Can create a VirtualWan with Office365LocalBreakoutCategory.OptimizeAndAllow" {
-                let vwan =
-                    arm {
-                        location Location.WestUS
+            Expect.equal vwan.Office365LocalBreakoutCategory "Optimize" ""
+        }
+        test "Can create a VirtualWan with Office365LocalBreakoutCategory.OptimizeAndAllow" {
+            let vwan =
+                arm {
+                    location Location.WestUS
 
-                        add_resources
-                            [
-                                vwan {
-                                    name "my-vwan"
-                                    office_365_local_breakout_category Office365LocalBreakoutCategory.OptimizeAndAllow
-                                }
-                            ]
-                    }
-                    |> getVirtualWanResource
+                    add_resources [
+                        vwan {
+                            name "my-vwan"
+                            office_365_local_breakout_category Office365LocalBreakoutCategory.OptimizeAndAllow
+                        }
+                    ]
+                }
+                |> getVirtualWanResource
 
-                Expect.equal vwan.Office365LocalBreakoutCategory "OptimizeAndAllow" ""
-            }
-        ]
+            Expect.equal vwan.Office365LocalBreakoutCategory "OptimizeAndAllow" ""
+        }
+    ]

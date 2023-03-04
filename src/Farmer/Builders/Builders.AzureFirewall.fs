@@ -12,10 +12,9 @@ type HubIPAddressSpace =
 
     member this.Arm =
         match this with
-        | PublicCount count ->
-            {
-                PublicIPAddresses = { Count = count; Addresses = [] } |> Some
-            }
+        | PublicCount count -> {
+            PublicIPAddresses = { Count = count; Addresses = [] } |> Some
+          }
 
 type AzureFirewallConfig =
     {
@@ -31,55 +30,51 @@ type AzureFirewallConfig =
     interface IBuilder with
         member this.ResourceId = azureFirewalls.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    Dependencies =
-                        Set
-                            [
-                                yield! this.Dependencies
-                                match this.FirewallPolicy with
-                                | Some (Managed resId) -> resId // Only generate dependency if this is managed by Farmer (same template)
-                                | _ -> ()
-                                match this.VirtualHub with
-                                | Some (Managed resId) -> resId
-                                | _ -> ()
-                            ]
-                    FirewallPolicy =
-                        this.FirewallPolicy
-                        |> Option.map (fun x ->
-                            match x with
-                            | Managed resId
-                            | Unmanaged resId -> resId)
-                    VirtualHub =
-                        this.VirtualHub
-                        |> Option.map (fun x ->
-                            match x with
-                            | Managed resId
-                            | Unmanaged resId -> resId)
-                    HubIPAddresses = this.HubIPAddressSpace |> Option.map (fun x -> x.Arm)
-                    Sku = this.Sku
-                    AvailabilityZones = this.AvailabilityZones
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Dependencies =
+                    Set [
+                        yield! this.Dependencies
+                        match this.FirewallPolicy with
+                        | Some(Managed resId) -> resId // Only generate dependency if this is managed by Farmer (same template)
+                        | _ -> ()
+                        match this.VirtualHub with
+                        | Some(Managed resId) -> resId
+                        | _ -> ()
+                    ]
+                FirewallPolicy =
+                    this.FirewallPolicy
+                    |> Option.map (fun x ->
+                        match x with
+                        | Managed resId
+                        | Unmanaged resId -> resId)
+                VirtualHub =
+                    this.VirtualHub
+                    |> Option.map (fun x ->
+                        match x with
+                        | Managed resId
+                        | Unmanaged resId -> resId)
+                HubIPAddresses = this.HubIPAddressSpace |> Option.map (fun x -> x.Arm)
+                Sku = this.Sku
+                AvailabilityZones = this.AvailabilityZones
+            }
+        ]
 
 type AzureFirewallBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sku =
-                {
-                    Name = SkuName.AZFW_Hub
-                    Tier = SkuTier.Standard
-                }
-            FirewallPolicy = None
-            VirtualHub = None
-            HubIPAddressSpace = None
-            AvailabilityZones = List.empty
-            Dependencies = Set.empty
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = {
+            Name = SkuName.AZFW_Hub
+            Tier = SkuTier.Standard
         }
+        FirewallPolicy = None
+        VirtualHub = None
+        HubIPAddressSpace = None
+        AvailabilityZones = List.empty
+        Dependencies = Set.empty
+    }
 
     /// The name of the firewall.
     [<CustomOperation "name">]
@@ -151,10 +146,10 @@ type AzureFirewallBuilder() =
             | None ->
                 raiseFarmer
                     $"Sku AZFW_Hub requires Public IPs provided for Azure Firewall {stateIBuilder.ResourceId}. Please specify valid IPs count (count cannot be zero) and/or Public IPs to be retained (in case of deleting IPs). Some Public IPs specified may be incorrect, please specify the IPs that are linked to the firewall"
-            | Some (PublicCount 0) ->
+            | Some(PublicCount 0) ->
                 raiseFarmer
                     $"Sku AZFW_Hub requires Public IPs count be > 0 for Azure Firewall {stateIBuilder.ResourceId}"
-            | Some (PublicCount _) -> ()
+            | Some(PublicCount _) -> ()
         | AZFW_VNet -> ()
 
         state

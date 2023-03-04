@@ -18,24 +18,22 @@ type HubPublicIPAddresses =
         Addresses: IPAddress list
     }
 
-    member this.JsonModel =
-        {|
-            count = this.Count
-            addresses = this.Addresses |> List.map (fun x -> {| address = x.ToString() |})
-        |}
+    member this.JsonModel = {|
+        count = this.Count
+        addresses = this.Addresses |> List.map (fun x -> {| address = x.ToString() |})
+    |}
 
 type HubIPAddresses =
     {
         PublicIPAddresses: HubPublicIPAddresses option
     }
 
-    member this.JsonModel =
-        {|
-            publicIPs =
-                this.PublicIPAddresses
-                |> Option.map (fun x -> box x.JsonModel)
-                |> Option.defaultValue null
-        |}
+    member this.JsonModel = {|
+        publicIPs =
+            this.PublicIPAddresses
+            |> Option.map (fun x -> box x.JsonModel)
+            |> Option.defaultValue null
+    |}
 
 type Sku =
     {
@@ -43,11 +41,10 @@ type Sku =
         Tier: SkuTier
     }
 
-    member this.JsonModel =
-        {|
-            name = this.Name.ArmValue
-            tier = this.Tier.ArmValue
-        |}
+    member this.JsonModel = {|
+        name = this.Name.ArmValue
+        tier = this.Tier.ArmValue
+    |}
 
 type AzureFirewall =
     {
@@ -66,22 +63,21 @@ type AzureFirewall =
 
         member this.JsonModel =
             {| azureFirewalls.Create(this.Name, this.Location, this.Dependencies) with
-                properties =
-                    {|
-                        sku = this.Sku.JsonModel
-                        virtualHub =
-                            this.VirtualHub
-                            |> Option.map (fun resId -> box {| id = resId.ArmExpression.Eval() |})
-                            |> Option.defaultValue null
-                        firewallPolicy =
-                            this.FirewallPolicy
-                            |> Option.map (fun resId -> box {| id = resId.ArmExpression.Eval() |})
-                            |> Option.defaultValue null
-                        hubIPAddresses =
-                            this.HubIPAddresses
-                            |> Option.map (fun x -> box x.JsonModel)
-                            |> Option.defaultValue null
-                    |}
+                properties = {|
+                    sku = this.Sku.JsonModel
+                    virtualHub =
+                        this.VirtualHub
+                        |> Option.map (fun resId -> box {| id = resId.ArmExpression.Eval() |})
+                        |> Option.defaultValue null
+                    firewallPolicy =
+                        this.FirewallPolicy
+                        |> Option.map (fun resId -> box {| id = resId.ArmExpression.Eval() |})
+                        |> Option.defaultValue null
+                    hubIPAddresses =
+                        this.HubIPAddresses
+                        |> Option.map (fun x -> box x.JsonModel)
+                        |> Option.defaultValue null
+                |}
                 zones =
                     if this.AvailabilityZones.IsEmpty then
                         null

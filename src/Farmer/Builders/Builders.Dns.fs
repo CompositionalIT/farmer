@@ -18,22 +18,21 @@ type DnsZoneRecordConfig =
         DnsZoneType: DnsZoneType
     }
 
-    static member Create(name, ttl, zone, recordType, ?dependencies: Set<ResourceId>, ?zoneType) =
-        {
-            Name =
-                if name = ResourceName.Empty then
-                    raiseFarmer "You must set a DNS zone name"
+    static member Create(name, ttl, zone, recordType, ?dependencies: Set<ResourceId>, ?zoneType) = {
+        Name =
+            if name = ResourceName.Empty then
+                raiseFarmer "You must set a DNS zone name"
 
-                name
-            Dependencies = dependencies |> Option.defaultValue Set.empty
-            TTL =
-                match ttl with
-                | Some ttl -> ttl
-                | None -> raiseFarmer "You must set a TTL"
-            Zone = zone
-            DnsZoneType = zoneType |> Option.defaultValue Public
-            Type = recordType
-        }
+            name
+        Dependencies = dependencies |> Option.defaultValue Set.empty
+        TTL =
+            match ttl with
+            | Some ttl -> ttl
+            | None -> raiseFarmer "You must set a TTL"
+        Zone = zone
+        DnsZoneType = zoneType |> Option.defaultValue Public
+        Type = recordType
+    }
 
     interface IBuilder with
         member this.ResourceId =
@@ -43,116 +42,106 @@ type DnsZoneRecordConfig =
 
         member this.BuildResources _ =
             match this.Zone with
-            | Some zone ->
-                [
-                    {
-                        DnsRecord.Name = this.Name
-                        Dependencies = this.Dependencies
-                        Zone = zone
-                        ZoneType = this.DnsZoneType
-                        TTL = this.TTL
-                        Type = this.Type
-                    }
-                ]
+            | Some zone -> [
+                {
+                    DnsRecord.Name = this.Name
+                    Dependencies = this.Dependencies
+                    Zone = zone
+                    ZoneType = this.DnsZoneType
+                    TTL = this.TTL
+                    Type = this.Type
+                }
+              ]
             | None -> raiseFarmer "DNS record must be linked to a zone."
 
-type CNameRecordProperties =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        CName: string option
-        TTL: int option
-        Zone: LinkedResource option
-        TargetResource: ResourceId option
-        ZoneType: DnsZoneType
-    }
+type CNameRecordProperties = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    CName: string option
+    TTL: int option
+    Zone: LinkedResource option
+    TargetResource: ResourceId option
+    ZoneType: DnsZoneType
+}
 
-type ARecordProperties =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        Ipv4Addresses: string list
-        TTL: int option
-        Zone: LinkedResource option
-        TargetResource: ResourceId option
-        ZoneType: DnsZoneType
-    }
+type ARecordProperties = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    Ipv4Addresses: string list
+    TTL: int option
+    Zone: LinkedResource option
+    TargetResource: ResourceId option
+    ZoneType: DnsZoneType
+}
 
-type AaaaRecordProperties =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        Ipv6Addresses: string list
-        TTL: int option
-        Zone: LinkedResource option
-        TargetResource: ResourceId option
-        ZoneType: DnsZoneType
-    }
+type AaaaRecordProperties = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    Ipv6Addresses: string list
+    TTL: int option
+    Zone: LinkedResource option
+    TargetResource: ResourceId option
+    ZoneType: DnsZoneType
+}
 
-type NsRecordProperties =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        NsdNames: NsRecords
-        TTL: int option
-        Zone: LinkedResource option
-    }
+type NsRecordProperties = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    NsdNames: NsRecords
+    TTL: int option
+    Zone: LinkedResource option
+}
 
-type PtrRecordProperties =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        PtrdNames: string list
-        TTL: int option
-        Zone: LinkedResource option
-        ZoneType: DnsZoneType
-    }
+type PtrRecordProperties = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    PtrdNames: string list
+    TTL: int option
+    Zone: LinkedResource option
+    ZoneType: DnsZoneType
+}
 
-type TxtRecordProperties =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        TxtValues: string list
-        TTL: int option
-        Zone: LinkedResource option
-        ZoneType: DnsZoneType
-    }
+type TxtRecordProperties = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    TxtValues: string list
+    TTL: int option
+    Zone: LinkedResource option
+    ZoneType: DnsZoneType
+}
 
-type MxRecordProperties =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        MxValues: {| Preference: int; Exchange: string |} list
-        TTL: int option
-        Zone: LinkedResource option
-        ZoneType: DnsZoneType
-    }
+type MxRecordProperties = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    MxValues: {| Preference: int; Exchange: string |} list
+    TTL: int option
+    Zone: LinkedResource option
+    ZoneType: DnsZoneType
+}
 
-type SrvRecordProperties =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        SrvValues: SrvRecord list
-        TTL: int option
-        Zone: LinkedResource option
-        ZoneType: DnsZoneType
-    }
+type SrvRecordProperties = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    SrvValues: SrvRecord list
+    TTL: int option
+    Zone: LinkedResource option
+    ZoneType: DnsZoneType
+}
 
-type SoaRecordProperties =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        Host: string option
-        Email: string option
-        SerialNumber: int64 option
-        RefreshTime: int64 option
-        RetryTime: int64 option
-        ExpireTime: int64 option
-        MinimumTTL: int64 option
-        TTL: int option
-        Zone: LinkedResource option
-        ZoneType: DnsZoneType
-    }
+type SoaRecordProperties = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    Host: string option
+    Email: string option
+    SerialNumber: int64 option
+    RefreshTime: int64 option
+    RetryTime: int64 option
+    ExpireTime: int64 option
+    MinimumTTL: int64 option
+    TTL: int option
+    Zone: LinkedResource option
+    ZoneType: DnsZoneType
+}
 
 type DnsZone =
     static member getNameServers(resourceId: ResourceId) =
@@ -182,41 +171,39 @@ type DnsZoneConfig =
             | Public -> zones.resourceId this.Name
             | Private -> privateZones.resourceId this.Name
 
-        member this.BuildResources _ =
-            [
-                {
-                    DnsZone.Name = this.Name
-                    Dependencies = this.Dependencies
-                    Properties = {| ZoneType = this.ZoneType |> string |}
-                }
+        member this.BuildResources _ = [
+            {
+                DnsZone.Name = this.Name
+                Dependencies = this.Dependencies
+                Properties = {| ZoneType = this.ZoneType |> string |}
+            }
 
-                for record in this.Records do
-                    {
-                        DnsRecord.Name = record.Name
-                        Dependencies = record.Dependencies
-                        Zone =
-                            Managed(
-                                match this.ZoneType with
-                                | Public -> zones.resourceId this.Name
-                                | Private -> privateZones.resourceId this.Name
-                            )
-                        ZoneType = this.ZoneType
-                        TTL = record.TTL
-                        Type = record.Type
-                    }
-            ]
+            for record in this.Records do
+                {
+                    DnsRecord.Name = record.Name
+                    Dependencies = record.Dependencies
+                    Zone =
+                        Managed(
+                            match this.ZoneType with
+                            | Public -> zones.resourceId this.Name
+                            | Private -> privateZones.resourceId this.Name
+                        )
+                    ZoneType = this.ZoneType
+                    TTL = record.TTL
+                    Type = record.Type
+                }
+        ]
 
 type DnsCNameRecordBuilder() =
-    member _.Yield _ =
-        {
-            CNameRecordProperties.CName = None
-            Name = ResourceName.Empty
-            Dependencies = Set.empty
-            TTL = None
-            Zone = None
-            TargetResource = None
-            ZoneType = Public
-        }
+    member _.Yield _ = {
+        CNameRecordProperties.CName = None
+        Name = ResourceName.Empty
+        Dependencies = Set.empty
+        TTL = None
+        Zone = None
+        TargetResource = None
+        ZoneType = Public
+    }
 
     member _.Run(state: CNameRecordProperties) =
         DnsZoneRecordConfig.Create(
@@ -294,16 +281,15 @@ type DnsCNameRecordBuilder() =
             }
 
 type DnsARecordBuilder() =
-    member _.Yield _ =
-        {
-            ARecordProperties.Ipv4Addresses = []
-            Name = ResourceName "@"
-            Dependencies = Set.empty
-            TTL = None
-            Zone = None
-            TargetResource = None
-            ZoneType = Public
-        }
+    member _.Yield _ = {
+        ARecordProperties.Ipv4Addresses = []
+        Name = ResourceName "@"
+        Dependencies = Set.empty
+        TTL = None
+        Zone = None
+        TargetResource = None
+        ZoneType = Public
+    }
 
     member _.Run(state: ARecordProperties) =
         DnsZoneRecordConfig.Create(
@@ -384,16 +370,15 @@ type DnsARecordBuilder() =
             }
 
 type DnsAaaaRecordBuilder() =
-    member _.Yield _ =
-        {
-            AaaaRecordProperties.Ipv6Addresses = []
-            Name = ResourceName "@"
-            Dependencies = Set.empty
-            TTL = None
-            Zone = None
-            TargetResource = None
-            ZoneType = Public
-        }
+    member _.Yield _ = {
+        AaaaRecordProperties.Ipv6Addresses = []
+        Name = ResourceName "@"
+        Dependencies = Set.empty
+        TTL = None
+        Zone = None
+        TargetResource = None
+        ZoneType = Public
+    }
 
     member _.Run(state: AaaaRecordProperties) =
         DnsZoneRecordConfig.Create(
@@ -474,14 +459,13 @@ type DnsAaaaRecordBuilder() =
             }
 
 type DnsNsRecordBuilder() =
-    member _.Yield _ =
-        {
-            NsRecordProperties.NsdNames = NsRecords.Records []
-            Name = ResourceName "@"
-            Dependencies = Set.empty
-            TTL = None
-            Zone = None
-        }
+    member _.Yield _ = {
+        NsRecordProperties.NsdNames = NsRecords.Records []
+        Name = ResourceName "@"
+        Dependencies = Set.empty
+        TTL = None
+        Zone = None
+    }
 
     member _.Run(state: NsRecordProperties) =
         DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, NS state.NsdNames, state.Dependencies)
@@ -569,15 +553,14 @@ type DnsNsRecordBuilder() =
             }
 
 type DnsPtrRecordBuilder() =
-    member _.Yield _ =
-        {
-            PtrRecordProperties.PtrdNames = []
-            Name = ResourceName "@"
-            Dependencies = Set.empty
-            TTL = None
-            Zone = None
-            ZoneType = Public
-        }
+    member _.Yield _ = {
+        PtrRecordProperties.PtrdNames = []
+        Name = ResourceName "@"
+        Dependencies = Set.empty
+        TTL = None
+        Zone = None
+        ZoneType = Public
+    }
 
     member _.Run(state: PtrRecordProperties) =
         DnsZoneRecordConfig.Create(
@@ -641,15 +624,14 @@ type DnsPtrRecordBuilder() =
             }
 
 type DnsTxtRecordBuilder() =
-    member _.Yield _ =
-        {
-            TxtRecordProperties.Name = ResourceName "@"
-            Dependencies = Set.empty
-            TxtValues = []
-            TTL = None
-            Zone = None
-            ZoneType = Public
-        }
+    member _.Yield _ = {
+        TxtRecordProperties.Name = ResourceName "@"
+        Dependencies = Set.empty
+        TxtValues = []
+        TTL = None
+        Zone = None
+        ZoneType = Public
+    }
 
     member _.Run(state: TxtRecordProperties) =
         DnsZoneRecordConfig.Create(
@@ -713,15 +695,14 @@ type DnsTxtRecordBuilder() =
             }
 
 type DnsMxRecordBuilder() =
-    member _.Yield _ =
-        {
-            MxRecordProperties.Name = ResourceName "@"
-            Dependencies = Set.empty
-            MxValues = []
-            TTL = None
-            Zone = None
-            ZoneType = Public
-        }
+    member _.Yield _ = {
+        MxRecordProperties.Name = ResourceName "@"
+        Dependencies = Set.empty
+        MxValues = []
+        TTL = None
+        Zone = None
+        ZoneType = Public
+    }
 
     member _.Run(state: MxRecordProperties) =
         DnsZoneRecordConfig.Create(
@@ -747,11 +728,10 @@ type DnsMxRecordBuilder() =
             MxValues =
                 state.MxValues
                 @ (mxValues
-                   |> List.map (fun x ->
-                       {|
-                           Preference = fst x
-                           Exchange = snd x
-                       |}))
+                   |> List.map (fun x -> {|
+                       Preference = fst x
+                       Exchange = snd x
+                   |}))
         }
 
     /// Sets the TTL of the record.
@@ -792,15 +772,14 @@ type DnsMxRecordBuilder() =
             }
 
 type DnsSrvRecordBuilder() =
-    member _.Yield _ =
-        {
-            SrvRecordProperties.Name = ResourceName "@"
-            Dependencies = Set.empty
-            SrvValues = []
-            TTL = None
-            Zone = None
-            ZoneType = Public
-        }
+    member _.Yield _ = {
+        SrvRecordProperties.Name = ResourceName "@"
+        Dependencies = Set.empty
+        SrvValues = []
+        TTL = None
+        Zone = None
+        ZoneType = Public
+    }
 
     member _.Run(state: SrvRecordProperties) =
         DnsZoneRecordConfig.Create(
@@ -864,33 +843,31 @@ type DnsSrvRecordBuilder() =
             }
 
 type DnsSoaRecordBuilder() =
-    member _.Yield _ =
-        {
-            SoaRecordProperties.Name = ResourceName "@"
-            Dependencies = Set.empty
-            Host = None
-            Email = None
-            SerialNumber = None
-            RefreshTime = None
-            RetryTime = None
-            ExpireTime = None
-            MinimumTTL = None
-            TTL = None
-            Zone = None
-            ZoneType = Public
-        }
+    member _.Yield _ = {
+        SoaRecordProperties.Name = ResourceName "@"
+        Dependencies = Set.empty
+        Host = None
+        Email = None
+        SerialNumber = None
+        RefreshTime = None
+        RetryTime = None
+        ExpireTime = None
+        MinimumTTL = None
+        TTL = None
+        Zone = None
+        ZoneType = Public
+    }
 
     member _.Run(state: SoaRecordProperties) =
-        let value =
-            {
-                Host = state.Host
-                Email = state.Email
-                SerialNumber = state.SerialNumber
-                RefreshTime = state.RefreshTime
-                RetryTime = state.RetryTime
-                ExpireTime = state.ExpireTime
-                MinimumTTL = state.MinimumTTL
-            }
+        let value = {
+            Host = state.Host
+            Email = state.Email
+            SerialNumber = state.SerialNumber
+            RefreshTime = state.RefreshTime
+            RetryTime = state.RetryTime
+            ExpireTime = state.ExpireTime
+            MinimumTTL = state.MinimumTTL
+        }
 
         DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, SOA value, state.Dependencies, state.ZoneType)
 
@@ -983,13 +960,12 @@ type DnsSoaRecordBuilder() =
             }
 
 type DnsZoneBuilder() =
-    member _.Yield _ =
-        {
-            DnsZoneConfig.Name = ResourceName ""
-            Dependencies = Set.empty
-            Records = []
-            ZoneType = Public
-        }
+    member _.Yield _ = {
+        DnsZoneConfig.Name = ResourceName ""
+        Dependencies = Set.empty
+        Records = []
+        ZoneType = Public
+    }
 
     member _.Run(state) : DnsZoneConfig =
         { state with

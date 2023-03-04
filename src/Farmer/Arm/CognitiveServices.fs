@@ -21,5 +21,5 @@ type Accounts =
             {| accounts.Create(this.Name, this.Location, tags = this.Tags) with
                 sku = {| name = string this.Sku |}
                 kind = this.Kind.ToString().Replace("_", ".")
-                properties = {|  |}
+                properties = {| |}
             |}

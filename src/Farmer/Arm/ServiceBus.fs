@@ -56,49 +56,45 @@ module Namespaces =
                            this.ResourceName,
                            dependsOn = LinkedResource.addToSetIfManaged this.Topic this.DependsOn
                        ) with
-                        properties =
-                            {|
-                                defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
-                                requiresDuplicateDetection =
-                                    match this.DuplicateDetectionHistoryTimeWindow with
-                                    | Some _ -> Nullable true
-                                    | None -> Nullable()
-                                duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
-                                deadLetteringOnMessageExpiration =
-                                    this.DeadLetteringOnMessageExpiration |> Option.toNullable
-                                forwardTo = this.ForwardTo |> Option.map (fun n -> n.Value) |> Option.toObj
-                                maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
-                                requiresSession = this.Session |> Option.toNullable
-                                lockDuration = tryGetIso this.LockDuration
-                            |}
-                        resources =
-                            [
-                                for rule in this.Rules do
-                                    {| rules.Create(
-                                           rule.Name,
-                                           dependsOn = [ ResourceId.create (ResourceType("", ""), this.Name) ]
-                                       ) with
-                                        properties =
-                                            match rule with
-                                            | SqlFilter (_, expression) ->
-                                                {|
-                                                    filterType = "SqlFilter"
-                                                    sqlFilter = box {| sqlExpression = expression |}
-                                                    correlationFilter = null
-                                                |}
-                                            | CorrelationFilter (_, correlationId, properties) ->
-                                                {|
-                                                    filterType = "CorrelationFilter"
-                                                    correlationFilter =
-                                                        box
-                                                            {|
-                                                                correlationId = correlationId |> Option.toObj
-                                                                properties = properties
-                                                            |}
-                                                    sqlFilter = null
-                                                |}
-                                    |}
-                            ]
+                        properties = {|
+                            defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
+                            requiresDuplicateDetection =
+                                match this.DuplicateDetectionHistoryTimeWindow with
+                                | Some _ -> Nullable true
+                                | None -> Nullable()
+                            duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
+                            deadLetteringOnMessageExpiration =
+                                this.DeadLetteringOnMessageExpiration |> Option.toNullable
+                            forwardTo = this.ForwardTo |> Option.map (fun n -> n.Value) |> Option.toObj
+                            maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
+                            requiresSession = this.Session |> Option.toNullable
+                            lockDuration = tryGetIso this.LockDuration
+                        |}
+                        resources = [
+                            for rule in this.Rules do
+                                {| rules.Create(
+                                       rule.Name,
+                                       dependsOn = [ ResourceId.create (ResourceType("", ""), this.Name) ]
+                                   ) with
+                                    properties =
+                                        match rule with
+                                        | SqlFilter(_, expression) -> {|
+                                            filterType = "SqlFilter"
+                                            sqlFilter = box {| sqlExpression = expression |}
+                                            correlationFilter = null
+                                          |}
+                                        | CorrelationFilter(_, correlationId, properties) -> {|
+                                            filterType = "CorrelationFilter"
+                                            correlationFilter =
+                                                box
+                                                    {|
+                                                        correlationId = correlationId |> Option.toObj
+                                                        properties = properties
+                                                    |}
+                                            sqlFilter = null
+                                          |}
+                                |}
+                        ]
                     |}
 
     type Queue =
@@ -126,23 +122,21 @@ module Namespaces =
                        this.ResourceName,
                        dependsOn = (LinkedResource.addToSetIfManaged this.Namespace Set.empty)
                    ) with
-                    properties =
-                        {|
-                            lockDuration = tryGetIso this.LockDuration
-                            requiresDuplicateDetection =
-                                match this.DuplicateDetectionHistoryTimeWindow with
-                                | Some _ -> Nullable true
-                                | None -> Nullable()
-                            duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
-                            defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
-                            requiresSession = this.Session |> Option.toNullable
-                            deadLetteringOnMessageExpiration =
-                                this.DeadLetteringOnMessageExpiration |> Option.toNullable
-                            forwardTo = this.ForwardTo |> Option.map (fun x -> x.Value) |> Option.toObj
-                            maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
-                            maxSizeInMegabytes = this.MaxSizeInMegabytes |> Option.toNullable
-                            enablePartitioning = this.EnablePartitioning |> Option.toNullable
-                        |}
+                    properties = {|
+                        lockDuration = tryGetIso this.LockDuration
+                        requiresDuplicateDetection =
+                            match this.DuplicateDetectionHistoryTimeWindow with
+                            | Some _ -> Nullable true
+                            | None -> Nullable()
+                        duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
+                        defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
+                        requiresSession = this.Session |> Option.toNullable
+                        deadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration |> Option.toNullable
+                        forwardTo = this.ForwardTo |> Option.map (fun x -> x.Value) |> Option.toObj
+                        maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
+                        maxSizeInMegabytes = this.MaxSizeInMegabytes |> Option.toNullable
+                        enablePartitioning = this.EnablePartitioning |> Option.toNullable
+                    |}
                 |}
 
     type QueueAuthorizationRule =
@@ -158,10 +152,9 @@ module Namespaces =
 
             member this.JsonModel =
                 {| queueAuthorizationRules.Create(this.Name, this.Location, this.Dependencies) with
-                    properties =
-                        {|
-                            rights = this.Rights |> Set.map string |> Set.toList
-                        |}
+                    properties = {|
+                        rights = this.Rights |> Set.map string |> Set.toList
+                    |}
                 |}
 
     type NamespaceAuthorizationRule =
@@ -177,10 +170,9 @@ module Namespaces =
 
             member this.JsonModel =
                 {| namespaceAuthorizationRules.Create(this.Name, this.Location, this.Dependencies) with
-                    properties =
-                        {|
-                            rights = this.Rights |> Set.map string |> Set.toList
-                        |}
+                    properties = {|
+                        rights = this.Rights |> Set.map string |> Set.toList
+                    |}
                 |}
 
     type Topic =
@@ -199,17 +191,16 @@ module Namespaces =
 
             member this.JsonModel =
                 {| topics.Create(this.Namespace.Name / this.Name, dependsOn = this.Dependencies) with
-                    properties =
-                        {|
-                            defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
-                            requiresDuplicateDetection =
-                                match this.DuplicateDetectionHistoryTimeWindow with
-                                | Some _ -> Nullable true
-                                | None -> Nullable()
-                            duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
-                            enablePartitioning = this.EnablePartitioning |> Option.toNullable
-                            maxSizeInMegabytes = this.MaxSizeInMegabytes |> Option.toNullable
-                        |}
+                    properties = {|
+                        defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
+                        requiresDuplicateDetection =
+                            match this.DuplicateDetectionHistoryTimeWindow with
+                            | Some _ -> Nullable true
+                            | None -> Nullable()
+                        duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
+                        enablePartitioning = this.EnablePartitioning |> Option.toNullable
+                        maxSizeInMegabytes = this.MaxSizeInMegabytes |> Option.toNullable
+                    |}
                 |}
 
 type Namespace =
@@ -237,29 +228,27 @@ type Namespace =
 
         member this.JsonModel =
             {| namespaces.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
-                sku =
-                    {|
-                        name = this.Sku.NameArmValue
-                        tier = this.Sku.TierArmValue
-                        capacity = this.Capacity |> Option.toNullable
-                    |}
-                properties =
-                    {|
-                        minimumTlsVersion =
-                            match this.MinTlsVersion with
-                            | Some Tls10 -> "1.0"
-                            | Some Tls11 -> "1.1"
-                            | Some Tls12 -> "1.2"
-                            | None -> null
-                        publicNetworkAccess =
-                            match this.DisablePublicNetworkAccess with
-                            | Some FeatureFlag.Enabled -> "Disabled"
-                            | Some FeatureFlag.Disabled -> "Enabled"
-                            | None -> null
-                        zoneRedundant =
-                            match this.ZoneRedundant with
-                            | Some FeatureFlag.Enabled -> "true"
-                            | Some FeatureFlag.Disabled -> "false"
-                            | None -> null
-                    |}
+                sku = {|
+                    name = this.Sku.NameArmValue
+                    tier = this.Sku.TierArmValue
+                    capacity = this.Capacity |> Option.toNullable
+                |}
+                properties = {|
+                    minimumTlsVersion =
+                        match this.MinTlsVersion with
+                        | Some Tls10 -> "1.0"
+                        | Some Tls11 -> "1.1"
+                        | Some Tls12 -> "1.2"
+                        | None -> null
+                    publicNetworkAccess =
+                        match this.DisablePublicNetworkAccess with
+                        | Some FeatureFlag.Enabled -> "Disabled"
+                        | Some FeatureFlag.Disabled -> "Enabled"
+                        | None -> null
+                    zoneRedundant =
+                        match this.ZoneRedundant with
+                        | Some FeatureFlag.Enabled -> "true"
+                        | Some FeatureFlag.Disabled -> "false"
+                        | None -> null
+                |}
             |}

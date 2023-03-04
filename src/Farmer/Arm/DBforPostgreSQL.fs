@@ -43,11 +43,10 @@ module Servers =
 
             member this.JsonModel =
                 {| databases.Create(this.Server / this.Name, dependsOn = [ servers.resourceId this.Server ]) with
-                    properties =
-                        {|
-                            charset = this.Charset
-                            collation = this.Collation
-                        |}
+                    properties = {|
+                        charset = this.Charset
+                        collation = this.Collation
+                    |}
                 |}
 
     type FirewallRule =
@@ -64,11 +63,10 @@ module Servers =
 
             member this.JsonModel =
                 {| firewallRules.Create(this.Server / this.Name, this.Location, [ servers.resourceId this.Server ]) with
-                    properties =
-                        {|
-                            startIpAddress = string this.Start
-                            endIpAddress = string this.End
-                        |}
+                    properties = {|
+                        startIpAddress = string this.Start
+                        endIpAddress = string this.End
+                    |}
                 |}
 
     type VnetRule =
@@ -88,18 +86,19 @@ module Servers =
                        this.Location,
                        [ servers.resourceId this.Server ]
                    ) with
-                    properties =
-                        {|
-                            virtualNetworkSubnetId = this.VirtualNetworkSubnetId.Eval()
-                        |}
+                    properties = {|
+                        virtualNetworkSubnetId = this.VirtualNetworkSubnetId.Eval()
+                    |}
                 |}
 
 type Server =
     {
         Name: ResourceName
         Location: Location
-        Credentials: {| Username: string
-                        Password: SecureParameter |}
+        Credentials: {|
+            Username: string
+            Password: SecureParameter
+        |}
         Version: Version
         Capacity: int<VCores>
         StorageSize: int<Mb>
@@ -111,22 +110,20 @@ type Server =
         Tags: Map<string, string>
     }
 
-    member this.Sku =
-        {|
-            name = $"{this.Tier.Name}_{this.Family.AsArmValue}_{this.Capacity}"
-            tier = string this.Tier
-            capacity = this.Capacity
-            family = string this.Family
-            size = string this.StorageSize
-        |}
+    member this.Sku = {|
+        name = $"{this.Tier.Name}_{this.Family.AsArmValue}_{this.Capacity}"
+        tier = string this.Tier
+        capacity = this.Capacity
+        family = string this.Family
+        size = string this.StorageSize
+    |}
 
-    member this.GetStorageProfile() =
-        {|
-            storageMB = this.StorageSize
-            backupRetentionDays = this.BackupRetention
-            geoRedundantBackup = string this.GeoRedundantBackup
-            storageAutoGrow = string this.StorageAutoGrow
-        |}
+    member this.GetStorageProfile() = {|
+        storageMB = this.StorageSize
+        backupRetentionDays = this.BackupRetention
+        geoRedundantBackup = string this.GeoRedundantBackup
+        storageAutoGrow = string this.StorageAutoGrow
+    |}
 
     member this.GetProperties() =
         let version =

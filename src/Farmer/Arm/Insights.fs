@@ -48,23 +48,22 @@ type Components =
 
             {| this.InstanceKind.ResourceType.Create(this.Name, this.Location, this.Dependencies, tags) with
                 kind = "web"
-                properties =
-                    {|
-                        name = this.Name.Value
-                        Application_Type = "web"
-                        ApplicationId =
-                            match this.LinkedWebsite with
-                            | Some linkedWebsite -> linkedWebsite.Value
-                            | None -> null
-                        DisableIpMasking = this.DisableIpMasking
-                        SamplingPercentage = this.SamplingPercentage
-                        IngestionMode =
-                            match this.InstanceKind with
-                            | Workspace _ -> "LogAnalytics"
-                            | Classic -> null
-                        WorkspaceResourceId =
-                            match this.InstanceKind with
-                            | Workspace resourceId -> resourceId.Eval()
-                            | Classic -> null
-                    |}
+                properties = {|
+                    name = this.Name.Value
+                    Application_Type = "web"
+                    ApplicationId =
+                        match this.LinkedWebsite with
+                        | Some linkedWebsite -> linkedWebsite.Value
+                        | None -> null
+                    DisableIpMasking = this.DisableIpMasking
+                    SamplingPercentage = this.SamplingPercentage
+                    IngestionMode =
+                        match this.InstanceKind with
+                        | Workspace _ -> "LogAnalytics"
+                        | Classic -> null
+                    WorkspaceResourceId =
+                        match this.InstanceKind with
+                        | Workspace resourceId -> resourceId.Eval()
+                        | Classic -> null
+                |}
             |}

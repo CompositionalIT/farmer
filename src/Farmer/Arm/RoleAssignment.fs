@@ -59,22 +59,20 @@ type RoleAssignment =
         member this.JsonModel =
             let dependencies =
                 this.Dependencies
-                + Set
-                    [
-                        match this.Scope with
-                        | SpecificResource resourceId -> resourceId
-                        | ResourceGroup -> ()
-                    ]
+                + Set [
+                    match this.Scope with
+                    | SpecificResource resourceId -> resourceId
+                    | ResourceGroup -> ()
+                ]
 
             {| roleAssignments.Create(this.Name, dependsOn = dependencies) with
                 scope =
                     match this with
                     | { Scope = ResourceGroup } -> null
                     | { Scope = SpecificResource resourceId } -> resourceId.Eval()
-                properties =
-                    {|
-                        roleDefinitionId = this.RoleDefinitionId.ArmValue.Eval()
-                        principalId = this.PrincipalId.ArmExpression.Eval()
-                        principalType = this.PrincipalType.ArmValue
-                    |}
+                properties = {|
+                    roleDefinitionId = this.RoleDefinitionId.ArmValue.Eval()
+                    principalId = this.PrincipalId.ArmExpression.Eval()
+                    principalType = this.PrincipalType.ArmValue
+                |}
             |}

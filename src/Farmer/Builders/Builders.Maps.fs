@@ -16,23 +16,21 @@ type MapsConfig =
     interface IBuilder with
         member this.ResourceId = accounts.resourceId this.Name
 
-        member this.BuildResources _ =
-            [
-                {
-                    Name = this.Name
-                    Location = Location "global"
-                    Sku = this.Sku
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources _ = [
+            {
+                Name = this.Name
+                Location = Location "global"
+                Sku = this.Sku
+                Tags = this.Tags
+            }
+        ]
 
 type MapsBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sku = S0
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = S0
+        Tags = Map.empty
+    }
 
     member _.Run(state: MapsConfig) =
         { state with

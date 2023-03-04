@@ -36,72 +36,70 @@ type DeploymentScriptConfig =
     interface IBuilder with
         member this.ResourceId = deploymentScripts.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                let generatedIdentityId =
-                    let generatedIdentityName = ResourceName $"{this.Name.Value}-identity"
-                    ResourceId.create (userAssignedIdentities, generatedIdentityName)
+        member this.BuildResources location = [
+            let generatedIdentityId =
+                let generatedIdentityName = ResourceName $"{this.Name.Value}-identity"
+                ResourceId.create (userAssignedIdentities, generatedIdentityName)
 
-                // User Assigned Identity - create one if none was supplied.
-                if this.CustomIdentity.IsNone then
-                    {
-                        Name = generatedIdentityId.Name
-                        Location = location
-                        Tags = Map.empty
-                    }
-
-                let identity =
-                    this.CustomIdentity
-                    |> Option.defaultValue (UserAssignedIdentity generatedIdentityId)
-
-                // Assignment
+            // User Assigned Identity - create one if none was supplied.
+            if this.CustomIdentity.IsNone then
                 {
-                    Name =
-                        ArmExpression
-                            .create($"guid(concat(resourceGroup().id, '{Roles.Contributor.Id}'))")
-                            .Eval()
-                        |> ResourceName
-                    RoleDefinitionId = Roles.Contributor
-                    PrincipalId = identity.PrincipalId
-                    PrincipalType = PrincipalType.ServicePrincipal
-                    Scope = ResourceGroup
-                    Dependencies = Set.empty
-                }
-
-                // Deployment Script
-                {
+                    Name = generatedIdentityId.Name
                     Location = location
-                    Name = this.Name
-                    Dependencies = this.Dependencies
-                    Arguments = this.Arguments
-                    CleanupPreference = this.CleanupPreference
-                    Cli = this.Cli
-                    EnvironmentVariables = this.EnvironmentVariables
-                    ForceUpdateTag = if this.ForceUpdate then Some(Guid.NewGuid()) else None
-                    Identity = identity
-                    ScriptSource = this.ScriptSource
-                    SupportingScriptUris = this.SupportingScriptUris
-                    Tags = this.Tags
-                    Timeout = this.Timeout
+                    Tags = Map.empty
                 }
-            ]
+
+            let identity =
+                this.CustomIdentity
+                |> Option.defaultValue (UserAssignedIdentity generatedIdentityId)
+
+            // Assignment
+            {
+                Name =
+                    ArmExpression
+                        .create($"guid(concat(resourceGroup().id, '{Roles.Contributor.Id}'))")
+                        .Eval()
+                    |> ResourceName
+                RoleDefinitionId = Roles.Contributor
+                PrincipalId = identity.PrincipalId
+                PrincipalType = PrincipalType.ServicePrincipal
+                Scope = ResourceGroup
+                Dependencies = Set.empty
+            }
+
+            // Deployment Script
+            {
+                Location = location
+                Name = this.Name
+                Dependencies = this.Dependencies
+                Arguments = this.Arguments
+                CleanupPreference = this.CleanupPreference
+                Cli = this.Cli
+                EnvironmentVariables = this.EnvironmentVariables
+                ForceUpdateTag = if this.ForceUpdate then Some(Guid.NewGuid()) else None
+                Identity = identity
+                ScriptSource = this.ScriptSource
+                SupportingScriptUris = this.SupportingScriptUris
+                Tags = this.Tags
+                Timeout = this.Timeout
+            }
+        ]
 
 type DeploymentScriptBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Dependencies = Set.empty
-            Arguments = []
-            CleanupPreference = Cleanup.Always
-            Cli = AzCli "2.9.1"
-            EnvironmentVariables = Map.empty
-            ForceUpdate = false
-            CustomIdentity = None
-            ScriptSource = Content ""
-            SupportingScriptUris = []
-            Tags = Map.empty
-            Timeout = None
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Dependencies = Set.empty
+        Arguments = []
+        CleanupPreference = Cleanup.Always
+        Cli = AzCli "2.9.1"
+        EnvironmentVariables = Map.empty
+        ForceUpdate = false
+        CustomIdentity = None
+        ScriptSource = Content ""
+        SupportingScriptUris = []
+        Tags = Map.empty
+        Timeout = None
+    }
 
     /// Sets the name of the container instance.
     [<CustomOperation "name">]

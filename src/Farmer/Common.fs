@@ -789,21 +789,19 @@ module Vm =
             match this with
             | ImageSku i -> i
 
-    type ImageDefinition =
-        {
-            Offer: Offer
-            Publisher: Publisher
-            Sku: VmImageSku
-            OS: OS
-        }
+    type ImageDefinition = {
+        Offer: Offer
+        Publisher: Publisher
+        Sku: VmImageSku
+        OS: OS
+    }
 
-    let makeVm os offer publisher sku =
-        {
-            Offer = Offer offer
-            Publisher = Publisher publisher
-            OS = os
-            Sku = ImageSku sku
-        }
+    let makeVm os offer publisher sku = {
+        Offer = Offer offer
+        Publisher = Publisher publisher
+        OS = os
+        Sku = ImageSku sku
+    }
 
     let makeWindowsVm = makeVm Windows "WindowsServer" "MicrosoftWindowsServer"
     let makeLinuxVm = makeVm Linux
@@ -1321,14 +1319,13 @@ module Storage =
             AllowedHeaders: AllOrSpecific<string>
         }
 
-        static member AllowAll =
-            {
-                AllowedOrigins = All
-                AllowedMethods = HttpMethod.All
-                MaxAgeInSeconds = 0
-                ExposedHeaders = All
-                AllowedHeaders = All
-            }
+        static member AllowAll = {
+            AllowedOrigins = All
+            AllowedMethods = HttpMethod.All
+            MaxAgeInSeconds = 0
+            ExposedHeaders = All
+            AllowedHeaders = All
+        }
 
         /// Creates a new CORS rule with
         static member create(?allowedOrigins, ?allowedMethods, ?maxAgeInSeconds, ?exposedHeaders, ?allowedHeaders) =
@@ -1351,11 +1348,10 @@ module Storage =
 
     type RestorePolicy = DeleteRetentionPolicy
 
-    type LastAccessTimeTrackingPolicy =
-        {
-            Enabled: bool
-            TrackingGranularityInDays: int
-        }
+    type LastAccessTimeTrackingPolicy = {
+        Enabled: bool
+        TrackingGranularityInDays: int
+    }
 
     type ChangeFeed = { Enabled: bool; RetentionInDays: int }
 
@@ -1380,16 +1376,14 @@ type public IPAddressCidr = { Address: Net.IPAddress; Prefix: int }
 module IPAddressCidr =
     let parse (s: string) : IPAddressCidr =
         match s.Split([| '/' |], StringSplitOptions.RemoveEmptyEntries) with
-        | [| ip; prefix |] ->
-            {
-                Address = Net.IPAddress.Parse(ip.Trim())
-                Prefix = int prefix
-            }
-        | [| ip |] ->
-            {
-                Address = Net.IPAddress.Parse(ip.Trim())
-                Prefix = 32
-            }
+        | [| ip; prefix |] -> {
+            Address = Net.IPAddress.Parse(ip.Trim())
+            Prefix = int prefix
+          }
+        | [| ip |] -> {
+            Address = Net.IPAddress.Parse(ip.Trim())
+            Prefix = 32
+          }
         | _ -> raise (ArgumentOutOfRangeException "Malformed CIDR, expecting an IP and prefix separated by '/'")
 
     let safeParse (s: string) : Result<IPAddressCidr, Exception> =
@@ -1437,43 +1431,40 @@ module IPAddressCidr =
         }
 
     /// Carve a subnet out of an address space.
-    let carveAddressSpace (addressSpace: IPAddressCidr) (subnetSizes: int list) =
-        [
-            let addressSpaceStart, addressSpaceEnd = addressSpace |> ipRangeNums
-            let mutable startAddress = addressSpaceStart |> ofNum
-            let mutable index = 0
+    let carveAddressSpace (addressSpace: IPAddressCidr) (subnetSizes: int list) = [
+        let addressSpaceStart, addressSpaceEnd = addressSpace |> ipRangeNums
+        let mutable startAddress = addressSpaceStart |> ofNum
+        let mutable index = 0
 
-            for size in subnetSizes do
-                index <- index + 1
+        for size in subnetSizes do
+            index <- index + 1
 
-                let cidr =
-                    {
-                        Address = startAddress
+            let cidr = {
+                Address = startAddress
+                Prefix = size
+            }
+
+            let first, last = cidr |> ipRangeNums
+            let overlapping = first < (startAddress |> num)
+
+            let last, cidr =
+                if overlapping then
+                    let cidr = {
+                        Address = ofNum (last + 1u)
                         Prefix = size
                     }
 
-                let first, last = cidr |> ipRangeNums
-                let overlapping = first < (startAddress |> num)
-
-                let last, cidr =
-                    if overlapping then
-                        let cidr =
-                            {
-                                Address = ofNum (last + 1u)
-                                Prefix = size
-                            }
-
-                        let _, last = cidr |> ipRangeNums
-                        last, cidr
-                    else
-                        last, cidr
-
-                if last <= addressSpaceEnd then
-                    startAddress <- (last + 1u) |> ofNum
-                    cidr
+                    let _, last = cidr |> ipRangeNums
+                    last, cidr
                 else
-                    raise (IndexOutOfRangeException $"Unable to create subnet {index} of /{size}")
-        ]
+                    last, cidr
+
+            if last <= addressSpaceEnd then
+                startAddress <- (last + 1u) |> ofNum
+                cidr
+            else
+                raise (IndexOutOfRangeException $"Unable to create subnet {index} of /{size}")
+    ]
 
     /// The first two addresses are the network address and gateway address
     /// so not assignable.
@@ -1561,18 +1552,16 @@ module WebApp =
             Action: IpSecurityAction
         }
 
-        static member Create name cidr action =
-            {
-                Name = name
-                IpAddressCidr = cidr
-                Action = action
-            }
-
-    type VirtualApplication =
-        {
-            PhysicalPath: string
-            PreloadEnabled: bool option
+        static member Create name cidr action = {
+            Name = name
+            IpAddressCidr = cidr
+            Action = action
         }
+
+    type VirtualApplication = {
+        PhysicalPath: string
+        PreloadEnabled: bool option
+    }
 
     module Extensions =
         /// The Microsoft.AspNetCore.AzureAppServices logging extension.
@@ -1841,12 +1830,12 @@ module Sql =
         member this.Edition =
             match this with
             | DTU d -> d.Edition
-            | VCore (v, _) -> v.Edition
+            | VCore(v, _) -> v.Edition
 
         member this.Name =
             match this with
             | DTU d -> d.Name
-            | VCore (v, _) -> v.Name
+            | VCore(v, _) -> v.Name
 
     type PoolSku =
         | BasicPool of int
@@ -1924,15 +1913,14 @@ module Sql =
             match this with
             | SqlAccountName name -> name
 
-    type GeoReplicationSettings =
-        {
-            /// Suffix name for server and database name
-            NameSuffix: string
-            /// Replication location, different from the original one
-            Location: Farmer.Location
-            /// Override database Skus
-            DbSku: DtuSku option
-        }
+    type GeoReplicationSettings = {
+        /// Suffix name for server and database name
+        NameSuffix: string
+        /// Replication location, different from the original one
+        Location: Farmer.Location
+        /// Override database Skus
+        DbSku: DtuSku option
+    }
 
 /// Represents a role that can be granted to an identity.
 type RoleId =
@@ -2008,17 +1996,15 @@ module Identity =
                 | UserAssignedIdentity rid -> Some rid
                 | LinkedUserAssignedIdentity _ -> None)
 
-        static member Empty =
-            {
-                SystemAssigned = Disabled
-                UserAssigned = []
-            }
+        static member Empty = {
+            SystemAssigned = Disabled
+            UserAssigned = []
+        }
 
-        static member (+)(a, b) =
-            {
-                SystemAssigned = (a.SystemAssigned.AsBoolean || b.SystemAssigned.AsBoolean) |> FeatureFlag.ofBool
-                UserAssigned = a.UserAssigned @ b.UserAssigned |> List.distinct
-            }
+        static member (+)(a, b) = {
+            SystemAssigned = (a.SystemAssigned.AsBoolean || b.SystemAssigned.AsBoolean) |> FeatureFlag.ofBool
+            UserAssigned = a.UserAssigned @ b.UserAssigned |> List.distinct
+        }
 
         static member (+)(managedIdentity, userAssignedIdentity: UserAssignedIdentity) =
             { managedIdentity with
@@ -2034,10 +2020,10 @@ module Containers =
 
         member this.ImageTag =
             match this with
-            | PrivateImage (registry, container, version) ->
+            | PrivateImage(registry, container, version) ->
                 let version = version |> Option.defaultValue "latest"
                 $"{registry}/{container}:{version}"
-            | PublicImage (container, version) ->
+            | PublicImage(container, version) ->
                 let version = version |> Option.defaultValue "latest"
                 $"{container}:{version}"
 
@@ -2057,13 +2043,12 @@ module Containers =
             | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of version segments: '{tag}'"
 
 /// Credential for accessing an image registry.
-type ImageRegistryCredential =
-    {
-        Server: string
-        Username: string
-        Password: SecureParameter
-        Identity: ManagedIdentity
-    }
+type ImageRegistryCredential = {
+    Server: string
+    Username: string
+    Password: SecureParameter
+    Identity: ManagedIdentity
+}
 
 [<RequireQualifiedAccess>]
 type ImageRegistryAuthentication =
@@ -2408,12 +2393,11 @@ module ApplicationGateway =
             | WAF_Medium -> "WAF_Medium"
             | WAF_v2 -> "WAF_v2"
 
-    type ApplicationGatewaySku =
-        {
-            Name: Sku
-            Capacity: int option
-            Tier: Tier
-        }
+    type ApplicationGatewaySku = {
+        Name: Sku
+        Capacity: int option
+        Tier: Tier
+    }
 
     [<RequireQualifiedAccess>]
     type BackendAddress =
@@ -2698,8 +2682,8 @@ module ServiceBus =
 
         member this.Name =
             match this with
-            | SqlFilter (name, _)
-            | CorrelationFilter (name, _, _) -> name
+            | SqlFilter(name, _)
+            | CorrelationFilter(name, _, _) -> name
 
         static member CreateCorrelationFilter(name, properties, ?correlationId) =
             CorrelationFilter(ResourceName name, correlationId, Map properties)
@@ -2929,7 +2913,7 @@ module NetworkSecurity =
         member this.ArmValue =
             match this with
             | Port num -> num |> string
-            | Range (first, last) -> $"{first}-{last}"
+            | Range(first, last) -> $"{first}-{last}"
             | AnyPort -> "*"
 
     module Port =
@@ -3189,21 +3173,18 @@ module DeliveryPolicy =
 
         member this.ArmValue =
             match this with
-            | Override t ->
-                {|
-                    Behaviour = "Override"
-                    CacheDuration = Some t
-                |}
-            | BypassCache ->
-                {|
-                    Behaviour = "BypassCache"
-                    CacheDuration = None
-                |}
-            | SetIfMissing t ->
-                {|
-                    Behaviour = "SetIfMissing"
-                    CacheDuration = Some t
-                |}
+            | Override t -> {|
+                Behaviour = "Override"
+                CacheDuration = Some t
+              |}
+            | BypassCache -> {|
+                Behaviour = "BypassCache"
+                CacheDuration = None
+              |}
+            | SetIfMissing t -> {|
+                Behaviour = "SetIfMissing"
+                CacheDuration = Some t
+              |}
 
     type QueryStringCacheBehavior =
         | Include
@@ -3258,24 +3239,22 @@ module Dns =
         | Public
         | Private
 
-    type SrvRecord =
-        {
-            Priority: int option
-            Weight: int option
-            Port: int option
-            Target: string option
-        }
+    type SrvRecord = {
+        Priority: int option
+        Weight: int option
+        Port: int option
+        Target: string option
+    }
 
-    type SoaRecord =
-        {
-            Host: string option
-            Email: string option
-            SerialNumber: int64 option
-            RefreshTime: int64 option
-            RetryTime: int64 option
-            ExpireTime: int64 option
-            MinimumTTL: int64 option
-        }
+    type SoaRecord = {
+        Host: string option
+        Email: string option
+        SerialNumber: int64 option
+        RefreshTime: int64 option
+        RetryTime: int64 option
+        ExpireTime: int64 option
+        MinimumTTL: int64 option
+    }
 
     [<RequireQualifiedAccess>]
     type NsRecords =
@@ -3328,15 +3307,14 @@ module TrafficManager =
 
         member this.ArmValue = this.ToString().ToUpperInvariant()
 
-    type MonitorConfig =
-        {
-            Protocol: MonitorProtocol
-            Port: int
-            Path: string
-            IntervalInSeconds: int<Seconds>
-            ToleratedNumberOfFailures: int
-            TimeoutInSeconds: int<Seconds>
-        }
+    type MonitorConfig = {
+        Protocol: MonitorProtocol
+        Port: int
+        Path: string
+        IntervalInSeconds: int<Seconds>
+        ToleratedNumberOfFailures: int
+        TimeoutInSeconds: int<Seconds>
+    }
 
     type EndpointTarget =
         | Website of ResourceName
@@ -3345,7 +3323,7 @@ module TrafficManager =
         member this.ArmValue =
             match this with
             | Website name -> name.Value
-            | External (target, _) -> target
+            | External(target, _) -> target
 
 module Serialization =
     open System.Text.Json
@@ -3472,31 +3450,28 @@ module AvailabilityTest =
 
 module ContainerApp =
     //type SecretRef = SecretRef of string
-    type EventHubScaleRule =
-        {
-            ConsumerGroup: string
-            UnprocessedEventThreshold: int
-            CheckpointBlobContainerName: string
-            EventHubConnectionSecretRef: string
-            StorageConnectionSecretRef: string
-        }
+    type EventHubScaleRule = {
+        ConsumerGroup: string
+        UnprocessedEventThreshold: int
+        CheckpointBlobContainerName: string
+        EventHubConnectionSecretRef: string
+        StorageConnectionSecretRef: string
+    }
 
-    type ServiceBusScaleRule =
-        {
-            QueueName: string
-            MessageCount: int
-            SecretRef: string
-        }
+    type ServiceBusScaleRule = {
+        QueueName: string
+        MessageCount: int
+        SecretRef: string
+    }
 
     type HttpScaleRule = { ConcurrentRequests: int }
 
-    type StorageQueueScaleRule =
-        {
-            QueueName: string
-            QueueLength: int
-            StorageConnectionSecretRef: string
-            AccountName: string
-        }
+    type StorageQueueScaleRule = {
+        QueueName: string
+        QueueLength: int
+        StorageConnectionSecretRef: string
+        AccountName: string
+    }
 
     type UtilizationRule = { Utilization: int }
     type AverageValueRule = { AverageValue: int }
@@ -3571,11 +3546,10 @@ type RetentionPolicy =
         match retentionPeriod with
         | OutOfBounds days ->
             raiseFarmer $"The retention period must be between 1 and 365 days. It is currently {days}."
-        | InBounds _ ->
-            {
-                Enabled = defaultArg enabled true
-                RetentionPeriod = retentionPeriod
-            }
+        | InBounds _ -> {
+            Enabled = defaultArg enabled true
+            RetentionPeriod = retentionPeriod
+          }
 
 type MetricSetting =
     {
@@ -3585,13 +3559,12 @@ type MetricSetting =
         RetentionPolicy: RetentionPolicy option
     }
 
-    static member Create(category, ?retentionPeriod, ?timeGrain) =
-        {
-            Category = category
-            TimeGrain = timeGrain
-            Enabled = true
-            RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create(days, true))
-        }
+    static member Create(category, ?retentionPeriod, ?timeGrain) = {
+        Category = category
+        TimeGrain = timeGrain
+        Enabled = true
+        RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create(days, true))
+    }
 
 type LogSetting =
     {
@@ -3600,12 +3573,11 @@ type LogSetting =
         RetentionPolicy: RetentionPolicy option
     }
 
-    static member Create(category, ?retentionPeriod) =
-        {
-            Category = category
-            Enabled = true
-            RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create(days, true))
-        }
+    static member Create(category, ?retentionPeriod) = {
+        Category = category
+        Enabled = true
+        RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create(days, true))
+    }
 
     static member Create(category, ?retentionPeriod) =
         LogSetting.Create(LogCategory category, ?retentionPeriod = retentionPeriod)

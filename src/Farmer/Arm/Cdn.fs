@@ -25,66 +25,94 @@ type Profile =
         member this.JsonModel =
             {| profiles.Create(this.Name, Location.Global, tags = this.Tags) with
                 sku = {| name = string this.Sku |}
-                properties = {|  |}
+                properties = {| |}
             |}
             |> box
 
 module CdnRule =
     type Condition =
         | IsDevice of
-            {| Operator: EqualityOperator
-               DeviceType: DeviceType |}
+            {|
+                Operator: EqualityOperator
+                DeviceType: DeviceType
+            |}
         | HttpVersion of
-            {| Operator: EqualityOperator
-               HttpVersions: HttpVersion list |}
+            {|
+                Operator: EqualityOperator
+                HttpVersions: HttpVersion list
+            |}
         | RequestCookies of
-            {| CookiesName: string
-               Operator: ComparisonOperator
-               CookiesValue: string list
-               CaseTransform: CaseTransform |}
+            {|
+                CookiesName: string
+                Operator: ComparisonOperator
+                CookiesValue: string list
+                CaseTransform: CaseTransform
+            |}
         | PostArgument of
-            {| ArgumentName: string
-               Operator: ComparisonOperator
-               ArgumentValue: string list
-               CaseTransform: CaseTransform |}
+            {|
+                ArgumentName: string
+                Operator: ComparisonOperator
+                ArgumentValue: string list
+                CaseTransform: CaseTransform
+            |}
         | QueryString of
-            {| Operator: ComparisonOperator
-               QueryString: string list
-               CaseTransform: CaseTransform |}
+            {|
+                Operator: ComparisonOperator
+                QueryString: string list
+                CaseTransform: CaseTransform
+            |}
         | RemoteAddress of
-            {| Operator: RemoteAddressOperator
-               MatchValues: string list |}
+            {|
+                Operator: RemoteAddressOperator
+                MatchValues: string list
+            |}
         | RequestBody of
-            {| Operator: ComparisonOperator
-               RequestBody: string list
-               CaseTransform: CaseTransform |}
+            {|
+                Operator: ComparisonOperator
+                RequestBody: string list
+                CaseTransform: CaseTransform
+            |}
         | RequestHeader of
-            {| HeaderName: string
-               Operator: ComparisonOperator
-               HeaderValue: string list
-               CaseTransform: CaseTransform |}
+            {|
+                HeaderName: string
+                Operator: ComparisonOperator
+                HeaderValue: string list
+                CaseTransform: CaseTransform
+            |}
         | RequestMethod of
-            {| Operator: EqualityOperator
-               RequestMethod: RequestMethod |}
+            {|
+                Operator: EqualityOperator
+                RequestMethod: RequestMethod
+            |}
         | RequestProtocol of
-            {| Operator: EqualityOperator
-               Value: Protocol |}
+            {|
+                Operator: EqualityOperator
+                Value: Protocol
+            |}
         | RequestUrl of
-            {| Operator: ComparisonOperator
-               RequestUrl: string list
-               CaseTransform: CaseTransform |}
+            {|
+                Operator: ComparisonOperator
+                RequestUrl: string list
+                CaseTransform: CaseTransform
+            |}
         | UrlFileExtension of
-            {| Operator: ComparisonOperator
-               Extension: string list
-               CaseTransform: CaseTransform |}
+            {|
+                Operator: ComparisonOperator
+                Extension: string list
+                CaseTransform: CaseTransform
+            |}
         | UrlFileName of
-            {| Operator: ComparisonOperator
-               FileName: string list
-               CaseTransform: CaseTransform |}
+            {|
+                Operator: ComparisonOperator
+                FileName: string list
+                CaseTransform: CaseTransform
+            |}
         | UrlPath of
-            {| Operator: ComparisonOperator
-               Value: string list
-               CaseTransform: CaseTransform |}
+            {|
+                Operator: ComparisonOperator
+                Value: string list
+                CaseTransform: CaseTransform
+            |}
 
         member this.MapCondition
             (
@@ -256,38 +284,42 @@ module CdnRule =
                     c.CaseTransform
                 )
 
-    type ModifyHeader =
-        {
-            Action: ModifyHeaderAction
-            HttpHeaderName: string
-            HttpHeaderValue: string
-        }
+    type ModifyHeader = {
+        Action: ModifyHeaderAction
+        HttpHeaderName: string
+        HttpHeaderValue: string
+    }
 
     type Action =
         | CacheExpiration of {| CacheBehaviour: CacheBehaviour |}
         | CacheKeyQueryString of
-            {| Behaviour: QueryStringCacheBehavior
-               Parameters: string |}
+            {|
+                Behaviour: QueryStringCacheBehavior
+                Parameters: string
+            |}
         | ModifyRequestHeader of ModifyHeader
         | ModifyResponseHeader of ModifyHeader
         | UrlRewrite of
-            {| SourcePattern: string
-               Destination: string
-               PreserveUnmatchedPath: bool |}
+            {|
+                SourcePattern: string
+                Destination: string
+                PreserveUnmatchedPath: bool
+            |}
         | UrlRedirect of
-            {| RedirectType: RedirectType
-               DestinationProtocol: UrlRedirectProtocol
-               Hostname: string option
-               Path: string option
-               QueryString: string option
-               Fragment: string option |}
+            {|
+                RedirectType: RedirectType
+                DestinationProtocol: UrlRedirectProtocol
+                Hostname: string option
+                Path: string option
+                QueryString: string option
+                Fragment: string option
+            |}
 
         member this.JsonModel =
-            let map (name: string) (dataType: string) (parameters: Map<_, obj>) =
-                {|
-                    name = name
-                    parameters = parameters.Add("@odata.type", dataType)
-                |}
+            let map (name: string) (dataType: string) (parameters: Map<_, obj>) = {|
+                name = name
+                parameters = parameters.Add("@odata.type", dataType)
+            |}
 
             let mapModifyHeader name (modifyHeader: ModifyHeader) =
                 map
@@ -344,19 +376,17 @@ module CdnRule =
                         .Add("customHostname", a.Hostname |> Option.toObj)
                         .Add("customFragment", a.Fragment |> Option.toObj))
 
-type Rule =
-    {
-        Name: ResourceName
-        Order: int
-        Conditions: CdnRule.Condition list
-        Actions: CdnRule.Action list
-    }
+type Rule = {
+    Name: ResourceName
+    Order: int
+    Conditions: CdnRule.Condition list
+    Actions: CdnRule.Action list
+}
 
-type DeliveryPolicy =
-    {
-        Description: string
-        Rules: Rule list
-    }
+type DeliveryPolicy = {
+    Description: string
+    Rules: Rule list
+}
 
 module Profiles =
     type Endpoint =
@@ -379,44 +409,39 @@ module Profiles =
             member this.ResourceId = endpoints.resourceId (this.Profile / this.Name)
 
             member this.JsonModel =
-                let dependencies =
-                    [
-                        profiles.resourceId this.Profile
-                        yield! Option.toList this.Origin.Owner
-                        yield! this.Dependencies
-                    ]
+                let dependencies = [
+                    profiles.resourceId this.Profile
+                    yield! Option.toList this.Origin.Owner
+                    yield! this.Dependencies
+                ]
 
                 {| endpoints.Create(this.Profile / this.Name, Location.Global, dependencies, this.Tags) with
-                    properties =
-                        {|
-                            originHostHeader = this.Origin.Eval()
-                            queryStringCachingBehavior = string this.QueryStringCachingBehaviour
-                            optimizationType = string this.OptimizationType
-                            isHttpAllowed = this.Http.AsBoolean
-                            isHttpsAllowed = this.Https.AsBoolean
-                            isCompressionEnabled = this.Compression.AsBoolean
-                            contentTypesToCompress = this.CompressedContentTypes
-                            origins =
-                                [
-                                    {|
-                                        name = "origin"
-                                        properties = {| hostName = this.Origin.Eval() |}
-                                    |}
-                                ]
-                            deliveryPolicy =
-                                {|
-                                    description = this.DeliveryPolicy.Description
-                                    rules =
-                                        this.DeliveryPolicy.Rules
-                                        |> List.map (fun rule ->
-                                            {|
-                                                name = rule.Name.Value
-                                                order = rule.Order
-                                                conditions = rule.Conditions |> List.map (fun c -> c.JsonModel)
-                                                actions = rule.Actions |> List.map (fun a -> a.JsonModel)
-                                            |})
-                                |}
+                    properties = {|
+                        originHostHeader = this.Origin.Eval()
+                        queryStringCachingBehavior = string this.QueryStringCachingBehaviour
+                        optimizationType = string this.OptimizationType
+                        isHttpAllowed = this.Http.AsBoolean
+                        isHttpsAllowed = this.Https.AsBoolean
+                        isCompressionEnabled = this.Compression.AsBoolean
+                        contentTypesToCompress = this.CompressedContentTypes
+                        origins = [
+                            {|
+                                name = "origin"
+                                properties = {| hostName = this.Origin.Eval() |}
+                            |}
+                        ]
+                        deliveryPolicy = {|
+                            description = this.DeliveryPolicy.Description
+                            rules =
+                                this.DeliveryPolicy.Rules
+                                |> List.map (fun rule -> {|
+                                    name = rule.Name.Value
+                                    order = rule.Order
+                                    conditions = rule.Conditions |> List.map (fun c -> c.JsonModel)
+                                    actions = rule.Actions |> List.map (fun a -> a.JsonModel)
+                                |})
                         |}
+                    |}
                 |}
 
     module Endpoints =
