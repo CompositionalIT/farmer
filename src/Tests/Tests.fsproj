@@ -30,6 +30,7 @@
     <Compile Include="ContainerService.fs" />
     <Compile Include="CognitiveServices.fs" />
     <Compile Include="Dns.fs" />
+    <Compile Include="DnsResolver.fs" />
     <Compile Include="ExpressRoute.fs" />
     <Compile Include="EventHub.fs" />
     <Compile Include="Gallery.fs" />

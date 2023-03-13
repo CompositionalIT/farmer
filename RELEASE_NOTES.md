@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## vNext
+* DNS: Adds private resolver and forwarding rulesets
+
 ## 1.7.18
 * Disks: Create managed disks
 * Galleries: Create Galleries for sharing VM images.
