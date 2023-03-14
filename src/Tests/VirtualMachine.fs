@@ -57,6 +57,11 @@ let tests =
                 Expect.isTrue
                     (resource.DiagnosticsProfile.BootDiagnostics.Enabled.GetValueOrDefault false)
                     "Boot Diagnostics should be enabled"
+
+                Expect.equal
+                    resource.DiagnosticsProfile.BootDiagnostics.StorageUri
+                    "[reference(resourceId('Microsoft.Storage/storageAccounts', 'isaacsvmstorage'), '2022-05-01').primaryEndpoints.blob]"
+                    "Incorrect diagnostics storage Uri"
             }
 
             test "By default, VM does not include Priority" {
@@ -97,9 +102,58 @@ let tests =
                     (resource.DiagnosticsProfile.BootDiagnostics.Enabled.GetValueOrDefault false)
                     "Boot Diagnostics should be enabled"
 
-                Expect.isTrue
-                    (isNull resource.DiagnosticsProfile.BootDiagnostics.StorageUri)
+                Expect.isNull
+                    resource.DiagnosticsProfile.BootDiagnostics.StorageUri
                     "Storage should be null for managed boot diagnotics"
+            }
+            test "VM with existing external storage for diagnostics support doesn't have dependency for storage" {
+                let deployment =
+                    arm {
+                        add_resources
+                            [
+                                vm {
+                                    name "myvm"
+                                    username "azureuser"
+
+                                    diagnostics_support_external (
+                                        Farmer.Arm.Storage.storageAccounts.resourceId "vmdiagstorage"
+                                    )
+                                }
+                            ]
+                    }
+
+                let jobj = JObject.Parse(deployment.Template |> Writer.toJson)
+                let myvm = jobj.SelectToken "resources[?(@.name=='myvm')]"
+
+                Expect.isFalse
+                    ((myvm.["dependsOn"] |> string).Contains "vmdiagstorage")
+                    "Should not contain 'vmdiagstorage' dependency"
+            }
+            test "VM with existing managed storage for diagnostics support" {
+                let deployment =
+                    arm {
+                        add_resources
+                            [
+                                vm {
+                                    name "myvm"
+                                    username "azureuser"
+
+                                    diagnostics_support_external (
+                                        LinkedResource.Managed(
+                                            Farmer.Arm.Storage.storageAccounts.resourceId "vmdiagstorage"
+                                        )
+                                    )
+                                }
+                            ]
+                    }
+
+                let jobj = JObject.Parse(deployment.Template |> Writer.toJson)
+                let myvm = jobj.SelectToken "resources[?(@.name=='myvm')]"
+
+                Expect.contains
+                    myvm.["dependsOn"]
+                    (JValue "[resourceId('Microsoft.Storage/storageAccounts', 'vmdiagstorage')]")
+                    "Should contain 'vmdiagstorage' dependency"
             }
             test "Can create a basic virtual machine with no data disk" {
                 let resource =

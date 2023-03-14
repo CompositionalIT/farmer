@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## vNext
+* Virtual Machines: External diagnostics storage does not generate dependency
+
 ## 1.7.18
 * Disks: Create managed disks
 * Galleries: Create Galleries for sharing VM images.
