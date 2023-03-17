@@ -2836,6 +2836,9 @@ module Network =
         /// Microsoft.Databricks/workspaces
         static member DatabricksWorkspaces = SubnetDelegationService "Microsoft.Databricks/workspaces"
 
+        /// Microsoft.Network/dnsResolvers
+        static member DnsResolvers = SubnetDelegationService "Microsoft.Network/dnsResolvers"
+
         /// Microsoft.MachineLearningServices/workspaces
         static member MachineLearningWorkspaces =
             SubnetDelegationService "Microsoft.MachineLearningServices/workspaces"
