@@ -105,7 +105,7 @@ type VirtualMachine =
         Location: Location
         AvailabilityZone: string option
         DiagnosticsEnabled: bool option
-        StorageAccount: ResourceName option
+        StorageAccount: LinkedResource option
         Size: VMSize
         Priority: Priority option
         Credentials: {| Username: string
@@ -134,7 +134,10 @@ type VirtualMachine =
             let dependsOn =
                 [
                     yield! this.NetworkInterfaceIds
-                    yield! this.StorageAccount |> Option.mapList storageAccounts.resourceId
+                    match this.StorageAccount with
+                    | Some (Managed rid) -> rid
+                    | Some (Unmanaged _)
+                    | None -> ()
                     match this.OsDisk with
                     | AttachOsDisk (_, Managed (resourceId)) -> resourceId
                     | _ -> ()
@@ -287,7 +290,7 @@ type VirtualMachine =
                         | Some true ->
                             match this.StorageAccount with
                             | Some storageAccount ->
-                                let resourceId = storageAccounts.resourceId storageAccount
+                                let resourceId = storageAccount.ResourceId
 
                                 let storageUriExpr =
                                     ArmExpression

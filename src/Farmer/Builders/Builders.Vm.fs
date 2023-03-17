@@ -149,7 +149,9 @@ type VmConfig =
                     AvailabilityZone = this.AvailabilityZone
                     Location = location
                     DiagnosticsEnabled = this.DiagnosticsEnabled
-                    StorageAccount = this.DiagnosticsStorageAccount |> Option.map (fun r -> r.resourceId(this).Name)
+                    StorageAccount =
+                        this.DiagnosticsStorageAccount
+                        |> Option.map (fun r -> r.toLinkedResource (this))
                     NetworkInterfaceIds = generatedNics |> List.map (fun nic -> networkInterfaces.resourceId nic.Name)
                     Size = this.Size
                     Priority = this.Priority
@@ -387,10 +389,16 @@ type VirtualMachineBuilder() =
 
     /// Turns on diagnostics support using an externally managed storage account.
     [<CustomOperation "diagnostics_support_external">]
-    member _.StorageAccountNameExternal(state: VmConfig, name) =
+    member _.StorageAccountNameExternal(state: VmConfig, linkedResource: LinkedResource) =
         { state with
             DiagnosticsEnabled = Some true
-            DiagnosticsStorageAccount = Some(LinkedResource name)
+            DiagnosticsStorageAccount = Some(LinkedResource linkedResource)
+        }
+
+    member _.StorageAccountNameExternal(state: VmConfig, id: ResourceId) =
+        { state with
+            DiagnosticsEnabled = Some true
+            DiagnosticsStorageAccount = Some(LinkedResource(Unmanaged id))
         }
 
     /// Turns on diagnostics support using an Azure-managed storage account.
