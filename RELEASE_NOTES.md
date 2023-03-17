@@ -1,7 +1,9 @@
 Release Notes
 =============
 
-## vNext
+## 1.7.19
+* DNS: Adds private resolver and forwarding rulesets
+* PostgreSQL: Adds `FullyQualifiedDomainName` configuration member.
 * Virtual Machines: External diagnostics storage does not generate dependency
 
 ## 1.7.18

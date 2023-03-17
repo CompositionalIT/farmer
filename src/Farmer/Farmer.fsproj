@@ -78,7 +78,7 @@
     <Compile Include="Arm/BingSearch.fs" />
     <Compile Include="Arm/Dns.fs" />
     <Compile Include="Arm\AVS.fs" />
-    <Compile Include="Arm/Network.fs" />
+    <Compile Include="Arm\Network.fs" />
     <Compile Include="Arm/Bastion.fs" />
     <Compile Include="Arm/Compute.fs" />
     <Compile Include="Arm/ContainerInstance.fs" />
@@ -135,6 +135,7 @@
     <Compile Include="Builders/Builders.DeploymentScript.fs" />
     <Compile Include="Builders/Builders.Disk.fs" />
     <Compile Include="Builders/Builders.Dns.fs" />
+    <Compile Include="Builders\Builders.DnsResolver.fs" />
     <Compile Include="Builders/Builders.Gallery.fs" />
     <Compile Include="Builders/Builders.ImageTemplate.fs" />
     <Compile Include="Builders/Builders.Redis.fs" />

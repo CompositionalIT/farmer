@@ -41,6 +41,7 @@ let allTests =
                     DiagnosticSettings.tests
                     Disk.tests
                     Dns.tests
+                    DnsResolver.tests
                     EventGrid.tests
                     EventHub.tests
                     ExpressRoute.tests

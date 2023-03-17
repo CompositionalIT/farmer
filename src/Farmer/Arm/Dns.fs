@@ -1,6 +1,7 @@
 [<AutoOpen>]
 module Farmer.Arm.Dns
 
+open System.Net
 open Farmer
 open Farmer.Dns
 
@@ -40,6 +41,23 @@ let privateSrvRecord =
 
 let privatePtrRecord =
     ResourceType("Microsoft.Network/privateDnsZones/PTR", "2020-06-01")
+
+let dnsForwardingRulesets =
+    ResourceType("Microsoft.Network/dnsForwardingRulesets", "2022-07-01")
+
+let dnsForwardingRulesetForwardingRules =
+    ResourceType("Microsoft.Network/dnsForwardingRulesets/forwardingRules", "2022-07-01")
+
+let dnsForwardingRulesetVirtualNetworkLinks =
+    ResourceType("Microsoft.Network/dnsForwardingRulesets/virtualNetworkLinks", "2022-07-01")
+
+let dnsResolvers = ResourceType("Microsoft.Network/dnsResolvers", "2022-07-01")
+
+let dnsResolverInboundEndpoints =
+    ResourceType("Microsoft.Network/dnsResolvers/inboundEndpoints", "2022-07-01")
+
+let dnsResolverOutboundEndpoints =
+    ResourceType("Microsoft.Network/dnsResolvers/outboundEndpoints", "2022-07-01")
 
 type DnsRecordType with
 
@@ -247,4 +265,202 @@ module DnsRecords =
                             | CName (_, None) -> ()
                         ]
                         |> Map
+                |}
+
+type DnsResolver =
+    {
+        Name: ResourceName
+        Location: Location
+        VirtualNetworkId: LinkedResource
+        Dependencies: Set<ResourceId>
+        Tags: Map<string, string>
+    }
+
+    interface IArmResource with
+        member this.ResourceId = dnsResolvers.resourceId this.Name
+
+        member this.JsonModel =
+            let dependencies =
+                this.Dependencies |> LinkedResource.addToSetIfManaged this.VirtualNetworkId
+
+            {| dnsResolvers.Create(this.Name, this.Location, dependencies, this.Tags) with
+                properties =
+                    {|
+                        virtualNetwork =
+                            {|
+                                id = this.VirtualNetworkId.ResourceId.Eval()
+                            |}
+                    |}
+            |}
+
+module DnsResolver =
+    type InboundEndpoint =
+        {
+            Name: ResourceName
+            Location: Location
+            DnsResolverId: LinkedResource
+            PrivateIpAllocations: AllocationMethod list
+            SubnetId: LinkedResource
+            Dependencies: Set<ResourceId>
+            Tags: Map<string, string>
+        }
+
+        interface IArmResource with
+            member this.ResourceId =
+                dnsResolverInboundEndpoints.resourceId (this.DnsResolverId.Name / this.Name)
+
+            member this.JsonModel =
+                let dependencies =
+                    this.Dependencies |> LinkedResource.addToSetIfManaged this.DnsResolverId
+
+                {| dnsResolverInboundEndpoints.Create(
+                       this.DnsResolverId.Name / this.Name,
+                       this.Location,
+                       dependencies,
+                       this.Tags
+                   ) with
+                    properties =
+                        {|
+                            ipConfigurations =
+                                this.PrivateIpAllocations
+                                |> List.map (fun ip ->
+                                    match ip with
+                                    | DynamicPrivateIp ->
+                                        {|
+                                            privateIpAddress = null
+                                            privateIpAllocationMethod = "Dynamic"
+                                            subnet =
+                                                {|
+                                                    id = this.SubnetId.ResourceId.Eval()
+                                                |}
+                                        |}
+                                    | StaticPrivateIp addr ->
+                                        {|
+                                            privateIpAddress = string<System.Net.IPAddress> addr
+                                            privateIpAllocationMethod = "Static"
+                                            subnet =
+                                                {|
+                                                    id = this.SubnetId.ResourceId.Eval()
+                                                |}
+                                        |})
+                        |}
+                |}
+
+    type OutboundEndpoint =
+        {
+            Name: ResourceName
+            Location: Location
+            DnsResolverId: LinkedResource
+            SubnetId: LinkedResource
+            Dependencies: Set<ResourceId>
+            Tags: Map<string, string>
+        }
+
+        interface IArmResource with
+            member this.ResourceId =
+                dnsResolverOutboundEndpoints.resourceId (this.DnsResolverId.Name / this.Name)
+
+            member this.JsonModel =
+                let dependencies =
+                    this.Dependencies |> LinkedResource.addToSetIfManaged this.DnsResolverId
+
+                {| dnsResolverOutboundEndpoints.Create(
+                       this.DnsResolverId.Name / this.Name,
+                       this.Location,
+                       dependencies,
+                       this.Tags
+                   ) with
+                    properties =
+                        {|
+                            subnet =
+                                {|
+                                    id = this.SubnetId.ResourceId.Eval()
+                                |}
+                        |}
+                |}
+
+type DnsForwardingRuleset =
+    {
+        Name: ResourceName
+        Location: Location
+        DnsResolverOutboundEndpointIds: ResourceId Set
+        Dependencies: Set<ResourceId>
+        Tags: Map<string, string>
+    }
+
+    interface IArmResource with
+        member this.ResourceId = dnsForwardingRulesets.resourceId this.Name
+
+        member this.JsonModel =
+            let dependencies =
+                this.Dependencies |> Set.union this.DnsResolverOutboundEndpointIds
+
+            {| dnsForwardingRulesets.Create(this.Name, this.Location, dependencies, this.Tags) with
+                properties =
+                    {|
+                        dnsResolverOutboundEndpoints =
+                            this.DnsResolverOutboundEndpointIds
+                            |> Set.map (fun endpointId -> {| id = endpointId.Eval() |})
+                    |}
+            |}
+
+module DnsForwardingRuleset =
+    type ForwardingRule =
+        {
+            Name: ResourceName
+            ForwardingRulesetId: LinkedResource
+            DomainName: string
+            ForwardingRuleState: FeatureFlag option
+            TargetDnsServers: IPEndPoint list
+        }
+
+        interface IArmResource with
+            member this.ResourceId =
+                dnsForwardingRulesetForwardingRules.resourceId (this.ForwardingRulesetId.Name / this.Name)
+
+            member this.JsonModel =
+                {| dnsForwardingRulesetForwardingRules.Create(
+                       this.ForwardingRulesetId.Name / this.Name,
+                       dependsOn = [ this.ForwardingRulesetId.ResourceId ]
+                   ) with
+                    properties =
+                        {|
+                            domainName = this.DomainName
+                            forwardingRuleState =
+                                match this.ForwardingRuleState with
+                                | Some state -> state.ArmValue
+                                | None -> null
+                            targetDnsServers =
+                                this.TargetDnsServers
+                                |> List.map (fun ipEndpoint ->
+                                    {|
+                                        ipAddress = string<IPAddress> ipEndpoint.Address
+                                        port = ipEndpoint.Port
+                                    |})
+                        |}
+                |}
+
+    type VirtualNetworkLink =
+        {
+            Name: ResourceName
+            ForwardingRulesetId: LinkedResource
+            VirtualNetworkId: LinkedResource
+        }
+
+        interface IArmResource with
+            member this.ResourceId =
+                dnsForwardingRulesetVirtualNetworkLinks.resourceId (this.ForwardingRulesetId.Name / this.Name)
+
+            member this.JsonModel =
+                {| dnsForwardingRulesetVirtualNetworkLinks.Create(
+                       this.Name,
+                       dependsOn = [ this.ForwardingRulesetId.ResourceId ]
+                   ) with
+                    properties =
+                        {|
+                            virtualNetwork =
+                                {|
+                                    id = this.VirtualNetworkId.ResourceId.Eval()
+                                |}
+                        |}
                 |}
