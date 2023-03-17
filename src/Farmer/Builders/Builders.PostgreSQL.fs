@@ -89,6 +89,13 @@ type PostgreSQLConfig =
                     }
             ]
 
+    /// Generates an expression for the fully qualified domain name for reaching the postgres server.
+    member this.FullyQualifiedDomainName =
+        let serverId = Farmer.Arm.DBforPostgreSQL.servers.resourceId (this.Name)
+
+        ArmExpression
+            .create($"reference({serverId.ArmExpression.Value}).fullyQualifiedDomainName")
+            .Eval()
 
 [<AutoOpen>]
 module private Helpers =

@@ -3,6 +3,7 @@ Release Notes
 
 ## vNext
 * DNS: Adds private resolver and forwarding rulesets
+* PostgreSQL: Adds `FullyQualifiedDomainName` configuration member.
 
 ## 1.7.18
 * Disks: Create managed disks
