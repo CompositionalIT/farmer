@@ -335,6 +335,38 @@ let tests =
                 Expect.equal actual2 expectedVnetRuleResult2 "Vnet is incorrect"
             }
 
+            test "Server endpoint configuration member correct" {
+                let db =
+                    postgreSQLDb {
+                        name "my_db"
+                        collation "de_DE"
+                        charset "ASCII"
+                    }
+
+                let server =
+                    postgreSQL {
+                        name "testdb"
+                        admin_username "myadminuser"
+                        add_database db
+                    }
+
+                let deployment =
+                    arm {
+                        add_resources [ server ]
+                        output "serverfqdn" server.FullyQualifiedDomainName
+                    }
+
+                let jobj =
+                    deployment.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+                let fqdnExpression = jobj.SelectToken "outputs.serverfqdn.value"
+
+                Expect.equal
+                    (string fqdnExpression)
+                    "[reference(resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb')).fullyQualifiedDomainName]"
+                    "Incorrect fqdn output"
+            }
+
             test "Server name must be given" {
                 Expect.throws
                     (fun () -> runBuilder <| postgreSQL { admin_username "adminuser" } |> ignore)

@@ -38,6 +38,12 @@ parameter for the admin account password.
 | Server | add_vnet_rule (name:string, virtualNetworkSubnetId:ResourceId) | Adds a vnet rule to the server |
 | Server | add_vnet_rules (rules:(string*ResourceId)list) | As add_vnet_rule but a list of rules |
 
+##### Configuration Members
+
+| Member | Purpose |
+|-|-|
+| FullyQualifiedDomainName | The fully qualified domain name for the server endpoint. |
+
 #### PostgreSQLDb Builder keywords
 | Applies To | Keyword | Purpose |
 |-|-|-|
@@ -65,6 +71,7 @@ let myPostgres = postgreSQL {
 let template = arm {
     location Location.NorthEurope
     add_resource myPostgres
+    output "fqdn" myPostgres.FullyQualifiedDomainName
 }
 
 // WARNING:
