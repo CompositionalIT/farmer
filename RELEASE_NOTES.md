@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.7.20
+* Unmanaged resouce role assignment scope
+
 ## 1.7.19
 * DNS: Adds private resolver and forwarding rulesets
 * PostgreSQL: Adds `FullyQualifiedDomainName` configuration member.

@@ -36,6 +36,7 @@ type PrincipalType =
 type AssignmentScope =
     | ResourceGroup
     | SpecificResource of ResourceId
+    | UnmanagedResource of ResourceId
 
 type RoleAssignment =
     {
@@ -63,6 +64,7 @@ type RoleAssignment =
                     [
                         match this.Scope with
                         | SpecificResource resourceId -> resourceId
+                        | UnmanagedResource _
                         | ResourceGroup -> ()
                     ]
 
@@ -70,6 +72,7 @@ type RoleAssignment =
                 scope =
                     match this with
                     | { Scope = ResourceGroup } -> null
+                    | { Scope = UnmanagedResource resourceId } -> resourceId.ArmExpression.Eval()
                     | { Scope = SpecificResource resourceId } -> resourceId.Eval()
                 properties =
                     {|
