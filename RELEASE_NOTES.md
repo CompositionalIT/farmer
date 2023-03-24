@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* SQL Azure: Use Capacity instead of SKU for DTU level of a pool.
 
 ## 1.7.19
 * DNS: Adds private resolver and forwarding rulesets

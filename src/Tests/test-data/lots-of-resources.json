@@ -76,8 +76,8 @@
       "name": "farmersql1979/farmersql1979-pool",
       "properties": {},
       "sku": {
+        "capacity": 50,
         "name": "BasicPool",
-        "size": "50",
         "tier": "Basic"
       },
       "type": "Microsoft.Sql/servers/elasticPools"
