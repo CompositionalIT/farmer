@@ -1,10 +1,9 @@
 Release Notes
 =============
-## vNext
-* SQL Azure: Use Capacity instead of SKU for DTU level of a pool.
 
 ## 1.7.20
-* Unmanaged resouce role assignment scope
+* Role Assignments: Unmanaged resouce role assignment scope.
+* SQL Azure: Use Capacity instead of SKU for DTU level of a pool.
 
 ## 1.7.19
 * DNS: Adds private resolver and forwarding rulesets
