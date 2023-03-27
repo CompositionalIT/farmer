@@ -61,6 +61,7 @@ let allTests =
                     PostgreSQL.tests
                     PrivateLink.tests
                     ResourceGroup.tests
+                    RoleAssignment.tests
                     ServiceBus.tests
                     SignalR.tests
                     Sql.tests
