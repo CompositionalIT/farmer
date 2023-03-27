@@ -96,7 +96,7 @@ module Servers =
                         {|
                             name = this.Sku.Name
                             tier = this.Sku.Edition
-                            size = string this.Sku.Capacity
+                            capacity = this.Sku.Capacity
                         |}
                 |}
 

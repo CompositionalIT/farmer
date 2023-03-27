@@ -88,7 +88,7 @@ let tests =
                     sql |> getResourceAtIndex client.SerializationSettings 2
 
                 Expect.equal model.Sku.Name "BasicPool" "Incorrect Elastic Pool SKU"
-                Expect.equal model.Sku.Size "200" "Incorrect Elastic Pool SKU size"
+                Expect.equal model.Sku.Capacity (Nullable 200) "Incorrect Elastic Pool SKU size"
             }
 
             test "Works with VCore databases" {
