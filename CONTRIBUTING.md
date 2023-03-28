@@ -25,6 +25,6 @@ We use Fantomas to consistently format F#.
 1. Install it via: `dotnet tool restore` (only required once).
 2. Run it either:
    * Through IDE tooling (e.g. VS Code, Rider or Visual Studio)
-   * Via the command line `dotnet fantomas src -r`
+   * Via the command line `dotnet fantomas src`
 
 If you do not apply Fantomas formatting, your PR will be rejected as this is automatically checked by the build system.
