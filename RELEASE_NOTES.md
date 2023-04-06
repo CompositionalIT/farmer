@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.7.21
+* AVS: Scripting subresource types.
+
 ## 1.7.20
 * Role Assignments: Unmanaged resouce role assignment scope.
 * SQL Azure: Use Capacity instead of SKU for DTU level of a pool.
