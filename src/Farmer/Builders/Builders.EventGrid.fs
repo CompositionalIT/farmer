@@ -74,6 +74,13 @@ type MachineLearningEvent =
     interface
     end
 
+type EndpointBatchConfig =
+    {
+        MaxEventsPerBatch: uint
+        PreferredBatchSizeInKilobytes: uint
+    }
+
+
 module SystemEvents =
     let toEvent<'T> : string -> EventGridEvent<'T> = EventGridEvent
 
@@ -181,6 +188,34 @@ module SystemEvents =
         let ClientConnectionDisconnected =
             toEvent<SignalRServiceEvent> "Microsoft.SignalRService.ClientConnectionDisconnected"
 
+    module Resources =
+        let ResourceActionCancel =
+            toEvent<ResourceGroupEvent> "Microsoft.Resources.ResourceActionCancel"
+
+        let ResourceActionFailure =
+            toEvent<ResourceGroupEvent> "Microsoft.Resources.ResourceActionFailure"
+
+        let ResourceActionSuccess =
+            toEvent<ResourceGroupEvent> "Microsoft.Resources.ResourceActionSuccess"
+
+        let ResourceDeleteCancel =
+            toEvent<ResourceGroupEvent> "Microsoft.Resources.ResourceDeleteCancel"
+
+        let ResourceDeleteFailure =
+            toEvent<ResourceGroupEvent> "Microsoft.Resources.ResourceDeleteFailure"
+
+        let ResourceDeleteSuccess =
+            toEvent<ResourceGroupEvent> "Microsoft.Resources.ResourceDeleteSuccess"
+
+        let ResourceWriteCancel =
+            toEvent<ResourceGroupEvent> "Microsoft.Resources.ResourceWriteCancel"
+
+        let ResourceWriteFailure =
+            toEvent<ResourceGroupEvent> "Microsoft.Resources.ResourceWriteFailure"
+
+        let ResourceWriteSuccess =
+            toEvent<ResourceGroupEvent> "Microsoft.Resources.ResourceWriteSuccess"
+
 type EventGridConfig<'T> =
     {
         TopicName: ResourceName
@@ -241,7 +276,7 @@ type EventGridBuilder() =
     member _.Yield _ =
         {
             TopicName = ResourceName.Empty
-            Source = ResourceName.Empty, TopicType(ResourceType("", ""), "")
+            Source = ResourceName("[resourceGroup().name]"), Topics.ResourceGroup
             Subscriptions = []
             Tags = Map.empty
         }
@@ -289,6 +324,48 @@ type EventGridBuilder() =
             StorageQueue(ResourceName queueName),
             events
         )
+
+    [<CustomOperation "add_function_subscriber">]
+    member _.AddFunctionSubscription
+        (
+            state: EventGridConfig<'T>,
+            fnApp: FunctionsConfig,
+            fnName: ResourceName,
+            batchConfig: EndpointBatchConfig,
+            events
+        ) =
+        let endpoint =
+            {
+                ResourceId =
+                    Farmer.Arm.Web.siteFunctions.resourceId (fnApp.Name.ResourceName, fnName)
+                    |> Managed
+                MaxEventsPerBatch = batchConfig.MaxEventsPerBatch
+                PreferredBatchSizeInKilobytes = batchConfig.PreferredBatchSizeInKilobytes
+            }
+
+        EventGridBuilder.AddSub(state, $"{fnName.Value}-fn", fnApp.Name.ResourceName, AzureFunction endpoint, events)
+
+    member _.AddFunctionSubscription
+        (
+            state: EventGridConfig<'T>,
+            fnApp: LinkedResource,
+            fnName: ResourceName,
+            batchConfig: EndpointBatchConfig,
+            events
+        ) =
+        let endpoint =
+            {
+                ResourceId =
+                    { Farmer.Arm.Web.siteFunctions.resourceId (fnApp.Name, fnName) with
+                        Subscription = fnApp.ResourceId.Subscription
+                        ResourceGroup = fnApp.ResourceId.ResourceGroup
+                    }
+                    |> Unmanaged
+                MaxEventsPerBatch = batchConfig.MaxEventsPerBatch
+                PreferredBatchSizeInKilobytes = batchConfig.PreferredBatchSizeInKilobytes
+            }
+
+        EventGridBuilder.AddSub(state, $"{fnName.Value}-fn", fnApp.Name, AzureFunction endpoint, events)
 
     [<CustomOperation "add_webhook_subscriber">]
     member _.AddWebSubscription(state: EventGridConfig<'T>, webAppName: ResourceName, webHookEndpoint: Uri, events) =
