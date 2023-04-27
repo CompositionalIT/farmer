@@ -59,7 +59,7 @@
       "type": "Microsoft.ServiceBus/namespaces/queues"
     },
     {
-      "apiVersion": "2020-04-01-preview",
+      "apiVersion": "2022-06-15",
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts', 'isaacgriddevprac')]"
       ],
@@ -73,7 +73,7 @@
       "type": "Microsoft.EventGrid/systemTopics"
     },
     {
-      "apiVersion": "2020-04-01-preview",
+      "apiVersion": "2022-06-15",
       "dependsOn": [
         "[resourceId('Microsoft.EventGrid/systemTopics', 'newblobscreated')]",
         "[resourceId('Microsoft.ServiceBus/namespaces/queues', 'farmereventpubservicebusns', 'events')]"
@@ -96,7 +96,7 @@
       "type": "Microsoft.EventGrid/systemTopics/eventSubscriptions"
     },
     {
-      "apiVersion": "2020-04-01-preview",
+      "apiVersion": "2022-06-15",
       "dependsOn": [
         "[resourceId('Microsoft.EventGrid/systemTopics', 'newblobscreated')]",
         "[resourceId('Microsoft.Storage/storageAccounts/queueServices/queues', 'isaacgriddevprac', 'default', 'todo')]"

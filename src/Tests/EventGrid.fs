@@ -18,6 +18,13 @@ let tests =
                 Expect.equal t.Location Location.WestEurope "Incorrect location"
                 Expect.equal t.Name (ResourceName "my-topic") "Incorrect name"
             }
+            test "Defaults to resource group source" {
+                let b = eventGrid { topic_name "my-topic" } :> IBuilder
+                let resources = b.BuildResources Location.WestEurope
+                let t = resources.[0] :?> Topic
+                Expect.equal t.TopicType.ResourceType.Type (Arm.ResourceGroup.resourceGroups.Type) "Incorrect default topic type"
+                Expect.equal t.Source (ResourceName "[resourceGroup().name]") "Incorrect default source name"
+            }
             test "Creates a storage source correctly" {
                 let storage = storageAccount { name "test" }
 
@@ -28,6 +35,24 @@ let tests =
                     }
 
                 Expect.equal grid.Source (ResourceName "test", Topics.StorageAccount) "Invalid Source"
+            }
+            test "Creates a function subscriber correctly" {
+                let fnRef = 
+                    Arm.Web.siteFunctions.resourceId(ResourceName "testFn", ResourceName "testHandler") |> Unmanaged
+
+                let grid =
+                    eventGrid { 
+                        add_function_subscriber fnRef
+                                                { MaxEventsPerBatch = 1u; PreferredBatchSizeInKilobytes = 64u }
+                                                [ SystemEvents.Resources.ResourceWriteSuccess ] 
+                    }
+
+                let sub = grid.Subscriptions.[0]
+                Expect.equal sub.Name (ResourceName "testFn-testHandler-fn") "Incorrect subscription name"
+                Expect.equal sub.Endpoint (EndpointType.AzureFunction { ResourceId = fnRef
+                                                                        MaxEventsPerBatch = 1u
+                                                                        PreferredBatchSizeInKilobytes = 64u }) "Incorrect endpoint type"
+                Expect.equal sub.SystemEvents [ SystemEvents.Resources.ResourceWriteSuccess ] "Incorrect system events"
             }
             test "Creates a queue subscriber correctly" {
                 let storage = storageAccount { name "test" }
