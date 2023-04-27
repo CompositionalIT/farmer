@@ -353,10 +353,11 @@ type EventGridBuilder() =
             batchConfig: EndpointBatchConfig,
             events
         ) =
-        let fnName = 
+        let fnName =
             match fnResourceId.ResourceId with
-            | { Type = t; Segments = [handlerName]} when t = Arm.Web.siteFunctions -> handlerName
+            | { Type = t; Segments = [ handlerName ] } when t = Arm.Web.siteFunctions -> handlerName
             | _ -> failwith "Invalid Azure function resourceId, create one with Web.siteFunctions"
+
         let endpoint =
             {
                 ResourceId = fnResourceId

@@ -3,6 +3,7 @@ Release Notes
 
 ## 1.7.21
 * AVS: Scripting subresource types.
+* EventGrid: ResourceGroup as a source and Azure Function as a target.
 
 ## 1.7.20
 * Role Assignments: Unmanaged resouce role assignment scope.
