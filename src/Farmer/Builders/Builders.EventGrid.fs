@@ -345,27 +345,26 @@ type EventGridBuilder() =
 
         EventGridBuilder.AddSub(state, $"{fnName.Value}-fn", fnApp.Name.ResourceName, AzureFunction endpoint, events)
 
+    [<CustomOperation "add_function_subscriber">]
     member _.AddFunctionSubscription
         (
             state: EventGridConfig<'T>,
-            fnApp: LinkedResource,
-            fnName: ResourceName,
+            fnResourceId: LinkedResource,
             batchConfig: EndpointBatchConfig,
             events
         ) =
+        let fnName = 
+            match fnResourceId.ResourceId with
+            | { Type = t; Segments = [handlerName]} when t = Arm.Web.siteFunctions -> handlerName
+            | _ -> failwith "Invalid Azure function resourceId, create one with Web.siteFunctions"
         let endpoint =
             {
-                ResourceId =
-                    { Farmer.Arm.Web.siteFunctions.resourceId (fnApp.Name, fnName) with
-                        Subscription = fnApp.ResourceId.Subscription
-                        ResourceGroup = fnApp.ResourceId.ResourceGroup
-                    }
-                    |> Unmanaged
+                ResourceId = fnResourceId
                 MaxEventsPerBatch = batchConfig.MaxEventsPerBatch
                 PreferredBatchSizeInKilobytes = batchConfig.PreferredBatchSizeInKilobytes
             }
 
-        EventGridBuilder.AddSub(state, $"{fnName.Value}-fn", fnApp.Name, AzureFunction endpoint, events)
+        EventGridBuilder.AddSub(state, $"{fnName.Value}-fn", fnResourceId.Name, AzureFunction endpoint, events)
 
     [<CustomOperation "add_webhook_subscriber">]
     member _.AddWebSubscription(state: EventGridConfig<'T>, webAppName: ResourceName, webHookEndpoint: Uri, events) =
