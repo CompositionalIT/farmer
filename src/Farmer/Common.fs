@@ -822,6 +822,10 @@ module Vm =
     let UbuntuServer_2204LTS =
         makeLinuxVm "0001-com-ubuntu-server-jammy" "canonical" "22_04-lts-gen2"
 
+    let WindowsServer_2022DatacenterAzureEdition =
+        makeWindowsVm "2022-datacenter-azure-edition"
+
+    let WindowsServer_2022Datacenter = makeWindowsVm "2022-datacenter-g2"
     let WindowsServer_2019Datacenter = makeWindowsVm "2019-Datacenter"
     let WindowsServer_2016Datacenter = makeWindowsVm "2016-Datacenter"
     let WindowsServer_2012R2Datacenter = makeWindowsVm "2012-R2-Datacenter"
