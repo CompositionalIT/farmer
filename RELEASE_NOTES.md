@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+## 1.7.21
+* Virtual Machines: Windows Server 2022 Datacenter.
+* WebApps: Default extension version updated from V3 to V4.
+
 ## 1.7.20
 * Role Assignments: Unmanaged resouce role assignment scope.
 * SQL Azure: Use Capacity instead of SKU for DTU level of a pool.
