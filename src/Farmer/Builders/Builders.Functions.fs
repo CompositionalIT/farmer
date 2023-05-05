@@ -464,7 +464,7 @@ type FunctionsBuilder() =
 
                     storageAccounts.resourceId storage)
             VersionedRuntime = FunctionsRuntime.DotNetCore31
-            ExtensionVersion = V3
+            ExtensionVersion = V4
             Dependencies = Set.empty
             PublishAs = Code
             Tags = Map.empty

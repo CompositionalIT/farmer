@@ -1,9 +1,13 @@
 Release Notes
 =============
 
-## 1.7.21
+## 1.7.22
 * AVS: Scripting subresource types.
 * EventGrid: ResourceGroup as a source and Azure Function as a target.
+
+## 1.7.21
+* Virtual Machines: Windows Server 2022 Datacenter.
+* WebApps: Default extension version updated from V3 to V4.
 
 ## 1.7.20
 * Role Assignments: Unmanaged resouce role assignment scope.
