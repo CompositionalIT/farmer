@@ -30,6 +30,8 @@ let hostNameBindings =
 let virtualNetworkConnections =
     ResourceType("Microsoft.Web/sites/virtualNetworkConnections", "2021-03-01")
 
+let siteFunctions = ResourceType("Microsoft.Web/sites/functions", "2021-03-01")
+
 let slotsVirtualNetworkConnections =
     ResourceType("Microsoft.Web/sites/slots/virtualNetworkConnections", "2021-03-01")
 
