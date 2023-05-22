@@ -2328,7 +2328,7 @@ module RouteServer =
     type Sku =
         | Basic
         | Standard
-        
+
     type HubRoutingPreference =
         | ExpressRoute
         | VPN
@@ -2846,8 +2846,11 @@ module Network =
         static member AVSPrivateCloud = SubnetDelegationService "Microsoft.AVS/PrivateClouds"
         /// Microsoft.AzureCosmosDB/clusters
         static member CosmosDBClusters = SubnetDelegationService "Microsoft.AzureCosmosDB/clusters"
+
         /// Microsoft.BareMetal/AzureHostedService
-        static member BareMetalAzureHostedService = SubnetDelegationService "Microsoft.BareMetal/AzureHostedService"
+        static member BareMetalAzureHostedService =
+            SubnetDelegationService "Microsoft.BareMetal/AzureHostedService"
+
         /// Microsoft.BareMetal/AzureVMware
         static member BareMetalVMware = SubnetDelegationService "Microsoft.BareMetal/AzureVMware"
         /// Microsoft.BareMetal/CrayServers

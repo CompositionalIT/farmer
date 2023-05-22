@@ -57,9 +57,11 @@ let routes = ResourceType("Microsoft.Network/routeTables/routes", "2021-01-01")
 
 let routeServers = ResourceType("Microsoft.Network/virtualHubs", "2022-11-01")
 
-let routeServerIPConfigs = ResourceType("Microsoft.Network/virtualHubs/ipConfigurations", "2022-11-01")
+let routeServerIPConfigs =
+    ResourceType("Microsoft.Network/virtualHubs/ipConfigurations", "2022-11-01")
 
-let routeServerBGPConnections = ResourceType("Microsoft.Network/virtualHubs/bgpConnections", "2022-11-01")
+let routeServerBGPConnections =
+    ResourceType("Microsoft.Network/virtualHubs/bgpConnections", "2022-11-01")
 
 type SubnetReference =
     | ViaManagedVNet of (ResourceId * ResourceName)
@@ -204,25 +206,21 @@ type RouteServerIPConfig =
                     match this.PublicIpAddress with
                     | Managed resId -> resId
                     | _ -> ()
-                    
+
                     match this.SubnetId with
                     | Managed resId -> resId
                     | _ -> ()
-                    
+
                     this.RouteServer.ResourceId
                 }
                 |> Set.ofSeq
 
-            {|
-                routeServerIPConfigs.Create(
-                    this.RouteServer.Name / this.Name,
-                    dependsOn = dependencies
-                ) with
-                    properties =
-                        {|
-                            publicIPAddress = LinkedResource.AsIdObject this.PublicIpAddress
-                            subnet = LinkedResource.AsIdObject this.SubnetId
-                        |}
+            {| routeServerIPConfigs.Create(this.RouteServer.Name / this.Name, dependsOn = dependencies) with
+                properties =
+                    {|
+                        publicIPAddress = LinkedResource.AsIdObject this.PublicIpAddress
+                        subnet = LinkedResource.AsIdObject this.SubnetId
+                    |}
             |}
 
 type RouteServerBGPConnection =
@@ -245,21 +243,17 @@ type RouteServerBGPConnection =
                     match this.IpConfig with
                     | Managed resId -> resId
                     | _ -> ()
-                    
+
                     this.RouteServer.ResourceId
                 }
                 |> Set.ofSeq
-                
-            {|
-                routeServerBGPConnections.Create(
-                    this.RouteServer.Name / this.ConnectionName,
-                    dependsOn = dependencies
-                ) with
-                    properties =
-                        {|
-                            peerIp = this.PeerIp
-                            peerAsn = this.PeerAsn
-                        |}
+
+            {| routeServerBGPConnections.Create(this.RouteServer.Name / this.ConnectionName, dependsOn = dependencies) with
+                properties =
+                    {|
+                        peerIp = this.PeerIp
+                        peerAsn = this.PeerAsn
+                    |}
             |}
 
 type PublicIpAddress =

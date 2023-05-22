@@ -828,7 +828,7 @@ let tests =
                     "[resourceId('farmer-pls', 'Microsoft.Network/privateLinkServices', 'pls')]"
                     "Incorrect private link service ID"
             }
-            
+
             test "Creates basic route server" {
                 let deployment =
                     arm {
@@ -844,139 +844,160 @@ let tests =
                                     name "my-route-server"
                                     sku RouteServer.Sku.Standard
                                     subnetPrefix "10.0.12.0/24"
-                                    linkToVnet  (virtualNetworks.resourceId "test-vnet")
-                                    
-                                    add_BGPConnections [
-                                        routeServerBGPConnection {
-                                            connectionName "my-bgp-conn"
-                                            peerIp "10.0.1.85"
-                                            peerAsn 65000
-                                        }
-                                    ]
+                                    linkToVnet (virtualNetworks.resourceId "test-vnet")
+
+                                    add_BGPConnections
+                                        [
+                                            routeServerBGPConnection {
+                                                connectionName "my-bgp-conn"
+                                                peerIp "10.0.1.85"
+                                                peerAsn 65000
+                                            }
+                                        ]
                                 }
                             ]
                     }
-                
+
                 let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
                 let templateStr = jobj.ToString()
 
                 //validate vnet generated
                 let vnet =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks')]"
+
                 Expect.isNotNull vnet "vnet should be generated"
-                
+
                 //validate publicIPAddresses generated
                 let publicip =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Network/publicIPAddresses')]"
+
                 Expect.isNotNull publicip "public ip should be generated"
-                
+
                 let publicipName = publicip.["name"]
                 Expect.equal publicipName "my-route-server-publicip" "Incorrect default value for public ip name"
-                
+
                 let publicipProps = publicip.["properties"]
+
                 let allocationMethod: string =
                     JToken.op_Explicit publicipProps.["publicIPAllocationMethod"]
+
                 Expect.equal allocationMethod "Static" "Incorrect default value for public ip allocation method"
-                
+
                 //validate route server subnet generated
                 let subnet =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks/subnets')]"
+
                 Expect.isNotNull subnet "subnet should be generated"
-                
+
                 let subnetName = subnet.["name"]
                 Expect.equal subnetName "test-vnet/RouteServerSubnet" "Incorrect default value for subnet name"
-                
+
                 let subnetProps = subnet.["properties"]
-                let addressPrefix: string =
-                    JToken.op_Explicit subnetProps.["addressPrefix"]
+                let addressPrefix: string = JToken.op_Explicit subnetProps.["addressPrefix"]
                 Expect.equal addressPrefix "10.0.12.0/24" "Incorrect addressPrefix for subnet"
-                
+
                 //validate ip configuration generated
                 let ipConfig =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualHubs/ipConfigurations')]"
+
                 Expect.isNotNull ipConfig "ipConfig should be generated"
-                
+
                 let ipConfigName = ipConfig.["name"]
-                Expect.equal ipConfigName "my-route-server/my-route-server-ipconfig" "Incorrect default value for ipConfig name"
-                
+
+                Expect.equal
+                    ipConfigName
+                    "my-route-server/my-route-server-ipconfig"
+                    "Incorrect default value for ipConfig name"
+
                 let ipConfigDependencies =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualHubs/ipConfigurations')].dependsOn"
                     :?> Newtonsoft.Json.Linq.JArray
 
                 Expect.isNotNull ipConfigDependencies "Missing dependency for ipConfig"
                 Expect.hasLength ipConfigDependencies 3 "Incorrect number of dependencies for ipConfig"
+
                 Expect.equal
                     (ipConfigDependencies.[0].ToString())
                     "[resourceId(\u0027Microsoft.Network/publicIPAddresses\u0027, \u0027my-route-server-publicip\u0027)]"
                     "Incorrect ipConfig dependencies"
+
                 Expect.equal
                     (ipConfigDependencies.[1].ToString())
                     "[resourceId(\u0027Microsoft.Network/virtualHubs\u0027, \u0027my-route-server\u0027)]"
                     "Incorrect ipConfig dependencies"
+
                 Expect.equal
                     (ipConfigDependencies.[2].ToString())
                     "[resourceId(\u0027Microsoft.Network/virtualNetworks/subnets\u0027, \u0027test-vnet\u0027, \u0027RouteServerSubnet\u0027)]"
                     "Incorrect ipConfig dependencies"
-                
+
                 let ipConfigPip = ipConfig.SelectToken("properties.publicIPAddress.id").ToString()
+
                 Expect.equal
                     ipConfigPip
                     "[resourceId(\u0027Microsoft.Network/publicIPAddresses\u0027, \u0027my-route-server-publicip\u0027)]"
                     "Incorrect publicIPAddress id for ipConfig"
+
                 let ipConfigSubnet = ipConfig.SelectToken("properties.subnet.id").ToString()
+
                 Expect.equal
                     ipConfigSubnet
                     "[resourceId(\u0027Microsoft.Network/virtualNetworks/subnets\u0027, \u0027test-vnet\u0027, \u0027RouteServerSubnet\u0027)]"
                     "Incorrect subnet id for ipConfig"
-                    
+
                 //validate route server generated
                 let routeServer =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualHubs')]"
+
                 Expect.isNotNull routeServer "route server should be generated"
-                
+
                 let routeServerName = routeServer.["name"]
                 Expect.equal routeServerName "my-route-server" "Incorrect default value for route server name"
-                
+
                 let routeServerProps = routeServer.["properties"]
+
                 let allowBranchToBranchTraffic: bool =
                     JToken.op_Explicit routeServerProps.["allowBranchToBranchTraffic"]
+
                 Expect.equal allowBranchToBranchTraffic false "Incorrect default value for allowBranchToBranchTraffic"
+
                 let hubRoutingPreference: string =
                     JToken.op_Explicit routeServerProps.["hubRoutingPreference"]
+
                 Expect.equal hubRoutingPreference "ExpressRoute" "Incorrect default value for HubRoutingPreference"
-                let sku: string =
-                    JToken.op_Explicit routeServerProps.["sku"]
+                let sku: string = JToken.op_Explicit routeServerProps.["sku"]
                 Expect.equal sku "Standard" "Incorrect default value for sku"
-                
+
                 //validate bgp connection generated
                 let bgpConn =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualHubs/bgpConnections')]"
+
                 Expect.isNotNull bgpConn "bgp connection should be generated"
-                
+
                 let bgpConnName = bgpConn.["name"]
                 Expect.equal bgpConnName "my-route-server/my-bgp-conn" "Incorrect default value for bgp connection name"
-                
+
                 let bgpConnDependencies =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualHubs/bgpConnections')].dependsOn"
                     :?> JArray
 
                 Expect.isNotNull bgpConnDependencies "Missing dependency for bgp connection"
                 Expect.hasLength bgpConnDependencies 2 "Incorrect number of dependencies for bgp connection"
+
                 Expect.equal
                     (bgpConnDependencies.[0].ToString())
                     "[resourceId(\u0027Microsoft.Network/virtualHubs\u0027, \u0027my-route-server\u0027)]"
                     "Incorrect bgp connection dependencies"
+
                 Expect.equal
                     (bgpConnDependencies.[1].ToString())
                     "[resourceId(\u0027Microsoft.Network/virtualHubs/ipConfigurations\u0027, \u0027my-route-server\u0027, \u0027my-route-server-ipconfig\u0027)]"
                     "Incorrect bgp connection dependencies"
-                
+
                 let bgpConnProps = bgpConn.["properties"]
-                let peerAsn: int =
-                    JToken.op_Explicit bgpConnProps.["peerAsn"]
+                let peerAsn: int = JToken.op_Explicit bgpConnProps.["peerAsn"]
                 Expect.equal peerAsn 65000 "Incorrect peer Asn for bgp connection"
-                let peerIp: string =
-                    JToken.op_Explicit bgpConnProps.["peerIp"]
+                let peerIp: string = JToken.op_Explicit bgpConnProps.["peerIp"]
                 Expect.equal peerIp "10.0.1.85" "Incorrect peer ip for bgp connection"
             }
         ]
