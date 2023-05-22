@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.7.23
+* Route server: Adds support for route server creation.
 
 ## 1.7.22
 * AVS: Scripting subresource types.
