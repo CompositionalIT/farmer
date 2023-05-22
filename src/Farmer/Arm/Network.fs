@@ -6,6 +6,7 @@ open Farmer
 open Farmer.Arm
 open Farmer.ExpressRoute
 open Farmer.Route
+open Farmer.RouteServer
 open Farmer.VirtualNetworkGateway
 
 let connections = ResourceType("Microsoft.Network/connections", "2020-04-01")
@@ -54,6 +55,11 @@ let virtualNetworkPeering =
 let routeTables = ResourceType("Microsoft.Network/routeTables", "2021-01-01")
 let routes = ResourceType("Microsoft.Network/routeTables/routes", "2021-01-01")
 
+let routeServers = ResourceType("Microsoft.Network/virtualHubs", "2022-11-01")
+
+let routeServerIPConfigs = ResourceType("Microsoft.Network/virtualHubs/ipConfigurations", "2022-11-01")
+
+let routeServerBGPConnections = ResourceType("Microsoft.Network/virtualHubs/bgpConnections", "2022-11-01")
 
 type SubnetReference =
     | ViaManagedVNet of (ResourceId * ResourceName)
@@ -152,6 +158,108 @@ type RouteTable =
         member this.JsonModel =
             {| routeTables.Create(this.Name, this.Location, tags = this.Tags) with
                 properties = this.JsonModelProperties
+            |}
+
+type RouteServer =
+    {
+        Name: ResourceName
+        Location: Location
+        Sku: Sku
+        AllowBranchToBranchTraffic: FeatureFlag
+        HubRoutingPreference: HubRoutingPreference
+        Tags: Map<string, string>
+    }
+
+    member internal this.JsonModelProperties =
+        {|
+            sku = string this.Sku
+            allowBranchToBranchTraffic = this.AllowBranchToBranchTraffic.AsBoolean
+            hubRoutingPreference = string this.HubRoutingPreference
+        |}
+
+    interface IArmResource with
+        member this.ResourceId = routeServers.resourceId this.Name
+
+        member this.JsonModel =
+            {| routeServers.Create(this.Name, this.Location, tags = this.Tags) with
+                kind = "RouteServer"
+                properties = this.JsonModelProperties
+            |}
+
+type RouteServerIPConfig =
+    {
+        Name: ResourceName
+        RouteServer: LinkedResource
+        PublicIpAddress: LinkedResource
+        SubnetId: LinkedResource
+    }
+
+    interface IArmResource with
+        member this.ResourceId =
+            routeServerIPConfigs.resourceId (this.RouteServer.Name, this.Name)
+
+        member this.JsonModel =
+            let dependencies =
+                seq {
+                    match this.PublicIpAddress with
+                    | Managed resId -> resId
+                    | _ -> ()
+                    
+                    match this.SubnetId with
+                    | Managed resId -> resId
+                    | _ -> ()
+                    
+                    this.RouteServer.ResourceId
+                }
+                |> Set.ofSeq
+
+            {|
+                routeServerIPConfigs.Create(
+                    this.RouteServer.Name / this.Name,
+                    dependsOn = dependencies
+                ) with
+                    properties =
+                        {|
+                            publicIPAddress = LinkedResource.AsIdObject this.PublicIpAddress
+                            subnet = LinkedResource.AsIdObject this.SubnetId
+                        |}
+            |}
+
+type RouteServerBGPConnection =
+    {
+        Name: ResourceName
+        RouteServer: LinkedResource
+        ConnectionName: string
+        PeerIp: string
+        PeerAsn: int
+        IpConfig: LinkedResource
+    }
+
+    interface IArmResource with
+        member this.ResourceId =
+            routeServerBGPConnections.resourceId (this.RouteServer.Name, this.Name)
+
+        member this.JsonModel =
+            let dependencies =
+                seq {
+                    match this.IpConfig with
+                    | Managed resId -> resId
+                    | _ -> ()
+                    
+                    this.RouteServer.ResourceId
+                }
+                |> Set.ofSeq
+                
+            {|
+                routeServerBGPConnections.Create(
+                    this.RouteServer.Name / this.ConnectionName,
+                    dependsOn = dependencies
+                ) with
+                    properties =
+                        {|
+                            peerIp = this.PeerIp
+                            peerAsn = this.PeerAsn
+                        |}
             |}
 
 type PublicIpAddress =
