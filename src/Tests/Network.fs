@@ -843,15 +843,15 @@ let tests =
                                 routeServer {
                                     name "my-route-server"
                                     sku RouteServer.Sku.Standard
-                                    subnetPrefix "10.0.12.0/24"
-                                    linkToVnet (virtualNetworks.resourceId "test-vnet")
+                                    subnet_prefix "10.0.12.0/24"
+                                    link_to_vnet (virtualNetworks.resourceId "test-vnet")
 
-                                    add_BGPConnections
+                                    add_BGP_connections
                                         [
                                             routeServerBGPConnection {
-                                                connectionName "my-bgp-conn"
-                                                peerIp "10.0.1.85"
-                                                peerAsn 65000
+                                                connection_name "my-bgp-conn"
+                                                peer_ip "10.0.1.85"
+                                                peer_asn 65000
                                             }
                                         ]
                                 }

@@ -227,7 +227,6 @@ type RouteServerBGPConnection =
     {
         Name: ResourceName
         RouteServer: LinkedResource
-        ConnectionName: string
         PeerIp: string
         PeerAsn: int
         IpConfig: LinkedResource
@@ -248,7 +247,7 @@ type RouteServerBGPConnection =
                 }
                 |> Set.ofSeq
 
-            {| routeServerBGPConnections.Create(this.RouteServer.Name / this.ConnectionName, dependsOn = dependencies) with
+            {| routeServerBGPConnections.Create(this.RouteServer.Name / this.Name, dependsOn = dependencies) with
                 properties =
                     {|
                         peerIp = this.PeerIp

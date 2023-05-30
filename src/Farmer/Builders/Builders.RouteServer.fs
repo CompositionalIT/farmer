@@ -21,16 +21,16 @@ type RSBGPConnectionBuilder() =
             PeerAsn = 0
         }
 
-    [<CustomOperation "connectionName">]
+    [<CustomOperation "connection_name">]
     member _.ConnectionName(state: RSBGPConnectionConfig, connectionName) =
         { state with
             ConnectionName = connectionName
         }
 
-    [<CustomOperation "peerIp">]
+    [<CustomOperation "peer_ip">]
     member _.PeerIp(state: RSBGPConnectionConfig, peerIp) = { state with PeerIp = peerIp }
 
-    [<CustomOperation "peerAsn">]
+    [<CustomOperation "peer_asn">]
     member _.PeerAsn(state: RSBGPConnectionConfig, peerAsn) = { state with PeerAsn = peerAsn }
 
 let routeServerBGPConnection = RSBGPConnectionBuilder()
@@ -43,7 +43,7 @@ type RouteServerConfig =
         HubRoutingPreference: HubRoutingPreference option
         BGPConnections: RSBGPConnectionConfig list
         VirtualNetwork: LinkedResource option
-        SubnetPrefix: string
+        SubnetPrefix: IPAddressCidr
         Tags: Map<string, string>
     }
 
@@ -70,7 +70,7 @@ type RouteServerConfig =
                 //subnet
                 {
                     Subnet.Name = ResourceName "RouteServerSubnet"
-                    Prefix = this.SubnetPrefix
+                    Prefix = IPAddressCidr.format this.SubnetPrefix
                     VirtualNetwork = Some(vnetId)
                     NetworkSecurityGroup = None
                     Delegations = []
@@ -108,9 +108,8 @@ type RouteServerConfig =
                 //bgp connections
                 for connection in this.BGPConnections do
                     {
-                        RouteServerBGPConnection.Name = this.Name
+                        RouteServerBGPConnection.Name = ResourceName connection.ConnectionName
                         RouteServer = Managed(routeServers.resourceId this.Name)
-                        ConnectionName = connection.ConnectionName
                         PeerIp = connection.PeerIp
                         PeerAsn = connection.PeerAsn
                         IpConfig =
@@ -132,7 +131,11 @@ type RouteServerBuilder() =
             HubRoutingPreference = None
             BGPConnections = []
             VirtualNetwork = None
-            SubnetPrefix = ""
+            SubnetPrefix =
+                {
+                    Address = System.Net.IPAddress.Parse("10.0.100.0")
+                    Prefix = 16
+                }
             Tags = Map.empty
         }
 
@@ -142,29 +145,32 @@ type RouteServerBuilder() =
     [<CustomOperation "sku">]
     member _.Sku(state: RouteServerConfig, sku) = { state with Sku = sku }
 
-    [<CustomOperation "allowBranchToBranchTraffic">]
+    [<CustomOperation "allow_branch_to_branch_traffic">]
     member _.AllowBranchToBranchTraffic(state: RouteServerConfig, flag: bool) =
         { state with
             AllowBranchToBranchTraffic = Some(FeatureFlag.ofBool flag)
         }
 
-    [<CustomOperation "routingPreference">]
+    [<CustomOperation "routing_preference">]
     member _.HubRoutingPreference(state: RouteServerConfig, routingPreference) =
         { state with
             HubRoutingPreference = Some(routingPreference)
         }
 
-    [<CustomOperation "add_BGPConnections">]
+    [<CustomOperation "add_BGP_connections">]
     member _.AddIPConfigs(state: RouteServerConfig, connections: RSBGPConnectionConfig list) =
         { state with
             BGPConnections = connections @ state.BGPConnections
         }
 
-    [<CustomOperation "subnetPrefix">]
-    member _.SubnetPrefix(state: RouteServerConfig, prefix) = { state with SubnetPrefix = prefix }
+    [<CustomOperation "subnet_prefix">]
+    member _.SubnetPrefix(state: RouteServerConfig, prefix) =
+        { state with
+            SubnetPrefix = IPAddressCidr.parse prefix
+        }
 
     // linked to managed vnet created by Farmer and linked by user
-    [<CustomOperation "linkToVnet">]
+    [<CustomOperation "link_to_vnet">]
     member _.LinkToVNetId(state: RouteServerConfig, vnetId: ResourceId) =
         { state with
             VirtualNetwork = Some(Managed vnetId)
