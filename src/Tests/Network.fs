@@ -829,7 +829,7 @@ let tests =
                     "[resourceId('farmer-pls', 'Microsoft.Network/privateLinkServices', 'pls')]"
                     "Incorrect private link service ID"
             }
-            
+
             test "Creates basic network interface with static ip" {
                 let deployment =
                     arm {
@@ -854,8 +854,8 @@ let tests =
 
                 let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
                 let templateStr = jobj.ToString()
-                
-                 //validate vnet generated
+
+                //validate vnet generated
                 let vnet =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks')]"
 
@@ -873,7 +873,7 @@ let tests =
                 let subnetProps = subnet.["properties"]
                 let addressPrefix: string = JToken.op_Explicit subnetProps.["addressPrefix"]
                 Expect.equal addressPrefix "10.0.100.0/24" "Incorrect addressPrefix for subnet"
-                
+
                 //validate network interface generated
                 let networkInterface =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Network/networkInterfaces')]"
@@ -900,42 +900,42 @@ let tests =
                     "Incorrect networkInterface dependencies"
 
                 let networkInterfaceProps = networkInterface.["properties"]
-                
+
                 let enableAcceleratedNetworking: bool =
                     JToken.op_Explicit networkInterfaceProps.["enableAcceleratedNetworking"]
+
                 Expect.equal enableAcceleratedNetworking false "Incorrect default value for enableAcceleratedNetworking"
-                
+
                 let enableIPForwarding: bool =
                     JToken.op_Explicit networkInterfaceProps.["enableIPForwarding"]
+
                 Expect.equal enableIPForwarding false "Incorrect default value for enableIPForwarding"
-                
+
                 //validate ip config generated
                 let ipConfig = networkInterfaceProps.["ipConfigurations"].[0]
                 Expect.isNotNull ipConfig "network interface ip config should be generated"
-                
+
                 let ipConfigName = ipConfig.["name"]
-                Expect.equal
-                    ipConfigName
-                    "ipconfig1"
-                    "Incorrect default value for network interface ip config name"
-                    
+                Expect.equal ipConfigName "ipconfig1" "Incorrect default value for network interface ip config name"
+
                 let ipConfigProps = ipConfig.["properties"]
-                
-                let privateIPAddress: string =
-                    JToken.op_Explicit ipConfigProps.["privateIPAddress"]
+
+                let privateIPAddress: string = JToken.op_Explicit ipConfigProps.["privateIPAddress"]
                 Expect.equal privateIPAddress "10.0.100.10" "Incorrect default value for privateIPAddress"
-                
+
                 let privateIPAllocationMethod: string =
                     JToken.op_Explicit ipConfigProps.["privateIPAllocationMethod"]
+
                 Expect.equal privateIPAllocationMethod "Static" "Incorrect default value for privateIPAllocationMethod"
-                
+
                 let subnetId = ipConfigProps.SelectToken("subnet.id").ToString()
+
                 Expect.equal
                     subnetId
                     "[resourceId(\u0027Microsoft.Network/virtualNetworks/subnets\u0027, \u0027test-vnet\u0027, \u0027networkInterfaceSubnet\u0027)]"
                     "Incorrect subnet id for ipConfig"
             }
-            
+
             test "Creates basic network interface with dynamic ip" {
                 let deployment =
                     arm {
@@ -957,18 +957,20 @@ let tests =
 
                 let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
                 let templateStr = jobj.ToString()
-                
+
                 let networkInterface =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Network/networkInterfaces')]"
+
                 Expect.isNotNull networkInterface "network interface should be generated"
-                
+
                 let ipConfig = networkInterface.["properties"].["ipConfigurations"].[0]
                 Expect.isNotNull ipConfig "network interface ip config should be generated"
-                
+
                 let ipConfigProps = ipConfig.["properties"]
-                
+
                 let privateIPAllocationMethod: string =
                     JToken.op_Explicit ipConfigProps.["privateIPAllocationMethod"]
+
                 Expect.equal privateIPAllocationMethod "Dynamic" "Incorrect default value for privateIPAllocationMethod"
             }
         ]

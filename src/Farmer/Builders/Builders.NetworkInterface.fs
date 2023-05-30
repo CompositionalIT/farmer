@@ -42,19 +42,22 @@ type NetworkInterfaceConfig =
                     PrivateEndpointNetworkPolicies = None
                     PrivateLinkServiceNetworkPolicies = None
                 }
-                
+
                 //ipConfig
-                let subnetIpConfigs = [{
-                    SubnetName = ResourceName "networkInterfaceSubnet"
-                    LoadBalancerBackendAddressPools = []
-                    PublicIpAddress = None
-                    PrivateIpAllocation =
-                        match this.PrivateIpAddress with
-                            | "" -> Some(AllocationMethod.DynamicPrivateIp)
-                            | ip -> Some(AllocationMethod.StaticPrivateIp(System.Net.IPAddress.Parse ip))
-                    Primary = this.IsPrimary
-                }]
-                
+                let subnetIpConfigs =
+                    [
+                        {
+                            SubnetName = ResourceName "networkInterfaceSubnet"
+                            LoadBalancerBackendAddressPools = []
+                            PublicIpAddress = None
+                            PrivateIpAllocation =
+                                match this.PrivateIpAddress with
+                                | "" -> Some(AllocationMethod.DynamicPrivateIp)
+                                | ip -> Some(AllocationMethod.StaticPrivateIp(System.Net.IPAddress.Parse ip))
+                            Primary = this.IsPrimary
+                        }
+                    ]
+
                 //network interface
                 {
                     Name = this.Name
@@ -78,10 +81,10 @@ type NetworkInterfaceBuilder() =
             IsPrimary = None
             VirtualNetwork = None
             SubnetPrefix =
-                    {
-                        Address = System.Net.IPAddress.Parse("10.0.100.0")
-                        Prefix = 16
-                    }
+                {
+                    Address = System.Net.IPAddress.Parse("10.0.100.0")
+                    Prefix = 16
+                }
             PrivateIpAddress = ""
             Tags = Map.empty
         }
@@ -94,7 +97,7 @@ type NetworkInterfaceBuilder() =
         { state with
             AcceleratedNetworkingflag = Some(FeatureFlag.ofBool flag)
         }
-        
+
     [<CustomOperation "ip_forwarding_flag">]
     member _.IpForwarding(state: NetworkInterfaceConfig, flag: bool) =
         { state with
@@ -121,8 +124,11 @@ type NetworkInterfaceBuilder() =
         }
 
     [<CustomOperation "subnet_prefix">]
-    member _.SubnetPrefix(state: NetworkInterfaceConfig, prefix) = { state with SubnetPrefix = IPAddressCidr.parse prefix }
-    
+    member _.SubnetPrefix(state: NetworkInterfaceConfig, prefix) =
+        { state with
+            SubnetPrefix = IPAddressCidr.parse prefix
+        }
+
     [<CustomOperation "add_static_ip">]
     member _.StaticIpAllocation(state: NetworkInterfaceConfig, addr) = { state with PrivateIpAddress = addr }
 
