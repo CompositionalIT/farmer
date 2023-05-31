@@ -8,7 +8,7 @@ open Farmer.RouteServer
 
 type RSBGPConnectionConfig =
     {
-        ConnectionName: string
+        Name: string
         PeerIp: string
         PeerAsn: int
     }
@@ -16,15 +16,15 @@ type RSBGPConnectionConfig =
 type RSBGPConnectionBuilder() =
     member _.Yield _ =
         {
-            ConnectionName = ""
+            Name = ""
             PeerIp = ""
             PeerAsn = 0
         }
 
-    [<CustomOperation "connection_name">]
-    member _.ConnectionName(state: RSBGPConnectionConfig, connectionName) =
+    [<CustomOperation "name">]
+    member _.ConnectionName(state: RSBGPConnectionConfig, name) =
         { state with
-            ConnectionName = connectionName
+            Name = name
         }
 
     [<CustomOperation "peer_ip">]
@@ -108,7 +108,7 @@ type RouteServerConfig =
                 //bgp connections
                 for connection in this.BGPConnections do
                     {
-                        RouteServerBGPConnection.Name = ResourceName connection.ConnectionName
+                        RouteServerBGPConnection.Name = ResourceName connection.Name
                         RouteServer = Managed(routeServers.resourceId this.Name)
                         PeerIp = connection.PeerIp
                         PeerAsn = connection.PeerAsn
@@ -157,7 +157,7 @@ type RouteServerBuilder() =
             HubRoutingPreference = Some(routingPreference)
         }
 
-    [<CustomOperation "add_BGP_connections">]
+    [<CustomOperation "add_bgp_connections">]
     member _.AddIPConfigs(state: RouteServerConfig, connections: RSBGPConnectionConfig list) =
         { state with
             BGPConnections = connections @ state.BGPConnections

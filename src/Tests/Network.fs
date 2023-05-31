@@ -846,10 +846,10 @@ let tests =
                                     subnet_prefix "10.0.12.0/24"
                                     link_to_vnet (virtualNetworks.resourceId "test-vnet")
 
-                                    add_BGP_connections
+                                    add_bgp_connections
                                         [
                                             routeServerBGPConnection {
-                                                connection_name "my-bgp-conn"
+                                                name "my-bgp-conn"
                                                 peer_ip "10.0.1.85"
                                                 peer_asn 65000
                                             }
