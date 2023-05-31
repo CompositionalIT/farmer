@@ -14,18 +14,10 @@ type RSBGPConnectionConfig =
     }
 
 type RSBGPConnectionBuilder() =
-    member _.Yield _ =
-        {
-            Name = ""
-            PeerIp = ""
-            PeerAsn = 0
-        }
+    member _.Yield _ = { Name = ""; PeerIp = ""; PeerAsn = 0 }
 
     [<CustomOperation "name">]
-    member _.ConnectionName(state: RSBGPConnectionConfig, name) =
-        { state with
-            Name = name
-        }
+    member _.ConnectionName(state: RSBGPConnectionConfig, name) = { state with Name = name }
 
     [<CustomOperation "peer_ip">]
     member _.PeerIp(state: RSBGPConnectionConfig, peerIp) = { state with PeerIp = peerIp }
