@@ -2324,6 +2324,24 @@ module ExpressRoute =
 
         member this.Value = this.ToString()
 
+module RouteServer =
+    type Sku =
+        | Basic
+        | Standard
+
+    type HubRoutingPreference =
+        | ExpressRoute
+        | VPN
+        | ASPath
+        | Nothing
+
+        member x.ArmValue =
+            match x with
+            | ExpressRoute -> "ExpressRoute"
+            | VPN -> "VPN"
+            | ASPath -> "AS Path"
+            | Nothing -> "None"
+
 [<AutoOpen>]
 module PrivateIpAddress =
     type AllocationMethod =
@@ -2824,8 +2842,15 @@ module Network =
 
         /// Microsoft.ApiManagement/service
         static member ApiManagementService = SubnetDelegationService "Microsoft.ApiManagement/service"
+        /// Microsoft.AVS/PrivateClouds
+        static member AVSPrivateCloud = SubnetDelegationService "Microsoft.AVS/PrivateClouds"
         /// Microsoft.AzureCosmosDB/clusters
         static member CosmosDBClusters = SubnetDelegationService "Microsoft.AzureCosmosDB/clusters"
+
+        /// Microsoft.BareMetal/AzureHostedService
+        static member BareMetalAzureHostedService =
+            SubnetDelegationService "Microsoft.BareMetal/AzureHostedService"
+
         /// Microsoft.BareMetal/AzureVMware
         static member BareMetalVMware = SubnetDelegationService "Microsoft.BareMetal/AzureVMware"
         /// Microsoft.BareMetal/CrayServers
