@@ -13,14 +13,16 @@ communicate with internet, Azure, and on-premises resources. To learn more about
 
 #### Builder Keywords
 
-| Applies To | Keyword          | Purpose                                                                                    |
-|-|------------------|--------------------------------------------------------------------------------------------|
-| networkInterface | name             | Name of the network interface resource                                                     |
-| networkInterface | subnet_prefix     | Sets the subnet prefix of the vnet for network interface                                   |
-| networkInterface | link_to_vnet       | Link to existing vnet or to vnet managed by Farmer                                         |
-| networkInterface | add_static_ip       | Use static ip for the network interface. If not provided, ip will be dynamically allocated |
-| networkInterface | accelerated_networking_flag    | The accelerated networking flag for the network interface. Default is false  |
-| networkInterface | ip_forwarding_flag    | The ip forwarding flag for the network interface. Default is false                         |
+| Applies To | Keyword          | Purpose                                                                                               |
+|-|------------------|-------------------------------------------------------------------------------------------------------|
+| networkInterface | name             | Name of the network interface resource                                                                |
+| networkInterface | link_to_subnet     | Link to existing subnet. If not provided, need to specify the subnet name and prefix for a new subnet |
+| networkInterface | subnet_name     | Sets the name of the vnet subnet for network interface                                                |
+| networkInterface | subnet_prefix     | Sets the prefix of the vnet subnet for network interface                                              |
+| networkInterface | link_to_vnet       | Link to existing vnet or to vnet managed by Farmer                                                    |
+| networkInterface | add_static_ip       | Use static ip for the network interface. If not provided, ip will be dynamically allocated            |
+| networkInterface | accelerated_networking_flag    | The accelerated networking flag for the network interface. Default is false                           |
+| networkInterface | ip_forwarding_flag    | The ip forwarding flag for the network interface. Default is false                                    |
 
 #### Example
 
@@ -41,11 +43,34 @@ arm {
             }
             networkInterface {
                 name "my-network-interface"
+                subnet_name "my-subnet"
                 subnet_prefix "10.0.100.0/24"
                 link_to_vnet (virtualNetworks.resourceId "test-vnet")
                 add_static_ip "10.0.100.10"
                 accelerated_networking_flag false
                 ip_forwarding_flag false
+            }
+        ]
+}
+```
+
+#### Example using existing vnet and subnet with dynamic ip allocation
+
+```fsharp
+#r "nuget:Farmer"
+open Farmer
+open Farmer.Builders
+open Farmer.Builders.NetworkInterface
+
+arm {
+    location Location.EastUS
+
+    add_resources
+        [
+            networkInterface {
+                name "my-network-interface"
+                link_to_subnet "test-subnet"
+                link_to_vnet "test-vnet"
             }
         ]
 }

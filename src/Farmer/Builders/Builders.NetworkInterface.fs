@@ -14,8 +14,10 @@ type NetworkInterfaceConfig =
         IpForwarding: FeatureFlag option
         IsPrimary: bool option
         VirtualNetwork: LinkedResource option
-        SubnetPrefix: IPAddressCidr
-        PrivateIpAddress: string
+        SubnetName: string option
+        SubnetPrefix: IPAddressCidr option
+        LinkedSubnet: LinkedResource option
+        PrivateIpAddress: AllocationMethod
         Tags: Map<string, string>
     }
 
@@ -29,47 +31,79 @@ type NetworkInterfaceConfig =
                     this.VirtualNetwork
                     |> Option.defaultWith (fun _ -> raiseFarmer "Must set 'vnet' for network interface")
 
-                //subnet
-                {
-                    Subnet.Name = ResourceName "networkInterfaceSubnet"
-                    Prefix = IPAddressCidr.format this.SubnetPrefix
-                    VirtualNetwork = Some(vnetId)
-                    NetworkSecurityGroup = None
-                    Delegations = []
-                    NatGateway = None
-                    ServiceEndpoints = []
-                    AssociatedServiceEndpointPolicies = []
-                    PrivateEndpointNetworkPolicies = None
-                    PrivateLinkServiceNetworkPolicies = None
-                }
+                match this.LinkedSubnet with
+                | Some subnet ->
+                    //ipConfig
+                    let subnetIpConfigs =
+                        [
+                            {
+                                SubnetName = subnet.Name
+                                LoadBalancerBackendAddressPools = []
+                                PublicIpAddress = None
+                                PrivateIpAllocation = Some(this.PrivateIpAddress)
+                                Primary = this.IsPrimary
+                            }
+                        ]
 
-                //ipConfig
-                let subnetIpConfigs =
-                    [
+                    //network interface
+                    {
+                        Name = this.Name
+                        Location = location
+                        EnableAcceleratedNetworking =
+                            this.AcceleratedNetworkingflag |> Option.map (fun f -> f.AsBoolean)
+                        EnableIpForwarding = this.IpForwarding |> Option.map (fun f -> f.AsBoolean)
+                        IpConfigs = subnetIpConfigs
+                        Primary = this.IsPrimary
+                        VirtualNetwork = vnetId
+                        NetworkSecurityGroup = None
+                        Tags = this.Tags
+                    }
+
+                | None ->
+                    match this.SubnetName, this.SubnetPrefix with
+                    | Some subnetName, Some subnetPrefix ->
+                        //subnet
                         {
-                            SubnetName = ResourceName "networkInterfaceSubnet"
-                            LoadBalancerBackendAddressPools = []
-                            PublicIpAddress = None
-                            PrivateIpAllocation =
-                                match this.PrivateIpAddress with
-                                | "" -> Some(AllocationMethod.DynamicPrivateIp)
-                                | ip -> Some(AllocationMethod.StaticPrivateIp(System.Net.IPAddress.Parse ip))
-                            Primary = this.IsPrimary
+                            Subnet.Name = ResourceName subnetName
+                            Prefix = IPAddressCidr.format subnetPrefix
+                            VirtualNetwork = Some(vnetId)
+                            NetworkSecurityGroup = None
+                            Delegations = []
+                            NatGateway = None
+                            ServiceEndpoints = []
+                            AssociatedServiceEndpointPolicies = []
+                            PrivateEndpointNetworkPolicies = None
+                            PrivateLinkServiceNetworkPolicies = None
                         }
-                    ]
 
-                //network interface
-                {
-                    Name = this.Name
-                    Location = location
-                    EnableAcceleratedNetworking = this.AcceleratedNetworkingflag |> Option.map (fun f -> f.AsBoolean)
-                    EnableIpForwarding = this.IpForwarding |> Option.map (fun f -> f.AsBoolean)
-                    IpConfigs = subnetIpConfigs
-                    Primary = this.IsPrimary
-                    VirtualNetwork = vnetId
-                    NetworkSecurityGroup = None
-                    Tags = this.Tags
-                }
+                        //ipConfig
+                        let subnetIpConfigs =
+                            [
+                                {
+                                    SubnetName = ResourceName subnetName
+                                    LoadBalancerBackendAddressPools = []
+                                    PublicIpAddress = None
+                                    PrivateIpAllocation = Some(this.PrivateIpAddress)
+                                    Primary = this.IsPrimary
+                                }
+                            ]
+
+                        //network interface
+                        {
+                            Name = this.Name
+                            Location = location
+                            EnableAcceleratedNetworking =
+                                this.AcceleratedNetworkingflag |> Option.map (fun f -> f.AsBoolean)
+                            EnableIpForwarding = this.IpForwarding |> Option.map (fun f -> f.AsBoolean)
+                            IpConfigs = subnetIpConfigs
+                            Primary = this.IsPrimary
+                            VirtualNetwork = vnetId
+                            NetworkSecurityGroup = None
+                            Tags = this.Tags
+                        }
+                    | _ ->
+                        raiseFarmer
+                            $"subnetName and subnetPrefix must be specified for a new subnet if no existing subnet provided."
             ]
 
 type NetworkInterfaceBuilder() =
@@ -80,12 +114,10 @@ type NetworkInterfaceBuilder() =
             IpForwarding = None
             IsPrimary = None
             VirtualNetwork = None
-            SubnetPrefix =
-                {
-                    Address = System.Net.IPAddress.Parse("10.0.100.0")
-                    Prefix = 16
-                }
-            PrivateIpAddress = ""
+            SubnetName = None
+            SubnetPrefix = None
+            LinkedSubnet = None
+            PrivateIpAddress = AllocationMethod.DynamicPrivateIp
             Tags = Map.empty
         }
 
@@ -123,13 +155,27 @@ type NetworkInterfaceBuilder() =
             VirtualNetwork = Some(Unmanaged(virtualNetworks.resourceId (ResourceName vnetName)))
         }
 
+    // create subnet through Farmer. Need to specify subnet_name and subnet_prefix
+    [<CustomOperation "subnet_name">]
+    member _.SubnetName(state: NetworkInterfaceConfig, name) = { state with SubnetName = Some(name) }
+
     [<CustomOperation "subnet_prefix">]
     member _.SubnetPrefix(state: NetworkInterfaceConfig, prefix) =
         { state with
-            SubnetPrefix = IPAddressCidr.parse prefix
+            SubnetPrefix = Some(IPAddressCidr.parse prefix)
+        }
+
+    // linked to external existing subnet
+    [<CustomOperation "link_to_subnet">]
+    member _.LinkToSubnet(state: NetworkInterfaceConfig, name: string) =
+        { state with
+            LinkedSubnet = Some(Unmanaged(subnets.resourceId (ResourceName name)))
         }
 
     [<CustomOperation "add_static_ip">]
-    member _.StaticIpAllocation(state: NetworkInterfaceConfig, addr) = { state with PrivateIpAddress = addr }
+    member _.StaticIpAllocation(state: NetworkInterfaceConfig, addr) =
+        { state with
+            PrivateIpAddress = AllocationMethod.StaticPrivateIp(System.Net.IPAddress.Parse addr)
+        }
 
 let networkInterface = NetworkInterfaceBuilder()

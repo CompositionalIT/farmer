@@ -843,6 +843,7 @@ let tests =
                                 }
                                 networkInterface {
                                     name "my-network-interface"
+                                    subnet_name "my-subnet"
                                     subnet_prefix "10.0.100.0/24"
                                     link_to_vnet (virtualNetworks.resourceId "test-vnet")
                                     add_static_ip "10.0.100.10"
@@ -868,7 +869,7 @@ let tests =
                 Expect.isNotNull subnet "subnet should be generated"
 
                 let subnetName = subnet.["name"]
-                Expect.equal subnetName "test-vnet/networkInterfaceSubnet" "Incorrect default value for subnet name"
+                Expect.equal subnetName "test-vnet/my-subnet" "Incorrect default value for subnet name"
 
                 let subnetProps = subnet.["properties"]
                 let addressPrefix: string = JToken.op_Explicit subnetProps.["addressPrefix"]
@@ -932,25 +933,21 @@ let tests =
 
                 Expect.equal
                     subnetId
-                    "[resourceId(\u0027Microsoft.Network/virtualNetworks/subnets\u0027, \u0027test-vnet\u0027, \u0027networkInterfaceSubnet\u0027)]"
+                    "[resourceId(\u0027Microsoft.Network/virtualNetworks/subnets\u0027, \u0027test-vnet\u0027, \u0027my-subnet\u0027)]"
                     "Incorrect subnet id for ipConfig"
             }
 
-            test "Creates basic network interface with dynamic ip" {
+            test "Creates basic network interface with existing vnet subnet and dynamic ip" {
                 let deployment =
                     arm {
                         location Location.EastUS
 
                         add_resources
                             [
-                                vnet {
-                                    name "test-vnet"
-                                    add_address_spaces [ "10.0.0.0/16" ]
-                                }
                                 networkInterface {
                                     name "my-network-interface"
-                                    subnet_prefix "10.0.100.0/24"
-                                    link_to_vnet (virtualNetworks.resourceId "test-vnet")
+                                    link_to_subnet "test-subnet"
+                                    link_to_vnet "test-vnet"
                                 }
                             ]
                     }
@@ -972,5 +969,12 @@ let tests =
                     JToken.op_Explicit ipConfigProps.["privateIPAllocationMethod"]
 
                 Expect.equal privateIPAllocationMethod "Dynamic" "Incorrect default value for privateIPAllocationMethod"
+
+                let subnetId = ipConfigProps.SelectToken("subnet.id").ToString()
+
+                Expect.equal
+                    subnetId
+                    "[resourceId(\u0027Microsoft.Network/virtualNetworks/subnets\u0027, \u0027test-vnet\u0027, \u0027test-subnet\u0027)]"
+                    "Incorrect subnet id for ipConfig"
             }
         ]
