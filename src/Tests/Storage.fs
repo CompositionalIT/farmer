@@ -299,7 +299,7 @@ let tests =
                 Expect.equal roleAssignment.PrincipalId uai.PrincipalId "PrincipalId"
                 Expect.equal roleAssignment.RoleDefinitionId Roles.StorageBlobDataOwner "RoleId"
                 Expect.equal roleAssignment.Name.Value "105eb550-eb9f-56b6-955d-1def9d3139ec" "Storage Account Name"
-                Expect.equal roleAssignment.Scope Farmer.Arm.RoleAssignment.AssignmentScope.ResourceGroup "Scope"
+                Expect.equal roleAssignment.Scope (Farmer.Arm.RoleAssignment.AssignmentScope.SpecificResource builder.ResourceId) "Scope"
 
                 Expect.sequenceEqual
                     roleAssignment.Dependencies
