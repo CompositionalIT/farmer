@@ -352,7 +352,6 @@ let tests =
                     }
 
                 let resource = arm { add_resource account } |> getStorageResource
-
                 Expect.equal resource.Kind "BlockBlobStorage" "Kind"
                 Expect.equal resource.Sku.Name "Premium_LRS" "Sku Name"
 
