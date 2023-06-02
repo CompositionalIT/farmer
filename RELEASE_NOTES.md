@@ -2,6 +2,7 @@ Release Notes
 =============
 ## 1.7.23
 * Route server: Adds support for route server creation.
+* Storage Accounts: Fixes scope of role assignments.
 
 ## 1.7.22
 * AVS: Scripting subresource types.

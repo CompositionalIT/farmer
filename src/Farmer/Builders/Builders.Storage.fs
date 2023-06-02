@@ -173,7 +173,7 @@ type StorageAccountConfig =
                         RoleDefinitionId = roleAssignment.Role
                         PrincipalId = roleAssignment.Principal
                         PrincipalType = PrincipalType.ServicePrincipal
-                        Scope = ResourceGroup
+                        Scope = SpecificResource this.ResourceId
                         Dependencies =
                             Set
                                 [
