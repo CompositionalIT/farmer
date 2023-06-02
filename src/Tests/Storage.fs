@@ -299,7 +299,11 @@ let tests =
                 Expect.equal roleAssignment.PrincipalId uai.PrincipalId "PrincipalId"
                 Expect.equal roleAssignment.RoleDefinitionId Roles.StorageBlobDataOwner "RoleId"
                 Expect.equal roleAssignment.Name.Value "105eb550-eb9f-56b6-955d-1def9d3139ec" "Storage Account Name"
-                Expect.equal roleAssignment.Scope (Farmer.Arm.RoleAssignment.AssignmentScope.SpecificResource builder.ResourceId) "Scope"
+
+                Expect.equal
+                    roleAssignment.Scope
+                    (Farmer.Arm.RoleAssignment.AssignmentScope.SpecificResource builder.ResourceId)
+                    "Scope"
 
                 Expect.sequenceEqual
                     roleAssignment.Dependencies
@@ -327,6 +331,7 @@ let tests =
                     }
 
                 let resource = arm { add_resource account } |> getStorageResource
+
                 Expect.equal resource.Kind "BlobStorage" "Kind"
                 Expect.equal resource.AccessTier (Nullable AccessTier.Hot) "Access Tier"
                 Expect.equal resource.Sku.Name "Standard_LRS" "Sku Name"
@@ -338,6 +343,7 @@ let tests =
                     }
 
                 let resource = arm { add_resource account } |> getStorageResource
+
                 Expect.equal resource.Kind "FileStorage" "Kind"
                 Expect.equal resource.Sku.Name "Premium_ZRS" "Sku Name"
 
@@ -348,6 +354,7 @@ let tests =
                     }
 
                 let resource = arm { add_resource account } |> getStorageResource
+
                 Expect.equal resource.Kind "BlockBlobStorage" "Kind"
                 Expect.equal resource.Sku.Name "Premium_LRS" "Sku Name"
 
@@ -358,6 +365,7 @@ let tests =
                     }
 
                 let resource = arm { add_resource account } |> getStorageResource
+
                 Expect.equal resource.Kind "Storage" "Kind"
                 Expect.equal resource.Sku.Name "Standard_RAGRS" "Sku Name"
 
@@ -368,6 +376,7 @@ let tests =
                     }
 
                 let resource = arm { add_resource account } |> getStorageResource
+
                 Expect.equal resource.Kind "StorageV2" "Kind"
                 Expect.equal resource.Sku.Name "Premium_LRS" "Sku Name"
             }
@@ -379,6 +388,7 @@ let tests =
                     }
 
                 let resource = arm { add_resource account } |> getStorageResource
+
                 Expect.equal resource.AccessTier (Nullable AccessTier.Cool) "Access Tier"
 
                 let account =
@@ -388,6 +398,7 @@ let tests =
                     }
 
                 let resource = arm { add_resource account } |> getStorageResource
+
                 Expect.equal resource.AccessTier (Nullable AccessTier.Hot) "Access Tier"
 
                 let account =
@@ -397,6 +408,7 @@ let tests =
                     }
 
                 let resource = arm { add_resource account } |> getStorageResource
+
                 Expect.equal resource.AccessTier (Nullable()) "Access Tier"
 
                 let account =
@@ -406,6 +418,7 @@ let tests =
                     }
 
                 let resource = arm { add_resource account } |> getStorageResource
+
                 Expect.equal resource.AccessTier (Nullable AccessTier.Hot) "Access Tier"
             }
             test "Setting default access tier with incompatible sku throws an exception" {
@@ -428,6 +441,7 @@ let tests =
                     }
 
                 let generated = arm { add_resource storage } |> getStorageResource
+
                 Expect.hasLength generated.NetworkRuleSet.IpRules 2 "Wrong number of IP rules"
 
                 Expect.containsAll
@@ -448,6 +462,7 @@ let tests =
                     }
 
                 let generatedStorage = arm { add_resource storage } |> getStorageResource
+
                 Expect.hasLength generatedStorage.NetworkRuleSet.VirtualNetworkRules 2 "Wrong number of vnet rules"
 
                 let allowedSubnets =
@@ -547,6 +562,7 @@ let tests =
                     }
 
                 let properties = (account |> findPropertiesResource "blobServices").properties
+
                 let restore = properties.restorePolicy
 
                 Expect.isTrue restore.enabled ""
@@ -611,6 +627,7 @@ let tests =
                     arm { add_resource account }
 
                 let jsn = resource.Template |> Writer.toJson
+
                 let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
                 Expect.equal
@@ -636,6 +653,7 @@ let tests =
                     arm { add_resource account }
 
                 let jsn = resource.Template |> Writer.toJson
+
                 let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
                 Expect.equal
@@ -666,6 +684,7 @@ let tests =
                     arm { add_resource account }
 
                 let jsn = resource.Template |> Writer.toJson
+
                 let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
                 Expect.equal
@@ -705,6 +724,7 @@ let tests =
                     arm { add_resource account }
 
                 let jsn = resource.Template |> Writer.toJson
+
                 let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
                 Expect.equal
@@ -725,6 +745,7 @@ let tests =
                     arm { add_resource account }
 
                 let jsn = resource.Template |> Writer.toJson
+
                 let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
                 Expect.equal
@@ -744,6 +765,7 @@ let tests =
                     arm { add_resource account }
 
                 let jsn = resource.Template |> Writer.toJson
+
                 let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
                 Expect.equal
@@ -764,6 +786,7 @@ let tests =
                     arm { add_resource account }
 
                 let jsn = resource.Template |> Writer.toJson
+
                 let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
                 Expect.equal
@@ -783,6 +806,7 @@ let tests =
                     arm { add_resource account }
 
                 let jsn = resource.Template |> Writer.toJson
+
                 let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
                 Expect.equal
@@ -805,6 +829,7 @@ let tests =
                     arm { add_resource account }
 
                 let jsn = resource.Template |> Writer.toJson
+
                 let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
                 Expect.equal
