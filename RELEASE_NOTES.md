@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.7.24
+* Network Interface: Adds support for network interface creation.
+
 ## 1.7.23
 * Route server: Adds support for route server creation.
 * Storage Accounts: Fixes scope of role assignments.
