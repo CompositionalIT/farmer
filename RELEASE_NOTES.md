@@ -1,8 +1,8 @@
 Release Notes
 =============
-## 1.7.23
+
+## 1.7.24
 * Network Interface: Adds support for network interface creation.
-* 
 
 ## 1.7.22
 * AVS: Scripting subresource types.
