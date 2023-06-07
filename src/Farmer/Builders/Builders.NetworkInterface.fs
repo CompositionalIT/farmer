@@ -1,3 +1,4 @@
+[<AutoOpen>]
 module Farmer.Builders.NetworkInterface
 
 open Farmer
