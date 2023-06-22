@@ -145,12 +145,12 @@ let internal buildNsgRule (nsgName: ResourceName) (rule: SecurityRuleConfig) (pr
         Description = None
         SecurityGroup = nsgName
         Protocol =
-            let protocols = rule.Sources |> List.map (fun (protocol, _, _) -> protocol) |> Set
+            let protocols = rule.Sources |> List.map (fun (protocol, _, _) -> protocol)
 
-            if protocols.Count > 1 then
-                AnyProtocol
-            else
-                protocols |> Seq.head
+            match protocols with
+            | [] -> raiseFarmer $"You must set a source for security rule {rule.Name.Value}"
+            | [ protocol ] -> protocol
+            | _ -> AnyProtocol
         SourcePorts = rule.Sources |> List.map (fun (_, _, sourcePort) -> sourcePort) |> Set
         SourceAddresses =
             rule.Sources

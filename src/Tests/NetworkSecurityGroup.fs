@@ -223,4 +223,21 @@ let tests =
                     Expect.containsAll rule4.SourceAddressPrefixes [ "10.100.31.0/24"; "10.100.32.0/24" ] ""
                 | _ -> raiseFarmer "Unexpected number of resources in template."
             }
+            test "Security rule requires a source" {
+                let createNsg () =
+                    let rule = securityRule { name "bar" }
+
+                    arm {
+                        add_resource (
+                            nsg {
+                                name "foo"
+                                add_rules [ rule ]
+                            }
+                        )
+                    }
+                    |> ignore
+
+                let message = Expect.throwsC createNsg (fun ex -> ex.Message)
+                Expect.equal message "You must set a source for security rule bar" "Wrong exception thrown"
+            }
         ]
