@@ -147,6 +147,9 @@ let internal buildNsgRule (nsgName: ResourceName) (rule: SecurityRuleConfig) (pr
         Protocol =
             let protocols = rule.Sources |> List.map (fun (protocol, _, _) -> protocol) |> Set
 
+            if protocols.Count = 0 then
+                raiseFarmer $"You must set a source for security rule {rule.Name.Value}"
+
             if protocols.Count > 1 then
                 AnyProtocol
             else
