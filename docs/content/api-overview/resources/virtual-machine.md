@@ -38,7 +38,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |attach_existing_os_disk|Attaches an existing managed disk to the VM as the OS disk.|
 |attach_data_disk|Attaches an newly imported managed disk to the VM as a data disk.|
 |attach_existing_data_disk|Attaches an existing managed disk to the VM as a data disk.|
-|no_disk|Excludes a data disk (only an OS disk) - common when mounting cloud storage.|
+|no_data_disk|Excludes a data disk (only an OS disk) - common when mounting cloud storage.|
 |domain_name_prefix|Sets the prefix for the domain name of the VM.|
 |address_prefix|Sets the IP address prefix of the VM.|
 |subnet_prefix|Sets the subnet prefix of the VM.|
