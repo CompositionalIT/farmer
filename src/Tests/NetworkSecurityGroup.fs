@@ -225,18 +225,13 @@ let tests =
             }
             test "Security rule requires a source" {
                 let createNsg () =
-                    let rule =
-                        securityRule {
-                            name "bar"
-                        }
+                    let rule = securityRule { name "bar" }
 
                     arm {
                         add_resource (
                             nsg {
                                 name "foo"
-                                add_rules [
-                                    rule
-                                ]
+                                add_rules [ rule ]
                             }
                         )
                     }
