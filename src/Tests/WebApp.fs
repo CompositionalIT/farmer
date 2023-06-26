@@ -293,27 +293,41 @@ let tests =
                 let wa =
                     webApp {
                         name "testweb"
-                        setting "storage" sa.Key
-                        secret_setting "secret"
-                        setting "literal" "value"
+                        setting "astorage" sa.Key
+                        secret_setting "bsecret"
+                        secret_setting "csection:secret"
+                        secret_setting "dmy_secret"
+                        setting "eliteral" "value"
                         use_keyvault
                     }
 
                 let kv = wa |> getResources |> getResource<Vault> |> List.head
-                let secrets = wa |> getResources |> getResource<Vaults.Secret>
+
+                let secrets =
+                    wa
+                    |> getResources
+                    |> getResource<Vaults.Secret>
+                    |> List.sortBy (fun s -> s.Name)
+
                 let site = wa |> getResources |> getResource<Web.Site> |> List.head
                 let vault = wa |> getResources |> getResource<Vault> |> List.head
 
                 let expectedSettings =
                     Map
                         [
-                            "storage",
+                            "astorage",
                             LiteralSetting
-                                "@Microsoft.KeyVault(SecretUri=https://testwebvault.vault.azure.net/secrets/storage)"
-                            "secret",
+                                "@Microsoft.KeyVault(SecretUri=https://testwebvault.vault.azure.net/secrets/astorage)"
+                            "bsecret",
                             LiteralSetting
-                                "@Microsoft.KeyVault(SecretUri=https://testwebvault.vault.azure.net/secrets/secret)"
-                            "literal", LiteralSetting "value"
+                                "@Microsoft.KeyVault(SecretUri=https://testwebvault.vault.azure.net/secrets/bsecret)"
+                            "csection:secret",
+                            LiteralSetting
+                                "@Microsoft.KeyVault(SecretUri=https://testwebvault.vault.azure.net/secrets/csection-secret)"
+                            "dmy_secret",
+                            LiteralSetting
+                                "@Microsoft.KeyVault(SecretUri=https://testwebvault.vault.azure.net/secrets/dmy-secret)"
+                            "eliteral", LiteralSetting "value"
                         ]
 
                 Expect.equal site.Identity.SystemAssigned Enabled "System Identity should be enabled"
@@ -333,9 +347,9 @@ let tests =
                     wa.SystemIdentity.PrincipalId.ArmExpression
                     "Policy is incorrect"
 
-                Expect.hasLength secrets 2 "Incorrect number of KV secrets"
+                Expect.hasLength secrets 4 "Incorrect number of KV secrets"
 
-                Expect.equal secrets.[0].Name.Value "testwebvault/storage" "Incorrect secret name"
+                Expect.equal secrets.[0].Name.Value "testwebvault/astorage" "Incorrect secret name"
                 Expect.equal secrets.[0].Value (ExpressionSecret sa.Key) "Incorrect secret value"
 
                 Expect.sequenceEqual
@@ -343,13 +357,23 @@ let tests =
                     [ vaults.resourceId "testwebvault"; storageAccounts.resourceId "teststorage" ]
                     "Incorrect secret dependencies"
 
-                Expect.equal secrets.[1].Name.Value "testwebvault/secret" "Incorrect secret name"
-                Expect.equal secrets.[1].Value (ParameterSecret(SecureParameter "secret")) "Incorrect secret value"
+                Expect.equal secrets.[1].Name.Value "testwebvault/bsecret" "Incorrect secret name"
+                Expect.equal secrets.[1].Value (ParameterSecret(SecureParameter "bsecret")) "Incorrect secret value"
 
                 Expect.sequenceEqual
                     secrets.[1].Dependencies
                     [ vaults.resourceId "testwebvault" ]
                     "Incorrect secret dependencies"
+
+                Expect.equal secrets.[2].Name.Value "testwebvault/csection-secret" "Incorrect secret name"
+
+                Expect.equal
+                    secrets.[2].Value
+                    (ParameterSecret(SecureParameter "csection-secret"))
+                    "Incorrect secret value"
+
+                Expect.equal secrets.[3].Name.Value "testwebvault/dmy-secret" "Incorrect secret name"
+                Expect.equal secrets.[3].Value (ParameterSecret(SecureParameter "dmy-secret")) "Incorrect secret value"
 
                 Expect.hasLength vault.AccessPolicies 1 "Incorrect number of access policies"
 
