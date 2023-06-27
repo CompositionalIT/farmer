@@ -51,7 +51,7 @@ type Server =
     interface IParameters with
         member this.SecureParameters =
             match this.ActiveDirectoryAdmin with
-            | Some(x) when x.AdOnlyAuth -> []
+            | Some (x) when x.AdOnlyAuth -> []
             | _ -> [ this.Credentials.Password ]
 
     interface IArmResource with
