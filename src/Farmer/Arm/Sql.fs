@@ -5,7 +5,7 @@ open Farmer
 open Farmer.Sql
 open System.Net
 
-let servers = ResourceType("Microsoft.Sql/servers", "2019-06-01-preview")
+let servers = ResourceType("Microsoft.Sql/servers", "2022-05-01-preview")
 
 let elasticPools =
     ResourceType("Microsoft.Sql/servers/elasticPools", "2017-10-01-preview")
@@ -23,18 +23,36 @@ type DbKind =
     | Standalone of DbPurchaseModel
     | Pool of ResourceName
 
+type ActiveDirectoryPrincipalType =
+    | User
+    | Group
+
+type ActiveDirectoryAdminSettings =
+    {
+        /// Ideally same as AD name
+        Login: string
+        /// Active Directory object id of user or group
+        Sid: string
+        PrincipalType: ActiveDirectoryPrincipalType
+        AdOnlyAuth: bool
+    }
+
 type Server =
     {
         ServerName: SqlAccountName
         Location: Location
         Credentials: {| Username: string
                         Password: SecureParameter |}
+        ActiveDirectoryAdmin: ActiveDirectoryAdminSettings option
         MinTlsVersion: TlsVersion option
         Tags: Map<string, string>
     }
 
     interface IParameters with
-        member this.SecureParameters = [ this.Credentials.Password ]
+        member this.SecureParameters =
+            match this.ActiveDirectoryAdmin with
+            | Some(x) when x.AdOnlyAuth -> []
+            | _ -> [ this.Credentials.Password ]
 
     interface IArmResource with
         member this.ResourceId = servers.resourceId this.ServerName.ResourceName
@@ -46,17 +64,54 @@ type Server =
                    tags = (this.Tags |> Map.add "displayName" this.ServerName.ResourceName.Value)
                ) with
                 properties =
-                    {|
-                        administratorLogin = this.Credentials.Username
-                        administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
-                        version = "12.0"
-                        minimalTlsVersion =
-                            match this.MinTlsVersion with
-                            | Some Tls10 -> "1.0"
-                            | Some Tls11 -> "1.1"
-                            | Some Tls12 -> "1.2"
-                            | None -> null
-                    |}
+                    let props =
+                        {|
+                            version = "12.0"
+                            minimalTlsVersion =
+                                match this.MinTlsVersion with
+                                | Some Tls10 -> "1.0"
+                                | Some Tls11 -> "1.1"
+                                | Some Tls12 -> "1.2"
+                                | None -> null
+                            administratorLogin = null
+                            administratorLoginPassword = null
+                        |}
+
+                    match this.ActiveDirectoryAdmin with
+                    | Some x ->
+                        let propsWithAdAdmin =
+                            {| props with
+                                administrators =
+                                    {|
+                                        administratorType = "ActiveDirectory"
+                                        principalType =
+                                            match x.PrincipalType with
+                                            | Group -> "Group"
+                                            | User -> "User"
+                                        login = x.Login
+                                        sid = x.Sid
+                                        azureADOnlyAuthentication = false
+                                    |}
+                            |}
+
+                        if x.AdOnlyAuth then
+                            {| propsWithAdAdmin with
+                                administrators =
+                                    {| propsWithAdAdmin.administrators with
+                                        azureADOnlyAuthentication = true
+                                    |}
+                            |}
+                        else
+                            {| propsWithAdAdmin with
+                                administratorLogin = this.Credentials.Username
+                                administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
+                            |}
+                    | _ ->
+                        {| props with
+                            administratorLogin = this.Credentials.Username
+                            administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
+                            administrators = Unchecked.defaultof<_>
+                        |}
             |}
 
 module Servers =

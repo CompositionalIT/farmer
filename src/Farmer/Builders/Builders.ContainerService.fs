@@ -237,7 +237,7 @@ type AgentPoolBuilder() =
 
     /// Sets the agent pool to user mode.
     [<CustomOperation "user_mode">]
-    member _.UserMode(state: AgentPoolConfig) = { state with Mode = User }
+    member _.UserMode(state: AgentPoolConfig) = { state with Mode = AgentPoolMode.User }
 
     /// Sets the disk size for the VM's in the agent pool.
     [<CustomOperation "disk_size">]

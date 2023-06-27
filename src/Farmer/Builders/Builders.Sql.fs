@@ -22,6 +22,7 @@ type SqlAzureConfig =
         Name: SqlAccountName
         AdministratorCredentials: {| UserName: string
                                      Password: SecureParameter |}
+        ActiveDirectoryAdmin: ActiveDirectoryAdminSettings option
         MinTlsVersion: TlsVersion option
         FirewallRules: {| Name: ResourceName
                           Start: IPAddress
@@ -74,10 +75,14 @@ type SqlAzureConfig =
                     ServerName = this.Name
                     Location = location
                     Credentials =
-                        {|
-                            Username = this.AdministratorCredentials.UserName
-                            Password = this.AdministratorCredentials.Password
-                        |}
+                        match this.ActiveDirectoryAdmin  with
+                        | Some(x) when x.AdOnlyAuth -> Unchecked.defaultof<_>
+                        | _ ->
+                            {|
+                                Username = this.AdministratorCredentials.UserName
+                                Password = this.AdministratorCredentials.Password
+                            |}
+                    ActiveDirectoryAdmin = this.ActiveDirectoryAdmin
                     MinTlsVersion = this.MinTlsVersion
                     Tags = this.Tags
                 }
@@ -144,6 +149,7 @@ type SqlAzureConfig =
                                     Username = this.AdministratorCredentials.UserName
                                     Password = this.AdministratorCredentials.Password
                                 |}
+                            ActiveDirectoryAdmin = this.ActiveDirectoryAdmin
                             MinTlsVersion = this.MinTlsVersion
                             Tags = this.Tags
                         }
@@ -277,6 +283,7 @@ type SqlServerBuilder() =
                     UserName = ""
                     Password = SecureParameter ""
                 |}
+            ActiveDirectoryAdmin = None
             ElasticPoolSettings =
                 {|
                     Name = None
@@ -295,16 +302,28 @@ type SqlServerBuilder() =
         if state.Name.ResourceName = ResourceName.Empty then
             raiseFarmer "No SQL Server account name has been set."
 
-        { state with
-            AdministratorCredentials =
-                if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then
-                    raiseFarmer
-                        $"You must specify the admin_username for SQL Server instance {state.Name.ResourceName.Value}"
+        let getStateWithAdminCredentials () =
+            if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then
+                raiseFarmer
+                    $"You must specify the admin_username for SQL Server instance {state.Name.ResourceName.Value}"
 
-                {| state.AdministratorCredentials with
-                    Password = SecureParameter state.PasswordParameter
-                |}
-        }
+            { state with
+                AdministratorCredentials =
+                    {| state.AdministratorCredentials with
+                        Password = SecureParameter state.PasswordParameter
+                    |}
+            }
+
+        match state.ActiveDirectoryAdmin with
+        | Some x ->
+            if x.AdOnlyAuth then
+                {
+                    state with
+                        AdministratorCredentials =  Unchecked.defaultof<_>
+                }
+            else
+                getStateWithAdminCredentials ()
+        | _ -> getStateWithAdminCredentials ()
 
     /// Sets the name of the SQL server.
     [<CustomOperation "name">]
@@ -418,6 +437,13 @@ type SqlServerBuilder() =
     member _.SetGeoReplication(state: SqlAzureConfig, replicaSettings) =
         { state with
             GeoReplicaServer = Some replicaSettings
+        }
+
+    /// Sets the active directory admin and optionally turns on AD only auth.
+    [<CustomOperation "active_directory_admin">]
+    member _.SetActiveDirectoryAdmin(state: SqlAzureConfig, activeDirectoryAdminSettings) =
+        { state with
+            ActiveDirectoryAdmin = activeDirectoryAdminSettings
         }
 
     interface ITaggable<SqlAzureConfig> with
