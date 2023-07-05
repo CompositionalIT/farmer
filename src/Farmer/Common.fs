@@ -763,6 +763,7 @@ module Storage =
     /// The type of action to take when defining a lifecycle policy.
     type LifecyclePolicyAction =
         | CoolAfter of int<Days>
+        | ColdAfter of int<Days>
         | ArchiveAfter of int<Days>
         | DeleteAfter of int<Days>
         | DeleteSnapshotAfter of int<Days>

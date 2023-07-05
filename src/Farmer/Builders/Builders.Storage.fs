@@ -27,6 +27,7 @@ type StorageAccount =
 type StoragePolicy =
     {
         CoolBlobAfter: int<Days> option
+        ColdBlobAfter: int<Days> option
         ArchiveBlobAfter: int<Days> option
         DeleteBlobAfter: int<Days> option
         DeleteSnapshotAfter: int<Days> option
@@ -364,6 +365,11 @@ type StorageAccountBuilder() =
                     actions
                     |> List.tryPick (function
                         | CoolAfter days -> Some days
+                        | _ -> None)
+                ColdBlobAfter =
+                    actions
+                    |> List.tryPick (function
+                        | ColdAfter days -> Some days
                         | _ -> None)
                 ArchiveBlobAfter =
                     actions
