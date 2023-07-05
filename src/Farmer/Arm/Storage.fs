@@ -32,7 +32,7 @@ let tables =
     ResourceType("Microsoft.Storage/storageAccounts/tableServices/tables", "2019-06-01")
 
 let managementPolicies =
-    ResourceType("Microsoft.Storage/storageAccounts/managementPolicies", "2019-06-01")
+    ResourceType("Microsoft.Storage/storageAccounts/managementPolicies", "2022-09-01")
 
 let roleAssignments =
     ResourceType("Microsoft.Storage/storageAccounts/providers/roleAssignments", "2018-09-01-preview")
@@ -431,6 +431,7 @@ module ManagementPolicies =
         {
             Rules: {| Name: ResourceName
                       CoolBlobAfter: int<Days> option
+                      ColdBlobAfter: int<Days> option
                       ArchiveBlobAfter: int<Days> option
                       DeleteBlobAfter: int<Days> option
                       DeleteSnapshotAfter: int<Days> option
@@ -467,6 +468,15 @@ module ManagementPolicies =
                                                                         {|
                                                                             tierToCool =
                                                                                 rule.CoolBlobAfter
+                                                                                |> Option.map (fun days ->
+                                                                                    {|
+                                                                                        daysAfterModificationGreaterThan =
+                                                                                            days
+                                                                                    |}
+                                                                                    |> box)
+                                                                                |> Option.toObj
+                                                                            tierToCold =
+                                                                                rule.ColdBlobAfter
                                                                                 |> Option.map (fun days ->
                                                                                     {|
                                                                                         daysAfterModificationGreaterThan =
