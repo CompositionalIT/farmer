@@ -11,29 +11,97 @@ open System.Net
 type SecurityRuleConfig =
     {
         Name: ResourceName
+        Nsg: LinkedResource option
         Description: string option
         Services: NetworkService list
         Sources: (NetworkProtocol * Endpoint * Port) list
         Destinations: Endpoint list
         Operation: Operation
         Direction: TrafficDirection
+        Priority: int option
     }
+
+    member internal this.buildNsgRule() =
+        let nsg =
+            match this.Nsg with
+            | None -> raiseFarmer "Network Security Group must be specified for security rule."
+            | Some nsg -> nsg
+
+        let priority =
+            match this.Priority with
+            | None -> raiseFarmer "Priority must be specified for security rule."
+            | Some priority -> priority
+
+        {
+            Name = this.Name
+            Description = None
+            SecurityGroup = nsg
+            Protocol =
+                let protocols = this.Sources |> List.map (fun (protocol, _, _) -> protocol)
+
+                match protocols with
+                | [] -> raiseFarmer $"You must set a source for security rule {this.Name.Value}"
+                | [ protocol ] -> protocol
+                | _ -> AnyProtocol
+            SourcePorts = this.Sources |> List.map (fun (_, _, sourcePort) -> sourcePort) |> Set
+            SourceAddresses =
+                this.Sources
+                |> List.map (fun (_, sourceAddress, _) -> sourceAddress)
+                |> List.distinct
+            DestinationPorts =
+                match this.Services with
+                | [] -> Set [ AnyPort ]
+                | services -> services |> List.map (fun (NetworkService (_, port)) -> port) |> Set
+            DestinationAddresses = this.Destinations
+            Access = this.Operation
+            Direction = this.Direction
+            Priority = priority
+        }
+
+    interface IBuilder with
+        member this.ResourceId = networkSecurityGroups.resourceId this.Name
+
+        member this.BuildResources _ = [ this.buildNsgRule () ]
 
 type SecurityRuleBuilder() =
     member _.Yield _ =
         {
             Name = ResourceName.Empty
+            Nsg = None
             Description = None
             Services = []
             Sources = []
             Destinations = []
             Operation = Allow
             Direction = TrafficDirection.Inbound
+            Priority = None
         }
 
     /// Sets the name of the security rule
     [<CustomOperation "name">]
     member _.Name(state: SecurityRuleConfig, name) = { state with Name = ResourceName name }
+
+    /// Links the rule to a Farmer-managed network security group in this same deployment
+    [<CustomOperation "network_security_group">]
+    member _.NetworkSecurityGroup(state: SecurityRuleConfig, nsgId) =
+        { state with Nsg = Some(Managed nsgId) }
+
+    member _.NetworkSecurityGroup(state: SecurityRuleConfig, nsg: IBuilder) =
+        { state with
+            Nsg = Some(Managed nsg.ResourceId)
+        }
+
+    /// Links the rule to an existing network security group.
+    [<CustomOperation "link_to_network_security_group">]
+    member _.LinkToNetworkSecurityGroup(state: SecurityRuleConfig, nsgId) =
+        { state with
+            Nsg = Some(Unmanaged nsgId)
+        }
+
+    member _.LinkToNetworkSecurityGroup(state: SecurityRuleConfig, nsg: IBuilder) =
+        { state with
+            Nsg = Some(Unmanaged nsg.ResourceId)
+        }
 
     /// Sets the description of the security rule
     [<CustomOperation "description">]
@@ -137,34 +205,11 @@ type SecurityRuleBuilder() =
     [<CustomOperation("direction")>]
     member _.Direction(state: SecurityRuleConfig, direction) = { state with Direction = direction }
 
+    /// Specify the priority for the rule.
+    [<CustomOperation "priority">]
+    member _.Priority(state: SecurityRuleConfig, priority) = { state with Priority = Some priority }
+
 let securityRule = SecurityRuleBuilder()
-
-let internal buildNsgRule (nsgName: ResourceName) (rule: SecurityRuleConfig) (priority: int) =
-    {
-        Name = rule.Name
-        Description = None
-        SecurityGroup = nsgName
-        Protocol =
-            let protocols = rule.Sources |> List.map (fun (protocol, _, _) -> protocol)
-
-            match protocols with
-            | [] -> raiseFarmer $"You must set a source for security rule {rule.Name.Value}"
-            | [ protocol ] -> protocol
-            | _ -> AnyProtocol
-        SourcePorts = rule.Sources |> List.map (fun (_, _, sourcePort) -> sourcePort) |> Set
-        SourceAddresses =
-            rule.Sources
-            |> List.map (fun (_, sourceAddress, _) -> sourceAddress)
-            |> List.distinct
-        DestinationPorts =
-            match rule.Services with
-            | [] -> Set [ AnyPort ]
-            | services -> services |> List.map (fun (NetworkService (_, port)) -> port) |> Set
-        DestinationAddresses = rule.Destinations
-        Access = rule.Operation
-        Direction = rule.Direction
-        Priority = priority
-    }
 
 type NsgConfig =
     {
@@ -186,11 +231,17 @@ type NsgConfig =
                     SecurityRules =
                         seq {
                             // Policy Rules
-                            for priority, rule in List.indexed this.SecurityRules do
-                                buildNsgRule
-                                    this.Name
-                                    rule
-                                    (priority * this.PriorityIncrementor + this.InitialRulePriority)
+                            for index, rule in List.indexed this.SecurityRules do
+                                { rule with
+                                    Nsg = Some(Managed (this :> IBuilder).ResourceId)
+                                    Priority =
+                                        rule.Priority
+                                        |> Option.defaultValue (
+                                            index * this.PriorityIncrementor + this.InitialRulePriority
+                                        )
+                                        |> Some
+                                }
+                                    .buildNsgRule ()
                         }
                         |> List.ofSeq
                     Tags = this.Tags

@@ -48,7 +48,7 @@ let tests =
                             Name = ResourceName "accept-web"
                             Description =
                                 Some(sprintf "Rule created on %s" (DateTimeOffset.Now.Date.ToShortDateString()))
-                            SecurityGroup = nsg.Name
+                            SecurityGroup = Managed (nsg :> IArmResource).ResourceId
                             Protocol = TCP
                             SourcePorts = Set [ AnyPort ]
                             DestinationPorts = Set [ Port 80us; Port 443us ]
@@ -240,4 +240,47 @@ let tests =
                 let message = Expect.throwsC createNsg (fun ex -> ex.Message)
                 Expect.equal message "You must set a source for security rule bar" "Wrong exception thrown"
             }
+            test "Adding rule to existing NSG" {
+                let existingNsg = nsg { name "my-nsg" }
+
+                let webServersRule =
+                    securityRule {
+                        name "web-servers"
+                        description "Public web server access"
+                        services [ "http", 80; "https", 443 ]
+                        add_source_tag TCP "Internet"
+                        add_destination_network "10.100.30.0/24"
+                        link_to_network_security_group existingNsg
+                        priority 350
+                    }
+
+                let deployment = arm { add_resources [ webServersRule ] }
+
+                let dependencies =
+                    deployment.Template
+                    |> Writer.toJson
+                    |> Newtonsoft.Json.Linq.JToken.Parse
+                    |> fun json -> json.SelectToken "resources[?(@.name=='my-nsg/web-servers')].dependsOn"
+
+                Expect.isEmpty dependencies "Rule linked to external NSG should have no dependencies."
+
+                let rule =
+                    deployment
+                    |> findAzureResources<SecurityRule> client.SerializationSettings
+                    |> Seq.head
+
+                Expect.equal rule.Name "my-nsg/web-servers" "Name did not match"
+                Expect.equal rule.Access "Allow" "Access did not match"
+                Expect.equal rule.DestinationAddressPrefixes.[0] "10.100.30.0/24" ""
+                Expect.equal rule.DestinationPortRanges.[0] "80" ""
+                Expect.equal rule.DestinationPortRanges.[1] "443" ""
+                Expect.equal rule.Direction "Inbound" ""
+                Expect.equal rule.Protocol "Tcp" ""
+                Expect.equal rule.Priority (Nullable 350) ""
+                Expect.equal rule.SourceAddressPrefix "Internet" ""
+                Expect.equal rule.SourceAddressPrefixes.Count 0 ""
+                Expect.equal rule.SourcePortRange "*" ""
+                Expect.equal rule.SourcePortRanges.Count 0 ""
+            }
+
         ]

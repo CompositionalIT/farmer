@@ -5,10 +5,10 @@ open Farmer
 open Farmer.NetworkSecurity
 
 let networkSecurityGroups =
-    ResourceType("Microsoft.Network/networkSecurityGroups", "2020-04-01")
+    ResourceType("Microsoft.Network/networkSecurityGroups", "2022-07-01")
 
 let securityRules =
-    ResourceType("Microsoft.Network/networkSecurityGroups/securityRules", "2020-04-01")
+    ResourceType("Microsoft.Network/networkSecurityGroups/securityRules", "2022-07-01")
 
 let (|SingleEndpoint|ManyEndpoints|) endpoints =
     // Use a wildcard if there is one
@@ -58,7 +58,7 @@ type SecurityRule =
     {
         Name: ResourceName
         Description: string option
-        SecurityGroup: ResourceName
+        SecurityGroup: LinkedResource
         Protocol: NetworkProtocol
         SourcePorts: Port Set
         DestinationPorts: Port Set
@@ -87,12 +87,12 @@ type SecurityRule =
         |}
 
     interface IArmResource with
-        member this.ResourceId = securityRules.resourceId (this.SecurityGroup / this.Name)
+        member this.ResourceId = securityRules.resourceId (this.SecurityGroup.Name / this.Name)
 
         member this.JsonModel =
-            let dependsOn = [ networkSecurityGroups.resourceId this.SecurityGroup ]
+            let dependsOn = Set.empty |> LinkedResource.addToSetIfManaged this.SecurityGroup
 
-            {| securityRules.Create(this.SecurityGroup / this.Name, dependsOn = dependsOn) with
+            {| securityRules.Create(this.SecurityGroup.Name / this.Name, dependsOn = dependsOn) with
                 properties = this.PropertiesModel
             |}
 
