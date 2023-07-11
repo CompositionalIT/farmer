@@ -37,6 +37,23 @@ type ActiveDirectoryAdminSettings =
         AdOnlyAuth: bool
     }
 
+type SqlServerADAdminJsonProperties =
+    {
+        administratorType: string
+        principalType: string
+        login: string
+        sid: string
+        azureADOnlyAuthentication: bool
+    }
+type SqlServerJsonProperties =
+    {
+        version: string
+        minimalTlsVersion: string
+        administratorLogin: string
+        administratorLoginPassword: string
+        administrators: SqlServerADAdminJsonProperties
+    }
+    
 type Server =
     {
         ServerName: SqlAccountName
@@ -48,6 +65,57 @@ type Server =
         Tags: Map<string, string>
     }
 
+    member private this.BuildSqlSeverPropertiesBase(): SqlServerJsonProperties =
+        {
+            version = "12.0"
+            minimalTlsVersion =
+                match this.MinTlsVersion with
+                | Some Tls10 -> "1.0"
+                | Some Tls11 -> "1.1"
+                | Some Tls12 -> "1.2"
+                | None -> null
+            administratorLogin = null
+            administratorLoginPassword = null
+            administrators = Unchecked.defaultof<SqlServerADAdminJsonProperties>
+        }
+    
+    member private this.BuildSqlServerADOnlyAdmin(x: ActiveDirectoryAdminSettings): SqlServerADAdminJsonProperties =
+        {
+            administratorType = "ActiveDirectory"
+            principalType =
+                match x.PrincipalType with
+                | Group -> "Group"
+                | User -> "User"
+            login = x.Login
+            sid = x.Sid
+            azureADOnlyAuthentication = true
+        }
+        
+    member private this.BuildSqlServerPropertiesWithMixedModeAdministrator(x: ActiveDirectoryAdminSettings): SqlServerJsonProperties =
+        {
+            this.BuildSqlSeverPropertiesBase() with
+                administratorLogin = this.Credentials.Username
+                administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
+                administrators =
+                {
+                    this.BuildSqlServerADOnlyAdmin(x) with
+                        azureADOnlyAuthentication = false 
+                }
+        }
+        
+    member private this.BuildSqlServerPropertiesWithADOnlyAdministrator(x: ActiveDirectoryAdminSettings): SqlServerJsonProperties =
+        {
+            this.BuildSqlSeverPropertiesBase() with
+                administrators = this.BuildSqlServerADOnlyAdmin(x)
+        }
+        
+    member private this.BuildSqlServerPropertiesWithSqlOnlyAdministrator(): SqlServerJsonProperties =
+        {
+            this.BuildSqlSeverPropertiesBase() with
+                administratorLogin = this.Credentials.Username
+                administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
+        }   
+            
     interface IParameters with
         member this.SecureParameters =
             match this.ActiveDirectoryAdmin with
@@ -56,7 +124,7 @@ type Server =
 
     interface IArmResource with
         member this.ResourceId = servers.resourceId this.ServerName.ResourceName
-
+        
         member this.JsonModel =
             {| servers.Create(
                    this.ServerName.ResourceName,
@@ -64,54 +132,10 @@ type Server =
                    tags = (this.Tags |> Map.add "displayName" this.ServerName.ResourceName.Value)
                ) with
                 properties =
-                    let props =
-                        {|
-                            version = "12.0"
-                            minimalTlsVersion =
-                                match this.MinTlsVersion with
-                                | Some Tls10 -> "1.0"
-                                | Some Tls11 -> "1.1"
-                                | Some Tls12 -> "1.2"
-                                | None -> null
-                            administratorLogin = null
-                            administratorLoginPassword = null
-                        |}
-
                     match this.ActiveDirectoryAdmin with
-                    | Some x ->
-                        let propsWithAdAdmin =
-                            {| props with
-                                administrators =
-                                    {|
-                                        administratorType = "ActiveDirectory"
-                                        principalType =
-                                            match x.PrincipalType with
-                                            | Group -> "Group"
-                                            | User -> "User"
-                                        login = x.Login
-                                        sid = x.Sid
-                                        azureADOnlyAuthentication = false
-                                    |}
-                            |}
-
-                        if x.AdOnlyAuth then
-                            {| propsWithAdAdmin with
-                                administrators =
-                                    {| propsWithAdAdmin.administrators with
-                                        azureADOnlyAuthentication = true
-                                    |}
-                            |}
-                        else
-                            {| propsWithAdAdmin with
-                                administratorLogin = this.Credentials.Username
-                                administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
-                            |}
-                    | _ ->
-                        {| props with
-                            administratorLogin = this.Credentials.Username
-                            administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
-                            administrators = Unchecked.defaultof<_>
-                        |}
+                    | Some x when not x.AdOnlyAuth -> this.BuildSqlServerPropertiesWithMixedModeAdministrator(x)
+                    | Some x when x.AdOnlyAuth -> this.BuildSqlServerPropertiesWithADOnlyAdministrator(x)
+                    | _ -> this.BuildSqlServerPropertiesWithSqlOnlyAdministrator()
             |}
 
 module Servers =
