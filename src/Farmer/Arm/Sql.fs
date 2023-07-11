@@ -45,6 +45,7 @@ type SqlServerADAdminJsonProperties =
         sid: string
         azureADOnlyAuthentication: bool
     }
+
 type SqlServerJsonProperties =
     {
         version: string
@@ -53,7 +54,7 @@ type SqlServerJsonProperties =
         administratorLoginPassword: string
         administrators: SqlServerADAdminJsonProperties
     }
-    
+
 type Server =
     {
         ServerName: SqlAccountName
@@ -65,7 +66,7 @@ type Server =
         Tags: Map<string, string>
     }
 
-    member private this.BuildSqlSeverPropertiesBase(): SqlServerJsonProperties =
+    member private this.BuildSqlSeverPropertiesBase() : SqlServerJsonProperties =
         {
             version = "12.0"
             minimalTlsVersion =
@@ -78,8 +79,8 @@ type Server =
             administratorLoginPassword = null
             administrators = Unchecked.defaultof<SqlServerADAdminJsonProperties>
         }
-    
-    member private this.BuildSqlServerADOnlyAdmin(x: ActiveDirectoryAdminSettings): SqlServerADAdminJsonProperties =
+
+    member private this.BuildSqlServerADOnlyAdmin(x: ActiveDirectoryAdminSettings) : SqlServerADAdminJsonProperties =
         {
             administratorType = "ActiveDirectory"
             principalType =
@@ -90,32 +91,32 @@ type Server =
             sid = x.Sid
             azureADOnlyAuthentication = true
         }
-        
-    member private this.BuildSqlServerPropertiesWithMixedModeAdministrator(x: ActiveDirectoryAdminSettings): SqlServerJsonProperties =
-        {
-            this.BuildSqlSeverPropertiesBase() with
-                administratorLogin = this.Credentials.Username
-                administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
-                administrators =
-                {
-                    this.BuildSqlServerADOnlyAdmin(x) with
-                        azureADOnlyAuthentication = false 
+
+    member private this.BuildSqlServerPropertiesWithMixedModeAdministrator
+        (x: ActiveDirectoryAdminSettings)
+        : SqlServerJsonProperties =
+        { this.BuildSqlSeverPropertiesBase() with
+            administratorLogin = this.Credentials.Username
+            administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
+            administrators =
+                { this.BuildSqlServerADOnlyAdmin(x) with
+                    azureADOnlyAuthentication = false
                 }
         }
-        
-    member private this.BuildSqlServerPropertiesWithADOnlyAdministrator(x: ActiveDirectoryAdminSettings): SqlServerJsonProperties =
-        {
-            this.BuildSqlSeverPropertiesBase() with
-                administrators = this.BuildSqlServerADOnlyAdmin(x)
+
+    member private this.BuildSqlServerPropertiesWithADOnlyAdministrator
+        (x: ActiveDirectoryAdminSettings)
+        : SqlServerJsonProperties =
+        { this.BuildSqlSeverPropertiesBase() with
+            administrators = this.BuildSqlServerADOnlyAdmin(x)
         }
-        
-    member private this.BuildSqlServerPropertiesWithSqlOnlyAdministrator(): SqlServerJsonProperties =
-        {
-            this.BuildSqlSeverPropertiesBase() with
-                administratorLogin = this.Credentials.Username
-                administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
-        }   
-            
+
+    member private this.BuildSqlServerPropertiesWithSqlOnlyAdministrator() : SqlServerJsonProperties =
+        { this.BuildSqlSeverPropertiesBase() with
+            administratorLogin = this.Credentials.Username
+            administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
+        }
+
     interface IParameters with
         member this.SecureParameters =
             match this.ActiveDirectoryAdmin with
@@ -124,7 +125,7 @@ type Server =
 
     interface IArmResource with
         member this.ResourceId = servers.resourceId this.ServerName.ResourceName
-        
+
         member this.JsonModel =
             {| servers.Create(
                    this.ServerName.ResourceName,
