@@ -73,14 +73,15 @@ type SecretConfig =
     static member private allowedKeyNameCharRules = [ Char.IsLetterOrDigit; (=) '-' ]
 
     static member internal sanitizeKeyName settingKey =
-        match SecretConfig.isValid settingKey with
-        | true -> settingKey
-        | false ->
+        if SecretConfig.isValid settingKey then
+            settingKey
+        else
             settingKey
             |> Seq.map (fun c ->
-                match (SecretConfig.allowedKeyNameCharRules |> Seq.exists (fun r -> r c)) with
-                | true -> c
-                | false -> '-')
+                if (SecretConfig.allowedKeyNameCharRules |> Seq.exists (fun r -> r c)) then
+                    c
+                else
+                    '-')
             |> String.Concat
 
     static member internal isValid key =
