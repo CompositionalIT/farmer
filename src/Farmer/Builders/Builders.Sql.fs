@@ -76,7 +76,7 @@ type SqlAzureConfig =
                     Location = location
                     Credentials =
                         match this.ActiveDirectoryAdmin with
-                        | Some (x) when x.AdOnlyAuth -> Unchecked.defaultof<_>
+                        | AdOnlyAuth _ -> Unchecked.defaultof<_>
                         | _ ->
                             {|
                                 Username = this.AdministratorCredentials.UserName
@@ -315,14 +315,12 @@ type SqlServerBuilder() =
             }
 
         match state.ActiveDirectoryAdmin with
-        | Some x ->
-            if x.AdOnlyAuth then
-                { state with
-                    AdministratorCredentials = Unchecked.defaultof<_>
-                }
-            else
-                getStateWithAdminCredentials ()
-        | _ -> getStateWithAdminCredentials ()
+        | AdOnlyAuth _ ->
+            { state with
+                AdministratorCredentials = Unchecked.defaultof<_>
+            }
+        | MixedModeAuth _ -> getStateWithAdminCredentials ()
+        | SqlOnlyAuth -> getStateWithAdminCredentials ()
 
     /// Sets the name of the SQL server.
     [<CustomOperation "name">]

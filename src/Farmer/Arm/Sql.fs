@@ -37,6 +37,12 @@ type ActiveDirectoryAdminSettings =
         AdOnlyAuth: bool
     }
 
+let (|MixedModeAuth|AdOnlyAuth|SqlOnlyAuth|) activeDirAdmin =
+    match activeDirAdmin with
+    | Some x when x.AdOnlyAuth -> AdOnlyAuth(x)
+    | Some x when not x.AdOnlyAuth -> MixedModeAuth(x)
+    | _ -> SqlOnlyAuth
+
 type SqlServerADAdminJsonProperties =
     {
         administratorType: string
@@ -134,9 +140,9 @@ type Server =
                ) with
                 properties =
                     match this.ActiveDirectoryAdmin with
-                    | Some x when not x.AdOnlyAuth -> this.BuildSqlServerPropertiesWithMixedModeAdministrator(x)
-                    | Some x when x.AdOnlyAuth -> this.BuildSqlServerPropertiesWithADOnlyAdministrator(x)
-                    | _ -> this.BuildSqlServerPropertiesWithSqlOnlyAdministrator()
+                    | MixedModeAuth x -> this.BuildSqlServerPropertiesWithMixedModeAdministrator(x)
+                    | AdOnlyAuth x -> this.BuildSqlServerPropertiesWithADOnlyAdministrator(x)
+                    | SqlOnlyAuth -> this.BuildSqlServerPropertiesWithSqlOnlyAdministrator()
             |}
 
 module Servers =
