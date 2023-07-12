@@ -12,13 +12,13 @@
   },
   "resources": [
     {
-      "apiVersion": "2019-06-01-preview",
+      "apiVersion": "2022-05-01-preview",
       "location": "northeurope",
       "name": "farmersql1979",
       "properties": {
+        "version": "12.0",
         "administratorLogin": "farmersqladmin",
-        "administratorLoginPassword": "[parameters('password-for-farmersql1979')]",
-        "version": "12.0"
+        "administratorLoginPassword": "[parameters('password-for-farmersql1979')]"
       },
       "tags": {
         "displayName": "farmersql1979"
