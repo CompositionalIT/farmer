@@ -151,11 +151,27 @@ let tests =
                 [
                     test "Creates queues correctly" {
                         let resources: StorageQueue list =
+                            let queue = storageQueue {
+                                name "queue4"
+                                metadata [
+                                    "environment", "dev"
+                                    "source", "image"
+                                ]
+                            }
+                            
                             let account =
                                 storageAccount {
                                     name "storage"
                                     add_queue "queue1"
-                                    add_queues [ "queue2"; "queue3" ]
+                                    add_queues [
+                                        storageQueue {
+                                            name "queue2"
+                                        }
+                                        storageQueue {
+                                            name "queue3"
+                                        }
+                                    ]
+                                    add_queue queue
                                 }
 
                             [
@@ -171,10 +187,15 @@ let tests =
                         let resource: StorageQueue =
                             let account = storageAccount {
                                 name "storage"
-                                add_queue_with_metadata "queue1" (Map [
-                                    ("environment", "dev")
-                                    ("project", "farmer")
-                                ])    
+                                add_queue (
+                                    storageQueue {
+                                        name "queue1"
+                                        metadata [
+                                            "environment", "dev"
+                                            "project", "farmer"
+                                        ]
+                                    }
+                                )
                             }
                             account |> getResourceAtIndex client.SerializationSettings 1
 
@@ -188,21 +209,40 @@ let tests =
                             ] |> dict)
                             "Metadata not set correctly"
                     }
-                    test "Metadata is added correctly to multiple queues when unique" {
+                    test "Metadata is added correctly to multiple queues" {
                         let resources: StorageQueue list =
                             let account =
                                 storageAccount {
                                     name "storage"
-                                    add_queues_with_unique_metadata [ 
-                                        ("queue1", Map [
-                                            ("environment", "dev")
-                                            ("project", "farmer")
-                                        ])
-                                        ("queue2", Map [
-                                            ("environment", "test")
-                                            ("project", "barnyard")
-                                        ]) 
+                                    add_queues [
+                                        storageQueue {
+                                            name "queue1"
+                                            metadata [
+                                                "environment", "dev"
+                                                "project", "farmer"
+                                            ]
+                                        }
+                                        storageQueue {
+                                            name "queue2"
+                                            metadata [
+                                                "environment", "test"
+                                                "project", "barnyard"
+                                            ]
+                                        }
                                     ]
+                                    add_queues 
+                                        [
+                                            storageQueue {
+                                                name "queue3"
+                                            }
+                                            storageQueue {
+                                                name "queue4"
+                                            }
+                                        ]
+                                        [
+                                            "environment", "test"
+                                            "project", "barnyard"
+                                        ]
                                 }
 
                             [
@@ -236,12 +276,6 @@ let tests =
                             let account =
                                 storageAccount {
                                     name "storage"
-                                    add_queues_with_same_metadata 
-                                        ["queue1"; "queue2"]
-                                        (Map [
-                                            ("environment", "dev")
-                                            ("project", "farmer")
-                                        ]) 
                                 }
 
                             [

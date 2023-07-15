@@ -6,13 +6,22 @@ open Farmer.Builders
 let myStorage = storageAccount {
     name "myfarmerstorage"
     sku Storage.Sku.Standard_LRS
-    add_queues [ "queue1"; "queue2" ]
-    add_queues_with_same_metadata 
-        ["queue3"; "queue4"]
-        (Map [
-            ("environment", "dev")
-            ("source", "image")
-        ])
+    add_queues [
+        storageQueue {
+            name "queue1"
+            metadata [
+                "environment", "dev"
+                "project", "farmer"
+            ]
+        }
+        storageQueue {
+            name "queue2"
+            metadata [
+                "environment", "test"
+                "project", "barnyard"
+            ]
+        }
+    ]
     add_private_container "container1"
     add_table "table1"
     add_tables [ "table2"; "table3" ]

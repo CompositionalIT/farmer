@@ -28,10 +28,7 @@ The Storage Account builder creates storage accounts and their associated contai
 | add_file_share | Adds a file share to storage account |
 | add_file_share_with_quota | Adds a file share to storage account with a share quota in Gb |
 | add_queue | Adds a queue to the storage account |
-| add_queue_with_metadata | Adds a queue to the storage account with metadata associated with it |
 | add_queues | Adds a list of queues to the storage account |
-| add_queues_with_unique_metadata | Adds a list of queues to the storage account, each with unique metadata associated with them |
-| add_queues_with_same_metadata | Addsa list of queues to the storage account, all with the same set of metadata associated with them |
 | add_table | Adds a table to the storage account |
 | add_tables | Adds a list of tables to the storage account |
 | add_cors_rules | Adds a list of CORS rules to the different storage services |
@@ -51,7 +48,6 @@ The Storage Account builder creates storage accounts and their associated contai
 | disable_shared_key_access | Disables shared key access for the storage account |
 | default_to_oauth_authentication | Defaults to OAuth (AAD) authentication for requests to blobs, queues and containers in the Azure portal |
 | use_azure_dns_zone | Change the DNS Endpoint type from `Standard` to `AzureDnsZone` |
-
 
 #### Configuration Members
 
@@ -83,23 +79,43 @@ let storage = storageAccount {
     add_file_share "share1"
     add_file_share_with_quota "share2" 1024<Gb>
     add_queue "myqueue"
-    add_queue_with_metadata "myqueue2" (Map [
-        ("source", "imageStore")
-    ])
-    add_queues ["myqueue3"; "myqueue4"]
-    add_queues_with_unique_metadata [
-        ("myqueue5", Map [
-            ("source", "imageStore")
-        ])
-        ("myqueue6", Map [
-            ("source", "customerPurchaseStage")
-        ])
+    add_queue (storageQueue {
+      name "queue1"
+      metadata [
+        "environment", "dev"
+        "project", "farmer"
+      ]
+    })
+    add_queues [
+      storageQueue {
+        name "queue1"
+        metadata [
+          "environment", "dev"
+          "project", "farmer"
+        ]
+      }
+      storageQueue {
+        name "queue2"
+        metadata [
+          "environment", "test"
+          "project", "barnyard"
+        ]
+      }
     ]
-    add_queues_with_same_metadata 
-        ["myqueue7", "myqueue8"]
-        (Map [
-            ("source", "imageStore")
-        ])
+    add_queues 
+      [
+        storageQueue {
+          name "queue1"
+        }
+        storageQueue {
+          name "queue"
+        }
+      ]
+      [
+        "environment", "dev"
+        "project", "farmer"
+      ]      
+
     add_table "mytable"
     use_static_website "local/path/to/folder/content" "index.html"
     static_website_error_page "error.html"

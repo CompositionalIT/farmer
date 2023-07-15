@@ -1170,6 +1170,7 @@ module Storage =
         private
         | StorageResourceName of ResourceName
 
+        static member internal Empty = StorageResourceName ResourceName.Empty
         static member Create name =
             [
                 nonEmptyLengthBetween 3 63
