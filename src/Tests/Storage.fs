@@ -151,26 +151,17 @@ let tests =
                 [
                     test "Creates queues correctly" {
                         let resources: StorageQueue list =
-                            let queue = storageQueue {
-                                name "queue4"
-                                metadata [
-                                    "environment", "dev"
-                                    "source", "image"
-                                ]
-                            }
-                            
+                            let queue =
+                                storageQueue {
+                                    name "queue4"
+                                    metadata [ "environment", "dev"; "source", "image" ]
+                                }
+
                             let account =
                                 storageAccount {
                                     name "storage"
                                     add_queue "queue1"
-                                    add_queues [
-                                        storageQueue {
-                                            name "queue2"
-                                        }
-                                        storageQueue {
-                                            name "queue3"
-                                        }
-                                    ]
+                                    add_queues [ storageQueue { name "queue2" }; storageQueue { name "queue3" } ]
                                     add_queue queue
                                 }
 
@@ -185,28 +176,25 @@ let tests =
                     }
                     test "Metadata is added correctly to single queue" {
                         let resource: StorageQueue =
-                            let account = storageAccount {
-                                name "storage"
-                                add_queue (
-                                    storageQueue {
-                                        name "queue1"
-                                        metadata [
-                                            "environment", "dev"
-                                            "project", "farmer"
-                                        ]
-                                    }
-                                )
-                            }
+                            let account =
+                                storageAccount {
+                                    name "storage"
+
+                                    add_queue (
+                                        storageQueue {
+                                            name "queue1"
+                                            metadata [ "environment", "dev"; "project", "farmer" ]
+                                        }
+                                    )
+                                }
+
                             account |> getResourceAtIndex client.SerializationSettings 1
 
                         Expect.equal resource.Name "storage/default/queue1" "queue name for 'queue1' is wrong"
-                        
+
                         Expect.equal
-                            resource.Metadata 
-                            (seq [
-                                ("environment", "dev")
-                                ("project", "farmer")
-                            ] |> dict)
+                            resource.Metadata
+                            (seq [ ("environment", "dev"); ("project", "farmer") ] |> dict)
                             "Metadata not set correctly"
                     }
                     test "Metadata is added correctly to multiple queues" {
@@ -214,35 +202,22 @@ let tests =
                             let account =
                                 storageAccount {
                                     name "storage"
-                                    add_queues [
-                                        storageQueue {
-                                            name "queue1"
-                                            metadata [
-                                                "environment", "dev"
-                                                "project", "farmer"
-                                            ]
-                                        }
-                                        storageQueue {
-                                            name "queue2"
-                                            metadata [
-                                                "environment", "test"
-                                                "project", "barnyard"
-                                            ]
-                                        }
-                                    ]
-                                    add_queues 
+
+                                    add_queues
                                         [
                                             storageQueue {
-                                                name "queue3"
+                                                name "queue1"
+                                                metadata [ "environment", "dev"; "project", "farmer" ]
                                             }
                                             storageQueue {
-                                                name "queue4"
+                                                name "queue2"
+                                                metadata [ "environment", "test"; "project", "barnyard" ]
                                             }
                                         ]
-                                        [
-                                            "environment", "test"
-                                            "project", "barnyard"
-                                        ]
+
+                                    add_queues
+                                        [ storageQueue { name "queue3" }; storageQueue { name "queue4" } ]
+                                        [ "environment", "test"; "project", "barnyard" ]
                                 }
 
                             [
@@ -252,31 +227,23 @@ let tests =
 
                         Expect.equal resources.[0].Name "storage/default/queue1" "queue name for 'queue1' is wrong"
                         Expect.equal resources.[1].Name "storage/default/queue2" "queue name for 'queue2' is wrong"
-                        
-                        let queue1Metadata = seq [
-                            ("environment", "dev")
-                            ("project", "farmer")
-                        ] 
-                        let queue2Metadata = seq [
-                            ("environment", "test")
-                            ("project", "barnyard")
-                        ]
+
+                        let queue1Metadata = seq [ ("environment", "dev"); ("project", "farmer") ]
+                        let queue2Metadata = seq [ ("environment", "test"); ("project", "barnyard") ]
 
                         Expect.equal
-                            resources.[0].Metadata 
+                            resources.[0].Metadata
                             (queue1Metadata |> dict)
                             "Metadata not set correctly for queue1"
+
                         Expect.equal
-                            resources.[1].Metadata 
+                            resources.[1].Metadata
                             (queue1Metadata |> dict)
                             "Metadata not set correctly for queue2"
                     }
                     test "Metadata is added correctly to multiple queues when same for all" {
                         let resources: StorageQueue list =
-                            let account =
-                                storageAccount {
-                                    name "storage"
-                                }
+                            let account = storageAccount { name "storage" }
 
                             [
                                 for i in 1..2 do
@@ -285,18 +252,16 @@ let tests =
 
                         Expect.equal resources.[0].Name "storage/default/queue1" "queue name for 'queue1' is wrong"
                         Expect.equal resources.[1].Name "storage/default/queue2" "queue name for 'queue2' is wrong"
-                        
-                        let queueMetadata = seq [
-                            ("environment", "dev")
-                            ("project", "farmer")
-                        ]
+
+                        let queueMetadata = seq [ ("environment", "dev"); ("project", "farmer") ]
 
                         Expect.equal
-                            resources.[0].Metadata 
+                            resources.[0].Metadata
                             (queueMetadata |> dict)
                             "Metadata not set correctly for queue1"
+
                         Expect.equal
-                            resources.[1].Metadata 
+                            resources.[1].Metadata
                             (queueMetadata |> dict)
                             "Metadata not set correctly for queue2"
                     }

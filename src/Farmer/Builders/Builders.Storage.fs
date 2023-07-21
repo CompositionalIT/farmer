@@ -33,7 +33,7 @@ type StoragePolicy =
         Filters: string list
     }
 
-type StorageQueueConfig = 
+type StorageQueueConfig =
     {
         Name: StorageResourceName
         Metadata: Metadata option
@@ -314,7 +314,14 @@ type StorageAccountBuilder() =
     [<CustomOperation "add_queue">]
     member _.AddQueue(state: StorageAccountConfig, name: string) =
         { state with
-            Queues = state.Queues @ [ {Name = StorageResourceName.Create(name).OkValue; Metadata = None } ]
+            Queues =
+                state.Queues
+                @ [
+                    {
+                        Name = StorageResourceName.Create(name).OkValue
+                        Metadata = None
+                    }
+                ]
         }
 
     /// Adds a set of queues to the storage account.
@@ -324,8 +331,19 @@ type StorageAccountBuilder() =
 
     /// Adds a set of queues to the storage account with the same metadata.
     [<CustomOperation "add_queues">]
-    member this.AddQueues(state: StorageAccountConfig, queues: StorageQueueConfig seq, metadata: (string * string) list) =
-        let qs = queues |> Seq.map (fun queue -> { queue with Metadata = Some(metadata |> Map.ofSeq)})
+    member this.AddQueues
+        (
+            state: StorageAccountConfig,
+            queues: StorageQueueConfig seq,
+            metadata: (string * string) list
+        ) =
+        let qs =
+            queues
+            |> Seq.map (fun queue ->
+                { queue with
+                    Metadata = Some(metadata |> Map.ofSeq)
+                })
+
         (state, qs) ||> Seq.fold (fun state queue -> this.AddQueue(state, queue))
 
     /// Adds a single table to the storage account.
@@ -674,8 +692,7 @@ type StorageQueueBuilder() =
             Metadata = Some(Map.empty)
         }
 
-    member _.Run state =
-        state
+    member _.Run state = state
 
     /// Sets the name of the storage queue.
     [<CustomOperation "name">]
@@ -688,9 +705,7 @@ type StorageQueueBuilder() =
     [<CustomOperation "metadata">]
     member _.Name(state: StorageQueueConfig, metadata: (string * string) list) =
         let m = metadata |> Map.ofList
-        { state with
-            Metadata = Some(m)
-        }
+        { state with Metadata = Some(m) }
 
 let storageAccount = StorageAccountBuilder()
 let storageQueue = StorageQueueBuilder()

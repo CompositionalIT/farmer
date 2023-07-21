@@ -431,16 +431,18 @@ module Queues =
                 queues.resourceId (this.StorageAccount / "default" / this.Name.ResourceName)
 
             member this.JsonModel =
-                let queue = queues.Create(
-                                this.StorageAccount / "default" / this.Name.ResourceName,
-                                dependsOn = [ storageAccounts.resourceId this.StorageAccount ]
-                            )
+                let queue =
+                    queues.Create(
+                        this.StorageAccount / "default" / this.Name.ResourceName,
+                        dependsOn = [ storageAccounts.resourceId this.StorageAccount ]
+                    )
+
                 match this.Metadata with
-                    | Some m ->
-                        {| queue with
-                            properties = box {| metadata = m |}
-                        |}
-                    | None -> queue
+                | Some m ->
+                    {| queue with
+                        properties = box {| metadata = m |}
+                    |}
+                | None -> queue
 
 module ManagementPolicies =
     type ManagementPolicy =
