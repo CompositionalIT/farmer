@@ -423,17 +423,18 @@ type ContainerApp =
                                                     | ScaleRule.StorageQueue settings ->
                                                         {|
                                                             name = rule.Key
-                                                            custom =
+                                                            azureQueue =
                                                                 {|
-                                                                    ``type`` = "azure-queue"
-                                                                    metadata =
-                                                                        {|
-                                                                            queueName = settings.QueueName
-                                                                            queueLength = string settings.QueueLength
-                                                                            connectionFromEnv =
-                                                                                settings.StorageConnectionSecretRef
-                                                                            accountName = settings.AccountName
-                                                                        |}
+                                                                    queueName = settings.QueueName
+                                                                    queueLength = string settings.QueueLength
+                                                                    auth =
+                                                                        [|
+                                                                            {|
+                                                                                secretRef =
+                                                                                    settings.StorageConnectionSecretRef
+                                                                                triggerParameter = "connection"
+                                                                            |}
+                                                                        |]
                                                                 |}
                                                         |}
                                             |]

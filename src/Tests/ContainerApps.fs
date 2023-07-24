@@ -120,6 +120,22 @@ let fullContainerAppDeployment =
                                 SecretRef = "servicebusconnectionkey"
                             }
                     }
+                    containerApp {
+                        name "azurequeue"
+                        reference_registry_credentials [ (acr :> IBuilder).ResourceId ]
+
+                        add_containers
+                            [
+                                container {
+                                    name "azurequeue"
+                                    private_docker_image containerRegistryDomain "azurequeue" version
+                                }
+                            ]
+
+                        replicas 0 1
+
+                        add_queue_scale_rule "aq-keda-scale" storage "somequeue" 5
+                    }
                 ]
         }
 
@@ -282,7 +298,7 @@ let tests =
 
                 let scale = httpContainerApp.SelectToken("properties.template.scale")
 
-                Expect.isNotNull scale "properties.scale was null"
+                Expect.isNotNull scale "properties.template.scale was null"
                 Expect.equal (scale.["minReplicas"] |> int) 1 "Incorrect min replicas"
                 Expect.equal (scale.["maxReplicas"] |> int) 5 "Incorrect max replicas"
 
@@ -316,6 +332,32 @@ let tests =
                     (serviceBusVolumeMounts.[0].["mountPath"] |> string)
                     "/certs"
                     "Incorrect container volume mount"
+
+                let azureQueueContainerApp = jobj.SelectToken("resources[?(@.name=='azurequeue')]")
+                Expect.isNotNull azureQueueContainerApp "resources[?(@.name=='azurequeue')] was null"
+
+                let queueAppSecrets =
+                    azureQueueContainerApp.SelectToken("properties.configuration.secrets")
+
+                let connectionSecretName = "scalerule-aq-keda-scale-connection"
+                Expect.equal (queueAppSecrets[1]["name"] |> string) connectionSecretName "Incorrect queue app secret"
+
+                Expect.equal
+                    (queueAppSecrets[1]["value"] |> string)
+                    "[concat('DefaultEndpointsProtocol=https;AccountName=storagename;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'storagename'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
+                    "Incorrect queue app secret"
+
+                let queueAppScaleRules =
+                    azureQueueContainerApp.SelectToken("properties.template.scale.rules[0].azureQueue")
+
+                Expect.isNotNull queueAppScaleRules "rules[0].azureQueue was null"
+                Expect.equal (queueAppScaleRules["queueLength"] |> int) 5 "Incorrect queueLength"
+                Expect.equal (queueAppScaleRules["queueName"] |> string) "somequeue" "Incorrect queueName"
+
+                let ruleAuth = queueAppScaleRules.SelectToken("auth[0]")
+                Expect.isNotNull ruleAuth "auth[0] was null"
+                Expect.equal (ruleAuth["secretRef"] |> string) connectionSecretName "Incorrect secretRef"
+                Expect.equal (ruleAuth["triggerParameter"] |> string) "connection" "Incorrect triggerParameter"
             }
 
             test "Makes container app with MSI" {
