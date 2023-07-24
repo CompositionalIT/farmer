@@ -332,12 +332,13 @@ let tests =
                     "Must set a name on a sql server account"
             }
 
-            for (adOnlyAuth, principalType, adminUserName) in [
-                true, ActiveDirectoryPrincipalType.User, null
-                false, ActiveDirectoryPrincipalType.User, "sqladmin"
-                true, ActiveDirectoryPrincipalType.Group, null
-                false, ActiveDirectoryPrincipalType.Group, "sqladmin"
-            ] do
+            for (adOnlyAuth, principalType, adminUserName) in
+                [
+                    true, ActiveDirectoryPrincipalType.User, null
+                    false, ActiveDirectoryPrincipalType.User, "sqladmin"
+                    true, ActiveDirectoryPrincipalType.Group, null
+                    false, ActiveDirectoryPrincipalType.Group, "sqladmin"
+                ] do
                 test $"AD Auth - ADOnly: {adOnlyAuth}, Principal: {principalType}, Username: {adminUserName}" {
                     let sql =
                         let activeDirectoryUserAdmin: ActiveDirectoryAdminSettings =
@@ -365,7 +366,9 @@ let tests =
 
                     Expect.equal
                         (jobj
-                            .SelectToken("resources[?(@.name=='adtestserver')].properties.administrators.administratorType")
+                            .SelectToken(
+                                "resources[?(@.name=='adtestserver')].properties.administrators.administratorType"
+                            )
                             .ToString())
                         "ActiveDirectory"
                         "Incorrect administrator type"
@@ -399,5 +402,5 @@ let tests =
                             .ToString())
                         "F9D49C34-01BA-4897-B7E2-3694BF3DE2CF"
                         "Incorrect SID"
-            }
+                }
         ]

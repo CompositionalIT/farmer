@@ -96,4 +96,4 @@ let allTests =
 let main _ =
     printfn "Running tests!"
 
-    runTestsWithCLIArgs [ Verbosity Logging.LogLevel.Info ] [| |] allTests
+    runTestsWithCLIArgs [ Verbosity Logging.LogLevel.Info ] [||] allTests

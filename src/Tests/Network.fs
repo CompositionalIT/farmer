@@ -875,7 +875,11 @@ let tests =
                 Expect.isNotNull publicip "public ip should be generated"
 
                 let publicipName = publicip.["name"]
-                Expect.equal publicipName "my-route-server-publicip" "Incorrect default value for public ip name"
+
+                Expect.equal
+                    publicipName
+                    (JToken.op_Implicit "my-route-server-publicip")
+                    "Incorrect default value for public ip name"
 
                 let publicipProps = publicip.["properties"]
 
@@ -891,7 +895,11 @@ let tests =
                 Expect.isNotNull subnet "subnet should be generated"
 
                 let subnetName = subnet.["name"]
-                Expect.equal subnetName "test-vnet/RouteServerSubnet" "Incorrect default value for subnet name"
+
+                Expect.equal
+                    subnetName
+                    (JToken.op_Implicit "test-vnet/RouteServerSubnet")
+                    "Incorrect default value for subnet name"
 
                 let subnetProps = subnet.["properties"]
                 let addressPrefix: string = JToken.op_Explicit subnetProps.["addressPrefix"]
@@ -907,12 +915,12 @@ let tests =
 
                 Expect.equal
                     ipConfigName
-                    "my-route-server/my-route-server-ipconfig"
+                    (JToken.op_Implicit "my-route-server/my-route-server-ipconfig")
                     "Incorrect default value for ipConfig name"
 
                 let ipConfigDependencies =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualHubs/ipConfigurations')].dependsOn"
-                    :?> Newtonsoft.Json.Linq.JArray
+                    :?> JArray
 
                 Expect.isNotNull ipConfigDependencies "Missing dependency for ipConfig"
                 Expect.hasLength ipConfigDependencies 3 "Incorrect number of dependencies for ipConfig"
@@ -953,7 +961,11 @@ let tests =
                 Expect.isNotNull routeServer "route server should be generated"
 
                 let routeServerName = routeServer.["name"]
-                Expect.equal routeServerName "my-route-server" "Incorrect default value for route server name"
+
+                Expect.equal
+                    routeServerName
+                    (JToken.op_Implicit "my-route-server")
+                    "Incorrect default value for route server name"
 
                 let routeServerProps = routeServer.["properties"]
 
@@ -976,7 +988,11 @@ let tests =
                 Expect.isNotNull bgpConn "bgp connection should be generated"
 
                 let bgpConnName = bgpConn.["name"]
-                Expect.equal bgpConnName "my-route-server/my-bgp-conn" "Incorrect default value for bgp connection name"
+
+                Expect.equal
+                    bgpConnName
+                    (JToken.op_Implicit "my-route-server/my-bgp-conn")
+                    "Incorrect default value for bgp connection name"
 
                 let bgpConnDependencies =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualHubs/bgpConnections')].dependsOn"
@@ -1041,7 +1057,11 @@ let tests =
                 Expect.isNotNull subnet "subnet should be generated"
 
                 let subnetName = subnet.["name"]
-                Expect.equal subnetName "test-vnet/my-subnet" "Incorrect default value for subnet name"
+
+                Expect.equal
+                    subnetName
+                    (JToken.op_Implicit "test-vnet/my-subnet")
+                    "Incorrect default value for subnet name"
 
                 let subnetProps = subnet.["properties"]
                 let addressPrefix: string = JToken.op_Explicit subnetProps.["addressPrefix"]
@@ -1057,12 +1077,11 @@ let tests =
 
                 Expect.equal
                     networkInterfaceName
-                    "my-network-interface"
+                    (JToken.op_Implicit "my-network-interface")
                     "Incorrect default value for network interface name"
 
                 let networkInterfaceDependencies =
-                    jobj.SelectToken "resources[?(@.type=='Microsoft.Network/networkInterfaces')].dependsOn"
-                    :?> Newtonsoft.Json.Linq.JArray
+                    jobj.SelectToken "resources[?(@.type=='Microsoft.Network/networkInterfaces')].dependsOn" :?> JArray
 
                 Expect.isNotNull networkInterfaceDependencies "Missing dependency for networkInterface"
                 Expect.hasLength networkInterfaceDependencies 1 "Incorrect number of dependencies for networkInterface"
@@ -1089,7 +1108,11 @@ let tests =
                 Expect.isNotNull ipConfig "network interface ip config should be generated"
 
                 let ipConfigName = ipConfig.["name"]
-                Expect.equal ipConfigName "ipconfig1" "Incorrect default value for network interface ip config name"
+
+                Expect.equal
+                    ipConfigName
+                    (JToken.op_Implicit "ipconfig1")
+                    "Incorrect default value for network interface ip config name"
 
                 let ipConfigProps = ipConfig.["properties"]
 
