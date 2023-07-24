@@ -4,6 +4,7 @@ Release Notes
 * Network Security Groups: Fix bug where a SecurityRule without a source throws a meaningful exception
 * Network Security Groups: Add rule to existing security group
 * SQL Azure: Adds support for AD admin
+* Container Apps: Fix storage queue KEDA scaling rule authentication
 
 ## 1.7.24
 * Network Interface: Adds support for network interface creation.
