@@ -1,5 +1,9 @@
 Release Notes
 =============
+## 1.7.26
+* Network Interface: Adds support for adding tags
+* Route server: Adds support for adding tags
+
 ## 1.7.25
 * Network Security Groups: Fix bug where a SecurityRule without a source throws a meaningful exception
 * Network Security Groups: Add rule to existing security group

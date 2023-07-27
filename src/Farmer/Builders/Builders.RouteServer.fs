@@ -174,4 +174,10 @@ type RouteServerBuilder() =
             VirtualNetwork = Some(Unmanaged(virtualNetworks.resourceId (ResourceName vnetName)))
         }
 
+    interface ITaggable<RouteServerConfig> with
+        member _.Add state tags =
+            { state with
+                Tags = state.Tags |> Map.merge tags
+            }
+
 let routeServer = RouteServerBuilder()
