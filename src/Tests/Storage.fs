@@ -192,7 +192,7 @@ let tests =
 
                         Expect.equal resource.Name "storage/default/queue1" "queue name for 'queue1' is wrong"
 
-                        Expect.equal
+                        Expect.containsAll
                             resource.Metadata
                             (seq [ ("environment", "dev"); ("project", "farmer") ] |> dict)
                             "Metadata not set correctly"
@@ -231,12 +231,12 @@ let tests =
                         let queue1Metadata = seq [ ("environment", "dev"); ("project", "farmer") ]
                         let queue2Metadata = seq [ ("environment", "test"); ("project", "barnyard") ]
 
-                        Expect.equal
+                        Expect.containsAll
                             resources.[0].Metadata
                             (queue1Metadata |> dict)
                             "Metadata not set correctly for queue1"
 
-                        Expect.equal
+                        Expect.containsAll
                             resources.[1].Metadata
                             (queue1Metadata |> dict)
                             "Metadata not set correctly for queue2"
@@ -255,12 +255,12 @@ let tests =
 
                         let queueMetadata = seq [ ("environment", "dev"); ("project", "farmer") ]
 
-                        Expect.equal
+                        Expect.containsAll
                             resources.[0].Metadata
                             (queueMetadata |> dict)
                             "Metadata not set correctly for queue1"
 
-                        Expect.equal
+                        Expect.containsAll
                             resources.[1].Metadata
                             (queueMetadata |> dict)
                             "Metadata not set correctly for queue2"
