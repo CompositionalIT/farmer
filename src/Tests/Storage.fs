@@ -238,12 +238,25 @@ let tests =
 
                         Expect.containsAll
                             resources.[1].Metadata
-                            (queue1Metadata |> dict)
+                            (queue2Metadata |> dict)
                             "Metadata not set correctly for queue2"
                     }
                     test "Metadata is added correctly to multiple queues when same for all" {
                         let resources: StorageQueue list =
-                            let account = storageAccount { name "storage" }
+                            let account = storageAccount {
+                                name "storage"
+                                add_queues
+                                    [
+                                        storageQueue {
+                                            name "queue1"
+                                            metadata [ "environment", "dev"; "project", "farmer" ]
+                                        }
+                                        storageQueue {
+                                            name "queue2"
+                                            metadata [ "environment", "dev"; "project", "farmer" ]
+                                        }
+                                    ]
+                            }
 
                             [
                                 for i in 1..2 do
