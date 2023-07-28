@@ -49,7 +49,6 @@ The Storage Account builder creates storage accounts and their associated contai
 | default_to_oauth_authentication | Defaults to OAuth (AAD) authentication for requests to blobs, queues and containers in the Azure portal |
 | use_azure_dns_zone | Change the DNS Endpoint type from `Standard` to `AzureDnsZone` |
 
-
 #### Configuration Members
 
 | Member | Purpose |
@@ -80,6 +79,43 @@ let storage = storageAccount {
     add_file_share "share1"
     add_file_share_with_quota "share2" 1024<Gb>
     add_queue "myqueue"
+    add_queue (storageQueue {
+      name "queue1"
+      metadata [
+        "environment", "dev"
+        "project", "farmer"
+      ]
+    })
+    add_queues [
+      storageQueue {
+        name "queue1"
+        metadata [
+          "environment", "dev"
+          "project", "farmer"
+        ]
+      }
+      storageQueue {
+        name "queue2"
+        metadata [
+          "environment", "test"
+          "project", "barnyard"
+        ]
+      }
+    ]
+    add_queues 
+      [
+        storageQueue {
+          name "queue1"
+        }
+        storageQueue {
+          name "queue"
+        }
+      ]
+      [
+        "environment", "dev"
+        "project", "farmer"
+      ]      
+
     add_table "mytable"
     use_static_website "local/path/to/folder/content" "index.html"
     static_website_error_page "error.html"

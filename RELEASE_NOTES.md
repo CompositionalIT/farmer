@@ -8,6 +8,7 @@ Release Notes
 * Network Interface: Adds support for adding tags
 * Route server: Adds support for adding tags
 * SQL Azure: Adds support for AD admin
+* Storage Account Queues: Support for adding metadata
 
 ## 1.7.24
 * Network Interface: Adds support for network interface creation.
