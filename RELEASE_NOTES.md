@@ -4,6 +4,7 @@ Release Notes
 * Network Security Groups: Fix bug where a SecurityRule without a source throws a meaningful exception
 * Network Security Groups: Add rule to existing security group
 * SQL Azure: Adds support for AD admin
+* Storage Account Queues: Support for adding metadata
 
 ## 1.7.24
 * Network Interface: Adds support for network interface creation.
@@ -82,9 +83,6 @@ Release Notes
 ## 1.7.11
 * Dedicated Hosts: Support for Host Groups and Hosts
 * WebApps: Added support for Node 14, 16 and 18
-
-## 1.7.11
-* Storage Account Queues: Support for adding metadata
 
 ## 1.7.10
 * Container Groups and Container Apps: Support for link_to_identity for ACR managed identities.
