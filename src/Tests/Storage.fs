@@ -243,20 +243,22 @@ let tests =
                     }
                     test "Metadata is added correctly to multiple queues when same for all" {
                         let resources: StorageQueue list =
-                            let account = storageAccount {
-                                name "storage"
-                                add_queues
-                                    [
-                                        storageQueue {
-                                            name "queue1"
-                                            metadata [ "environment", "dev"; "project", "farmer" ]
-                                        }
-                                        storageQueue {
-                                            name "queue2"
-                                            metadata [ "environment", "dev"; "project", "farmer" ]
-                                        }
-                                    ]
-                            }
+                            let account =
+                                storageAccount {
+                                    name "storage"
+
+                                    add_queues
+                                        [
+                                            storageQueue {
+                                                name "queue1"
+                                                metadata [ "environment", "dev"; "project", "farmer" ]
+                                            }
+                                            storageQueue {
+                                                name "queue2"
+                                                metadata [ "environment", "dev"; "project", "farmer" ]
+                                            }
+                                        ]
+                                }
 
                             [
                                 for i in 1..2 do
