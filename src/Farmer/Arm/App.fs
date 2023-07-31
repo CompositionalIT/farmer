@@ -13,6 +13,9 @@ let managedEnvironments =
 let storages =
     ResourceType("Microsoft.App/managedEnvironments/storages", "2022-03-01")
 
+let daprComponents =
+    ResourceType("Microsoft.App/managedEnvironments/daprComponents", "2022-10-01")
+
 open Farmer.ContainerAppValidation
 open Farmer.Identity
 
@@ -76,6 +79,69 @@ type ManagedEnvironmentStorage =
                 }
         | _ -> None
 
+type DaprMetadataValue =
+    | SecretRef of string
+    | Value of string
+
+type DaprComponent =
+    {
+        Name: ResourceName
+        Environment: ResourceId
+        ComponentType: string
+        IgnoreErrors: bool option
+        InitTimeout: string option
+        Metadata: Map<string, DaprMetadataValue>
+        Scopes: string list
+        Secrets: Map<string, SecretValue>
+        SecretStoreComponent: ResourceName option
+        Version: string
+    }
+
+    interface IArmResource with
+        member this.ResourceId = daprComponents.resourceId this.Name
+
+        member this.JsonModel =
+            {| daprComponents.Create(
+                   ResourceName $"{this.Environment.Name.Value}/{this.Name.Value}",
+                   dependsOn = [ this.Environment ]
+               ) with
+                properties =
+                    {|
+                        componentType = this.ComponentType
+                        ignoreErrors = this.IgnoreErrors |> Option.toNullable
+                        initTimeout = this.InitTimeout |> Option.toObj
+                        metadata =
+                            [|
+                                for metadata in this.Metadata do
+                                    match metadata.Value with
+                                    | SecretRef v ->
+                                        {|
+                                            name = metadata.Key
+                                            secretRef = v
+                                            value = null
+                                        |}
+                                    | Value v ->
+                                        {|
+                                            name = metadata.Key
+                                            secretRef = null
+                                            value = v
+                                        |}
+                            |]
+                        scopes = this.Scopes
+                        secrets =
+                            [|
+                                for secret in this.Secrets do
+                                    {|
+                                        name = secret.Key
+                                        value = secret.Value.Value
+                                    |}
+                            |]
+                        secretStoreComponent =
+                            this.SecretStoreComponent |> Option.map (fun x -> x.Value) |> Option.toObj
+                        version = this.Version
+                    |}
+            |}
+
 type ContainerApp =
     {
         Name: ResourceName
@@ -85,7 +151,7 @@ type ContainerApp =
         ScaleRules: Map<string, ScaleRule>
         Identity: ManagedIdentity
         Replicas: {| Min: int; Max: int |} option
-        DaprConfig: {| AppId: string |} option
+        DaprConfig: {| AppId: string; Port: uint16 option |} option
         Secrets: Map<ContainerAppSettingKey, SecretValue>
         EnvironmentVariables: Map<string, EnvVar>
         ImageRegistryCredentials: ImageRegistryAuthentication list
@@ -240,6 +306,16 @@ type ContainerApp =
                                                     | None -> null
                                             |}
                                     | None -> null
+                                dapr =
+                                    match this.DaprConfig with
+                                    | Some settings ->
+                                        {|
+                                            enabled = true
+                                            appId = settings.AppId
+                                            appPort = settings.Port |> Option.toNullable
+                                        |}
+                                        :> obj
+                                    | None -> {| enabled = false |}
                             |}
 
                         template =
@@ -439,15 +515,6 @@ type ContainerApp =
                                                         |}
                                             |]
                                     |}
-                                dapr =
-                                    match this.DaprConfig with
-                                    | Some settings ->
-                                        {|
-                                            enabled = true
-                                            appId = settings.AppId
-                                        |}
-                                        :> obj
-                                    | None -> {| enabled = false |}
                                 volumes =
                                     [
                                         for key, value in Map.toSeq this.Volumes do

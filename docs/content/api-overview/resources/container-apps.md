@@ -27,6 +27,8 @@ The Container Environment builder (`containerEnvironment`) defines settings for 
 | internal_load_balancer_state | Sets whether an internal load balancer should be used for load balancing traffic to container app replicas. |
 | add_container | Adds a single container app to the environment. |
 | add_containers | Adds one or more container apps to the environment. |
+| add_dapr_component | Adds a dapr component to the environment. |
+| add_dapr_components | Adds one or more dapr component to the environment. |
 | app_insights_instance | Links an App Insights instance to this environment. All containers will be configured to use this AI instance, as well as DAPR. |
 
 > Also supports Tagging and Dependencies.
@@ -43,6 +45,7 @@ The Container Apps builder (`containerApp`) is used to define one or more contai
 | ingress_transport | Activates the ingress of the Azure Container App and sets the transport mode. |
 | system_identity | Activates the system identity of the Azure Container App. |
 | dapr_app_id | Sets the dapr app id for the app. |
+| dapr_app_port | Sets the dapr app port for the app. |
 | replicas | Sets the minimum and maximum replicas to scale the container app. |
 | active_revision_mode | Indicates whether multiple version of a container app can be active at once.|
 | add_registry_credentials | Adds container image registry credentials for images in this container app, which are a list of server and usernames. Passwords are supplied as secure parameters. |
@@ -85,6 +88,23 @@ The Container builder (`container`) is used to define one or more containers for
 | cpu_cores | Specifies the CPU cores allocated to the container (maximum 2.0). |
 | memory | Specifies the memory in gigabytes allocated to the container (maximum 4.0). |
 | add_volume_mount | Adds a volume mount on a container from a volume in the container app. |
+
+#### Dapr Component Builder
+The Dapr Component builder (`daprComponent`) is used to define one or more dapr components for a container environment.
+| Keyword | Purpose |
+|-|-|
+| name | Sets the name of the dapr component. |
+| component_type | Sets the dapr component type. |
+| ignore_errors | Sets whether component errors are ignored. |
+| init_timeout | Sets the initialization timeout. |
+| add_metadata | Adds a piece of metadata to the dapr component. |
+| add_secret_metadata | Adds a piece of metadata that references a secret to the dapr component. |
+| add_scope | Adds a scope, can either be a string or a reference to a container app. |
+| add_scopes | Adds one or more scopes, can either be strings or references to container apps. |
+| version | Sets the dapr component version. |
+| cron_binding | Helper for setting fields required for a cron binding |
+| azure_storage_queue_binding | Helper for setting fields required for an Azure Storage Queue binding |
+| azure_servicebus_queues_pubsub | Helper for setting fields required for an Azure Service Bus Queue |
 
 #### Example
 
