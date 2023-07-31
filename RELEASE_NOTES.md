@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.7.26
+* Container Apps: Add support for Dapr components
+
 ## 1.7.25
 * Container Apps: Fix storage queue KEDA scaling rule authentication
 * Network Security Groups: Fix bug where a SecurityRule without a source throws a meaningful exception
