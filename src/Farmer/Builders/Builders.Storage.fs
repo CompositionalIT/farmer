@@ -13,7 +13,7 @@ type StorageAccount =
     /// Gets an ARM Expression connection string for any Storage Account.
     static member getConnectionString(storageAccount: ResourceId) =
         let expr =
-            $"concat('DefaultEndpointsProtocol=https;AccountName={storageAccount.Name.Value};AccountKey=', listKeys({storageAccount.ArmExpression.Value}, '2017-10-01').keys[0].value)"
+            $"concat('DefaultEndpointsProtocol=https;AccountName={storageAccount.Name.Value};AccountKey=', listKeys({storageAccount.ArmExpression.Value}, '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)"
 
         ArmExpression.create (expr, storageAccount)
 
@@ -33,6 +33,12 @@ type StoragePolicy =
         Filters: string list
     }
 
+type StorageQueueConfig =
+    {
+        Name: StorageResourceName
+        Metadata: Metadata option
+    }
+
 type StorageAccountConfig =
     {
         /// The name of the storage account.
@@ -46,7 +52,7 @@ type StorageAccountConfig =
         /// File shares
         FileShares: (StorageResourceName * int<Gb> option) list
         /// Queues
-        Queues: StorageResourceName Set
+        Queues: StorageQueueConfig list
         /// Network Access Control Lists
         NetworkAcls: NetworkRuleSet option
         /// Tables
@@ -142,7 +148,8 @@ type StorageAccountConfig =
                     }
                 for queue in this.Queues do
                     {
-                        Queues.Queue.Name = queue
+                        Queues.Queue.Name = queue.Name
+                        Queues.Queue.Metadata = queue.Metadata
                         Queues.Queue.StorageAccount = this.Name.ResourceName
                     }
                 for table in this.Tables do
@@ -226,7 +233,7 @@ type StorageAccountBuilder() =
             Containers = []
             FileShares = []
             Rules = Map.empty
-            Queues = Set.empty
+            Queues = List.empty
             NetworkAcls = None
             Tables = Set.empty
             RoleAssignments = Set.empty
@@ -299,15 +306,45 @@ type StorageAccountBuilder() =
 
     /// Adds a single queue to the storage account.
     [<CustomOperation "add_queue">]
+    member _.AddQueue(state: StorageAccountConfig, queue: StorageQueueConfig) =
+        { state with
+            Queues = state.Queues @ [ queue ]
+        }
+
+    [<CustomOperation "add_queue">]
     member _.AddQueue(state: StorageAccountConfig, name: string) =
         { state with
-            Queues = state.Queues.Add(StorageResourceName.Create(name).OkValue)
+            Queues =
+                state.Queues
+                @ [
+                    {
+                        Name = StorageResourceName.Create(name).OkValue
+                        Metadata = None
+                    }
+                ]
         }
 
     /// Adds a set of queues to the storage account.
     [<CustomOperation "add_queues">]
-    member this.AddQueues(state: StorageAccountConfig, names) =
-        (state, names) ||> Seq.fold (fun state name -> this.AddQueue(state, name))
+    member this.AddQueues(state: StorageAccountConfig, queues: StorageQueueConfig seq) =
+        (state, queues) ||> Seq.fold (fun state queue -> this.AddQueue(state, queue))
+
+    /// Adds a set of queues to the storage account with the same metadata.
+    [<CustomOperation "add_queues">]
+    member this.AddQueues
+        (
+            state: StorageAccountConfig,
+            queues: StorageQueueConfig seq,
+            metadata: (string * string) list
+        ) =
+        let qs =
+            queues
+            |> Seq.map (fun queue ->
+                { queue with
+                    Metadata = Some(metadata |> Map.ofSeq)
+                })
+
+        (state, qs) ||> Seq.fold (fun state queue -> this.AddQueue(state, queue))
 
     /// Adds a single table to the storage account.
     [<CustomOperation "add_table">]
@@ -648,4 +685,27 @@ type EndpointBuilder with
         let state = this.Origin(state, storage.Endpoint)
         this.DependsOn(state, storage.ResourceId)
 
+type StorageQueueBuilder() =
+    member _.Yield _ =
+        {
+            Name = StorageResourceName.Empty
+            Metadata = Some(Map.empty)
+        }
+
+    member _.Run state = state
+
+    /// Sets the name of the storage queue.
+    [<CustomOperation "name">]
+    member _.Name(state: StorageQueueConfig, name: string) =
+        { state with
+            Name = StorageResourceName.Create(ResourceName name).OkValue
+        }
+
+    /// Sets the name of the storage account.
+    [<CustomOperation "metadata">]
+    member _.Name(state: StorageQueueConfig, metadata: (string * string) list) =
+        let m = metadata |> Map.ofList
+        { state with Metadata = Some(m) }
+
 let storageAccount = StorageAccountBuilder()
+let storageQueue = StorageQueueBuilder()

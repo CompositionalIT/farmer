@@ -1,7 +1,17 @@
 Release Notes
 =============
+
+## 1.7.26
+* Container Apps: Add support for Dapr components
+
 ## 1.7.25
+* Container Apps: Fix storage queue KEDA scaling rule authentication
 * Network Security Groups: Fix bug where a SecurityRule without a source throws a meaningful exception
+* Network Security Groups: Add rule to existing security group
+* Network Interface: Adds support for adding tags
+* Route server: Adds support for adding tags
+* SQL Azure: Adds support for AD admin
+* Storage Account Queues: Support for adding metadata
 
 ## 1.7.24
 * Network Interface: Adds support for network interface creation.

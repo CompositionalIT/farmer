@@ -96,8 +96,4 @@ let allTests =
 let main _ =
     printfn "Running tests!"
 
-    runTests
-        { defaultConfig with
-            verbosity = Logging.Info
-        }
-        allTests
+    runTestsWithCLIArgs [ Verbosity Logging.LogLevel.Info ] [||] allTests

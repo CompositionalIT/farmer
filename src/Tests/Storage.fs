@@ -146,24 +146,141 @@ let tests =
                 Expect.equal resources.[1].Name "storage/default/table2" "table name for 'table2' is wrong"
                 Expect.equal resources.[2].Name "storage/default/table3" "table name for 'table3' is wrong"
             }
-            test "Creates queues correctly" {
-                let resources: StorageQueue list =
-                    let account =
-                        storageAccount {
-                            name "storage"
-                            add_queue "queue1"
-                            add_queues [ "queue2"; "queue3" ]
-                        }
+            testList
+                "Storage Queue Tests"
+                [
+                    test "Creates queues correctly" {
+                        let resources: StorageQueue list =
+                            let queue =
+                                storageQueue {
+                                    name "queue4"
+                                    metadata [ "environment", "dev"; "source", "image" ]
+                                }
 
-                    [
-                        for i in 1..3 do
-                            account |> getResourceAtIndex client.SerializationSettings i
-                    ]
+                            let account =
+                                storageAccount {
+                                    name "storage"
+                                    add_queue "queue1"
+                                    add_queues [ storageQueue { name "queue2" }; storageQueue { name "queue3" } ]
+                                    add_queue queue
+                                }
 
-                Expect.equal resources.[0].Name "storage/default/queue1" "queue name for 'queue1' is wrong"
-                Expect.equal resources.[1].Name "storage/default/queue2" "queue name for 'queue2' is wrong"
-                Expect.equal resources.[2].Name "storage/default/queue3" "queue name for 'queue3' is wrong"
-            }
+                            [
+                                for i in 1..3 do
+                                    account |> getResourceAtIndex client.SerializationSettings i
+                            ]
+
+                        Expect.equal resources.[0].Name "storage/default/queue1" "queue name for 'queue1' is wrong"
+                        Expect.equal resources.[1].Name "storage/default/queue2" "queue name for 'queue2' is wrong"
+                        Expect.equal resources.[2].Name "storage/default/queue3" "queue name for 'queue3' is wrong"
+                    }
+                    test "Metadata is added correctly to single queue" {
+                        let resource: StorageQueue =
+                            let account =
+                                storageAccount {
+                                    name "storage"
+
+                                    add_queue (
+                                        storageQueue {
+                                            name "queue1"
+                                            metadata [ "environment", "dev"; "project", "farmer" ]
+                                        }
+                                    )
+                                }
+
+                            account |> getResourceAtIndex client.SerializationSettings 1
+
+                        Expect.equal resource.Name "storage/default/queue1" "queue name for 'queue1' is wrong"
+
+                        Expect.containsAll
+                            resource.Metadata
+                            (seq [ ("environment", "dev"); ("project", "farmer") ] |> dict)
+                            "Metadata not set correctly"
+                    }
+                    test "Metadata is added correctly to multiple queues" {
+                        let resources: StorageQueue list =
+                            let account =
+                                storageAccount {
+                                    name "storage"
+
+                                    add_queues
+                                        [
+                                            storageQueue {
+                                                name "queue1"
+                                                metadata [ "environment", "dev"; "project", "farmer" ]
+                                            }
+                                            storageQueue {
+                                                name "queue2"
+                                                metadata [ "environment", "test"; "project", "barnyard" ]
+                                            }
+                                        ]
+
+                                    add_queues
+                                        [ storageQueue { name "queue3" }; storageQueue { name "queue4" } ]
+                                        [ "environment", "test"; "project", "barnyard" ]
+                                }
+
+                            [
+                                for i in 1..2 do
+                                    account |> getResourceAtIndex client.SerializationSettings i
+                            ]
+
+                        Expect.equal resources.[0].Name "storage/default/queue1" "queue name for 'queue1' is wrong"
+                        Expect.equal resources.[1].Name "storage/default/queue2" "queue name for 'queue2' is wrong"
+
+                        let queue1Metadata = seq [ ("environment", "dev"); ("project", "farmer") ]
+                        let queue2Metadata = seq [ ("environment", "test"); ("project", "barnyard") ]
+
+                        Expect.containsAll
+                            resources.[0].Metadata
+                            (queue1Metadata |> dict)
+                            "Metadata not set correctly for queue1"
+
+                        Expect.containsAll
+                            resources.[1].Metadata
+                            (queue2Metadata |> dict)
+                            "Metadata not set correctly for queue2"
+                    }
+                    test "Metadata is added correctly to multiple queues when same for all" {
+                        let resources: StorageQueue list =
+                            let account =
+                                storageAccount {
+                                    name "storage"
+
+                                    add_queues
+                                        [
+                                            storageQueue {
+                                                name "queue1"
+                                                metadata [ "environment", "dev"; "project", "farmer" ]
+                                            }
+                                            storageQueue {
+                                                name "queue2"
+                                                metadata [ "environment", "dev"; "project", "farmer" ]
+                                            }
+                                        ]
+                                }
+
+                            [
+                                for i in 1..2 do
+                                    account |> getResourceAtIndex client.SerializationSettings i
+                            ]
+
+                        Expect.equal resources.[0].Name "storage/default/queue1" "queue name for 'queue1' is wrong"
+                        Expect.equal resources.[1].Name "storage/default/queue2" "queue name for 'queue2' is wrong"
+
+                        let queueMetadata = seq [ ("environment", "dev"); ("project", "farmer") ]
+
+                        Expect.containsAll
+                            resources.[0].Metadata
+                            (queueMetadata |> dict)
+                            "Metadata not set correctly for queue1"
+
+                        Expect.containsAll
+                            resources.[1].Metadata
+                            (queueMetadata |> dict)
+                            "Metadata not set correctly for queue2"
+                    }
+                ]
             test "Rejects invalid storage accounts" {
                 let check (v: string) m =
                     Expect.equal (StorageAccountName.Create v) (Error("Storage account names " + m))
@@ -273,12 +390,12 @@ let tests =
                     StorageAccount.getConnectionString (StorageAccountName.Create("account").OkValue, "rg")
 
                 Expect.equal
-                    "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value)"
+                    "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)"
                     strongConn.Value
                     "Strong connection string"
 
                 Expect.equal
-                    "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('rg', 'Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value)"
+                    "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('rg', 'Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)"
                     rgConn.Value
                     "Complex connection string"
             }

@@ -34,42 +34,56 @@ let fullContainerAppDeployment =
     let version = "1.0.0"
     let managedIdentity = ManagedIdentity.Empty
 
+    let httpContainerApp =
+        containerApp {
+            name "http"
+            add_identity msi
+            active_revision_mode Single
+
+            add_registry_credentials [ registry containerRegistryDomain containerRegistryName managedIdentity ]
+
+            add_containers
+                [
+                    container {
+                        name "http"
+                        private_docker_image containerRegistryDomain "http" version
+                        cpu_cores 0.25<VCores>
+                        memory 0.5<Gb>
+                        ephemeral_storage 1.<Gb>
+                    }
+                ]
+
+            replicas 1 5
+            add_env_variable "ServiceBusQueueName" "wishrequests"
+            add_secret_parameter "servicebusconnectionkey"
+            ingress_state Enabled
+            ingress_target_port 80us
+            ingress_transport Auto
+            dapr_app_id "http"
+            add_http_scale_rule "http-rule" { ConcurrentRequests = 100 }
+        }
+
     let containerEnv =
         containerEnvironment {
             name "kubecontainerenv"
             log_analytics_instance containerLogs
             app_insights_instance insights
 
+            add_dapr_components
+                [
+                    daprComponent {
+                        name "daprComponent"
+                        component_type "some.component.type"
+                        version "v1"
+                        add_metadata "meta1" "value1"
+                        add_secret_metadata "meta2" "secret1" storage.Key
+                        add_scope httpContainerApp
+                    }
+                ]
+
             add_containers
                 [
-                    containerApp {
-                        name "http"
-                        add_identity msi
-                        active_revision_mode Single
-
-                        add_registry_credentials
-                            [ registry containerRegistryDomain containerRegistryName managedIdentity ]
-
-                        add_containers
-                            [
-                                container {
-                                    name "http"
-                                    private_docker_image containerRegistryDomain "http" version
-                                    cpu_cores 0.25<VCores>
-                                    memory 0.5<Gb>
-                                    ephemeral_storage 1.<Gb>
-                                }
-                            ]
-
-                        replicas 1 5
-                        add_env_variable "ServiceBusQueueName" "wishrequests"
-                        add_secret_parameter "servicebusconnectionkey"
-                        ingress_state Enabled
-                        ingress_target_port 80us
-                        ingress_transport Auto
-                        dapr_app_id "http"
-                        add_http_scale_rule "http-rule" { ConcurrentRequests = 100 }
-                    }
+                    httpContainerApp
                     containerApp {
                         name "multienv"
                         add_simple_container "mcr.microsoft.com/dotnet/samples" "aspnetapp"
@@ -119,6 +133,22 @@ let fullContainerAppDeployment =
                                 MessageCount = 5
                                 SecretRef = "servicebusconnectionkey"
                             }
+                    }
+                    containerApp {
+                        name "azurequeue"
+                        reference_registry_credentials [ (acr :> IBuilder).ResourceId ]
+
+                        add_containers
+                            [
+                                container {
+                                    name "azurequeue"
+                                    private_docker_image containerRegistryDomain "azurequeue" version
+                                }
+                            ]
+
+                        replicas 0 1
+
+                        add_queue_scale_rule "aq-keda-scale" storage "somequeue" 5
                     }
                 ]
         }
@@ -199,6 +229,48 @@ let tests =
                     (kubeEnvLogAnalyticsCustomerId.["customerId"] |> string)
                     "[reference(resourceId('Microsoft.OperationalInsights/workspaces', 'containerlogs'), '2020-03-01-preview').customerId]"
                     "Incorrect log analytics customerId reference"
+            }
+
+            test "Full container environment daprComponent" {
+                let daprComponent =
+                    jobj.SelectToken("resources[?(@.name=='kubecontainerenv/daprComponent')]")
+
+                Expect.equal
+                    (daprComponent["type"] |> string)
+                    "Microsoft.App/managedEnvironments/daprComponents"
+                    "Incorrect type for dapr component"
+
+                let daprComponentProperties = daprComponent["properties"]
+
+                Expect.equal
+                    (daprComponentProperties["componentType"] |> string)
+                    "some.component.type"
+                    "Incorrect dapr component type"
+
+                Expect.equal (daprComponentProperties["version"] |> string) "v1" "Incorrect dapr component version"
+
+                let firstDaprComponentMetadata = daprComponentProperties.SelectToken("metadata[0]")
+                Expect.equal (firstDaprComponentMetadata["name"] |> string) "meta1" "Incorrect name for metadata[0]"
+                Expect.equal (firstDaprComponentMetadata["value"] |> string) "value1" "Incorrect value for metadata[0]"
+
+                let secondDaprComponentMetadata = daprComponentProperties.SelectToken("metadata[1]")
+                Expect.equal (secondDaprComponentMetadata["name"] |> string) "meta2" "Incorrect name for metadata[1]"
+
+                Expect.equal
+                    (secondDaprComponentMetadata["secretRef"] |> string)
+                    "secret1"
+                    "Incorrect value for metadata[1]"
+
+                let firstDaprSecret = daprComponentProperties.SelectToken("secrets[0]")
+                Expect.equal (firstDaprSecret["name"] |> string) "secret1" "Incorrect name for secrets[0]"
+
+                Expect.equal
+                    (firstDaprSecret["value"] |> string)
+                    "[concat('DefaultEndpointsProtocol=https;AccountName=storagename;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'storagename'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
+                    "Incorrect value for secrets[0]"
+
+                let scope = daprComponentProperties.SelectToken("scopes[0]")
+                Expect.equal (scope |> string) "http" "Incorrect scopes[0]"
             }
 
             test "Full container environment containerApp" {
@@ -282,7 +354,7 @@ let tests =
 
                 let scale = httpContainerApp.SelectToken("properties.template.scale")
 
-                Expect.isNotNull scale "properties.scale was null"
+                Expect.isNotNull scale "properties.template.scale was null"
                 Expect.equal (scale.["minReplicas"] |> int) 1 "Incorrect min replicas"
                 Expect.equal (scale.["maxReplicas"] |> int) 5 "Incorrect max replicas"
 
@@ -316,6 +388,32 @@ let tests =
                     (serviceBusVolumeMounts.[0].["mountPath"] |> string)
                     "/certs"
                     "Incorrect container volume mount"
+
+                let azureQueueContainerApp = jobj.SelectToken("resources[?(@.name=='azurequeue')]")
+                Expect.isNotNull azureQueueContainerApp "resources[?(@.name=='azurequeue')] was null"
+
+                let queueAppSecrets =
+                    azureQueueContainerApp.SelectToken("properties.configuration.secrets")
+
+                let connectionSecretName = "scalerule-aq-keda-scale-connection"
+                Expect.equal (queueAppSecrets[1]["name"] |> string) connectionSecretName "Incorrect queue app secret"
+
+                Expect.equal
+                    (queueAppSecrets[1]["value"] |> string)
+                    "[concat('DefaultEndpointsProtocol=https;AccountName=storagename;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'storagename'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
+                    "Incorrect queue app secret"
+
+                let queueAppScaleRules =
+                    azureQueueContainerApp.SelectToken("properties.template.scale.rules[0].azureQueue")
+
+                Expect.isNotNull queueAppScaleRules "rules[0].azureQueue was null"
+                Expect.equal (queueAppScaleRules["queueLength"] |> int) 5 "Incorrect queueLength"
+                Expect.equal (queueAppScaleRules["queueName"] |> string) "somequeue" "Incorrect queueName"
+
+                let ruleAuth = queueAppScaleRules.SelectToken("auth[0]")
+                Expect.isNotNull ruleAuth "auth[0] was null"
+                Expect.equal (ruleAuth["secretRef"] |> string) connectionSecretName "Incorrect secretRef"
+                Expect.equal (ruleAuth["triggerParameter"] |> string) "connection" "Incorrect triggerParameter"
             }
 
             test "Makes container app with MSI" {

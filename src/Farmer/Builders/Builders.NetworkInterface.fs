@@ -179,4 +179,10 @@ type NetworkInterfaceBuilder() =
             PrivateIpAddress = AllocationMethod.StaticPrivateIp(System.Net.IPAddress.Parse addr)
         }
 
+    interface ITaggable<NetworkInterfaceConfig> with
+        member _.Add state tags =
+            { state with
+                Tags = state.Tags |> Map.merge tags
+            }
+
 let networkInterface = NetworkInterfaceBuilder()

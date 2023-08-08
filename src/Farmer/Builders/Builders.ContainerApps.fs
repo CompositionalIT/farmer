@@ -38,7 +38,8 @@ type ContainerAppConfig =
         ScaleRules: Map<string, ScaleRule>
         Identity: ManagedIdentity
         Replicas: {| Min: int; Max: int |} option
-        DaprConfig: {| AppId: string |} option
+        DaprConfig: {| AppId: string option
+                       Port: uint16 option |} option
         Secrets: Map<ContainerAppSettingKey, SecretValue>
         EnvironmentVariables: Map<string, EnvVar>
         Volumes: Map<string, Volume>
@@ -55,6 +56,19 @@ type ContainerAppConfig =
             .reference(containerApps, this.ResourceId)
             .Map(sprintf "%s.latestRevisionFqdn")
 
+type DaprComponent =
+    {
+        Name: ResourceName
+        ComponentType: string
+        IgnoreErrors: bool option
+        InitTimeout: string option
+        Metadata: Map<string, DaprMetadataValue>
+        Scopes: string list
+        Secrets: Map<string, SecretValue>
+        SecretStoreComponent: ResourceName option
+        Version: string
+    }
+
 type ContainerEnvironmentConfig =
     {
         Name: ResourceName
@@ -62,6 +76,7 @@ type ContainerEnvironmentConfig =
         ContainerApps: ContainerAppConfig list
         AppInsights: AppInsightsConfig option
         LogAnalytics: ResourceRef<ContainerEnvironmentConfig>
+        DaprComponents: DaprComponent list
         Dependencies: Set<ResourceId>
         Tags: Map<string, string>
     }
@@ -108,7 +123,14 @@ type ContainerEnvironmentConfig =
                         IngressMode = containerApp.IngressMode
                         ScaleRules = containerApp.ScaleRules
                         Replicas = containerApp.Replicas
-                        DaprConfig = containerApp.DaprConfig
+                        DaprConfig =
+                            containerApp.DaprConfig
+                            |> Option.map (fun x ->
+                                match x.AppId with
+                                | Some appId -> {| AppId = appId; Port = x.Port |}
+                                | None ->
+                                    raiseFarmer
+                                        $"The container app '{containerApp.Name.Value}' requires a Dapr App ID when Dapr is enabled.")
                         Secrets = containerApp.Secrets
                         EnvironmentVariables =
                             let env = containerApp.EnvironmentVariables
@@ -136,6 +158,20 @@ type ContainerEnvironmentConfig =
 
                     for volume in uniqueVolumes do
                         volume
+
+                for daprComponent in this.DaprComponents do
+                    {
+                        Name = daprComponent.Name
+                        Environment = managedEnvironments.resourceId this.Name
+                        ComponentType = daprComponent.ComponentType
+                        IgnoreErrors = daprComponent.IgnoreErrors
+                        InitTimeout = daprComponent.InitTimeout
+                        Metadata = daprComponent.Metadata
+                        Scopes = daprComponent.Scopes
+                        Secrets = daprComponent.Secrets
+                        SecretStoreComponent = daprComponent.SecretStoreComponent
+                        Version = daprComponent.Version
+                    }
             ]
 
 type ContainerEnvironmentBuilder() =
@@ -146,6 +182,7 @@ type ContainerEnvironmentBuilder() =
             ContainerApps = []
             AppInsights = None
             LogAnalytics = derived (fun cfg -> Arm.LogAnalytics.workspaces.resourceId (cfg.Name - "workspace"))
+            DaprComponents = []
             Dependencies = Set.empty
             Tags = Map.empty
         }
@@ -187,6 +224,18 @@ type ContainerEnvironmentBuilder() =
     member _.AddContainerApps(state: ContainerEnvironmentConfig, containerApps: ContainerAppConfig list) =
         { state with
             ContainerApps = containerApps @ state.ContainerApps
+        }
+
+    [<CustomOperation "add_dapr_component">]
+    member _.AddDaprComponent(state: ContainerEnvironmentConfig, daprComponent: DaprComponent) =
+        { state with
+            DaprComponents = daprComponent :: state.DaprComponents
+        }
+
+    [<CustomOperation "add_dapr_components">]
+    member _.AddDaprComponents(state: ContainerEnvironmentConfig, daprComponents: DaprComponent list) =
+        { state with
+            DaprComponents = daprComponents @ state.DaprComponents
         }
 
     interface ITaggable<ContainerEnvironmentConfig> with
@@ -392,11 +441,26 @@ type ContainerAppBuilder() =
                 Some(External(existingPort, Some transport))
         }
 
-    /// Configures Dapr in the Azure Container App.
+    /// Configures Dapr App Id in the Azure Container App.
     [<CustomOperation "dapr_app_id">]
     member _.SetDaprAppId(state: ContainerAppConfig, appId) =
         { state with
-            DaprConfig = Some {| AppId = appId |}
+            DaprConfig =
+                state.DaprConfig
+                |> Option.map (fun x -> {| x with AppId = Some appId |})
+                |> Option.defaultWith (fun () -> {| AppId = Some appId; Port = None |})
+                |> Some
+        }
+
+    /// Configures Dapr app port in the Azure Container App.
+    [<CustomOperation "dapr_app_port">]
+    member _.SetDaprAppPort(state: ContainerAppConfig, port) =
+        { state with
+            DaprConfig =
+                state.DaprConfig
+                |> Option.map (fun x -> {| x with Port = Some port |})
+                |> Option.defaultWith (fun () -> {| AppId = None; Port = Some port |})
+                |> Some
         }
 
     /// Sets the minimum and maximum replicas to scale the container app.
@@ -608,7 +672,178 @@ type ContainerBuilder() =
                 |> Seq.fold (fun s (volumeName, mountPath) -> s |> Map.add volumeName mountPath) state.VolumeMounts
         }
 
+type DaprComponentBuilder() =
+    member _.Yield _ =
+        {
+            Name = ResourceName.Empty
+            ComponentType = ""
+            IgnoreErrors = None
+            InitTimeout = None
+            Metadata = Map.empty
+            Scopes = []
+            Secrets = Map.empty
+            SecretStoreComponent = None
+            Version = ""
+        }
+
+    [<CustomOperation "name">]
+    member _.ComponentName(state: DaprComponent, name) = { state with Name = ResourceName name }
+
+    [<CustomOperation "component_type">]
+    member _.ComponentType(state: DaprComponent, componentType) =
+        { state with
+            ComponentType = componentType
+        }
+
+    [<CustomOperation "ignore_errors">]
+    member _.IgnoreErrors(state: DaprComponent, ignoreErrors) =
+        { state with
+            IgnoreErrors = Some ignoreErrors
+        }
+
+    [<CustomOperation "init_timeout">]
+    member _.InitTimeout(state: DaprComponent, initTimeout) =
+        { state with
+            InitTimeout = Some initTimeout
+        }
+
+    [<CustomOperation "add_metadata">]
+    member _.AddMetadata(state: DaprComponent, metadataName, value) =
+        { state with
+            Metadata = state.Metadata |> Map.add metadataName (Value value)
+        }
+
+    [<CustomOperation "add_secret_metadata">]
+    member _.AddSecretMetadata(state: DaprComponent, metadataName, secretName, secretValue) =
+        { state with
+            Metadata = state.Metadata |> Map.add metadataName (SecretRef secretName)
+            Secrets = state.Secrets |> Map.add secretName (ExpressionSecret secretValue)
+        }
+
+    [<CustomOperation "add_secret_metadata">]
+    member _.AddSecretMetadata(state: DaprComponent, metadataName, secretName, secretValue) =
+        { state with
+            Metadata = state.Metadata |> Map.add metadataName (SecretRef secretName)
+            Secrets = state.Secrets |> Map.add secretName (ParameterSecret secretValue)
+        }
+
+    [<CustomOperation "add_scope">]
+    member _.AddScope(state: DaprComponent, scopes) =
+        { state with
+            Scopes = scopes :: state.Scopes
+        }
+
+    [<CustomOperation "add_scopes">]
+    member _.AddScopes(state: DaprComponent, scopes) =
+        { state with
+            Scopes = scopes @ state.Scopes
+        }
+
+    static member private GetDaprAppId(containerAppConfig: ContainerAppConfig) =
+        containerAppConfig.DaprConfig
+        |> Option.bind (fun x -> x.AppId)
+        |> Option.defaultWith (fun () ->
+            raiseFarmer
+                $"Container App '{containerAppConfig.Name.Value}' requires a Dapr App ID when linked to Dapr component.")
+
+    [<CustomOperation "add_scope">]
+    member _.AddScope(state: DaprComponent, containerAppConfig: ContainerAppConfig) =
+        { state with
+            Scopes = DaprComponentBuilder.GetDaprAppId containerAppConfig :: state.Scopes
+        }
+
+    [<CustomOperation "add_scopes">]
+    member _.AddScopes(state: DaprComponent, containerAppConfigs: ContainerAppConfig list) =
+        let scopes = containerAppConfigs |> List.map DaprComponentBuilder.GetDaprAppId
+
+        { state with
+            Scopes = scopes @ state.Scopes
+        }
+
+    [<CustomOperation "secret_store_component">]
+    member _.SecretStoreComponent(state: DaprComponent, comp: DaprComponent) =
+        { state with
+            SecretStoreComponent = Some comp.Name
+        }
+
+    [<CustomOperation "version">]
+    member _.Version(state: DaprComponent, version: string) = { state with Version = version }
+
+    /// <summary>
+    /// Shorthand for
+    /// <code>
+    /// component_type "bindings.cron"
+    /// version "v1"
+    /// add_metadata "schedule" cronExpression
+    /// </code>
+    /// </summary>
+    [<CustomOperation "cron_binding">]
+    member _.CronBinding(state: DaprComponent, cronExpression: string) =
+        { state with
+            ComponentType = "bindings.cron"
+            Version = "v1"
+            Metadata = state.Metadata |> Map.add "schedule" (Value cronExpression)
+        }
+
+    /// <summary>
+    /// Shorthand for
+    /// <code>
+    /// component_type "bindings.azure.storagequeues"
+    /// version "v1"
+    /// add_secret_metadata "accountKey" "accountkey" storageAccountKey
+    /// add_metadata "accountName" storageAccountName
+    /// add_metadata "queueName" queueName
+    /// add_metadata "decodeBase64" true
+    /// </code>
+    /// </summary>
+    [<CustomOperation "azure_storage_queue_binding">]
+    member _.AzureStorageQueueBinding(state: DaprComponent, storageAccount: StorageAccountConfig, queueName: string) =
+        let accountKey =
+            ArmExpression.create (
+                $"listKeys({storageAccount.ResourceId.ArmExpression.Value}, '2017-10-01').keys[0].value",
+                storageAccount.ResourceId
+            )
+
+        let accountKeySecretKey = "accountkey"
+
+        { state with
+            ComponentType = "bindings.azure.storagequeues"
+            Version = "v1"
+            Secrets = state.Secrets |> Map.add accountKeySecretKey (ExpressionSecret accountKey)
+            Metadata =
+                state.Metadata
+                |> Map.add "accountName" (Value storageAccount.Name.ResourceName.Value)
+                |> Map.add "accountKey" (SecretRef accountKeySecretKey)
+                |> Map.add "queueName" (Value queueName)
+                |> Map.add "decodeBase64" (Value "true")
+        }
+
+    /// <summary>
+    /// Shorthand for
+    /// <code>
+    /// component_type "pubsub.azure.servicebus.queues"
+    /// version "v1"
+    /// add_secret_metadata "connectionString" "connectionstring" serviceBusConnectionString
+    /// </code>
+    /// </summary>
+    [<CustomOperation "azure_servicebus_queues_pubsub">]
+    member _.AzureServiceBusQueuesPubsub(state: DaprComponent, serviceBus: ServiceBusConfig) =
+        let connectionStringSecretKey = "connectionstring"
+
+        { state with
+            ComponentType = "pubsub.azure.servicebus.queues"
+            Version = "v1"
+            Secrets =
+                state.Secrets
+                |> Map.add connectionStringSecretKey (ExpressionSecret serviceBus.NamespaceDefaultConnectionString)
+            Metadata =
+                state.Metadata
+                |> Map.add "connectionString" (SecretRef connectionStringSecretKey)
+        }
+
+
 let containerEnvironment = ContainerEnvironmentBuilder()
 
 let containerApp = ContainerAppBuilder()
 let container = ContainerBuilder()
+let daprComponent = DaprComponentBuilder()

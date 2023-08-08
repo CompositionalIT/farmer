@@ -671,7 +671,7 @@ async {
 
                 Expect.equal
                     (firstEnvVar.["secureValue"] |> string)
-                    "[concat('DefaultEndpointsProtocol=https;AccountName=containerdata1234;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'containerdata1234'), '2017-10-01').keys[0].value)]"
+                    "[concat('DefaultEndpointsProtocol=https;AccountName=containerdata1234;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'containerdata1234'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
                     "Incorrect env var expression value"
             }
             test "Container with liveness and readiness probes" {

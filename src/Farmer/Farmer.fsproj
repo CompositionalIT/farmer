@@ -2,7 +2,7 @@
   <PropertyGroup>
     <!-- General -->
     <AssemblyName>Farmer</AssemblyName>
-    <Version>1.7.24</Version>
+    <Version>1.7.25</Version>
     <Description>Farmer makes authoring ARM templates easy!</Description>
     <Copyright>Copyright 2019-2023 Compositional IT Ltd.</Copyright>
     <Company>Compositional IT</Company>
@@ -128,6 +128,7 @@
     <Compile Include="Builders/Builders.Cdn.fs" />
     <Compile Include="Builders\Builders.Storage.fs" />
     <Compile Include="Builders/Builders.AppInsights.fs" />
+    <Compile Include="Builders\Builders.ServiceBus.fs" />
     <Compile Include="Builders\Builders.ContainerApps.fs" />
     <Compile Include="Builders/Builders.ContainerGroups.fs" />
     <Compile Include="Builders/Builders.ContainerService.fs" />
@@ -159,7 +160,6 @@
     <Compile Include="Builders/Builders.CommunicationServices.fs" />
     <Compile Include="Builders/Builders.BingSearch.fs" />
     <Compile Include="Builders/Builders.ContainerRegistry.fs" />
-    <Compile Include="Builders/Builders.ServiceBus.fs" />
     <Compile Include="Builders/Builders.IotHub.fs" />
     <Compile Include="Builders/Builders.Maps.fs" />
     <Compile Include="Builders/Builders.SignalR.fs" />
