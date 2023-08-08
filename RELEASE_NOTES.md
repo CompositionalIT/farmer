@@ -3,6 +3,7 @@ Release Notes
 
 ## 1.7.26
 * Container Apps: Add support for Dapr components
+* WebApps: When creating keyvault secrets for web app appsettings replace characters unsupported in keyvault secret names with `-`
 
 ## 1.7.25
 * Container Apps: Fix storage queue KEDA scaling rule authentication
