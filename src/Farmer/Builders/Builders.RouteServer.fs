@@ -11,10 +11,17 @@ type RSBGPConnectionConfig =
         Name: string
         PeerIp: string
         PeerAsn: int
+        Dependencies: Set<ResourceId>
     }
 
 type RSBGPConnectionBuilder() =
-    member _.Yield _ = { Name = ""; PeerIp = ""; PeerAsn = 0 }
+    member _.Yield _ =
+        {
+            Name = ""
+            PeerIp = ""
+            PeerAsn = 0
+            Dependencies = Set.empty
+        }
 
     [<CustomOperation "name">]
     member _.ConnectionName(state: RSBGPConnectionConfig, name) = { state with Name = name }
@@ -24,6 +31,13 @@ type RSBGPConnectionBuilder() =
 
     [<CustomOperation "peer_asn">]
     member _.PeerAsn(state: RSBGPConnectionConfig, peerAsn) = { state with PeerAsn = peerAsn }
+
+    interface IDependable<RSBGPConnectionConfig> with
+        /// Adds an explicit dependency to this Container App Environment.
+        member _.Add state newDeps =
+            { state with
+                Dependencies = state.Dependencies + newDeps
+            }
 
 let routeServerBGPConnection = RSBGPConnectionBuilder()
 
@@ -111,6 +125,7 @@ type RouteServerConfig =
                                     ResourceName $"{this.Name.Value}-ipconfig"
                                 )
                             )
+                        Dependencies = connection.Dependencies
                     }
             ]
 

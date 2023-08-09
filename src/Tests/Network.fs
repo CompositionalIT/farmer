@@ -854,6 +854,19 @@ let tests =
                                                 peer_ip "10.0.1.85"
                                                 peer_asn 65000
                                             }
+                                            routeServerBGPConnection {
+                                                name "my-bgp-conn-2"
+                                                peer_ip "10.0.1.86"
+                                                peer_asn 65000
+
+                                                depends_on (
+                                                    ResourceId.create (
+                                                        routeServerBGPConnections,
+                                                        ResourceName "my-route-server",
+                                                        ResourceName "my-bgp-conn"
+                                                    )
+                                                )
+                                            }
                                         ]
                                 }
                             ]
@@ -982,8 +995,7 @@ let tests =
                 Expect.equal sku "Standard" "Incorrect default value for sku"
 
                 //validate bgp connection generated
-                let bgpConn =
-                    jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualHubs/bgpConnections')]"
+                let bgpConn = jobj.SelectToken "resources[?(@.name=='my-route-server/my-bgp-conn')]"
 
                 Expect.isNotNull bgpConn "bgp connection should be generated"
 
@@ -994,9 +1006,7 @@ let tests =
                     (JToken.op_Implicit "my-route-server/my-bgp-conn")
                     "Incorrect default value for bgp connection name"
 
-                let bgpConnDependencies =
-                    jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualHubs/bgpConnections')].dependsOn"
-                    :?> JArray
+                let bgpConnDependencies = bgpConn.SelectToken "dependsOn" :?> JArray
 
                 Expect.isNotNull bgpConnDependencies "Missing dependency for bgp connection"
                 Expect.hasLength bgpConnDependencies 2 "Incorrect number of dependencies for bgp connection"
@@ -1016,6 +1026,37 @@ let tests =
                 Expect.equal peerAsn 65000 "Incorrect peer Asn for bgp connection"
                 let peerIp: string = JToken.op_Explicit bgpConnProps.["peerIp"]
                 Expect.equal peerIp "10.0.1.85" "Incorrect peer ip for bgp connection"
+
+                //validate bgp connection generated
+                let bgpConnWithDep =
+                    jobj.SelectToken "resources[?(@.name=='my-route-server/my-bgp-conn-2')]"
+
+                Expect.isNotNull bgpConnWithDep "bgp connection with dependency should be generated"
+
+                let bgpConnWithDepName = bgpConnWithDep.["name"]
+
+                Expect.equal
+                    bgpConnWithDepName
+                    (JToken.op_Implicit "my-route-server/my-bgp-conn-2")
+                    "Incorrect default value for bgp connection with dependency name"
+
+                let bgpConnWithDepDependencies = bgpConnWithDep.SelectToken "dependsOn" :?> JArray
+
+                Expect.isNotNull
+                    bgpConnWithDepDependencies
+                    "Missing dependency for bgp connection with explicit dependency"
+
+                Expect.hasLength
+                    bgpConnWithDepDependencies
+                    3
+                    "Incorrect number of dependencies for bgp connection with explicit 'depends_on'"
+
+                Expect.contains
+                    (bgpConnWithDepDependencies)
+                    (JValue
+                        "[resourceId('Microsoft.Network/virtualHubs/bgpConnections', 'my-route-server', 'my-bgp-conn')]")
+                    "Incorrect bgp connection dependencies with explicit 'depends_on'"
+
             }
 
             test "Creates basic network interface with static ip" {
