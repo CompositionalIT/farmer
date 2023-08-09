@@ -230,6 +230,7 @@ type RouteServerBGPConnection =
         PeerIp: string
         PeerAsn: int
         IpConfig: LinkedResource
+        Dependencies: Set<ResourceId>
     }
 
     interface IArmResource with
@@ -246,6 +247,7 @@ type RouteServerBGPConnection =
                     this.RouteServer.ResourceId
                 }
                 |> Set.ofSeq
+                |> Set.union this.Dependencies
 
             {| routeServerBGPConnections.Create(this.RouteServer.Name / this.Name, dependsOn = dependencies) with
                 properties =
