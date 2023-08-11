@@ -787,34 +787,21 @@ let tests =
                 let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection>
                 Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
             }
-            test "Supports .NET framework 4.8 in netFramework field" {
-                let app =
-                    functions {
-                        name "net6"
-                        use_runtime FunctionsRuntime.DotNetFramework48
-                    }
+            let data = [
+                (FunctionsRuntime.DotNetFramework48, "v4.0")
+                (FunctionsRuntime.DotNet60Isolated, "v6.0")
+                (FunctionsRuntime.DotNet60, "v6.0")
+                (FunctionsRuntime.DotNet70Isolated, "v7.0")
+            ]
+            for runtime, expectedVersion in data do
+                test "Supports correct version in netFrameworkVersion field" {
+                    let app =
+                        functions {
+                            name expectedVersion
+                            use_runtime runtime
+                        }
 
-                let site = app |> getResources |> getResource<Web.Site> |> List.head
-                Expect.equal site.NetFrameworkVersion.Value "v4.0" "Wrong dotnet version"
-            }
-            test "Supports .NET 6 in netFramework field" {
-                let app =
-                    functions {
-                        name "net6"
-                        use_runtime FunctionsRuntime.DotNet60
-                    }
-
-                let site = app |> getResources |> getResource<Web.Site> |> List.head
-                Expect.equal site.NetFrameworkVersion.Value "v6.0" "Wrong dotnet version"
-            }
-            test "Supports .NET 7 netFramework field" {
-                let app =
-                    functions {
-                        name "net6"
-                        use_runtime FunctionsRuntime.DotNet70Isolated
-                    }
-
-                let site = app |> getResources |> getResource<Web.Site> |> List.head
-                Expect.equal site.NetFrameworkVersion.Value "v7.0" "Wrong dotnet version"
-            }
+                    let site = app |> getResources |> getResource<Web.Site> |> List.head
+                    Expect.equal site.NetFrameworkVersion.Value expectedVersion "Wrong netFrameworkVersion"
+                }
         ]

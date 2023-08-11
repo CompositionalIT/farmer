@@ -335,9 +335,7 @@ type FunctionsConfig =
                             let possibleVersions = [ "4.0"; "6.0"; "7.0" ]
 
                             match this.VersionedRuntime with
-                            | DotNet, Some version when possibleVersions |> List.contains version -> Some $"v{version}"
-                            | DotNetIsolated, Some version when possibleVersions |> List.contains version ->
-                                Some $"v{version}"
+                            | (DotNet | DotNetIsolated), Some version when possibleVersions |> List.contains version -> Some $"v{version}"
                             | _, _ -> None
                         JavaVersion = None
                         JavaContainer = None
