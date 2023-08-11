@@ -75,6 +75,7 @@ type AlertBuilder() =
         { state with
             LinkedResources = linked_resources @ state.LinkedResources
         }
+
     member this.LinkedResources(state: AlertConfig, resourceIds: ResourceId list) =
         this.LinkedResources(state, resourceIds |> List.map Managed)
 
@@ -128,8 +129,14 @@ type AlertBuilder() =
     [<CustomOperation "add_action">]
     member this.Actions(state: AlertConfig, actionGroupId, ?webHookProperties: obj) =
         { state with
-            Actions = { actionGroupId = actionGroupId; webHookProperties = webHookProperties } :: state.Actions
+            Actions =
+                {
+                    actionGroupId = actionGroupId
+                    webHookProperties = webHookProperties
+                }
+                :: state.Actions
         }
+
     member this.Actions(state: AlertConfig, ag: ActionGroupConfig, ?webHookProperties: obj) =
         this.Actions(state, ag.ActionGroupId, webHookProperties)
 

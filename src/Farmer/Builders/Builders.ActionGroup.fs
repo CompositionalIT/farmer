@@ -22,8 +22,8 @@ type ActionGroupConfig =
         WebhookReceivers: WebhookReceiver list
     }
 
-    member this.ActionGroupId  = $"[resourceId('{actionGroup.Type}', '{this.Name.Value}')]"
-    
+    member this.ActionGroupId = $"[resourceId('{actionGroup.Type}', '{this.Name.Value}')]"
+
     interface IBuilder with
         member this.ResourceId = actionGroup.resourceId this.Name
 
@@ -46,6 +46,7 @@ type ActionGroupConfig =
                     EmailReceivers = this.EmailReceivers
                     WebhookReceivers = this.WebhookReceivers
                 }
+
             [ a ]
 
 type ActionGroupBuilder() =
@@ -66,14 +67,17 @@ type ActionGroupBuilder() =
             EmailReceivers = List.empty
             WebhookReceivers = List.empty
         }
-        
+
     /// Sets the name of the action group.
     [<CustomOperation "name">]
     member __.Name(state: ActionGroupConfig, name) = { state with Name = ResourceName name }
 
     /// Sets the short name of the action group.
     [<CustomOperation "short_name">]
-    member __.GroupShortName(state: ActionGroupConfig, shortName) = { state with GroupShortName = ResourceName shortName }
+    member __.GroupShortName(state: ActionGroupConfig, shortName) =
+        { state with
+            GroupShortName = ResourceName shortName
+        }
 
     /// Enables the Action Group.
     [<CustomOperation "enabled">]
@@ -88,7 +92,11 @@ type ActionGroupBuilder() =
 
     /// Add Automation Runbook Receivers.
     [<CustomOperation "add_automation_runbook_receivers">]
-    member __.AutomationRunbookReceivers(state: ActionGroupConfig, automationRunbookReceivers: AutomationRunbookReceiver list) =
+    member __.AutomationRunbookReceivers
+        (
+            state: ActionGroupConfig,
+            automationRunbookReceivers: AutomationRunbookReceiver list
+        ) =
         { state with
             AutomationRunbookReceivers = (automationRunbookReceivers @ state.AutomationRunbookReceivers)
         }
