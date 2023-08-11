@@ -794,10 +794,11 @@ let tests =
                 (FunctionsRuntime.DotNet70Isolated, "v7.0")
             ]
             for runtime, expectedVersion in data do
-                test "Supports correct version in netFrameworkVersion field" {
+                let dotnetVersion = runtime |> fst |> string
+                test $"Supports correct version {dotnetVersion}-{expectedVersion} in netFrameworkVersion field" {
                     let app =
                         functions {
-                            name expectedVersion
+                            name dotnetVersion
                             use_runtime runtime
                         }
 
