@@ -70,23 +70,40 @@ type SecretConfig =
             Tags = Map.empty
         }
 
+    static member private allowedKeyNameCharRules = [ Char.IsLetterOrDigit; (=) '-' ]
+
+    static member internal sanitizeKeyName settingKey =
+        if SecretConfig.isValid settingKey then
+            settingKey
+        else
+            settingKey
+            |> Seq.map (fun c ->
+                if (SecretConfig.allowedKeyNameCharRules |> Seq.exists (fun r -> r c)) then
+                    c
+                else
+                    '-')
+            |> String.Concat
+
     static member internal isValid key =
         let charRulesPassed =
-            let charRules = [ Char.IsLetterOrDigit; (=) '-' ]
-            key |> Seq.forall (fun c -> charRules |> Seq.exists (fun r -> r c))
+            key
+            |> Seq.forall (fun c -> SecretConfig.allowedKeyNameCharRules |> Seq.exists (fun r -> r c))
 
         let stringRulesPassed =
             [ (fun l -> String.length l <= 127); String.IsNullOrWhiteSpace >> not ]
             |> Seq.forall (fun r -> r key)
 
-        if not (charRulesPassed && stringRulesPassed) then
+        (charRulesPassed && stringRulesPassed)
+
+    static member internal validate key =
+        if not (SecretConfig.isValid key) then
             raiseFarmer
                 $"Key Vault key names must be a 1-127 character string, starting with a letter and containing only 0-9, a-z, A-Z, and -. '{key}' is invalid."
         else
             ()
 
     static member create(secretName: string) =
-        SecretConfig.isValid secretName
+        SecretConfig.validate secretName
         SecretConfig.createUnsafe secretName
 
     static member create(secretName, expression) =
@@ -807,7 +824,7 @@ type KeyBuilder() =
 
 type SecretBuilder() =
     member _.Run(state: SecretConfig) =
-        SecretConfig.isValid state.SecretName
+        SecretConfig.validate state.SecretName
         state
 
     member _.Yield(_: unit) = SecretConfig.createUnsafe ""

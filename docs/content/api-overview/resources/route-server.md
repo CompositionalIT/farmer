@@ -24,6 +24,7 @@ The `routeServer` builder creates a route server to simplify dynamic routing bet
 | routeServerBGPConnection | name                           | Name of the BGP connection                                                 |
 | routeServerBGPConnection | peer_ip                         | The peer IP of the BGP connection                                          |
 | routeServerBGPConnection | peer_asn                        | The peer Asn of the BGP connection                                         |
+| routeServerBGPConnection | depends_on                      | Depend on another resource before deploying this bgp connection            |
 
 #### Example
 
