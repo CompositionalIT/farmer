@@ -75,10 +75,11 @@ type ActionGroupBuilder() =
     [<CustomOperation "short_name">]
     member __.GroupShortName(state: ActionGroupConfig, shortName) = { state with GroupShortName = ResourceName shortName }
 
+    /// Enables the Action Group.
     [<CustomOperation "enabled">]
     member _.Enabled(state: ActionGroupConfig, enabled) = { state with Enabled = enabled }
 
-    /// Add ARM Role Receivers
+    /// Add ARM Role Receivers.
     [<CustomOperation "add_arm_role_receivers">]
     member __.ArmRoleReceivers(state: ActionGroupConfig, armRoleReceivers) =
         { state with

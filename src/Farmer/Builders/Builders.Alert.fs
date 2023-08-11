@@ -75,6 +75,11 @@ type AlertBuilder() =
         { state with
             LinkedResources = linked_resources @ state.LinkedResources
         }
+    member this.LinkedResources(state: AlertConfig, resourceIds: ResourceId list) =
+        this.LinkedResources(state, resourceIds |> List.map Managed)
+
+    member this.LinkedResources(state: AlertConfig, builders: IBuilder list) =
+        this.LinkedResources(state, builders |> List.map (fun builder -> builder.ResourceId |> Managed))
 
     /// Add target resource on which the alert is created/updated.
     [<CustomOperation "add_linked_resource">]
@@ -83,8 +88,8 @@ type AlertBuilder() =
             LinkedResources = linked_resource :: state.LinkedResources
         }
 
-    member this.LinkedResource(state: AlertConfig, resource: ResourceId) =
-        this.LinkedResource(state, resource |> Managed)
+    member this.LinkedResource(state: AlertConfig, resourceId: ResourceId) =
+        this.LinkedResource(state, resourceId |> Managed)
 
     member this.LinkedResource(state: AlertConfig, builder: IBuilder) =
         this.LinkedResource(state, builder.ResourceId |> Managed)

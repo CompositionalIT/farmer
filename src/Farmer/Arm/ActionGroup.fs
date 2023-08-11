@@ -3,9 +3,30 @@
 module Farmer.Arm.ActionGroups
 
 open Farmer
+open System
 
 let actionGroup =
     Farmer.ResourceType("microsoft.insights/actionGroups", "2022-06-01")
+
+/// https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles
+type ArmRole =
+    | Contributor
+    | Owner
+    | Reader
+    | UserAccessAdministrator
+    | Custom of string
+
+with member x.Id =
+        match x with
+        // BuiltIn roles
+        | Contributor -> "b24988ac-6180-42a0-ab88-20f7382dd24c"
+        | Owner -> "8e3af657-a8ff-443c-a75c-2fe8c4bcb635"
+        | Reader -> "acdd72a7-3385-48ef-bd42-f606fba81ae7"
+        | UserAccessAdministrator -> "18d7d88d-d35e-4fb5-a5c3-7773c20a72d9"
+        // Custom role
+        | Custom guid -> guid
+
+     member x.Guid = x.Id |> Guid.Parse
 
 type ArmRoleReceiver = {
     /// The name of the arm role receiver. Names must be unique across all receivers within an action group.
@@ -16,14 +37,11 @@ type ArmRoleReceiver = {
     UseCommonAlertSchema: bool
 }
 with
-    static member Create(name, roleId, ?useCommonAlertSchema) =
+    static member Create(name, (armRole:ArmRole), ?useCommonAlertSchema) =
         {
             Name = name
-            RoleId = roleId
-            UseCommonAlertSchema =
-                match useCommonAlertSchema with
-                | Some b -> b
-                | _ -> false
+            RoleId = armRole.Id
+            UseCommonAlertSchema = useCommonAlertSchema |> Option.defaultValue true
         }
 
 type AutomationRunbookReceiver = {
@@ -58,10 +76,7 @@ with
             WebhookResourceId = webhookResourceId
             ServiceUri = serviceUri |> Option.defaultValue ""
             Name = name |> Option.defaultValue ""
-            UseCommonAlertSchema =
-                match useCommonAlertSchema with
-                | Some b -> b
-                | _ -> false
+            UseCommonAlertSchema = useCommonAlertSchema |> Option.defaultValue true
         }
 
 type AzureAppPushReceiver = {
@@ -79,7 +94,7 @@ with
 
 type AzureFunctionReceiver = {
     /// The azure resource id of the function app.
-    FunctionAppResourceId: string
+    FunctionAppResourceId: ResourceId
     /// The function name in the function app.
     FunctionName: string
     /// The http trigger url where http request sent to.
@@ -101,10 +116,7 @@ with
             FunctionName = functionName
             HttpTriggerUrl = httpTriggerUrl
             Name = name
-            UseCommonAlertSchema =
-                match useCommonAlertSchema with
-                | Some b -> b
-                | _ -> false
+            UseCommonAlertSchema = useCommonAlertSchema |> Option.defaultValue true
         }
 
 type EmailReceiver = {
@@ -123,10 +135,7 @@ with
         {
             Name = name
             EmailAddress = email
-            UseCommonAlertSchema =
-                match useCommonAlertSchema with
-                | Some b -> b
-                | _ -> false
+            UseCommonAlertSchema = useCommonAlertSchema |> Option.defaultValue true
         }
 
 type EventHubReceiver = {
@@ -157,16 +166,16 @@ with
             Name = name
             SubscriptionId = subscriptionId
             TenantId = tenantId |> Option.defaultValue ""
-            UseCommonAlertSchema =
-                match useCommonAlertSchema with
-                | Some b -> b
-                | _ -> false
+            UseCommonAlertSchema = useCommonAlertSchema |> Option.defaultValue true
         }
 
 type ItsmReceiver = {
+    /// Unique identification of ITSM connection among multiple defined in above workspace.
     ConnectionId: string
+    /// The name of the Itsm receiver. Names must be unique across all receivers within an action group.
     Name: string
-    /// Region in which workspace resides. Supported values:'centralindia','japaneast','southeastasia','australiasoutheast','uksouth','westcentralus','canadacentral','eastus','westeurope'
+    /// Region in which workspace resides. Supported values:
+    /// 'centralindia', 'japaneast', 'southeastasia', 'australiasoutheast', 'uksouth', 'westcentralus', 'canadacentral', 'eastus', 'westeurope'
     Region: string
     /// JSON blob for the configurations of the ITSM action. CreateMultipleWorkItems option will be part of this blob as well.
     TicketConfiguration: string
@@ -189,7 +198,7 @@ type LogicAppReceiver = {
     /// The name of the logic app receiver. Names must be unique across all receivers within an action group.
     Name: string
     /// The azure resource id of the logic app receiver.
-    ResourceId: string
+    ResourceId: ResourceId
     /// Indicates whether to use common alert schema.
     UseCommonAlertSchema: bool
 }
@@ -199,10 +208,7 @@ with
             CallbackUrl = callbackUrl
             Name = name
             ResourceId = resourceId
-            UseCommonAlertSchema =
-                match useCommonAlertSchema with
-                | Some b -> b
-                | _ -> false
+            UseCommonAlertSchema = useCommonAlertSchema |> Option.defaultValue true
         }
 
 type SMSReceiver = {
@@ -257,11 +263,8 @@ with
             UseAadAuth =
                 match useAadAuth with
                 | Some b -> b
-                | _ -> false
-            UseCommonAlertSchema =
-                match useCommonAlertSchema with
-                | Some b -> b
-                | _ -> false
+                | None -> false
+            UseCommonAlertSchema = useCommonAlertSchema |> Option.defaultValue true
         }
 
 type ActionGroup =
@@ -299,10 +302,27 @@ type ActionGroup =
                         ArmRoleReceivers = this.ArmRoleReceivers
                         AutomationRunbookReceivers = this.AutomationRunbookReceivers
                         AzureAppPushReceivers = this.AzureAppPushReceivers
-                        AzureFunctionReceivers = this.AzureFunctionReceivers
+                        AzureFunctionReceivers =
+                            this.AzureFunctionReceivers
+                            |> List.map (fun r ->
+                                {|
+                                    FunctionAppResourceId = r.FunctionAppResourceId.Eval() |> box
+                                    Name = r.Name
+                                    FunctionName = r.FunctionName
+                                    HttpTriggerUrl = r.HttpTriggerUrl
+                                    UseCommonAlertSchema = r.UseCommonAlertSchema
+                                |})
                         EventHubReceivers = this.EventHubReceivers
                         ItsmReceivers = this.ItsmReceivers
-                        LogicAppReceivers = this.LogicAppReceivers
+                        LogicAppReceivers =
+                            this.LogicAppReceivers
+                            |> List.map (fun r ->
+                                {|
+                                    ResourceId = r.ResourceId.Eval() |> box
+                                    Name = r.Name
+                                    CallbackUrl = r.CallbackUrl
+                                    UseCommonAlertSchema = r.UseCommonAlertSchema
+                                |})
                         VoiceReceivers = this.VoiceReceivers
                         SMSReceivers = this.SMSReceivers
                         EmailReceivers = this.EmailReceivers
