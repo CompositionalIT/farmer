@@ -787,4 +787,25 @@ let tests =
                 let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection>
                 Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
             }
+            let data =
+                [
+                    (FunctionsRuntime.DotNetFramework48, "v4.0")
+                    (FunctionsRuntime.DotNet60Isolated, "v6.0")
+                    (FunctionsRuntime.DotNet60, "v6.0")
+                    (FunctionsRuntime.DotNet70Isolated, "v7.0")
+                ]
+
+            for runtime, expectedVersion in data do
+                let dotnetVersion = runtime |> fst |> string
+
+                test $"Supports correct version {dotnetVersion}-{expectedVersion} in netFrameworkVersion field" {
+                    let app =
+                        functions {
+                            name dotnetVersion
+                            use_runtime runtime
+                        }
+
+                    let site = app |> getResources |> getResource<Web.Site> |> List.head
+                    Expect.equal site.NetFrameworkVersion.Value expectedVersion "Wrong netFrameworkVersion"
+                }
         ]

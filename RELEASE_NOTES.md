@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.7.27
+* Functions: Add the correct netFrameworkVersion to the template based on the runtime version
 
 ## 1.7.26
 * Container Apps: Add support for Dapr components
