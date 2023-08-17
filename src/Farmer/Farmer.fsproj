@@ -58,6 +58,7 @@
 
   <ItemGroup>
     <Compile Include="Result.fs" />
+    <Compile Include="AzureRoles.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="Common.fs" />
     <Compile Include="DiagnosticLogCategories.fs" />
