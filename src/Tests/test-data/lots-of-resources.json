@@ -283,7 +283,7 @@
             },
             {
               "name": "FUNCTIONS_EXTENSION_VERSION",
-              "value": "~4"
+              "value": "~1"
             },
             {
               "name": "FUNCTIONS_WORKER_RUNTIME",
@@ -808,10 +808,6 @@
           "alwaysOn": false,
           "appCommandLine": "do it",
           "appSettings": [
-            {
-              "name": "AzureWebJobsDashboard",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=dockerfuncstorage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
-            },
             {
               "name": "AzureWebJobsStorage",
               "value": "[concat('DefaultEndpointsProtocol=https;AccountName=dockerfuncstorage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"

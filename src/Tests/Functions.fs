@@ -82,6 +82,7 @@ let tests =
                     functions {
                         name "test"
                         link_to_unmanaged_storage_account externalStorageAccount
+                        use_extension_version V1
                     }
 
                 let f = functionsBuilder :> IBuilder
@@ -416,14 +417,41 @@ let tests =
                         "WEBSITE_NODE_DEFAULT_VERSION"
                         "FUNCTIONS_EXTENSION_VERSION"
                         "AzureWebJobsStorage"
-                        "AzureWebJobsDashboard"
                         "APPINSIGHTS_INSTRUMENTATIONKEY"
                         "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING"
                         "WEBSITE_CONTENTSHARE"
                     ]
-                    |> List.map (settings.ContainsKey)
+                    |> List.map settings.ContainsKey
 
                 Expect.allEqual expectation true "Slot should have all literal settings"
+            }
+            
+            test "Functions App generates AzureWebJobsDashboard setting on version 1" {
+                let slot = appSlot { name "warm-up" }
+            
+                let site =
+                    functions {
+                        name "func"
+                        add_slot slot
+                        operating_system Windows
+                        use_extension_version V1
+                    }
+            
+                let slots =
+                    site
+                    |> getResources
+                    |> getResource<Arm.Web.Site>
+                    |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
+            
+                let settings = (slots.Item 0).AppSettings |> Option.defaultValue Map.empty
+            
+                let expectation =
+                    [
+                        "AzureWebJobsDashboard"
+                    ]
+                    |> List.map settings.ContainsKey
+            
+                Expect.allEqual expectation true "Version 1 function should have AzureWebJobsDashboard setting"
             }
 
             test "Functions App with different settings on slot and service adds both settings to slot" {
@@ -577,6 +605,7 @@ let tests =
                 let functionsApp =
                     functions {
                         name "func"
+                        use_extension_version V1
 
                         link_to_unmanaged_storage_account (
                             ResourceId.create (

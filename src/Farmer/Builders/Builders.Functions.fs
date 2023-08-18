@@ -212,12 +212,14 @@ type FunctionsConfig =
                         "FUNCTIONS_EXTENSION_VERSION", this.ExtensionVersion.ArmValue
                         "AzureWebJobsStorage",
                         StorageAccount.getConnectionString this.StorageAccountId |> ArmExpression.Eval
-                        "AzureWebJobsDashboard",
-                        StorageAccount.getConnectionString this.StorageAccountId |> ArmExpression.Eval
-
+                        
                         yield!
                             this.AppInsightsKey
                             |> Option.mapList (fun key -> "APPINSIGHTS_INSTRUMENTATIONKEY", key |> ArmExpression.Eval)
+                            
+                        if this.ExtensionVersion = V1 then
+                            "AzureWebJobsDashboard",
+                            StorageAccount.getConnectionString this.StorageAccountId |> ArmExpression.Eval
 
                         if this.CommonWebConfig.OperatingSystem = Windows then
                             "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
