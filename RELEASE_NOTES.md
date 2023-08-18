@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.7.27
+* Functions: AzureWebJobsDashboard setting is only added for a V1 Function app
+
 ## 1.7.26
 * Container Apps: Add support for Dapr components
 * Route Servers: Support 'depends_on' for routeServerBGPConnection.
