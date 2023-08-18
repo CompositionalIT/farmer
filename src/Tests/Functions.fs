@@ -425,10 +425,10 @@ let tests =
 
                 Expect.allEqual expectation true "Slot should have all literal settings"
             }
-            
+
             test "Functions App generates AzureWebJobsDashboard setting on version 1" {
                 let slot = appSlot { name "warm-up" }
-            
+
                 let site =
                     functions {
                         name "func"
@@ -436,21 +436,17 @@ let tests =
                         operating_system Windows
                         use_extension_version V1
                     }
-            
+
                 let slots =
                     site
                     |> getResources
                     |> getResource<Arm.Web.Site>
                     |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
-            
+
                 let settings = (slots.Item 0).AppSettings |> Option.defaultValue Map.empty
-            
-                let expectation =
-                    [
-                        "AzureWebJobsDashboard"
-                    ]
-                    |> List.map settings.ContainsKey
-            
+
+                let expectation = [ "AzureWebJobsDashboard" ] |> List.map settings.ContainsKey
+
                 Expect.allEqual expectation true "Version 1 function should have AzureWebJobsDashboard setting"
             }
 

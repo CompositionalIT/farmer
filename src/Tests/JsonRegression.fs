@@ -130,10 +130,11 @@ let tests =
                         add_extension WebApp.Extensions.Logging
                     }
 
-                let fns = functions {
-                    name ("farmerfuncs" + number)
-                    use_extension_version V1
-                }
+                let fns =
+                    functions {
+                        name ("farmerfuncs" + number)
+                        use_extension_version V1
+                    }
 
                 let svcBus =
                     serviceBus {
