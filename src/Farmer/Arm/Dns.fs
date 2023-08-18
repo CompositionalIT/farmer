@@ -90,12 +90,11 @@ type DnsRecordType with
         | Public -> this.publicResourceType
         | Private -> this.privateResourceType
 
-type DnsZone =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        Properties: {| ZoneType: string |}
-    }
+type DnsZone = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    Properties: {| ZoneType: string |}
+} with
 
     member private this.zoneResource =
         match this.Properties.ZoneType with
@@ -106,21 +105,20 @@ type DnsZone =
     interface IArmResource with
         member this.ResourceId = this.zoneResource.resourceId this.Name
 
-        member this.JsonModel =
-            {| this.zoneResource.Create(this.Name, Location.Global, this.Dependencies) with
-                properties =
-                    {|
-                        zoneType = this.Properties.ZoneType
-                    |}
-            |}
+        member this.JsonModel = {|
+            this.zoneResource.Create(this.Name, Location.Global, this.Dependencies) with
+                properties = {|
+                    zoneType = this.Properties.ZoneType
+                |}
+        |}
 
 module DnsRecords =
     let private sourceZoneNSRecordReference (zoneResourceId: ResourceId) : ArmExpression =
-        let sourceZoneResId =
-            { zoneResourceId with
+        let sourceZoneResId = {
+            zoneResourceId with
                 Segments = [ ResourceName "@" ]
                 Type = nsRecord
-            }
+        }
 
         ArmExpression
             .reference(nsRecord, sourceZoneResId)
@@ -172,15 +170,14 @@ module DnsRecords =
         | Public -> "SOARecord"
         | Private -> "soaRecord"
 
-    type DnsRecord =
-        {
-            Name: ResourceName
-            Dependencies: Set<ResourceId>
-            Zone: LinkedResource
-            ZoneType: DnsZoneType
-            Type: DnsRecordType
-            TTL: int
-        }
+    type DnsRecord = {
+        Name: ResourceName
+        Dependencies: Set<ResourceId>
+        Zone: LinkedResource
+        ZoneType: DnsZoneType
+        Type: DnsRecordType
+        TTL: int
+    } with
 
         /// Includes the DnsZone if deployed in the same template (Managed).
         member private this.dependsOn =
@@ -193,38 +190,36 @@ module DnsRecords =
         interface IArmResource with
             member this.ResourceId = this.RecordType.resourceId (this.Zone.Name, this.Name)
 
-            member this.JsonModel =
-                {| this.RecordType.Create(this.Zone.Name / this.Name, dependsOn = this.dependsOn) with
+            member this.JsonModel = {|
+                this.RecordType.Create(this.Zone.Name / this.Name, dependsOn = this.dependsOn) with
                     properties =
                         [
                             (ttlKey this.ZoneType), box this.TTL
 
                             match this.Type with
-                            | A (Some targetResource, _)
-                            | CName (Some targetResource, _)
-                            | AAAA (Some targetResource, _) ->
+                            | A(Some targetResource, _)
+                            | CName(Some targetResource, _)
+                            | AAAA(Some targetResource, _) ->
                                 "targetResource",
-                                box
-                                    {|
-                                        id = targetResource.ArmExpression.Eval()
-                                    |}
+                                box {|
+                                    id = targetResource.ArmExpression.Eval()
+                                |}
                             | _ -> ()
 
                             match this.Type with
-                            | CName (_, Some cnameRecord) ->
+                            | CName(_, Some cnameRecord) ->
                                 (cnameRecordKey this.ZoneType), box {| cname = cnameRecord |}
                             | MX records ->
                                 (mxRecordKey this.ZoneType),
                                 records
-                                |> List.map (fun mx ->
-                                    {|
-                                        preference = mx.Preference
-                                        exchange = mx.Exchange
-                                    |})
+                                |> List.map (fun mx -> {|
+                                    preference = mx.Preference
+                                    exchange = mx.Exchange
+                                |})
                                 |> box
-                            | NS (NsRecords.Records records) ->
+                            | NS(NsRecords.Records records) ->
                                 "NSRecords", records |> List.map (fun ns -> {| nsdname = ns |}) |> box
-                            | NS (NsRecords.SourceZone sourceZone) ->
+                            | NS(NsRecords.SourceZone sourceZone) ->
                                 "NSRecords", (sourceZoneNSRecordReference sourceZone).Eval() |> box
                             | TXT records ->
                                 (txtRecordKey this.ZoneType),
@@ -232,49 +227,46 @@ module DnsRecords =
                             | PTR records ->
                                 (ptrRecordKey this.ZoneType),
                                 records |> List.map (fun ptr -> {| ptrdname = ptr |}) |> box
-                            | A (_, records) ->
+                            | A(_, records) ->
                                 (aRecordKey this.ZoneType), records |> List.map (fun a -> {| ipv4Address = a |}) |> box
-                            | AAAA (_, records) ->
+                            | AAAA(_, records) ->
                                 (aaaRecordKey this.ZoneType),
                                 records |> List.map (fun aaaa -> {| ipv6Address = aaaa |}) |> box
                             | SRV records ->
                                 let records =
                                     records
-                                    |> List.map (fun srv ->
-                                        {|
-                                            priority = srv.Priority |> Option.toNullable
-                                            weight = srv.Weight |> Option.toNullable
-                                            port = srv.Port |> Option.toNullable
-                                            target = Option.toObj srv.Target
-                                        |})
+                                    |> List.map (fun srv -> {|
+                                        priority = srv.Priority |> Option.toNullable
+                                        weight = srv.Weight |> Option.toNullable
+                                        port = srv.Port |> Option.toNullable
+                                        target = Option.toObj srv.Target
+                                    |})
 
                                 (srvRecordKey this.ZoneType), box records
                             | SOA record ->
-                                let record =
-                                    {|
-                                        host = Option.toObj record.Host
-                                        email = Option.toObj record.Email
-                                        serialNumber = record.SerialNumber |> Option.toNullable
-                                        refreshTime = record.RefreshTime |> Option.toNullable
-                                        retryTime = record.RetryTime |> Option.toNullable
-                                        expireTime = record.ExpireTime |> Option.toNullable
-                                        minimumTTL = record.MinimumTTL |> Option.toNullable
-                                    |}
+                                let record = {|
+                                    host = Option.toObj record.Host
+                                    email = Option.toObj record.Email
+                                    serialNumber = record.SerialNumber |> Option.toNullable
+                                    refreshTime = record.RefreshTime |> Option.toNullable
+                                    retryTime = record.RetryTime |> Option.toNullable
+                                    expireTime = record.ExpireTime |> Option.toNullable
+                                    minimumTTL = record.MinimumTTL |> Option.toNullable
+                                |}
 
                                 (soaRecordKey this.ZoneType), box record
-                            | CName (_, None) -> ()
+                            | CName(_, None) -> ()
                         ]
                         |> Map
-                |}
+            |}
 
-type DnsResolver =
-    {
-        Name: ResourceName
-        Location: Location
-        VirtualNetworkId: LinkedResource
-        Dependencies: Set<ResourceId>
-        Tags: Map<string, string>
-    }
+type DnsResolver = {
+    Name: ResourceName
+    Location: Location
+    VirtualNetworkId: LinkedResource
+    Dependencies: Set<ResourceId>
+    Tags: Map<string, string>
+} with
 
     interface IArmResource with
         member this.ResourceId = dnsResolvers.resourceId this.Name
@@ -283,27 +275,25 @@ type DnsResolver =
             let dependencies =
                 this.Dependencies |> LinkedResource.addToSetIfManaged this.VirtualNetworkId
 
-            {| dnsResolvers.Create(this.Name, this.Location, dependencies, this.Tags) with
-                properties =
-                    {|
-                        virtualNetwork =
-                            {|
-                                id = this.VirtualNetworkId.ResourceId.Eval()
-                            |}
+            {|
+                dnsResolvers.Create(this.Name, this.Location, dependencies, this.Tags) with
+                    properties = {|
+                        virtualNetwork = {|
+                            id = this.VirtualNetworkId.ResourceId.Eval()
+                        |}
                     |}
             |}
 
 module DnsResolver =
-    type InboundEndpoint =
-        {
-            Name: ResourceName
-            Location: Location
-            DnsResolverId: LinkedResource
-            PrivateIpAllocations: AllocationMethod list
-            SubnetId: LinkedResource
-            Dependencies: Set<ResourceId>
-            Tags: Map<string, string>
-        }
+    type InboundEndpoint = {
+        Name: ResourceName
+        Location: Location
+        DnsResolverId: LinkedResource
+        PrivateIpAllocations: AllocationMethod list
+        SubnetId: LinkedResource
+        Dependencies: Set<ResourceId>
+        Tags: Map<string, string>
+    } with
 
         interface IArmResource with
             member this.ResourceId =
@@ -313,48 +303,43 @@ module DnsResolver =
                 let dependencies =
                     this.Dependencies |> LinkedResource.addToSetIfManaged this.DnsResolverId
 
-                {| dnsResolverInboundEndpoints.Create(
-                       this.DnsResolverId.Name / this.Name,
-                       this.Location,
-                       dependencies,
-                       this.Tags
-                   ) with
-                    properties =
-                        {|
+                {|
+                    dnsResolverInboundEndpoints.Create(
+                        this.DnsResolverId.Name / this.Name,
+                        this.Location,
+                        dependencies,
+                        this.Tags
+                    ) with
+                        properties = {|
                             ipConfigurations =
                                 this.PrivateIpAllocations
                                 |> List.map (fun ip ->
                                     match ip with
-                                    | DynamicPrivateIp ->
-                                        {|
-                                            privateIpAddress = null
-                                            privateIpAllocationMethod = "Dynamic"
-                                            subnet =
-                                                {|
-                                                    id = this.SubnetId.ResourceId.Eval()
-                                                |}
+                                    | DynamicPrivateIp -> {|
+                                        privateIpAddress = null
+                                        privateIpAllocationMethod = "Dynamic"
+                                        subnet = {|
+                                            id = this.SubnetId.ResourceId.Eval()
                                         |}
-                                    | StaticPrivateIp addr ->
-                                        {|
-                                            privateIpAddress = string<System.Net.IPAddress> addr
-                                            privateIpAllocationMethod = "Static"
-                                            subnet =
-                                                {|
-                                                    id = this.SubnetId.ResourceId.Eval()
-                                                |}
-                                        |})
+                                      |}
+                                    | StaticPrivateIp addr -> {|
+                                        privateIpAddress = string<System.Net.IPAddress> addr
+                                        privateIpAllocationMethod = "Static"
+                                        subnet = {|
+                                            id = this.SubnetId.ResourceId.Eval()
+                                        |}
+                                      |})
                         |}
                 |}
 
-    type OutboundEndpoint =
-        {
-            Name: ResourceName
-            Location: Location
-            DnsResolverId: LinkedResource
-            SubnetId: LinkedResource
-            Dependencies: Set<ResourceId>
-            Tags: Map<string, string>
-        }
+    type OutboundEndpoint = {
+        Name: ResourceName
+        Location: Location
+        DnsResolverId: LinkedResource
+        SubnetId: LinkedResource
+        Dependencies: Set<ResourceId>
+        Tags: Map<string, string>
+    } with
 
         interface IArmResource with
             member this.ResourceId =
@@ -364,29 +349,27 @@ module DnsResolver =
                 let dependencies =
                     this.Dependencies |> LinkedResource.addToSetIfManaged this.DnsResolverId
 
-                {| dnsResolverOutboundEndpoints.Create(
-                       this.DnsResolverId.Name / this.Name,
-                       this.Location,
-                       dependencies,
-                       this.Tags
-                   ) with
-                    properties =
-                        {|
-                            subnet =
-                                {|
-                                    id = this.SubnetId.ResourceId.Eval()
-                                |}
+                {|
+                    dnsResolverOutboundEndpoints.Create(
+                        this.DnsResolverId.Name / this.Name,
+                        this.Location,
+                        dependencies,
+                        this.Tags
+                    ) with
+                        properties = {|
+                            subnet = {|
+                                id = this.SubnetId.ResourceId.Eval()
+                            |}
                         |}
                 |}
 
-type DnsForwardingRuleset =
-    {
-        Name: ResourceName
-        Location: Location
-        DnsResolverOutboundEndpointIds: ResourceId Set
-        Dependencies: Set<ResourceId>
-        Tags: Map<string, string>
-    }
+type DnsForwardingRuleset = {
+    Name: ResourceName
+    Location: Location
+    DnsResolverOutboundEndpointIds: ResourceId Set
+    Dependencies: Set<ResourceId>
+    Tags: Map<string, string>
+} with
 
     interface IArmResource with
         member this.ResourceId = dnsForwardingRulesets.resourceId this.Name
@@ -395,9 +378,9 @@ type DnsForwardingRuleset =
             let dependencies =
                 this.Dependencies |> Set.union this.DnsResolverOutboundEndpointIds
 
-            {| dnsForwardingRulesets.Create(this.Name, this.Location, dependencies, this.Tags) with
-                properties =
-                    {|
+            {|
+                dnsForwardingRulesets.Create(this.Name, this.Location, dependencies, this.Tags) with
+                    properties = {|
                         dnsResolverOutboundEndpoints =
                             this.DnsResolverOutboundEndpointIds
                             |> Set.map (fun endpointId -> {| id = endpointId.Eval() |})
@@ -405,62 +388,56 @@ type DnsForwardingRuleset =
             |}
 
 module DnsForwardingRuleset =
-    type ForwardingRule =
-        {
-            Name: ResourceName
-            ForwardingRulesetId: LinkedResource
-            DomainName: string
-            ForwardingRuleState: FeatureFlag option
-            TargetDnsServers: IPEndPoint list
-        }
+    type ForwardingRule = {
+        Name: ResourceName
+        ForwardingRulesetId: LinkedResource
+        DomainName: string
+        ForwardingRuleState: FeatureFlag option
+        TargetDnsServers: IPEndPoint list
+    } with
 
         interface IArmResource with
             member this.ResourceId =
                 dnsForwardingRulesetForwardingRules.resourceId (this.ForwardingRulesetId.Name / this.Name)
 
-            member this.JsonModel =
-                {| dnsForwardingRulesetForwardingRules.Create(
-                       this.ForwardingRulesetId.Name / this.Name,
-                       dependsOn = [ this.ForwardingRulesetId.ResourceId ]
-                   ) with
-                    properties =
-                        {|
-                            domainName = this.DomainName
-                            forwardingRuleState =
-                                match this.ForwardingRuleState with
-                                | Some state -> state.ArmValue
-                                | None -> null
-                            targetDnsServers =
-                                this.TargetDnsServers
-                                |> List.map (fun ipEndpoint ->
-                                    {|
-                                        ipAddress = string<IPAddress> ipEndpoint.Address
-                                        port = ipEndpoint.Port
-                                    |})
-                        |}
-                |}
+            member this.JsonModel = {|
+                dnsForwardingRulesetForwardingRules.Create(
+                    this.ForwardingRulesetId.Name / this.Name,
+                    dependsOn = [ this.ForwardingRulesetId.ResourceId ]
+                ) with
+                    properties = {|
+                        domainName = this.DomainName
+                        forwardingRuleState =
+                            match this.ForwardingRuleState with
+                            | Some state -> state.ArmValue
+                            | None -> null
+                        targetDnsServers =
+                            this.TargetDnsServers
+                            |> List.map (fun ipEndpoint -> {|
+                                ipAddress = string<IPAddress> ipEndpoint.Address
+                                port = ipEndpoint.Port
+                            |})
+                    |}
+            |}
 
-    type VirtualNetworkLink =
-        {
-            Name: ResourceName
-            ForwardingRulesetId: LinkedResource
-            VirtualNetworkId: LinkedResource
-        }
+    type VirtualNetworkLink = {
+        Name: ResourceName
+        ForwardingRulesetId: LinkedResource
+        VirtualNetworkId: LinkedResource
+    } with
 
         interface IArmResource with
             member this.ResourceId =
                 dnsForwardingRulesetVirtualNetworkLinks.resourceId (this.ForwardingRulesetId.Name / this.Name)
 
-            member this.JsonModel =
-                {| dnsForwardingRulesetVirtualNetworkLinks.Create(
-                       this.Name,
-                       dependsOn = [ this.ForwardingRulesetId.ResourceId ]
-                   ) with
-                    properties =
-                        {|
-                            virtualNetwork =
-                                {|
-                                    id = this.VirtualNetworkId.ResourceId.Eval()
-                                |}
+            member this.JsonModel = {|
+                dnsForwardingRulesetVirtualNetworkLinks.Create(
+                    this.Name,
+                    dependsOn = [ this.ForwardingRulesetId.ResourceId ]
+                ) with
+                    properties = {|
+                        virtualNetwork = {|
+                            id = this.VirtualNetworkId.ResourceId.Eval()
                         |}
-                |}
+                    |}
+            |}

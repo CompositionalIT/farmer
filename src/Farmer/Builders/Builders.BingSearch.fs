@@ -13,13 +13,12 @@ type BingSearch =
     static member getKey(name: ResourceName) =
         BingSearch.getKey (accounts.resourceId name)
 
-type BingSearchConfig =
-    {
-        Name: ResourceName
-        Sku: Sku
-        Tags: Map<string, string>
-        Statistics: FeatureFlag
-    }
+type BingSearchConfig = {
+    Name: ResourceName
+    Sku: Sku
+    Tags: Map<string, string>
+    Statistics: FeatureFlag
+} with
 
     /// Gets an ARM expression to the key of this Bing Search instance.
     member this.Key = BingSearch.getKey (accounts.resourceId this.Name)
@@ -27,25 +26,23 @@ type BingSearchConfig =
     interface IBuilder with
         member this.ResourceId = accounts.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    Sku = this.Sku
-                    Tags = this.Tags
-                    Statistics = this.Statistics
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Sku = this.Sku
+                Tags = this.Tags
+                Statistics = this.Statistics
+            }
+        ]
 
 type BingSearchBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sku = F1
-            Tags = Map.empty
-            Statistics = FeatureFlag.Disabled
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = F1
+        Tags = Map.empty
+        Statistics = FeatureFlag.Disabled
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: BingSearchConfig, name) = { state with Name = ResourceName name }
@@ -57,9 +54,9 @@ type BingSearchBuilder() =
     member _.EnableStatistics(state: BingSearchConfig, value) = { state with Statistics = value }
 
     interface ITaggable<BingSearchConfig> with
-        member _.Add state tags =
-            { state with
+        member _.Add state tags = {
+            state with
                 Tags = state.Tags |> Map.merge tags
-            }
+        }
 
 let bingSearch = BingSearchBuilder()

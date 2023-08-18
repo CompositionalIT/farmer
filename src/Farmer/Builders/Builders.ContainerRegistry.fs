@@ -5,13 +5,12 @@ open Farmer
 open Farmer.ContainerRegistry
 open Farmer.Arm.ContainerRegistry
 
-type ContainerRegistryConfig =
-    {
-        Name: ResourceName
-        Sku: Sku
-        AdminUserEnabled: bool
-        Tags: Map<string, string>
-    }
+type ContainerRegistryConfig = {
+    Name: ResourceName
+    Sku: Sku
+    AdminUserEnabled: bool
+    Tags: Map<string, string>
+} with
 
     member this.LoginServer =
         $"reference(resourceId('Microsoft.ContainerRegistry/registries', '{this.Name.Value}'),'2019-05-01').loginServer"
@@ -35,39 +34,33 @@ type ContainerRegistryConfig =
     interface IBuilder with
         member this.ResourceId = registries.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    Sku = this.Sku
-                    AdminUserEnabled = this.AdminUserEnabled
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Sku = this.Sku
+                AdminUserEnabled = this.AdminUserEnabled
+                Tags = this.Tags
+            }
+        ]
 
 type ContainerRegistryBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sku = Basic
-            AdminUserEnabled = false
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = Basic
+        AdminUserEnabled = false
+        Tags = Map.empty
+    }
 
     [<CustomOperation "name">]
     /// Sets the name of the Azure Container Registry instance.
-    member _.Name(state: ContainerRegistryConfig, name: ResourceName) =
-        { state with
+    member _.Name(state: ContainerRegistryConfig, name: ResourceName) = {
+        state with
             Name =
-                ContainerRegistryValidation
-                    .ContainerRegistryName
-                    .Create(
-                        name
-                    )
-                    .OkValue
-                    .ResourceName
-        }
+                ContainerRegistryValidation.ContainerRegistryName
+                    .Create(name)
+                    .OkValue.ResourceName
+    }
 
     member this.Name(state: ContainerRegistryConfig, name: string) = this.Name(state, ResourceName name)
 
@@ -81,9 +74,9 @@ type ContainerRegistryBuilder() =
     member _.EnableAdminUser(state: ContainerRegistryConfig) = { state with AdminUserEnabled = true }
 
     interface ITaggable<ContainerRegistryConfig> with
-        member _.Add state tags =
-            { state with
+        member _.Add state tags = {
+            state with
                 Tags = state.Tags |> Map.merge tags
-            }
+        }
 
 let containerRegistry = ContainerRegistryBuilder()

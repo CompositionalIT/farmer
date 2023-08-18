@@ -10,12 +10,11 @@ let imageTemplates =
 
 let images = ResourceType("Microsoft.Compute/images", "2022-08-01")
 
-type PlatformImageSource =
-    {
-        ImageIdentifier: GalleryImageIdentifier
-        PlanInfo: ImagePurchasePlan option
-        Version: string
-    }
+type PlatformImageSource = {
+    ImageIdentifier: GalleryImageIdentifier
+    PlanInfo: ImagePurchasePlan option
+    Version: string
+} with
 
     member this.JsonModel =
         {|
@@ -41,10 +40,9 @@ type PlatformImageSource =
         |}
         :> obj
 
-type ManagedImageSource =
-    {
-        ImageId: ResourceId
-    }
+type ManagedImageSource = {
+    ImageId: ResourceId
+} with
 
     member this.JsonModel =
         {|
@@ -53,10 +51,9 @@ type ManagedImageSource =
         |}
         :> obj
 
-type SharedImageVersionSource =
-    {
-        ImageId: ResourceId
-    }
+type SharedImageVersionSource = {
+    ImageId: ResourceId
+} with
 
     member this.JsonModel =
         {|
@@ -77,13 +74,12 @@ type ImageBuilderSource =
         | Managed src -> src.JsonModel
         | SharedVersion src -> src.JsonModel
 
-type FileCustomizer =
-    {
-        Name: string
-        Destination: string
-        SourceUri: Uri
-        Sha256Checksum: string option
-    }
+type FileCustomizer = {
+    Name: string
+    Destination: string
+    SourceUri: Uri
+    Sha256Checksum: string option
+} with
 
     member this.JsonModel =
         {|
@@ -95,12 +91,11 @@ type FileCustomizer =
         |}
         :> obj
 
-type ShellScriptCustomizer =
-    {
-        Name: string
-        ScriptUri: Uri
-        Sha256Checksum: string option
-    }
+type ShellScriptCustomizer = {
+    Name: string
+    ScriptUri: Uri
+    Sha256Checksum: string option
+} with
 
     member this.JsonModel =
         {|
@@ -111,11 +106,10 @@ type ShellScriptCustomizer =
         |}
         :> obj
 
-type ShellCustomizer =
-    {
-        Name: string
-        Inline: string list
-    }
+type ShellCustomizer = {
+    Name: string
+    Inline: string list
+} with
 
     member this.JsonModel =
         {|
@@ -125,15 +119,14 @@ type ShellCustomizer =
         |}
         :> obj
 
-type PowerShellScriptCustomizer =
-    {
-        Name: string
-        ScriptUri: Uri
-        Sha256Checksum: string option
-        RunAsSystem: bool
-        RunAsElevated: bool
-        ValidExitCodes: int list
-    }
+type PowerShellScriptCustomizer = {
+    Name: string
+    ScriptUri: Uri
+    Sha256Checksum: string option
+    RunAsSystem: bool
+    RunAsElevated: bool
+    ValidExitCodes: int list
+} with
 
     member this.JsonModel =
         {|
@@ -151,14 +144,13 @@ type PowerShellScriptCustomizer =
         |}
         :> obj
 
-type PowerShellCustomizer =
-    {
-        Name: string
-        Inline: string list
-        RunAsSystem: bool
-        RunAsElevated: bool
-        ValidExitCodes: int list
-    }
+type PowerShellCustomizer = {
+    Name: string
+    Inline: string list
+    RunAsSystem: bool
+    RunAsElevated: bool
+    ValidExitCodes: int list
+} with
 
     member this.JsonModel =
         {|
@@ -175,12 +167,11 @@ type PowerShellCustomizer =
         |}
         :> obj
 
-type WindowsRestartCustomizer =
-    {
-        RestartCheckCommand: string option
-        RestartCommand: string option
-        RestartTimeout: string option // 5m for 5 minutes, 2h for two hours
-    }
+type WindowsRestartCustomizer = {
+    RestartCheckCommand: string option
+    RestartCommand: string option
+    RestartTimeout: string option // 5m for 5 minutes, 2h for two hours
+} with
 
     member this.JsonModel =
         {|
@@ -191,12 +182,11 @@ type WindowsRestartCustomizer =
         |}
         :> obj
 
-type WindowsUpdateCustomizer =
-    {
-        Filters: string list
-        SearchCriteria: string option // defaults to "BrowseOnly=0 and IsInstalled=0" (Recommended)
-        UpdateLimit: int option // defaults to limit of 1000 updates
-    }
+type WindowsUpdateCustomizer = {
+    Filters: string list
+    SearchCriteria: string option // defaults to "BrowseOnly=0 and IsInstalled=0" (Recommended)
+    UpdateLimit: int option // defaults to limit of 1000 updates
+} with
 
     member this.JsonModel =
         {|
@@ -231,28 +221,25 @@ type Customizer =
         | WindowsRestart customizer -> customizer.JsonModel
         | WindowsUpdate customizer -> customizer.JsonModel
 
-type ManagedImageDistributor =
-    {
-        ImageId: ResourceId
-        RunOutputName: string
-        Location: string
-        ArtifactTags: Map<string, string>
-    }
+type ManagedImageDistributor = {
+    ImageId: ResourceId
+    RunOutputName: string
+    Location: string
+    ArtifactTags: Map<string, string>
+}
 
-type SharedImageDistributor =
-    {
-        GalleryImageId: ResourceId
-        RunOutputName: string
-        ReplicationRegions: Location list
-        ExcludeFromLatest: bool option
-        ArtifactTags: Map<string, string>
-    }
+type SharedImageDistributor = {
+    GalleryImageId: ResourceId
+    RunOutputName: string
+    ReplicationRegions: Location list
+    ExcludeFromLatest: bool option
+    ArtifactTags: Map<string, string>
+}
 
-type VhdDistributor =
-    {
-        RunOutputName: string
-        ArtifactTags: Map<string, string>
-    }
+type VhdDistributor = {
+    RunOutputName: string
+    ArtifactTags: Map<string, string>
+}
 
 [<RequireQualifiedAccess>]
 type Distibutor =
@@ -274,19 +261,18 @@ type Distibutor =
                         distributor.ArtifactTags :> obj
             |}
             :> obj
-        | SharedImage distributor ->
-            {|
-                ``type`` = "SharedImage"
-                galleryImageId = distributor.GalleryImageId.Eval()
-                replicationRegions = distributor.ReplicationRegions |> List.map (fun location -> location.ArmValue)
-                runOutputName = distributor.RunOutputName
-                excludeFromLatest = distributor.ExcludeFromLatest |> Option.map box |> Option.toObj
-                artifactTags =
-                    if distributor.ArtifactTags.IsEmpty then
-                        null
-                    else
-                        distributor.ArtifactTags :> obj
-            |}
+        | SharedImage distributor -> {|
+            ``type`` = "SharedImage"
+            galleryImageId = distributor.GalleryImageId.Eval()
+            replicationRegions = distributor.ReplicationRegions |> List.map (fun location -> location.ArmValue)
+            runOutputName = distributor.RunOutputName
+            excludeFromLatest = distributor.ExcludeFromLatest |> Option.map box |> Option.toObj
+            artifactTags =
+                if distributor.ArtifactTags.IsEmpty then
+                    null
+                else
+                    distributor.ArtifactTags :> obj
+          |}
         | VHD distributor ->
             {|
                 ``type`` = "VHD"
@@ -299,18 +285,17 @@ type Distibutor =
             |}
             :> obj
 
-type ImageBuilder =
-    {
-        Name: ResourceName
-        Location: Location
-        Identity: Identity.ManagedIdentity
-        BuildTimeoutInMinutes: int option
-        Source: ImageBuilderSource
-        Customize: Customizer list
-        Distribute: Distibutor list
-        Tags: Map<string, string>
-        Dependencies: ResourceId Set
-    }
+type ImageBuilder = {
+    Name: ResourceName
+    Location: Location
+    Identity: Identity.ManagedIdentity
+    BuildTimeoutInMinutes: int option
+    Source: ImageBuilderSource
+    Customize: Customizer list
+    Distribute: Distibutor list
+    Tags: Map<string, string>
+    Dependencies: ResourceId Set
+} with
 
     interface IArmResource with
         member this.ResourceId = imageTemplates.resourceId this.Name
@@ -323,10 +308,10 @@ type ImageBuilder =
                 }
                 |> Set.ofSeq
 
-            {| imageTemplates.Create(this.Name, this.Location, dependsOn = dependencies, tags = this.Tags) with
-                identity = this.Identity.ToArmJson
-                properties =
-                    {|
+            {|
+                imageTemplates.Create(this.Name, this.Location, dependsOn = dependencies, tags = this.Tags) with
+                    identity = this.Identity.ToArmJson
+                    properties = {|
                         buildTimeoutInMinutes = this.BuildTimeoutInMinutes |> Option.map box |> Option.toObj
                         source = this.Source.JsonModel
                         customize = this.Customize |> List.map (fun customizer -> customizer.JsonModel)

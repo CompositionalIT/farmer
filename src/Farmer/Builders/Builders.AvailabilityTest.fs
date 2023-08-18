@@ -4,42 +4,39 @@ module Farmer.Builders.AppInsightsAvailabilityTest
 open Farmer
 open Farmer.Arm.InsightsAvailabilityTest
 
-type AvailabilityTestProperties =
-    {
-        Name: ResourceName
-        AppInsightsName: ResourceName
-        Timeout: int<Seconds>
-        VisitFrequency: int<Seconds>
-        Locations: AvailabilityTest.TestSiteLocation list
-        WebTest: AvailabilityTest.WebTestType option
-    }
+type AvailabilityTestProperties = {
+    Name: ResourceName
+    AppInsightsName: ResourceName
+    Timeout: int<Seconds>
+    VisitFrequency: int<Seconds>
+    Locations: AvailabilityTest.TestSiteLocation list
+    WebTest: AvailabilityTest.WebTestType option
+} with
 
     interface IBuilder with
         member this.ResourceId = availabilitytest.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    AppInsightsName = this.AppInsightsName
-                    Location = location
-                    Timeout = this.Timeout
-                    VisitFrequency = this.VisitFrequency
-                    Locations = this.Locations
-                    WebTest = this.WebTest
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                AppInsightsName = this.AppInsightsName
+                Location = location
+                Timeout = this.Timeout
+                VisitFrequency = this.VisitFrequency
+                Locations = this.Locations
+                WebTest = this.WebTest
+            }
+        ]
 
 type AvailabilityTestBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            AppInsightsName = ResourceName.Empty
-            Timeout = 120<Seconds>
-            VisitFrequency = 900<Seconds>
-            Locations = List.empty
-            WebTest = None
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        AppInsightsName = ResourceName.Empty
+        Timeout = 120<Seconds>
+        VisitFrequency = 900<Seconds>
+        Locations = List.empty
+        WebTest = None
+    }
 
     [<CustomOperation "name">]
     /// Sets the name of this Webtest instance.
@@ -51,10 +48,10 @@ type AvailabilityTestBuilder() =
 
     [<CustomOperation "frequency">]
     /// Frequency how often the test is run. Default: 900 seconds.
-    member _.Frequency(state: AvailabilityTestProperties, frequency) =
-        { state with
+    member _.Frequency(state: AvailabilityTestProperties, frequency) = {
+        state with
             VisitFrequency = frequency
-        }
+    }
 
     [<CustomOperation "locations">]
     /// List of locations where the site is pinged. These are not format of Farmer.Location but AvailabilityTest.TestSiteLocation.

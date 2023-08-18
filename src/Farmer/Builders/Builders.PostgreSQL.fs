@@ -10,84 +10,88 @@ open Arm.DBforPostgreSQL
 open Servers
 
 
-type PostgreSQLDbConfig =
-    {
-        Name: ResourceName
-        DbCollation: string option
-        DbCharset: string option
-    }
+type PostgreSQLDbConfig = {
+    Name: ResourceName
+    DbCollation: string option
+    DbCharset: string option
+}
 
 
-type PostgreSQLConfig =
-    {
-        Name: ResourceName
-        AdministratorCredentials: {| UserName: string
-                                     Password: SecureParameter |}
-        Version: Version
-        GeoRedundantBackup: bool
-        StorageAutogrow: bool
-        BackupRetention: int<Days>
-        StorageSize: int<Gb>
-        Capacity: int<VCores>
-        Tier: Sku
-        Databases: PostgreSQLDbConfig list
-        FirewallRules: {| Name: ResourceName
-                          Start: IPAddress
-                          End: IPAddress |} list
-        VirtualNetworkRules: {| Name: ResourceName
-                                VirtualNetworkSubnetId: ResourceId |} list
-        Tags: Map<string, string>
-    }
+type PostgreSQLConfig = {
+    Name: ResourceName
+    AdministratorCredentials: {|
+        UserName: string
+        Password: SecureParameter
+    |}
+    Version: Version
+    GeoRedundantBackup: bool
+    StorageAutogrow: bool
+    BackupRetention: int<Days>
+    StorageSize: int<Gb>
+    Capacity: int<VCores>
+    Tier: Sku
+    Databases: PostgreSQLDbConfig list
+    FirewallRules:
+        {|
+            Name: ResourceName
+            Start: IPAddress
+            End: IPAddress
+        |} list
+    VirtualNetworkRules:
+        {|
+            Name: ResourceName
+            VirtualNetworkSubnetId: ResourceId
+        |} list
+    Tags: Map<string, string>
+} with
 
     interface IBuilder with
         member this.ResourceId = databases.resourceId this.Name
 
-        member this.BuildResources location =
-            [
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Credentials = {|
+                    Username = this.AdministratorCredentials.UserName
+                    Password = this.AdministratorCredentials.Password
+                |}
+                Version = this.Version
+                StorageSize = this.StorageSize * 1024<Mb> / 1<Gb>
+                Capacity = this.Capacity
+                Tier = this.Tier
+                Family = PostgreSQLFamily.Gen5
+                GeoRedundantBackup = FeatureFlag.ofBool this.GeoRedundantBackup
+                StorageAutoGrow = FeatureFlag.ofBool this.StorageAutogrow
+                BackupRetention = this.BackupRetention
+                Tags = this.Tags
+            }
+
+            for database in this.Databases do
                 {
-                    Name = this.Name
-                    Location = location
-                    Credentials =
-                        {|
-                            Username = this.AdministratorCredentials.UserName
-                            Password = this.AdministratorCredentials.Password
-                        |}
-                    Version = this.Version
-                    StorageSize = this.StorageSize * 1024<Mb> / 1<Gb>
-                    Capacity = this.Capacity
-                    Tier = this.Tier
-                    Family = PostgreSQLFamily.Gen5
-                    GeoRedundantBackup = FeatureFlag.ofBool this.GeoRedundantBackup
-                    StorageAutoGrow = FeatureFlag.ofBool this.StorageAutogrow
-                    BackupRetention = this.BackupRetention
-                    Tags = this.Tags
+                    Name = database.Name
+                    Server = this.Name
+                    Collation = database.DbCollation |> Option.defaultValue "English_United States.1252"
+                    Charset = database.DbCharset |> Option.defaultValue "UTF8"
                 }
 
-                for database in this.Databases do
-                    {
-                        Name = database.Name
-                        Server = this.Name
-                        Collation = database.DbCollation |> Option.defaultValue "English_United States.1252"
-                        Charset = database.DbCharset |> Option.defaultValue "UTF8"
-                    }
+            for rule in this.FirewallRules do
+                {
+                    Name = rule.Name
+                    Start = rule.Start
+                    End = rule.End
+                    Server = this.Name
+                    Location = location
+                }
 
-                for rule in this.FirewallRules do
-                    {
-                        Name = rule.Name
-                        Start = rule.Start
-                        End = rule.End
-                        Server = this.Name
-                        Location = location
-                    }
-
-                for rule in this.VirtualNetworkRules do
-                    {
-                        Name = rule.Name
-                        VirtualNetworkSubnetId = rule.VirtualNetworkSubnetId
-                        Server = this.Name
-                        Location = location
-                    }
-            ]
+            for rule in this.VirtualNetworkRules do
+                {
+                    Name = rule.Name
+                    VirtualNetworkSubnetId = rule.VirtualNetworkSubnetId
+                    Server = this.Name
+                    Location = location
+                }
+        ]
 
     /// Generates an expression for the fully qualified domain name for reaching the postgres server.
     member this.FullyQualifiedDomainName =
@@ -113,16 +117,15 @@ module private Helpers =
 
 [<RequireQualifiedAccess>]
 module Validate =
-    let reservedUsernames =
-        [
-            "azure_pg_admin"
-            "admin"
-            "root"
-            "azure_superuser"
-            "administrator"
-            "root"
-            "guest"
-        ]
+    let reservedUsernames = [
+        "azure_pg_admin"
+        "admin"
+        "root"
+        "azure_superuser"
+        "administrator"
+        "root"
+        "guest"
+    ]
 
     let username (paramName: string) (candidate: string) =
         if String.IsNullOrWhiteSpace candidate then
@@ -197,12 +200,11 @@ module Validate =
             raiseFarmer $"Capacity must be a power of two, was {capacity}"
 
 type PostgreSQLDbBuilder() =
-    member _.Yield _ : PostgreSQLDbConfig =
-        {
-            Name = ResourceName ""
-            DbCharset = None
-            DbCollation = None
-        }
+    member _.Yield _ : PostgreSQLDbConfig = {
+        Name = ResourceName ""
+        DbCharset = None
+        DbCollation = None
+    }
 
     member _.Run(state: PostgreSQLDbConfig) =
         if state.Name = ResourceName.Empty then
@@ -222,8 +224,9 @@ type PostgreSQLDbBuilder() =
         if String.IsNullOrWhiteSpace collation then
             raiseFarmer "collation must have a value"
 
-        { state with
-            DbCollation = Some collation
+        {
+            state with
+                DbCollation = Some collation
         }
 
     [<CustomOperation "charset">]
@@ -236,26 +239,24 @@ type PostgreSQLDbBuilder() =
 let postgreSQLDb = PostgreSQLDbBuilder()
 
 type PostgreSQLBuilder() =
-    member _.Yield _ : PostgreSQLConfig =
-        {
-            Name = ResourceName ""
-            AdministratorCredentials =
-                {|
-                    UserName = ""
-                    Password = SecureParameter ""
-                |}
-            Version = VS_11
-            GeoRedundantBackup = false
-            StorageAutogrow = true
-            BackupRetention = Validate.minBackupRetention
-            StorageSize = Validate.minStorageSize
-            Capacity = 2<VCores>
-            Tier = Basic
-            Databases = []
-            FirewallRules = []
-            VirtualNetworkRules = []
-            Tags = Map.empty
-        }
+    member _.Yield _ : PostgreSQLConfig = {
+        Name = ResourceName ""
+        AdministratorCredentials = {|
+            UserName = ""
+            Password = SecureParameter ""
+        |}
+        Version = VS_11
+        GeoRedundantBackup = false
+        StorageAutogrow = true
+        BackupRetention = Validate.minBackupRetention
+        StorageSize = Validate.minStorageSize
+        Capacity = 2<VCores>
+        Tier = Basic
+        Databases = []
+        FirewallRules = []
+        VirtualNetworkRules = []
+        Tags = Map.empty
+    }
 
     member _.Run state : PostgreSQLConfig =
         state.Name.Value |> Validate.servername
@@ -263,10 +264,11 @@ type PostgreSQLBuilder() =
         state.AdministratorCredentials.UserName
         |> Validate.username "AdministratorCredentials.UserName"
 
-        { state with
-            AdministratorCredentials =
-                {| state.AdministratorCredentials with
-                    Password = SecureParameter $"password-for-{state.Name.Value}"
+        {
+            state with
+                AdministratorCredentials = {|
+                    state.AdministratorCredentials with
+                        Password = SecureParameter $"password-for-{state.Name.Value}"
                 |}
         }
 
@@ -285,20 +287,21 @@ type PostgreSQLBuilder() =
     member _.AdminUsername(state: PostgreSQLConfig, adminUsername: string) =
         Validate.username "adminUserName" adminUsername
 
-        { state with
-            Databases = List.rev state.Databases
-            AdministratorCredentials =
-                {| state.AdministratorCredentials with
-                    UserName = adminUsername
+        {
+            state with
+                Databases = List.rev state.Databases
+                AdministratorCredentials = {|
+                    state.AdministratorCredentials with
+                        UserName = adminUsername
                 |}
         }
 
     /// Sets geo-redundant backup
     [<CustomOperation "geo_redundant_backup">]
-    member _.SetGeoRedundantBackup(state: PostgreSQLConfig, enabled: bool) =
-        { state with
+    member _.SetGeoRedundantBackup(state: PostgreSQLConfig, enabled: bool) = {
+        state with
             GeoRedundantBackup = enabled
-        }
+    }
 
     /// Enables geo-redundant backup
     [<CustomOperation "enable_geo_redundant_backup">]
@@ -311,8 +314,7 @@ type PostgreSQLBuilder() =
 
     /// Sets storage autogrow
     [<CustomOperation "storage_autogrow">]
-    member _.SetStorageAutogrow(state: PostgreSQLConfig, enabled: bool) =
-        { state with StorageAutogrow = enabled }
+    member _.SetStorageAutogrow(state: PostgreSQLConfig, enabled: bool) = { state with StorageAutogrow = enabled }
 
     /// Enables storage autogrow
     [<CustomOperation "enable_storage_autogrow">]
@@ -333,8 +335,9 @@ type PostgreSQLBuilder() =
     member _.SetBackupRetention(state: PostgreSQLConfig, retention: int<Days>) =
         Validate.backupRetention retention
 
-        { state with
-            BackupRetention = retention
+        {
+            state with
+                BackupRetention = retention
         }
 
     /// Sets the PostgreSQl server version
@@ -353,10 +356,10 @@ type PostgreSQLBuilder() =
 
     /// Adds a new database to the server, either by specifying the name of the database or providing a PostgreSQLDbConfig
     [<CustomOperation "add_database">]
-    member _.AddDatabase(state: PostgreSQLConfig, database) =
-        { state with
+    member _.AddDatabase(state: PostgreSQLConfig, database) = {
+        state with
             Databases = database :: state.Databases
-        }
+    }
 
     member this.AddDatabase(state: PostgreSQLConfig, dbName: string) =
         let db = postgreSQLDb { name dbName }
@@ -364,8 +367,8 @@ type PostgreSQLBuilder() =
 
     /// Adds a custom firewall rule given a name, start and end IP address range.
     [<CustomOperation "add_firewall_rule">]
-    member _.AddFirewallWall(state: PostgreSQLConfig, name, startRange: string, endRange: string) =
-        { state with
+    member _.AddFirewallWall(state: PostgreSQLConfig, name, startRange: string, endRange: string) = {
+        state with
             FirewallRules =
                 {|
                     Name = ResourceName name
@@ -373,22 +376,22 @@ type PostgreSQLBuilder() =
                     End = IPAddress.Parse endRange
                 |}
                 :: state.FirewallRules
-        }
+    }
 
     /// Adds a custom firewall rules given a name, start and end IP address range.
     [<CustomOperation "add_firewall_rules">]
     member _.AddFirewallRules(state: PostgreSQLConfig, listOfRules: (string * string * string) list) =
         let newRules =
             listOfRules
-            |> List.map (fun (name, startRange, endRange) ->
-                {|
-                    Name = ResourceName name
-                    Start = IPAddress.Parse startRange
-                    End = IPAddress.Parse endRange
-                |})
+            |> List.map (fun (name, startRange, endRange) -> {|
+                Name = ResourceName name
+                Start = IPAddress.Parse startRange
+                End = IPAddress.Parse endRange
+            |})
 
-        { state with
-            FirewallRules = newRules @ state.FirewallRules
+        {
+            state with
+                FirewallRules = newRules @ state.FirewallRules
         }
 
     /// Adds a firewall rule that enables access to other Azure services.
@@ -397,36 +400,36 @@ type PostgreSQLBuilder() =
         this.AddFirewallWall(state, "allow-azure-services", "0.0.0.0", "0.0.0.0")
 
     interface ITaggable<PostgreSQLConfig> with
-        member _.Add state tags =
-            { state with
+        member _.Add state tags = {
+            state with
                 Tags = state.Tags |> Map.merge tags
-            }
+        }
 
     /// Adds a custom vnet rule given a name and a virtualNetworkSubnetId.
     [<CustomOperation "add_vnet_rule">]
-    member _.AddVnetRule(state: PostgreSQLConfig, name, virtualNetworkSubnetId: ResourceId) =
-        { state with
+    member _.AddVnetRule(state: PostgreSQLConfig, name, virtualNetworkSubnetId: ResourceId) = {
+        state with
             VirtualNetworkRules =
                 {|
                     Name = ResourceName name
                     VirtualNetworkSubnetId = virtualNetworkSubnetId
                 |}
                 :: state.VirtualNetworkRules
-        }
+    }
 
     /// Adds a custom firewall rules given a name and a virtualNetworkSubnetId.
     [<CustomOperation "add_vnet_rules">]
     member _.AddVnetRules(state: PostgreSQLConfig, listOfRules: (string * ResourceId) list) =
         let newRules =
             listOfRules
-            |> List.map (fun (name, virtualNetworkSubnetId) ->
-                {|
-                    Name = ResourceName name
-                    VirtualNetworkSubnetId = virtualNetworkSubnetId
-                |})
+            |> List.map (fun (name, virtualNetworkSubnetId) -> {|
+                Name = ResourceName name
+                VirtualNetworkSubnetId = virtualNetworkSubnetId
+            |})
 
-        { state with
-            VirtualNetworkRules = newRules @ state.VirtualNetworkRules
+        {
+            state with
+                VirtualNetworkRules = newRules @ state.VirtualNetworkRules
         }
 
 let postgreSQL = PostgreSQLBuilder()

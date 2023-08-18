@@ -13,13 +13,12 @@ type CognitiveServices =
     static member getKey(name: ResourceName) =
         CognitiveServices.getKey (accounts.resourceId name)
 
-type CognitiveServicesConfig =
-    {
-        Name: ResourceName
-        Sku: Sku
-        Api: Kind
-        Tags: Map<string, string>
-    }
+type CognitiveServicesConfig = {
+    Name: ResourceName
+    Sku: Sku
+    Api: Kind
+    Tags: Map<string, string>
+} with
 
     /// Gets an ARM expression to the key of this Cognitive Services instance.
     member this.Key = CognitiveServices.getKey (accounts.resourceId this.Name)
@@ -27,25 +26,23 @@ type CognitiveServicesConfig =
     interface IBuilder with
         member this.ResourceId = accounts.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    Sku = this.Sku
-                    Kind = this.Api
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Sku = this.Sku
+                Kind = this.Api
+                Tags = this.Tags
+            }
+        ]
 
 type CognitiveServicesBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sku = F0
-            Api = AllInOne
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = F0
+        Api = AllInOne
+        Tags = Map.empty
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: CognitiveServicesConfig, name) = { state with Name = ResourceName name }
@@ -57,9 +54,9 @@ type CognitiveServicesBuilder() =
     member _.Api(state: CognitiveServicesConfig, api) = { state with Api = api }
 
     interface ITaggable<CognitiveServicesConfig> with
-        member _.Add state tags =
-            { state with
+        member _.Add state tags = {
+            state with
                 Tags = state.Tags |> Map.merge tags
-            }
+        }
 
 let cognitiveServices = CognitiveServicesBuilder()

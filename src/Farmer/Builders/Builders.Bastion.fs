@@ -6,12 +6,11 @@ open Farmer.Arm.Bastion
 open Farmer.Arm.Network
 open Farmer.PublicIpAddress
 
-type BastionConfig =
-    {
-        Name: ResourceName
-        VirtualNetwork: ResourceName
-        Tags: Map<string, string>
-    }
+type BastionConfig = {
+    Name: ResourceName
+    VirtualNetwork: ResourceName
+    Tags: Map<string, string>
+} with
 
     interface IBuilder with
         member this.ResourceId = bastionHosts.resourceId this.Name
@@ -41,12 +40,11 @@ type BastionConfig =
             ]
 
 type BastionBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            VirtualNetwork = ResourceName.Empty
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        VirtualNetwork = ResourceName.Empty
+        Tags = Map.empty
+    }
 
     /// Sets the name of the bastion host.
     [<CustomOperation "name">]
@@ -54,9 +52,9 @@ type BastionBuilder() =
 
     /// Sets the virtual network where this bastion host is attached.
     [<CustomOperation "vnet">]
-    member _.VNet(state: BastionConfig, vnet) =
-        { state with
+    member _.VNet(state: BastionConfig, vnet) = {
+        state with
             VirtualNetwork = ResourceName vnet
-        }
+    }
 
 let bastion = BastionBuilder()

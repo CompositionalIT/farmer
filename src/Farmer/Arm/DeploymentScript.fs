@@ -23,31 +23,29 @@ type Cleanup =
     | OnSuccess
     | OnExpiration of TimeSpan
 
-type DeploymentScript =
-    {
-        Name: ResourceName
-        Location: Location
-        Dependencies: ResourceId Set
-        Arguments: string list
-        CleanupPreference: Cleanup
-        Cli: CliVersion
-        EnvironmentVariables: Map<string, EnvVar>
-        ForceUpdateTag: Guid option
-        Identity: UserAssignedIdentity
-        ScriptSource: ScriptSource
-        SupportingScriptUris: Uri list
-        Timeout: TimeSpan option
-        Tags: Map<string, string>
-    }
+type DeploymentScript = {
+    Name: ResourceName
+    Location: Location
+    Dependencies: ResourceId Set
+    Arguments: string list
+    CleanupPreference: Cleanup
+    Cli: CliVersion
+    EnvironmentVariables: Map<string, EnvVar>
+    ForceUpdateTag: Guid option
+    Identity: UserAssignedIdentity
+    ScriptSource: ScriptSource
+    SupportingScriptUris: Uri list
+    Timeout: TimeSpan option
+    Tags: Map<string, string>
+} with
 
     interface IParameters with
-        member this.SecureParameters =
-            [
-                for envVar in this.EnvironmentVariables do
-                    match envVar.Value with
-                    | SecureEnvValue p -> p
-                    | _ -> ()
-            ]
+        member this.SecureParameters = [
+            for envVar in this.EnvironmentVariables do
+                match envVar.Value with
+                | SecureEnvValue p -> p
+                | _ -> ()
+        ]
 
     interface IArmResource with
         member this.ResourceId = deploymentScripts.resourceId this.Name
@@ -60,16 +58,16 @@ type DeploymentScript =
 
             let dependencies = this.Dependencies.Add this.Identity.ResourceId
 
-            {| deploymentScripts.Create(this.Name, this.Location, dependencies, this.Tags) with
-                kind = cliKind
-                identity =
-                    {
-                        SystemAssigned = Disabled
-                        UserAssigned = [ this.Identity ]
-                    }
-                        .ToArmJson
-                properties =
-                    {|
+            {|
+                deploymentScripts.Create(this.Name, this.Location, dependencies, this.Tags) with
+                    kind = cliKind
+                    identity =
+                        {
+                            SystemAssigned = Disabled
+                            UserAssigned = [ this.Identity ]
+                        }
+                            .ToArmJson
+                    properties = {|
                         arguments =
                             match this.Arguments with
                             | [] -> null
@@ -81,29 +79,25 @@ type DeploymentScript =
                             | Cleanup.OnSuccess -> "OnSuccess"
                             | Cleanup.OnExpiration _ -> "OnExpiration"
                             | Cleanup.Always -> "Always"
-                        environmentVariables =
-                            [
-                                for key, value in Map.toSeq this.EnvironmentVariables do
-                                    match value with
-                                    | EnvValue v ->
-                                        {|
-                                            name = key
-                                            value = v
-                                            secureValue = null
-                                        |}
-                                    | SecureEnvExpression armExpression ->
-                                        {|
-                                            name = key
-                                            value = null
-                                            secureValue = armExpression.Eval()
-                                        |}
-                                    | SecureEnvValue v ->
-                                        {|
-                                            name = key
-                                            value = null
-                                            secureValue = v.ArmExpression.Eval()
-                                        |}
-                            ]
+                        environmentVariables = [
+                            for key, value in Map.toSeq this.EnvironmentVariables do
+                                match value with
+                                | EnvValue v -> {|
+                                    name = key
+                                    value = v
+                                    secureValue = null
+                                  |}
+                                | SecureEnvExpression armExpression -> {|
+                                    name = key
+                                    value = null
+                                    secureValue = armExpression.Eval()
+                                  |}
+                                | SecureEnvValue v -> {|
+                                    name = key
+                                    value = null
+                                    secureValue = v.ArmExpression.Eval()
+                                  |}
+                        ]
                         forceUpdateTag = this.ForceUpdateTag |> Option.toNullable
                         scriptContent =
                             match this.ScriptSource with

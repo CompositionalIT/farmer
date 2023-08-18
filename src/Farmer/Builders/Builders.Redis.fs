@@ -11,17 +11,16 @@ let internal buildRedisKey (resourceId: ResourceId) =
 
     ArmExpression.create(expr, resourceId).WithOwner(resourceId)
 
-type RedisConfig =
-    {
-        Name: ResourceName
-        Sku: Sku
-        Capacity: int
-        RedisConfiguration: Map<string, string>
-        NonSslEnabled: bool option
-        ShardCount: int option
-        MinimumTlsVersion: TlsVersion option
-        Tags: Map<string, string>
-    }
+type RedisConfig = {
+    Name: ResourceName
+    Sku: Sku
+    Capacity: int
+    RedisConfiguration: Map<string, string>
+    NonSslEnabled: bool option
+    ShardCount: int option
+    MinimumTlsVersion: TlsVersion option
+    Tags: Map<string, string>
+} with
 
     member this.Key = buildRedisKey this.ResourceId
     member private this.ResourceId = redis.resourceId this.Name
@@ -29,39 +28,36 @@ type RedisConfig =
     interface IBuilder with
         member this.ResourceId = this.ResourceId
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    Sku =
-                        {|
-                            Sku = this.Sku
-                            Capacity = this.Capacity
-                        |}
-                    RedisConfiguration = this.RedisConfiguration
-                    NonSslEnabled = this.NonSslEnabled
-                    ShardCount = this.ShardCount
-                    MinimumTlsVersion = this.MinimumTlsVersion
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Sku = {|
+                    Sku = this.Sku
+                    Capacity = this.Capacity
+                |}
+                RedisConfiguration = this.RedisConfiguration
+                NonSslEnabled = this.NonSslEnabled
+                ShardCount = this.ShardCount
+                MinimumTlsVersion = this.MinimumTlsVersion
+                Tags = this.Tags
+            }
+        ]
 
 type RedisBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sku = Basic
-            Capacity = 1
-            RedisConfiguration = Map.empty
-            NonSslEnabled = None
-            ShardCount = None
-            MinimumTlsVersion = None
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = Basic
+        Capacity = 1
+        RedisConfiguration = Map.empty
+        NonSslEnabled = None
+        ShardCount = None
+        MinimumTlsVersion = None
+        Tags = Map.empty
+    }
 
-    member _.Run(state: RedisConfig) =
-        { state with
+    member _.Run(state: RedisConfig) = {
+        state with
             Capacity =
                 match state with
                 | { Sku = (Basic | Standard) } when state.Capacity > 6 -> 6
@@ -77,7 +73,7 @@ type RedisBuilder() =
                   } when shards > 10 -> Some 10
                 | { Sku = Premium; ShardCount = shards } -> shards
                 | _ -> None
-        }
+    }
 
     /// Sets the name of the Redis instance.
     [<CustomOperation "name">]
@@ -95,10 +91,10 @@ type RedisBuilder() =
 
     /// Adds a custom setting to the Redis configuration
     [<CustomOperation "setting">]
-    member _.AddSetting(state: RedisConfig, key, value) =
-        { state with
+    member _.AddSetting(state: RedisConfig, key, value) = {
+        state with
             RedisConfiguration = state.RedisConfiguration.Add(key, value)
-        }
+    }
 
     member this.AddSetting(state: RedisConfig, key, value: int) =
         this.AddSetting(state, key, string value)
@@ -111,25 +107,24 @@ type RedisBuilder() =
 
     /// Specifies whether the non-ssl Redis server port (6379) is enabled.
     [<CustomOperation "enable_non_ssl_port">]
-    member _.EnableNonSsl(state: RedisConfig) =
-        { state with NonSslEnabled = Some true }
+    member _.EnableNonSsl(state: RedisConfig) = { state with NonSslEnabled = Some true }
 
     [<CustomOperation "shard_count">]
-    member _.ShardCount(state: RedisConfig, shardCount) =
-        { state with
+    member _.ShardCount(state: RedisConfig, shardCount) = {
+        state with
             ShardCount = Some shardCount
-        }
+    }
 
     [<CustomOperation "minimum_tls_version">]
-    member _.MinimumTlsVersion(state: RedisConfig, tlsVersion) =
-        { state with
+    member _.MinimumTlsVersion(state: RedisConfig, tlsVersion) = {
+        state with
             MinimumTlsVersion = Some tlsVersion
-        }
+    }
 
     interface ITaggable<RedisConfig> with
-        member _.Add state tags =
-            { state with
+        member _.Add state tags = {
+            state with
                 Tags = state.Tags |> Map.merge tags
-            }
+        }
 
 let redis = RedisBuilder()

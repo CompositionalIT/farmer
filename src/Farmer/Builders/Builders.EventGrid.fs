@@ -74,11 +74,10 @@ type MachineLearningEvent =
     interface
     end
 
-type EndpointBatchConfig =
-    {
-        MaxEventsPerBatch: uint
-        PreferredBatchSizeInKilobytes: uint
-    }
+type EndpointBatchConfig = {
+    MaxEventsPerBatch: uint
+    PreferredBatchSizeInKilobytes: uint
+}
 
 
 module SystemEvents =
@@ -216,76 +215,76 @@ module SystemEvents =
         let ResourceWriteSuccess =
             toEvent<ResourceGroupEvent> "Microsoft.Resources.ResourceWriteSuccess"
 
-type EventGridConfig<'T> =
-    {
-        TopicName: ResourceName
-        Source: ResourceName * TopicType
-        Subscriptions: {| Name: ResourceName
-                          Destination: ResourceName
-                          Endpoint: EndpointType
-                          SystemEvents: EventGridEvent<'T> list |} list
-        Tags: Map<string, string>
-    }
+type EventGridConfig<'T> = {
+    TopicName: ResourceName
+    Source: ResourceName * TopicType
+    Subscriptions:
+        {|
+            Name: ResourceName
+            Destination: ResourceName
+            Endpoint: EndpointType
+            SystemEvents: EventGridEvent<'T> list
+        |} list
+    Tags: Map<string, string>
+} with
 
     interface IBuilder with
         member this.ResourceId = systemTopics.resourceId this.TopicName
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.TopicName
-                    Location = location
-                    Source = fst this.Source
-                    TopicType = snd this.Source
-                    Tags = this.Tags
-                }
+        member this.BuildResources location = [
+            {
+                Name = this.TopicName
+                Location = location
+                Source = fst this.Source
+                TopicType = snd this.Source
+                Tags = this.Tags
+            }
 
-                for sub in this.Subscriptions do
-                    {
-                        Name = sub.Name
-                        Topic = this.TopicName
-                        Destination = sub.Destination
-                        DestinationEndpoint = sub.Endpoint
-                        Events = sub.SystemEvents
-                    }
-            ]
+            for sub in this.Subscriptions do
+                {
+                    Name = sub.Name
+                    Topic = this.TopicName
+                    Destination = sub.Destination
+                    DestinationEndpoint = sub.Endpoint
+                    Events = sub.SystemEvents
+                }
+        ]
 
 type EventGridBuilder() =
-    static member private ChangeTopic<'TNew>(state: EventGridConfig<_>, source, topic) : EventGridConfig<'TNew> =
-        {
-            TopicName = state.TopicName
-            Source = source, topic
-            Subscriptions = []
-            Tags = Map.empty
-        }
+    static member private ChangeTopic<'TNew>(state: EventGridConfig<_>, source, topic) : EventGridConfig<'TNew> = {
+        TopicName = state.TopicName
+        Source = source, topic
+        Subscriptions = []
+        Tags = Map.empty
+    }
 
     static member private AddSub(state: EventGridConfig<'T>, name, destination: ResourceName, endpoint, events) =
         let name = destination.Value + "-" + name
 
-        { state with
-            Subscriptions =
-                {|
-                    Name = ResourceName name
-                    Destination = destination
-                    Endpoint = endpoint
-                    SystemEvents = events
-                |}
-                :: state.Subscriptions
+        {
+            state with
+                Subscriptions =
+                    {|
+                        Name = ResourceName name
+                        Destination = destination
+                        Endpoint = endpoint
+                        SystemEvents = events
+                    |}
+                    :: state.Subscriptions
         }
 
-    member _.Yield _ =
-        {
-            TopicName = ResourceName.Empty
-            Source = ResourceName("[resourceGroup().name]"), Topics.ResourceGroup
-            Subscriptions = []
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        TopicName = ResourceName.Empty
+        Source = ResourceName("[resourceGroup().name]"), Topics.ResourceGroup
+        Subscriptions = []
+        Tags = Map.empty
+    }
 
     [<CustomOperation "topic_name">]
-    member _.Name(state: EventGridConfig<'T>, name) =
-        { state with
+    member _.Name(state: EventGridConfig<'T>, name) = {
+        state with
             TopicName = ResourceName name
-        }
+    }
 
     [<CustomOperation "source">]
     member _.Source(state: EventGridConfig<_>, source: StorageAccountConfig) =
@@ -334,14 +333,13 @@ type EventGridBuilder() =
             batchConfig: EndpointBatchConfig,
             events
         ) =
-        let endpoint =
-            {
-                ResourceId =
-                    Farmer.Arm.Web.siteFunctions.resourceId (fnApp.Name.ResourceName, fnName)
-                    |> Managed
-                MaxEventsPerBatch = batchConfig.MaxEventsPerBatch
-                PreferredBatchSizeInKilobytes = batchConfig.PreferredBatchSizeInKilobytes
-            }
+        let endpoint = {
+            ResourceId =
+                Farmer.Arm.Web.siteFunctions.resourceId (fnApp.Name.ResourceName, fnName)
+                |> Managed
+            MaxEventsPerBatch = batchConfig.MaxEventsPerBatch
+            PreferredBatchSizeInKilobytes = batchConfig.PreferredBatchSizeInKilobytes
+        }
 
         EventGridBuilder.AddSub(state, $"{fnName.Value}-fn", fnApp.Name.ResourceName, AzureFunction endpoint, events)
 
@@ -358,12 +356,11 @@ type EventGridBuilder() =
             | { Type = t; Segments = [ handlerName ] } when t = Arm.Web.siteFunctions -> handlerName
             | _ -> failwith "Invalid Azure function resourceId, create one with Web.siteFunctions"
 
-        let endpoint =
-            {
-                ResourceId = fnResourceId
-                MaxEventsPerBatch = batchConfig.MaxEventsPerBatch
-                PreferredBatchSizeInKilobytes = batchConfig.PreferredBatchSizeInKilobytes
-            }
+        let endpoint = {
+            ResourceId = fnResourceId
+            MaxEventsPerBatch = batchConfig.MaxEventsPerBatch
+            PreferredBatchSizeInKilobytes = batchConfig.PreferredBatchSizeInKilobytes
+        }
 
         EventGridBuilder.AddSub(state, $"{fnName.Value}-fn", fnResourceId.Name, AzureFunction endpoint, events)
 
@@ -428,10 +425,10 @@ type EventGridBuilder() =
         EventGridBuilder.AddSub(state, name, topic.Name, endpoint, events)
 
     [<CustomOperation "add_tags">]
-    member _.Tags(state: EventGridConfig<'T>, pairs) =
-        { state with
+    member _.Tags(state: EventGridConfig<'T>, pairs) = {
+        state with
             Tags = pairs |> List.fold (fun map (key, value) -> Map.add key value map) state.Tags
-        }
+    }
 
     [<CustomOperation "add_tag">]
     member this.Tag(state: EventGridConfig<'T>, key, value) = this.Tags(state, [ (key, value) ])

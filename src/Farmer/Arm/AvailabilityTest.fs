@@ -5,16 +5,15 @@ open Farmer
 
 let availabilitytest = ResourceType("Microsoft.Insights/webtests", "2015-05-01")
 
-type AvailabilityTest =
-    {
-        Name: ResourceName
-        AppInsightsName: ResourceName
-        Timeout: int<Seconds>
-        VisitFrequency: int<Seconds>
-        Location: Location
-        Locations: AvailabilityTest.TestSiteLocation list
-        WebTest: AvailabilityTest.WebTestType option
-    }
+type AvailabilityTest = {
+    Name: ResourceName
+    AppInsightsName: ResourceName
+    Timeout: int<Seconds>
+    VisitFrequency: int<Seconds>
+    Location: Location
+    Locations: AvailabilityTest.TestSiteLocation list
+    WebTest: AvailabilityTest.WebTestType option
+} with
 
     interface IArmResource with
         member this.ResourceId = availabilitytest.resourceId this.Name
@@ -70,12 +69,12 @@ type AvailabilityTest =
                                 </Items>
                             </WebTest>"""
 
-                    {| availabilitytest.Create(this.Name) with
-                        location = this.Location.ArmValue
-                        dependsOn = [ Farmer.ResourceId.create(components, this.AppInsightsName).Eval() ]
-                        tags = Farmer.Serialization.ofJson ("{\"" + appInsightResource + "\": \"Resource\"}")
-                        properties =
-                            {|
+                    {|
+                        availabilitytest.Create(this.Name) with
+                            location = this.Location.ArmValue
+                            dependsOn = [ Farmer.ResourceId.create(components, this.AppInsightsName).Eval() ]
+                            tags = Farmer.Serialization.ofJson ("{\"" + appInsightResource + "\": \"Resource\"}")
+                            properties = {|
                                 SyntheticMonitorId =
                                     $"{this.Name.Value.ToLower()}-{this.AppInsightsName.Value.ToLower()}"
                                 Name = this.Name.Value
@@ -86,16 +85,16 @@ type AvailabilityTest =
                                 RetryEnabled = true
                                 Locations =
                                     this.Locations
-                                    |> List.map (fun (AvailabilityTest.AvailabilityTestSite lo) ->
-                                        {| Id = lo.ArmValue |})
-                                Configuration =
-                                    {|
-                                        WebTest =
-                                            System.Text.RegularExpressions.Regex.Replace(
-                                                testString.Replace("\r\n", "").Replace("\n", ""),
-                                                @"\s+",
-                                                " "
-                                            )
-                                    |}
+                                    |> List.map (fun (AvailabilityTest.AvailabilityTestSite lo) -> {|
+                                        Id = lo.ArmValue
+                                    |})
+                                Configuration = {|
+                                    WebTest =
+                                        System.Text.RegularExpressions.Regex.Replace(
+                                            testString.Replace("\r\n", "").Replace("\n", ""),
+                                            @"\s+",
+                                            " "
+                                        )
+                                |}
                             |}
                     |}

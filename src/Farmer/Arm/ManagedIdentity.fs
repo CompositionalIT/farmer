@@ -7,12 +7,11 @@ open Farmer.Identity
 let userAssignedIdentities =
     ResourceType("Microsoft.ManagedIdentity/userAssignedIdentities", "2018-11-30")
 
-type UserAssignedIdentity =
-    {
-        Name: ResourceName
-        Location: Location
-        Tags: Map<string, string>
-    }
+type UserAssignedIdentity = {
+    Name: ResourceName
+    Location: Location
+    Tags: Map<string, string>
+} with
 
     interface IArmResource with
         member this.ResourceId = userAssignedIdentities.resourceId this.Name
@@ -26,41 +25,37 @@ let toArmJson =
     | {
           SystemAssigned = Disabled
           UserAssigned = []
-      } ->
-        {|
-            ``type`` = "None"
-            userAssignedIdentities = null
-        |}
+      } -> {|
+        ``type`` = "None"
+        userAssignedIdentities = null
+      |}
     | {
           SystemAssigned = Enabled
           UserAssigned = []
-      } ->
-        {|
-            ``type`` = "SystemAssigned"
-            userAssignedIdentities = null
-        |}
+      } -> {|
+        ``type`` = "SystemAssigned"
+        userAssignedIdentities = null
+      |}
     | {
           SystemAssigned = Disabled
           UserAssigned = identities
-      } ->
-        {|
-            ``type`` = "UserAssigned"
-            userAssignedIdentities =
-                identities
-                |> List.map (fun identity -> identity.ResourceId.Eval(), obj ())
-                |> dict
-        |}
+      } -> {|
+        ``type`` = "UserAssigned"
+        userAssignedIdentities =
+            identities
+            |> List.map (fun identity -> identity.ResourceId.Eval(), obj ())
+            |> dict
+      |}
     | {
           SystemAssigned = Enabled
           UserAssigned = identities
-      } ->
-        {|
-            ``type`` = "SystemAssigned, UserAssigned"
-            userAssignedIdentities =
-                identities
-                |> List.map (fun identity -> identity.ResourceId.Eval(), obj ())
-                |> dict
-        |}
+      } -> {|
+        ``type`` = "SystemAssigned, UserAssigned"
+        userAssignedIdentities =
+            identities
+            |> List.map (fun identity -> identity.ResourceId.Eval(), obj ())
+            |> dict
+      |}
 
 type ManagedIdentity with
 
