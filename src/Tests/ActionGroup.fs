@@ -15,6 +15,8 @@ let tests =
                 let azureFunctionName = "MyFunction"
                 let logicAppName = "MyLogicApp"
                 let actionGroupName = "MyActionGroup"
+                // Fake, as AutomationAccount resource type not yet implemented in Farmer
+                let automationAccountId = ResourceId.create(automationAccounts, ResourceName "MyAutomationAccount")
 
                 let myFunc =
                     functions {
@@ -29,7 +31,7 @@ let tests =
 
                 let myAutomationRunbookReceiver =
                     AutomationRunbookReceiver.Create(
-                        automationAccountId = "...",
+                        automationAccountId = automationAccountId,
                         isGlobalRunbook = true,
                         runbookName = "...",
                         webhookResourceId = "..."

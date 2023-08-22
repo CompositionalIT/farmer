@@ -29,7 +29,7 @@ type ArmRoleReceiver =
 type AutomationRunbookReceiver =
     {
         /// The Azure automation account Id which holds this runbook and authenticate to Azure resource.
-        AutomationAccountId: string
+        AutomationAccountId: ResourceId
         /// Indicates whether this instance is global runbook.
         IsGlobalRunbook: bool
         /// Indicates name of the webhook.
