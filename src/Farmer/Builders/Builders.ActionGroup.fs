@@ -22,10 +22,10 @@ type ActionGroupConfig =
         WebhookReceivers: WebhookReceiver list
     }
 
-    member this.ActionGroupId = $"[resourceId('{actionGroup.Type}', '{this.Name.Value}')]"
+    member this.ActionGroupId = $"[resourceId('{actionGroups.Type}', '{this.Name.Value}')]"
 
     interface IBuilder with
-        member this.ResourceId = actionGroup.resourceId this.Name
+        member this.ResourceId = actionGroups.resourceId this.Name
 
         member this.BuildResources location =
             let a: ActionGroup =

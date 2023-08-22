@@ -5,7 +5,7 @@ module Farmer.Arm.ActionGroups
 open Farmer
 open System
 
-let actionGroup =
+let actionGroups =
     Farmer.ResourceType("microsoft.insights/actionGroups", "2022-06-01")
 
 /// https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles
@@ -275,12 +275,12 @@ type ActionGroup =
 
     interface Farmer.IArmResource with
 
-        member this.ResourceId = actionGroup.resourceId this.Name
+        member this.ResourceId = actionGroups.resourceId this.Name
 
         member this.JsonModel =
             // Location fixed to Global as the list of available locations is currently limited to:
             // global, swedencentral, germanywestcentral, northcentralus, southcentralus, eastus2euap, centraluseuap
-            {| actionGroup.Create(this.Name, Location.Global) with
+            {| actionGroups.Create(this.Name, Location.Global) with
                 properties =
                     {|
                         enabled = true
