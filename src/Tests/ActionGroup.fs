@@ -25,7 +25,7 @@ let tests =
                 let myLogicApp = logicApp { name logicAppName }
 
                 let myArmRoleReceiver =
-                    ArmRoleReceiver.Create(name = "...", armRole = ArmRole.Contributor)
+                    ArmRoleReceiver.Create(name = "...", armRole = Roles.Contributor)
 
                 let myAutomationRunbookReceiver =
                     AutomationRunbookReceiver.Create(
