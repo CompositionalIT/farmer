@@ -97,7 +97,7 @@ type AzureFunctionReceiver =
         /// The function name in the function app.
         functionName: string
         /// The http trigger url where http request sent to.
-        httpTriggerUrl: string
+        httpTriggerUrl: Uri
         /// The name of the azure function receiver. Names must be unique across all receivers within an action group.
         name: string
         /// Indicates whether to use common alert schema.

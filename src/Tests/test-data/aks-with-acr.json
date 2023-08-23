@@ -85,7 +85,7 @@
       "properties": {
         "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'clusterIdentity')).principalId]",
         "principalType": "ServicePrincipal",
-        "roleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'f1a07417-d97a-45cb-824c-7a7467783830')]"
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f1a07417-d97a-45cb-824c-7a7467783830')]"
       },
       "type": "Microsoft.Authorization/roleAssignments"
     },

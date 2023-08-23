@@ -51,7 +51,7 @@ let tests =
                         name = "...",
                         functionAppResourceId = myFunc.ResourceId,
                         functionName = "...",
-                        httpTriggerUrl = "...",
+                        httpTriggerUrl = uri,
                         useCommonAlertSchema = true
                     )
 
