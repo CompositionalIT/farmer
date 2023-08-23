@@ -265,11 +265,11 @@ type ActionGroup =
                 properties =
                     {|
                         enabled = true
-                        GroupShortName = this.GroupShortName.Value
-                        ArmRoleReceivers = this.ArmRoleReceivers
-                        AutomationRunbookReceivers = this.AutomationRunbookReceivers
-                        AzureAppPushReceivers = this.AzureAppPushReceivers
-                        AzureFunctionReceivers =
+                        groupShortName = this.GroupShortName.Value
+                        armRoleReceivers = this.ArmRoleReceivers
+                        automationRunbookReceivers = this.AutomationRunbookReceivers
+                        azureAppPushReceivers = this.AzureAppPushReceivers
+                        azureFunctionReceivers =
                             this.AzureFunctionReceivers
                             |> List.map (fun r ->
                                 {|
@@ -279,9 +279,9 @@ type ActionGroup =
                                     HttpTriggerUrl = r.HttpTriggerUrl
                                     UseCommonAlertSchema = r.UseCommonAlertSchema
                                 |})
-                        EventHubReceivers = this.EventHubReceivers
-                        ItsmReceivers = this.ItsmReceivers
-                        LogicAppReceivers =
+                        eventHubReceivers = this.EventHubReceivers
+                        itsmReceivers = this.ItsmReceivers
+                        logicAppReceivers =
                             this.LogicAppReceivers
                             |> List.map (fun r ->
                                 {|
@@ -290,9 +290,9 @@ type ActionGroup =
                                     CallbackUrl = r.CallbackUrl
                                     UseCommonAlertSchema = r.UseCommonAlertSchema
                                 |})
-                        VoiceReceivers = this.VoiceReceivers
-                        SMSReceivers = this.SMSReceivers
-                        EmailReceivers = this.EmailReceivers
-                        WebhookReceivers = this.WebhookReceivers
+                        voiceReceivers = this.VoiceReceivers
+                        smsReceivers = this.SMSReceivers
+                        emailReceivers = this.EmailReceivers
+                        webhookReceivers = this.WebhookReceivers
                     |}
             |}
