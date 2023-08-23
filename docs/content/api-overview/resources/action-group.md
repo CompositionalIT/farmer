@@ -40,15 +40,15 @@ Action Group with all types of receivers:
 let myArmRoleReceiver =
     ArmRoleReceiver.Create(
         name="...",
-        armRole=ArmRole.Contributor
+        armRole=Roles.Contributor
     )
 
 let myAutomationRunbookReceiver =
     AutomationRunbookReceiver.Create(
-        automationAccountId="...",
+        automationAccountId=myAutomationAccount.ResourceId,
         isGlobalRunbook=true,
         runbookName="...",
-        webhookResourceId="..."
+        webhookResourceId=myWebhook.ResourceId
     )
 
 let myAzureAppPushReceiver =
@@ -85,7 +85,7 @@ let myItsmReceiver =
 let myLogicAppReceiver =
     LogicAppReceiver.Create(
         name="...",
-        callbackUrl="...",
+        callbackUrl=myUri,
         resourceId=(myLogicApp :> IBuilder).ResourceId
     )
 
@@ -112,7 +112,7 @@ let myEmailReceiver =
 let myWebhookReceiver =
     WebhookReceiver.Create(
         name="...",
-        serviceUri="..."
+        serviceUri=myUri
     )
 
 let myActionGroup = actionGroup {
