@@ -67,7 +67,7 @@ let tests =
                     ItsmReceiver.Create(
                         name = "...",
                         connectionid = "...",
-                        region = "...",
+                        region = ActionGroupLocation.UKSouth,
                         ticketConfiguration = "...",
                         workspaceId = "..."
                     )

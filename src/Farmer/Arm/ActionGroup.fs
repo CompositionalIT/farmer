@@ -8,6 +8,23 @@ open System
 let actionGroups =
     Farmer.ResourceType("microsoft.insights/actionGroups", "2022-06-01")
 
+type ActionGroupLocation =
+    | ActionGroupLocation of string
+
+    member this.ArmValue =
+        match this with
+        | ActionGroupLocation location -> location.ToLower()
+
+    static member CentralIndia = ActionGroupLocation "CentralIndia"
+    static member JapanEast = ActionGroupLocation "JapanEast"
+    static member SoutheastAsia = ActionGroupLocation "SoutheastAsia"
+    static member AustraliaSoutheast = ActionGroupLocation "AustraliaSoutheast"
+    static member UKSouth = ActionGroupLocation "UKSouth"
+    static member WestCentralUS = ActionGroupLocation "WestCentralUS"
+    static member CanadaCentral = ActionGroupLocation "CanadaCentral"
+    static member EastUS = ActionGroupLocation "EastUS"
+    static member WestEurope = ActionGroupLocation "WestEurope"
+
 type ArmRoleReceiver =
     {
         /// The name of the arm role receiver. Names must be unique across all receivers within an action group.
@@ -147,7 +164,7 @@ type ItsmReceiver =
         name: string
         /// Region in which workspace resides. Supported values:
         /// 'centralindia', 'japaneast', 'southeastasia', 'australiasoutheast', 'uksouth', 'westcentralus', 'canadacentral', 'eastus', 'westeurope'
-        region: string
+        region: ActionGroupLocation
         /// JSON blob for the configurations of the ITSM action. CreateMultipleWorkItems option will be part of this blob as well.
         ticketConfiguration: string
         /// OMS LA instance identifier.
@@ -287,7 +304,16 @@ type ActionGroup =
                                     useCommonAlertSchema = r.useCommonAlertSchema
                                 |})
                         eventHubReceivers = this.EventHubReceivers
-                        itsmReceivers = this.ItsmReceivers
+                        itsmReceivers =
+                            this.ItsmReceivers
+                            |> List.map (fun r ->
+                                {|
+                                    connectionId = r.connectionId
+                                    name = r.name
+                                    region = r.region.ArmValue
+                                    ticketConfiguration = r.ticketConfiguration
+                                    workspaceId = r.workspaceId
+                                |})
                         logicAppReceivers =
                             this.LogicAppReceivers
                             |> List.map (fun r ->
