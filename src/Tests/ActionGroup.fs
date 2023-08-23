@@ -5,6 +5,7 @@ open Farmer
 open Farmer.Insights
 open Farmer.Arm.ActionGroups
 open Farmer.Arm.AutomationAccounts
+open Farmer.Arm.Webhooks
 open Farmer.Builders
 
 let tests =
@@ -16,8 +17,10 @@ let tests =
                 let azureFunctionName = "MyFunction"
                 let logicAppName = "MyLogicApp"
                 let actionGroupName = "MyActionGroup"
-                // Fake, as AutomationAccount resource type not yet implemented in Farmer
+
+                // Fake ResourceIds as the following resource types are not yet implemented in Farmer
                 let automationAccountId = ResourceId.create(automationAccounts, ResourceName "MyAutomationAccount")
+                let webhookId = ResourceId.create(webhooks, ResourceName "MyWebhook")
 
                 let myFunc =
                     functions {
@@ -35,7 +38,7 @@ let tests =
                         automationAccountId = automationAccountId,
                         isGlobalRunbook = true,
                         runbookName = "...",
-                        webhookResourceId = "..."
+                        webhookResourceId = webhookId
                     )
 
                 let myAzureAppPushReceiver =
