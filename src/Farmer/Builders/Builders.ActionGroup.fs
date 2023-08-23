@@ -28,7 +28,7 @@ type ActionGroupConfig =
         member this.ResourceId = actionGroups.resourceId this.Name
 
         member this.BuildResources location =
-            let a: ActionGroup =
+            let actionGroup: ActionGroup =
                 {
                     Name = this.Name
                     Enabled = this.Enabled
@@ -47,7 +47,7 @@ type ActionGroupConfig =
                     WebhookReceivers = this.WebhookReceivers
                 }
 
-            [ a ]
+            [ actionGroup ]
 
 type ActionGroupBuilder() =
     member __.Yield _ =
