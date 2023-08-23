@@ -4,7 +4,6 @@ module Farmer.Arm.ActionGroups
 
 open Farmer
 open System
-open Farmer
 
 let actionGroups =
     Farmer.ResourceType("microsoft.insights/actionGroups", "2022-06-01")
