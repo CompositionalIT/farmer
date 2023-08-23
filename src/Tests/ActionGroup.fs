@@ -4,6 +4,7 @@ open Expecto
 open Farmer
 open Farmer.Insights
 open Farmer.Arm.ActionGroups
+open Farmer.Arm.AutomationAccounts
 open Farmer.Builders
 
 let tests =
