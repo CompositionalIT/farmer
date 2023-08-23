@@ -7,6 +7,7 @@ open Farmer.Arm.ActionGroups
 open Farmer.Arm.AutomationAccounts
 open Farmer.Arm.Webhooks
 open Farmer.Builders
+open System
 
 let tests =
     testList
@@ -17,6 +18,7 @@ let tests =
                 let azureFunctionName = "MyFunction"
                 let logicAppName = "MyLogicApp"
                 let actionGroupName = "MyActionGroup"
+                let uri = Uri "http://localhost"
 
                 // Fake ResourceIds as the following resource types are not yet implemented in Farmer
                 let automationAccountId = ResourceId.create(automationAccounts, ResourceName "MyAutomationAccount")
@@ -49,7 +51,8 @@ let tests =
                         name = "...",
                         functionAppResourceId = myFunc.ResourceId,
                         functionName = "...",
-                        httpTriggerUrl = "..."
+                        httpTriggerUrl = "...",
+                        useCommonAlertSchema = true
                     )
 
                 let myEventHubReceiver =
@@ -72,7 +75,7 @@ let tests =
                 let myLogicAppReceiver =
                     LogicAppReceiver.Create(
                         name = "...",
-                        callbackUrl = "...",
+                        callbackUrl = uri,
                         resourceId = (myLogicApp :> IBuilder).ResourceId
                     )
 
@@ -84,7 +87,7 @@ let tests =
 
                 let myEmailReceiver = EmailReceiver.Create(name = "...", email = "...")
 
-                let myWebhookReceiver = WebhookReceiver.Create(name = "...", serviceUri = "...")
+                let myWebhookReceiver = WebhookReceiver.Create(name = "...", serviceUri = uri)
 
                 let ag =
                     actionGroup {
@@ -113,13 +116,13 @@ let tests =
                 let isenabled = props.SelectToken($".enabled").ToString()
 
                 let funcReceiverResourceId =
-                    props.SelectToken(".AzureFunctionReceivers[0].FunctionAppResourceId").ToString()
+                    props.SelectToken(".azureFunctionReceivers[0].functionAppResourceId").ToString()
 
                 let logicAppReceiverResourceId =
-                    props.SelectToken(".LogicAppReceivers[0].ResourceId").ToString()
+                    props.SelectToken(".logicAppReceivers[0].resourceId").ToString()
 
                 let armRoleReceiverRoleId =
-                    props.SelectToken(".ArmRoleReceivers[0].RoleId").ToString()
+                    props.SelectToken(".armRoleReceivers[0].roleId").ToString()
 
                 Expect.equal isenabled "True" "ActionGroup not enabled"
 

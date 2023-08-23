@@ -12,36 +12,36 @@ let actionGroups =
 type ArmRoleReceiver =
     {
         /// The name of the arm role receiver. Names must be unique across all receivers within an action group.
-        Name: string
+        name: string
         /// The arm role id.
-        RoleId: Guid
+        roleId: Guid
         /// Indicates whether to use common alert schema.
-        UseCommonAlertSchema: bool
+        useCommonAlertSchema: bool option
     }
 
     static member Create(name, (armRole: RoleId), ?useCommonAlertSchema) =
         {
-            Name = name
-            RoleId = armRole.Id
-            UseCommonAlertSchema = useCommonAlertSchema |> Option.defaultValue true
+            name = name
+            roleId = armRole.Id
+            useCommonAlertSchema = useCommonAlertSchema
         }
 
 type AutomationRunbookReceiver =
     {
         /// The Azure automation account Id which holds this runbook and authenticate to Azure resource.
-        AutomationAccountId: ResourceId
+        automationAccountId: ResourceId
         /// Indicates whether this instance is global runbook.
-        IsGlobalRunbook: bool
+        isGlobalRunbook: bool
         /// Indicates name of the webhook.
-        Name: string
+        name: string option
         /// The name for this runbook.
-        RunbookName: string
+        runbookName: string
         /// The URI where webhooks should be sent.
-        ServiceUri: string
+        serviceUri: Uri option
         /// Indicates whether to use common alert schema.
-        UseCommonAlertSchema: bool
+        useCommonAlertSchema: bool option
         /// The resource id for webhook linked to this runbook.
-        WebhookResourceId: string
+        webhookResourceId: ResourceId
     }
 
     static member Create
@@ -55,150 +55,150 @@ type AutomationRunbookReceiver =
             ?useCommonAlertSchema
         ) =
         {
-            AutomationAccountId = automationAccountId
-            IsGlobalRunbook = isGlobalRunbook
-            RunbookName = runbookName
-            WebhookResourceId = webhookResourceId
-            ServiceUri = serviceUri |> Option.defaultValue ""
-            Name = name |> Option.defaultValue ""
-            UseCommonAlertSchema = useCommonAlertSchema |> Option.defaultValue true
+            automationAccountId = automationAccountId
+            isGlobalRunbook = isGlobalRunbook
+            runbookName = runbookName
+            webhookResourceId = webhookResourceId
+            serviceUri = serviceUri
+            name = name
+            useCommonAlertSchema = useCommonAlertSchema
         }
 
 type AzureAppPushReceiver =
     {
         /// The email address registered for the Azure mobile app.
-        EmailAddress: string
+        emailAddress: string
         /// The name of the Azure mobile app push receiver. Names must be unique across all receivers within an action group.
-        Name: string
+        name: string
     }
 
-    static member Create(email, name) = { Name = name; EmailAddress = email }
+    static member Create(email, name) = { name = name; emailAddress = email }
 
 type AzureFunctionReceiver =
     {
         /// The azure resource id of the function app.
-        FunctionAppResourceId: ResourceId
+        functionAppResourceId: ResourceId
         /// The function name in the function app.
-        FunctionName: string
+        functionName: string
         /// The http trigger url where http request sent to.
-        HttpTriggerUrl: string
+        httpTriggerUrl: string
         /// The name of the azure function receiver. Names must be unique across all receivers within an action group.
-        Name: string
+        name: string
         /// Indicates whether to use common alert schema.
-        UseCommonAlertSchema: bool
+        useCommonAlertSchema: bool option
     }
 
     static member Create(functionAppResourceId, functionName, httpTriggerUrl, name, ?useCommonAlertSchema) =
         {
-            FunctionAppResourceId = functionAppResourceId
-            FunctionName = functionName
-            HttpTriggerUrl = httpTriggerUrl
-            Name = name
-            UseCommonAlertSchema = useCommonAlertSchema |> Option.defaultValue true
+            functionAppResourceId = functionAppResourceId
+            functionName = functionName
+            httpTriggerUrl = httpTriggerUrl
+            name = name
+            useCommonAlertSchema = useCommonAlertSchema
         }
 
 type EmailReceiver =
     {
         /// The email address of this receiver.
-        Name: string
+        name: string
         /// The name of the email receiver. Names must be unique across all receivers within an action group.
-        EmailAddress: string
+        emailAddress: string
         /// Indicates whether to use common alert schema.
-        UseCommonAlertSchema: bool
+        useCommonAlertSchema: bool option
     }
 
     static member Create(name, email, ?useCommonAlertSchema) =
         {
-            Name = name
-            EmailAddress = email
-            UseCommonAlertSchema = useCommonAlertSchema |> Option.defaultValue true
+            name = name
+            emailAddress = email
+            useCommonAlertSchema = useCommonAlertSchema
         }
 
 type EventHubReceiver =
     {
         /// The name of the specific Event Hub queue.
-        EventHubName: string
+        eventHubName: string
         /// The Event Hub namespace.
-        EventHubNameSpace: string
+        eventHubNameSpace: string
         /// The name of the Event hub receiver. Names must be unique across all receivers within an action group.
-        Name: string
+        name: string
         /// The Id for the subscription containing this event hub.
-        SubscriptionId: string
+        subscriptionId: string
         /// The tenant Id for the subscription containing this event hub.
-        TenantId: string
+        tenantId: string option
         /// Indicates whether to use common alert schema.
-        UseCommonAlertSchema: bool
+        useCommonAlertSchema: bool option
     }
 
     static member Create(eventHubName, eventHubNameSpace, subscriptionId, name, ?tenantId, ?useCommonAlertSchema) =
         {
-            EventHubName = eventHubName
-            EventHubNameSpace = eventHubNameSpace
-            Name = name
-            SubscriptionId = subscriptionId
-            TenantId = tenantId |> Option.defaultValue ""
-            UseCommonAlertSchema = useCommonAlertSchema |> Option.defaultValue true
+            eventHubName = eventHubName
+            eventHubNameSpace = eventHubNameSpace
+            name = name
+            subscriptionId = subscriptionId
+            tenantId = tenantId
+            useCommonAlertSchema = useCommonAlertSchema
         }
 
 type ItsmReceiver =
     {
         /// Unique identification of ITSM connection among multiple defined in above workspace.
-        ConnectionId: string
+        connectionId: string
         /// The name of the Itsm receiver. Names must be unique across all receivers within an action group.
-        Name: string
+        name: string
         /// Region in which workspace resides. Supported values:
         /// 'centralindia', 'japaneast', 'southeastasia', 'australiasoutheast', 'uksouth', 'westcentralus', 'canadacentral', 'eastus', 'westeurope'
-        Region: string
+        region: string
         /// JSON blob for the configurations of the ITSM action. CreateMultipleWorkItems option will be part of this blob as well.
-        TicketConfiguration: string
+        ticketConfiguration: string
         /// OMS LA instance identifier.
-        WorkspaceId: string
+        workspaceId: string
     }
 
     static member Create(connectionid, name, region, ticketConfiguration, workspaceId) =
         {
-            ConnectionId = connectionid
-            Name = name
-            Region = region
-            TicketConfiguration = ticketConfiguration
-            WorkspaceId = workspaceId
+            connectionId = connectionid
+            name = name
+            region = region
+            ticketConfiguration = ticketConfiguration
+            workspaceId = workspaceId
         }
 
 type LogicAppReceiver =
     {
         /// The callback url where http request sent to.
-        CallbackUrl: string
+        callbackUrl: Uri
         /// The name of the logic app receiver. Names must be unique across all receivers within an action group.
-        Name: string
+        name: string
         /// The azure resource id of the logic app receiver.
-        ResourceId: ResourceId
+        resourceId: ResourceId
         /// Indicates whether to use common alert schema.
-        UseCommonAlertSchema: bool
+        useCommonAlertSchema: bool option
     }
 
     static member Create(callbackUrl, name, resourceId, ?useCommonAlertSchema) =
         {
-            CallbackUrl = callbackUrl
-            Name = name
-            ResourceId = resourceId
-            UseCommonAlertSchema = useCommonAlertSchema |> Option.defaultValue true
+            callbackUrl = callbackUrl
+            name = name
+            resourceId = resourceId
+            useCommonAlertSchema = useCommonAlertSchema
         }
 
 type SMSReceiver =
     {
         /// The country code of the receiver.
-        CountryCode: string
+        countryCode: string
         /// The name of the receiver. Names must be unique across all receivers within an action group.
-        Name: string
+        name: string
         /// The phone number of the receiver.
-        PhoneNumber: string
+        phoneNumber: string
     }
 
     static member Create(countryCode, name, phoneNumber) =
         {
-            CountryCode = countryCode
-            Name = name
-            PhoneNumber = phoneNumber
+            countryCode = countryCode
+            name = name
+            phoneNumber = phoneNumber
         }
 
 type VoiceReceiver = SMSReceiver
@@ -206,33 +206,30 @@ type VoiceReceiver = SMSReceiver
 type WebhookReceiver =
     {
         /// Indicates the identifier uri for aad auth.
-        IdentifierUri: string
+        identifierUri: Uri option
         /// The name of the webhook receiver. Names must be unique across all receivers within an action group.
-        Name: string
+        name: string
         /// Indicates the webhook app object Id for aad auth.
-        ObjectId: string
+        objectId: string option
         /// The URI where webhooks should be sent.
-        ServiceUri: string
+        serviceUri: Uri
         /// Indicates the tenant id for aad auth.
-        TenantId: string
+        tenantId: string option
         /// Indicates whether or not use AAD authentication.
-        UseAadAuth: bool
+        useAadAuth: bool option
         /// Indicates whether to use common alert schema.
-        UseCommonAlertSchema: bool
+        useCommonAlertSchema: bool option
     }
 
     static member Create(name, serviceUri, ?identifierUri, ?objectId, ?tenantId, ?useAadAuth, ?useCommonAlertSchema) =
         {
-            Name = name
-            ServiceUri = serviceUri
-            IdentifierUri = identifierUri |> Option.defaultValue ""
-            ObjectId = objectId |> Option.defaultValue ""
-            TenantId = tenantId |> Option.defaultValue ""
-            UseAadAuth =
-                match useAadAuth with
-                | Some b -> b
-                | None -> false
-            UseCommonAlertSchema = useCommonAlertSchema |> Option.defaultValue true
+            name = name
+            serviceUri = serviceUri
+            identifierUri = identifierUri
+            objectId = objectId
+            tenantId = tenantId
+            useAadAuth = useAadAuth
+            useCommonAlertSchema = useCommonAlertSchema
         }
 
 type ActionGroup =
@@ -267,17 +264,28 @@ type ActionGroup =
                         enabled = true
                         groupShortName = this.GroupShortName.Value
                         armRoleReceivers = this.ArmRoleReceivers
-                        automationRunbookReceivers = this.AutomationRunbookReceivers
+                        automationRunbookReceivers =
+                            this.AutomationRunbookReceivers
+                            |> List.map (fun r ->
+                                {|
+                                    automationAccountId = r.automationAccountId.Eval()
+                                    isGlobalRunbook = r.isGlobalRunbook
+                                    name = r.name
+                                    runbookName = r.runbookName
+                                    serviceUri = r.serviceUri
+                                    useCommonAlertSchema = r.useCommonAlertSchema
+                                    webhookResourceId = r.webhookResourceId.Eval()
+                                |})
                         azureAppPushReceivers = this.AzureAppPushReceivers
                         azureFunctionReceivers =
                             this.AzureFunctionReceivers
                             |> List.map (fun r ->
                                 {|
-                                    FunctionAppResourceId = r.FunctionAppResourceId.Eval() |> box
-                                    Name = r.Name
-                                    FunctionName = r.FunctionName
-                                    HttpTriggerUrl = r.HttpTriggerUrl
-                                    UseCommonAlertSchema = r.UseCommonAlertSchema
+                                    functionAppResourceId = r.functionAppResourceId.Eval()
+                                    name = r.name
+                                    functionName = r.functionName
+                                    httpTriggerUrl = r.httpTriggerUrl
+                                    useCommonAlertSchema = r.useCommonAlertSchema
                                 |})
                         eventHubReceivers = this.EventHubReceivers
                         itsmReceivers = this.ItsmReceivers
@@ -285,10 +293,10 @@ type ActionGroup =
                             this.LogicAppReceivers
                             |> List.map (fun r ->
                                 {|
-                                    ResourceId = r.ResourceId.Eval() |> box
-                                    Name = r.Name
-                                    CallbackUrl = r.CallbackUrl
-                                    UseCommonAlertSchema = r.UseCommonAlertSchema
+                                    resourceId = r.resourceId.Eval()
+                                    name = r.name
+                                    callbackUrl = r.callbackUrl
+                                    useCommonAlertSchema = r.useCommonAlertSchema
                                 |})
                         voiceReceivers = this.VoiceReceivers
                         smsReceivers = this.SMSReceivers
