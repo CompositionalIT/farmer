@@ -21,8 +21,10 @@ let tests =
                 let uri = Uri "http://localhost"
 
                 // Fake ResourceIds as the following resource types are not yet implemented in Farmer
-                let automationAccountId = ResourceId.create(automationAccounts, ResourceName "MyAutomationAccount")
-                let webhookId = ResourceId.create(webhooks, ResourceName "MyWebhook")
+                let automationAccountId =
+                    ResourceId.create (automationAccounts, ResourceName "MyAutomationAccount")
+
+                let webhookId = ResourceId.create (webhooks, ResourceName "MyWebhook")
 
                 let myFunc =
                     functions {
