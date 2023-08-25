@@ -449,11 +449,8 @@ let tests =
 
                 Expect.allEqual expectation true "Version 1 function should have AzureWebJobsDashboard setting"
             }
-            let cases = [
-                V2
-                V3
-                V4
-            ]
+            let cases = [ V2; V3; V4 ]
+
             for version in cases do
                 test $"Functions App AzureWebJobsDashboard setting is not set on version {version.ArmValue}" {
                     let slot = appSlot { name "warm-up" }
@@ -476,7 +473,9 @@ let tests =
 
                     let expectation = settings.ContainsKey "AzureWebJobsDashboard"
 
-                    Expect.isFalse expectation $"Version {version.ArmValue} function should not have AzureWebJobsDashboard setting"
+                    Expect.isFalse
+                        expectation
+                        $"Version {version.ArmValue} function should not have AzureWebJobsDashboard setting"
                 }
 
             test "Functions App with different settings on slot and service adds both settings to slot" {
@@ -739,6 +738,7 @@ let tests =
                     [ expectedRestriction ]
                     "Should add expected ip security restriction"
             }
+
             test "Supports adding ip restriction for denied ip" {
                 let ip = IPAddressCidr.parse "1.2.3.4/32"
 
@@ -758,6 +758,7 @@ let tests =
                     [ expectedRestriction ]
                     "Should add denied ip security restriction"
             }
+
             test "Supports adding different ip restrictions to site and slot" {
                 let siteIp = IPAddressCidr.parse "1.2.3.4/32"
                 let slotIp = IPAddressCidr.parse "4.3.2.1/32"
@@ -797,6 +798,7 @@ let tests =
                     [ expectedSiteRestriction ]
                     "Site should have correct allowed ip security restriction"
             }
+
             test "Can integrate unmanaged vnet" {
                 let subnetId =
                     Arm.Network.subnets.resourceId (ResourceName "my-vnet", ResourceName "my-subnet")
@@ -818,6 +820,7 @@ let tests =
                 let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection>
                 Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
             }
+
             test "Can integrate managed vnet" {
                 let vnetConfig = vnet { name "my-vnet" }
                 let asp = serverFarms.resourceId "my-asp"
