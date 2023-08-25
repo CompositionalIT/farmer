@@ -449,6 +449,35 @@ let tests =
 
                 Expect.allEqual expectation true "Version 1 function should have AzureWebJobsDashboard setting"
             }
+            let cases = [
+                V2
+                V3
+                V4
+            ]
+            for version in cases do
+                test $"Functions App AzureWebJobsDashboard setting is not set on version {version.ArmValue}" {
+                    let slot = appSlot { name "warm-up" }
+
+                    let site =
+                        functions {
+                            name "func"
+                            add_slot slot
+                            operating_system Windows
+                            use_extension_version version
+                        }
+
+                    let slots =
+                        site
+                        |> getResources
+                        |> getResource<Arm.Web.Site>
+                        |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
+
+                    let settings = (slots.Item 0).AppSettings |> Option.defaultValue Map.empty
+
+                    let expectation = settings.ContainsKey "AzureWebJobsDashboard"
+
+                    Expect.isFalse expectation $"Version {version.ArmValue} function should not have AzureWebJobsDashboard setting"
+                }
 
             test "Functions App with different settings on slot and service adds both settings to slot" {
                 let slot =
