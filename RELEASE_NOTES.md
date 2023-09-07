@@ -1,5 +1,9 @@
 Release Notes
 =============
+
+## 1.7.27
+* Action Groups: Adds support for action groups to perform actions when alerts fire.
+
 ## 1.7.25
 * Network Security Groups: Fix bug where a SecurityRule without a source throws a meaningful exception
 * Network Security Groups: Add rule to existing security group
