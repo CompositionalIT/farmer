@@ -444,8 +444,10 @@ type WebAppConfig =
                                         for setting in this.CommonWebConfig.Settings do
                                             match setting.Value with
                                             | LiteralSetting _ -> ()
-                                            | ParameterSetting _ -> SecretConfig.create (setting.Key)
-                                            | ExpressionSetting expr -> SecretConfig.create (setting.Key, expr)
+                                            | ParameterSetting _ ->
+                                                SecretConfig.create (SecretConfig.sanitizeKeyName (setting.Key))
+                                            | ExpressionSetting expr ->
+                                                SecretConfig.create (SecretConfig.sanitizeKeyName (setting.Key), expr)
                                     ]
                             }
 
@@ -457,8 +459,11 @@ type WebAppConfig =
                                     let secret =
                                         match setting.Value with
                                         | LiteralSetting _ -> None
-                                        | ParameterSetting _ -> SecretConfig.create setting.Key |> Some
-                                        | ExpressionSetting expr -> SecretConfig.create (setting.Key, expr) |> Some
+                                        | ParameterSetting _ ->
+                                            SecretConfig.create (SecretConfig.sanitizeKeyName (setting.Key)) |> Some
+                                        | ExpressionSetting expr ->
+                                            SecretConfig.create (SecretConfig.sanitizeKeyName (setting.Key), expr)
+                                            |> Some
 
                                     match secret with
                                     | Some secret ->
@@ -549,7 +554,7 @@ type WebAppConfig =
                                      | ExpressionSetting _ ->
                                          setting.Key,
                                          LiteralSetting
-                                             $"@Microsoft.KeyVault(SecretUri=https://{name.Name.Value}.vault.azure.net/secrets/{setting.Key})"
+                                             $"@Microsoft.KeyVault(SecretUri=https://{name.Name.Value}.vault.azure.net/secrets/{SecretConfig.sanitizeKeyName (setting.Key)})"
                              ]
                              |> Map.ofList)
                         |> Map.toList
