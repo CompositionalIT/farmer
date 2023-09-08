@@ -82,6 +82,7 @@ let tests =
                     functions {
                         name "test"
                         link_to_unmanaged_storage_account externalStorageAccount
+                        use_extension_version V1
                     }
 
                 let f = functionsBuilder :> IBuilder
@@ -416,15 +417,66 @@ let tests =
                         "WEBSITE_NODE_DEFAULT_VERSION"
                         "FUNCTIONS_EXTENSION_VERSION"
                         "AzureWebJobsStorage"
-                        "AzureWebJobsDashboard"
                         "APPINSIGHTS_INSTRUMENTATIONKEY"
                         "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING"
                         "WEBSITE_CONTENTSHARE"
                     ]
-                    |> List.map (settings.ContainsKey)
+                    |> List.map settings.ContainsKey
 
                 Expect.allEqual expectation true "Slot should have all literal settings"
             }
+
+            test "Functions App generates AzureWebJobsDashboard setting on version 1" {
+                let slot = appSlot { name "warm-up" }
+
+                let site =
+                    functions {
+                        name "func"
+                        add_slot slot
+                        operating_system Windows
+                        use_extension_version V1
+                    }
+
+                let slots =
+                    site
+                    |> getResources
+                    |> getResource<Arm.Web.Site>
+                    |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
+
+                let settings = (slots.Item 0).AppSettings |> Option.defaultValue Map.empty
+
+                let expectation = [ "AzureWebJobsDashboard" ] |> List.map settings.ContainsKey
+
+                Expect.allEqual expectation true "Version 1 function should have AzureWebJobsDashboard setting"
+            }
+            let cases = [ V2; V3; V4 ]
+
+            for version in cases do
+                test $"Functions App AzureWebJobsDashboard setting is not set on version {version.ArmValue}" {
+                    let slot = appSlot { name "warm-up" }
+
+                    let site =
+                        functions {
+                            name "func"
+                            add_slot slot
+                            operating_system Windows
+                            use_extension_version version
+                        }
+
+                    let slots =
+                        site
+                        |> getResources
+                        |> getResource<Arm.Web.Site>
+                        |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
+
+                    let settings = (slots.Item 0).AppSettings |> Option.defaultValue Map.empty
+
+                    let expectation = settings.ContainsKey "AzureWebJobsDashboard"
+
+                    Expect.isFalse
+                        expectation
+                        $"Version {version.ArmValue} function should not have AzureWebJobsDashboard setting"
+                }
 
             test "Functions App with different settings on slot and service adds both settings to slot" {
                 let slot =
@@ -577,6 +629,7 @@ let tests =
                 let functionsApp =
                     functions {
                         name "func"
+                        use_extension_version V1
 
                         link_to_unmanaged_storage_account (
                             ResourceId.create (
@@ -685,6 +738,7 @@ let tests =
                     [ expectedRestriction ]
                     "Should add expected ip security restriction"
             }
+
             test "Supports adding ip restriction for denied ip" {
                 let ip = IPAddressCidr.parse "1.2.3.4/32"
 
@@ -704,6 +758,7 @@ let tests =
                     [ expectedRestriction ]
                     "Should add denied ip security restriction"
             }
+
             test "Supports adding different ip restrictions to site and slot" {
                 let siteIp = IPAddressCidr.parse "1.2.3.4/32"
                 let slotIp = IPAddressCidr.parse "4.3.2.1/32"
@@ -743,6 +798,7 @@ let tests =
                     [ expectedSiteRestriction ]
                     "Site should have correct allowed ip security restriction"
             }
+
             test "Can integrate unmanaged vnet" {
                 let subnetId =
                     Arm.Network.subnets.resourceId (ResourceName "my-vnet", ResourceName "my-subnet")
@@ -764,6 +820,7 @@ let tests =
                 let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection>
                 Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
             }
+
             test "Can integrate managed vnet" {
                 let vnetConfig = vnet { name "my-vnet" }
                 let asp = serverFarms.resourceId "my-asp"
