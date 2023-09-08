@@ -77,6 +77,7 @@ let allTests =
                     Dashboards.tests
                     Alerts.tests
                     ServicePlan.tests
+                    ActionGroup.tests
                 ]
             testList
                 "Control"

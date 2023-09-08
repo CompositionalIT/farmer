@@ -64,6 +64,8 @@
 
     <Compile Include="Writer.fs" />
     <Compile Include="Deploy.fs" />
+    <Compile Include="Arm\ActionGroup.fs" />
+    <Compile Include="Arm\AutomationAccount.fs" />
     <Compile Include="Arm\ResourceGroup.fs" />
 
     <Compile Include="Arm/DiagnosticSetting.fs" />
@@ -117,8 +119,10 @@
     <Compile Include="Arm\Dashboard.fs" />
     <Compile Include="Arm/LogicApps.fs" />
     <Compile Include="Arm/OperationsManagement.fs" />
+    <Compile Include="Arm\Webhook.fs" />
     <Compile Include="IdentityExtensions.fs" />
     <Compile Include="Builders/Extensions.fs" />
+    <Compile Include="Builders\Builders.ActionGroup.fs" />
     <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
     <Compile Include="Builders/Builders.ResourceGroup.fs" />
     <Compile Include="Builders/Builders.LogAnalytics.fs" />

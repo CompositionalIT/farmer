@@ -25,11 +25,13 @@ type VersionedFunctionsRuntime = FunctionsRuntime * string option
 type FunctionsRuntime with
     // These values are defined on FunctionsRuntime to reduce the need for users to be aware of the distinction
     // between FunctionsRuntime and VersionedFunctionsRuntime as well as to provide parity with WebApp runtime
+    static member DotNetFramework48 = DotNet, Some "4.0"
     static member DotNetCore31 = DotNet, Some "3.1"
     static member DotNet50 = DotNet, Some "5.0"
     static member DotNet50Isolated = DotNetIsolated, Some "5.0"
     static member DotNet60 = DotNet, Some "6.0"
     static member DotNet60Isolated = DotNetIsolated, Some "6.0"
+    static member DotNet70Isolated = DotNetIsolated, Some "7.0"
     static member Node14 = Node, Some "14-lts"
     static member Node12 = Node, Some "12-lts"
     static member Node10 = Node, Some "10-lts"
@@ -331,7 +333,14 @@ type FunctionsConfig =
                                 | DotNetIsolated, Some version -> Some $"DOTNET-ISOLATED|{version}"
                                 | _, Some version -> Some $"{functionsRuntime.ToUpper()}|{version}"
                                 | _, None -> None
-                        NetFrameworkVersion = None
+                        NetFrameworkVersion =
+                            let possibleVersions = [ "4.0"; "6.0"; "7.0" ]
+
+                            match this.VersionedRuntime with
+                            | (DotNet
+                              | DotNetIsolated),
+                              Some version when possibleVersions |> List.contains version -> Some $"v{version}"
+                            | _, _ -> None
                         JavaVersion = None
                         JavaContainer = None
                         JavaContainerVersion = None
