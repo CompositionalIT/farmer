@@ -1,6 +1,8 @@
 Release Notes
 =============
+
 ## 1.7.27
+* Action Groups: Adds support for action groups to perform actions when alerts fire.
 * Functions: Add the correct netFrameworkVersion to the template based on the runtime version
 
 ## 1.7.26

@@ -156,7 +156,7 @@ let tests =
                             name "test"
                             connection_string "a"
                             connection_string ("b", sa.Key)
-                            connection_string ("c", ArmExpression.create ("c"), SQLAzure)
+                            connection_string ("c", ArmExpression.create ("c"), ConnectionStringKind.SQLAzure)
                         }
                         |> getResources
 
@@ -164,9 +164,9 @@ let tests =
 
                 let expected =
                     [
-                        "a", (ParameterSetting(SecureParameter "a"), Custom)
-                        "b", (ExpressionSetting sa.Key, Custom)
-                        "c", (ExpressionSetting(ArmExpression.create ("c")), SQLAzure)
+                        "a", (ParameterSetting(SecureParameter "a"), ConnectionStringKind.Custom)
+                        "b", (ExpressionSetting sa.Key, ConnectionStringKind.Custom)
+                        "c", (ExpressionSetting(ArmExpression.create ("c")), ConnectionStringKind.SQLAzure)
                     ]
 
                 let parameters = wa :> IParameters
