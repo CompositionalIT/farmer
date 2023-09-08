@@ -1947,7 +1947,7 @@ type RoleId =
     member this.ArmValue =
         match this with
         | RoleId roleId ->
-            $"concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '{roleId.Id}')"
+            $"subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '{roleId.Id}')"
             |> ArmExpression.create
 
     member this.Name =
