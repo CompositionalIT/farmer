@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.7.28
+* Container Groups: Add support for extensions used by virtual kubelet
 
 ## 1.7.27
 * Action Groups: Adds support for action groups to perform actions when alerts fire.

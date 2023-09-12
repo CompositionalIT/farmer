@@ -1,5 +1,6 @@
 module ContainerGroup
 
+open System.Text.RegularExpressions
 open Expecto
 open Farmer
 open Farmer.Arm
@@ -11,6 +12,7 @@ open Microsoft.Azure.Management.ContainerInstance
 open Microsoft.Azure.Management.ContainerInstance.Models
 open Microsoft.Rest
 open System
+open Newtonsoft.Json
 open Newtonsoft.Json.Linq
 
 let nginx =
@@ -1391,5 +1393,125 @@ async {
 
                 let dependsOn = containerGroupJson.SelectToken("dependsOn") :?> JArray
                 Expect.equal dependsOn.Count 1 "Container group dependsOn list shouldn't be empty"
+            }
+
+            test "Create container group with empty list extensions block" {
+                let containerGroup =
+                    containerGroup {
+                        name "container-group-with-empty-extensions"
+                        extensions []
+
+                        add_instances
+                            [
+                                containerInstance {
+                                    name "httpserver"
+                                    image "nginx:1.17.6-alpine"
+                                }
+                            ]
+                    }
+
+                let deployment =
+                    arm {
+                        add_resources
+                            [
+                                containerGroup
+
+                            ]
+                    }
+
+                let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+
+                let containerGroupJson =
+                    jobj.SelectToken("resources[?(@.name=='container-group-with-empty-extensions')]")
+
+                Expect.equal containerGroup.Extensions.Length 0 "Container group should have empty extensions list"
+            }
+
+            test "Create container group with extensions block" {
+                let settings =
+                    Map
+                        [
+                            ("containername", box ".*")
+                            ("providerid", box "d2a07cb7-6e54-42ec-9da7-78509fd5672e")
+                            ("MONITORING_GCS_ACCOUNT", box "testAccount")
+                            ("MONITORING_GCS_NAMESPACE", box "testNamespace")
+                            ("MONITORING_CONFIG_VERSION", box "1.0")
+                            ("MONITORING_GCS_ENVIRONMENT", box "testEnvironment")
+                            ("payloadtype", box "RawString")
+                            ("custom_metadata", box "")
+                        ]
+
+                let deploymentExtensionSpecProperties =
+                    {
+                        ExtensionType = "testExtensionsType"
+                        Version = "1.0"
+                        Settings = settings |> Some
+                        ProtectedSettings = None
+                    }
+
+                let deploymentExtensionSpec =
+                    {
+                        Name = "containerlogsextension"
+                        Properties = deploymentExtensionSpecProperties
+                    }
+
+                let containerGroup =
+                    containerGroup {
+                        name "container-group-with-extensions"
+                        extensions [ deploymentExtensionSpec ]
+
+                        add_instances
+                            [
+                                containerInstance {
+                                    name "httpserver"
+                                    image "nginx:1.17.6-alpine"
+                                }
+                            ]
+                    }
+
+                let deployment =
+                    arm {
+                        add_resources
+                            [
+                                containerGroup
+
+                            ]
+                    }
+
+                let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+                let template = deployment.Template |> Writer.toJson
+
+                let containerGroupJToken =
+                    jobj.SelectToken("resources[?(@.name=='container-group-with-extensions')]")
+
+                let extensionsJToken = containerGroupJToken.SelectToken "extensions"
+
+                Expect.equal
+                    (extensionsJToken.First.SelectToken "name" |> string)
+                    "containerlogsextension"
+                    "extension name should be containerlogsextension"
+
+                let propertiesJToken = extensionsJToken.First.SelectToken "properties"
+
+                Expect.equal
+                    (propertiesJToken.SelectToken "extensionType" |> string)
+                    "testExtensionsType"
+                    "extensionType should be testExtensionsType"
+
+                Expect.equal (propertiesJToken.SelectToken "version" |> string) "1.0" "version should be 1.0"
+
+                Expect.equal
+                    (propertiesJToken.SelectToken "protectedSettings" |> string)
+                    "{}"
+                    "protectedSettings should be {}"
+
+                let settingsJTokenString = propertiesJToken.SelectToken "settings" |> string
+
+                Expect.equal
+                    (Regex.Replace(settingsJTokenString, @"\s", ""))
+                    (JsonConvert.SerializeObject(settings))
+                    "protectedSettings should be {}"
+
+                Expect.equal containerGroup.Extensions.Length 1 "Container group should not have empty extensions list"
             }
         ]
