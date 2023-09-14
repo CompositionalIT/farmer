@@ -1399,7 +1399,7 @@ async {
                 let containerGroup =
                     containerGroup {
                         name "container-group-with-empty-extensions"
-                        extensions []
+                        add_extensions []
 
                         add_instances
                             [
@@ -1458,7 +1458,7 @@ async {
                 let containerGroup =
                     containerGroup {
                         name "container-group-with-extensions"
-                        extensions [ deploymentExtensionSpec ]
+                        add_extensions [ deploymentExtensionSpec ]
 
                         add_instances
                             [
@@ -1513,5 +1513,135 @@ async {
                     "protectedSettings should be {}"
 
                 Expect.equal containerGroup.Extensions.Length 1 "Container group should not have empty extensions list"
+            }
+
+            test "Create container group with multiple extensions block" {
+                let settings =
+                    Map
+                        [
+                            ("containername", box ".*")
+                            ("providerid", box "d2a07cb7-6e54-42ec-9da7-78509fd5672e")
+                            ("MONITORING_GCS_ACCOUNT", box "testAccount")
+                            ("MONITORING_GCS_NAMESPACE", box "testNamespace")
+                            ("MONITORING_CONFIG_VERSION", box "1.0")
+                            ("MONITORING_GCS_ENVIRONMENT", box "testEnvironment")
+                            ("payloadtype", box "RawString")
+                            ("custom_metadata", box "")
+                        ]
+
+                let settings2 =
+                    Map
+                        [
+                            ("containername", box ".*")
+                            ("providerid", box "d2a07cb7-6e54-42ec-9da7-78509fd5672e")
+                            ("MONITORING_GCS_ACCOUNT", box "testAccount")
+                            ("MONITORING_GCS_NAMESPACE", box "testNamespace")
+                            ("MONITORING_CONFIG_VERSION", box "1.0")
+                            ("MONITORING_GCS_ENVIRONMENT", box "testEnvironment")
+                            ("payloadtype", box "RawString")
+                            ("custom_metadata", box "")
+                        ]
+
+                let deploymentExtensionSpecProperties =
+                    {
+                        ExtensionType = "testExtensionsType"
+                        Version = "1.0"
+                        Settings = settings |> Some
+                        ProtectedSettings = None
+                    }
+
+                let deploymentExtensionSpecProperties2 =
+                    {
+                        ExtensionType = "testExtensionsType2"
+                        Version = "2.0"
+                        Settings = settings2 |> Some
+                        ProtectedSettings = None
+                    }
+
+                let deploymentExtensionSpec =
+                    {
+                        Name = "containerlogsextension"
+                        Properties = deploymentExtensionSpecProperties
+                    }
+
+                let deploymentExtensionSpec2 =
+                    {
+                        Name = "containerlogsextension2"
+                        Properties = deploymentExtensionSpecProperties2
+                    }
+
+                let containerGroup =
+                    containerGroup {
+                        name "container-group-with-extensions"
+                        add_extensions [ deploymentExtensionSpec ]
+                        add_extensions [ deploymentExtensionSpec2 ]
+
+                        add_instances
+                            [
+                                containerInstance {
+                                    name "httpserver"
+                                    image "nginx:1.17.6-alpine"
+                                }
+                            ]
+                    }
+
+                let deployment =
+                    arm {
+                        add_resources
+                            [
+                                containerGroup
+
+                            ]
+                    }
+
+                let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+                let template = deployment.Template |> Writer.toJson
+
+                let containerGroupJToken =
+                    jobj.SelectToken("resources[?(@.name=='container-group-with-extensions')]")
+
+                let extensionsJToken = containerGroupJToken.SelectToken "extensions"
+
+                Expect.equal
+                    (extensionsJToken.First.SelectToken "name" |> string)
+                    "containerlogsextension"
+                    "extension name should be containerlogsextension"
+
+                Expect.equal
+                    (extensionsJToken.Last.SelectToken "name" |> string)
+                    "containerlogsextension2"
+                    "extension name should be containerlogsextension"
+
+                let propertiesJToken = extensionsJToken.First.SelectToken "properties"
+                let propertiesJToken2 = extensionsJToken.Last.SelectToken "properties"
+
+                Expect.equal
+                    (propertiesJToken.SelectToken "extensionType" |> string)
+                    "testExtensionsType"
+                    "extensionType should be testExtensionsType"
+
+                Expect.equal
+                    (propertiesJToken2.SelectToken "extensionType" |> string)
+                    "testExtensionsType2"
+                    "extensionType should be testExtensionsType2"
+
+                Expect.equal (propertiesJToken.SelectToken "version" |> string) "1.0" "version should be 1.0"
+
+                Expect.equal (propertiesJToken2.SelectToken "version" |> string) "2.0" "version should be 2.0"
+
+
+                Expect.equal
+                    (propertiesJToken.SelectToken "protectedSettings" |> string)
+                    "{}"
+                    "protectedSettings should be {}"
+
+                let settingsJTokenString = propertiesJToken.SelectToken "settings" |> string
+
+                Expect.equal
+                    (Regex.Replace(settingsJTokenString, @"\s", ""))
+                    (JsonConvert.SerializeObject(settings))
+                    "protectedSettings should be {}"
+
+                Expect.equal containerGroup.Extensions.Length 2 "Container group should not have empty extensions list"
             }
         ]

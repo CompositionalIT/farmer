@@ -533,7 +533,5 @@ type ContainerGroup =
                             ]
                     |}
                 zones = this.AvailabilityZone |> Option.map Array.singleton |> Option.defaultValue null
-                extensions =
-                    this.Extensions
-                    |> List.map (fun extension -> DeploymentExtensionSpec.JsonModel extension)
+                extensions = this.Extensions |> List.map DeploymentExtensionSpec.JsonModel
             |}

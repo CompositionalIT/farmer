@@ -346,8 +346,11 @@ type ContainerGroupBuilder() =
     member this.Name(state: ContainerGroupConfig, name) = this.Name(state, ResourceName name)
 
     /// Sets the extensions used by virtual kubelet on the container group.
-    [<CustomOperation "extensions">]
-    member _.Extensions(state: ContainerGroupConfig, extensions) = { state with Extensions = extensions }
+    [<CustomOperation "add_extensions">]
+    member _.AddExtensions(state: ContainerGroupConfig, extensions) =
+        { state with
+            Extensions = state.Extensions @ extensions
+        }
 
     /// Sets the OS type (default Linux)
     [<CustomOperation "operating_system">]
