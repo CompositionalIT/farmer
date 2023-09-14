@@ -119,6 +119,8 @@ type ContainerGroupConfig =
         Tags: Map<string, string>
         /// Additional dependencies.
         Dependencies: Set<ResourceId>
+        /// extensions used by virtual kubelet
+        Extensions: DeploymentExtensionSpec list
     }
 
     member private this.ResourceId = containerGroups.resourceId this.Name
@@ -218,6 +220,7 @@ type ContainerGroupConfig =
                     Volumes = this.Volumes
                     Tags = this.Tags
                     Dependencies = this.Dependencies
+                    Extensions = this.Extensions
                 }
             ]
 
@@ -320,6 +323,7 @@ type ContainerGroupBuilder() =
             AvailabilityZone = None
             Tags = Map.empty
             Dependencies = Set.empty
+            Extensions = []
         }
 
     member this.Run(state: ContainerGroupConfig) =
@@ -340,6 +344,13 @@ type ContainerGroupBuilder() =
     member _.Name(state: ContainerGroupConfig, name) = { state with Name = name }
 
     member this.Name(state: ContainerGroupConfig, name) = this.Name(state, ResourceName name)
+
+    /// Sets the extensions used by virtual kubelet on the container group.
+    [<CustomOperation "add_extensions">]
+    member _.AddExtensions(state: ContainerGroupConfig, extensions) =
+        { state with
+            Extensions = state.Extensions @ extensions
+        }
 
     /// Sets the OS type (default Linux)
     [<CustomOperation "operating_system">]

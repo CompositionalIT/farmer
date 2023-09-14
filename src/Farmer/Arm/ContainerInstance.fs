@@ -134,6 +134,42 @@ type ContainerGroupDnsConfiguration =
             |}
             :> obj
 
+type DeploymentExtensionSpecProperties =
+    {
+        ExtensionType: string
+        Version: string
+        Settings: Map<string, obj> option
+        ProtectedSettings: Map<string, obj> option
+    }
+
+    static member internal JsonModel(spec: DeploymentExtensionSpecProperties) =
+        {|
+            extensionType = spec.ExtensionType
+            version = spec.Version
+            settings =
+                match spec.Settings with
+                | None -> Map.empty
+                | Some settings -> settings
+            protectedSettings =
+                match spec.ProtectedSettings with
+                | None -> Map.empty
+                | Some protectedSettings -> protectedSettings
+        |}
+        :> obj
+
+type DeploymentExtensionSpec =
+    {
+        Name: string
+        Properties: DeploymentExtensionSpecProperties
+    }
+
+    static member internal JsonModel(spec: DeploymentExtensionSpec) =
+        {|
+            name = spec.Name
+            properties = DeploymentExtensionSpecProperties.JsonModel spec.Properties
+        |}
+        :> obj
+
 type ContainerGroup =
     {
         Name: ResourceName
@@ -167,6 +203,7 @@ type ContainerGroup =
         Volumes: Map<string, Volume>
         Tags: Map<string, string>
         Dependencies: Set<ResourceId>
+        Extensions: DeploymentExtensionSpec list
     }
 
     member this.NetworkProfilePath =
@@ -496,4 +533,5 @@ type ContainerGroup =
                             ]
                     |}
                 zones = this.AvailabilityZone |> Option.map Array.singleton |> Option.defaultValue null
+                extensions = this.Extensions |> List.map DeploymentExtensionSpec.JsonModel
             |}
