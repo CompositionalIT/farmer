@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.7.29
+* Bug fix - Add Container Group extensions object under properties block of Container Group
+
 ## 1.7.28
 * Container Groups: Add support for extensions used by virtual kubelet
 
