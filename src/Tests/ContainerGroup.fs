@@ -1467,6 +1467,7 @@ async {
                                     image "nginx:1.17.6-alpine"
                                 }
                             ]
+
                     }
 
                 let deployment =
@@ -1479,12 +1480,13 @@ async {
                     }
 
                 let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
-                let template = deployment.Template |> Writer.toJson
 
                 let containerGroupJToken =
                     jobj.SelectToken("resources[?(@.name=='container-group-with-extensions')]")
 
-                let extensionsJToken = containerGroupJToken.SelectToken "extensions"
+                let propertiesJToken = containerGroupJToken.SelectToken "properties"
+
+                let extensionsJToken = propertiesJToken.SelectToken "extensions"
 
                 Expect.equal
                     (extensionsJToken.First.SelectToken "name" |> string)
@@ -1585,22 +1587,16 @@ async {
                             ]
                     }
 
-                let deployment =
-                    arm {
-                        add_resources
-                            [
-                                containerGroup
-
-                            ]
-                    }
+                let deployment = arm { add_resources [ containerGroup ] }
 
                 let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
-                let template = deployment.Template |> Writer.toJson
 
                 let containerGroupJToken =
                     jobj.SelectToken("resources[?(@.name=='container-group-with-extensions')]")
 
-                let extensionsJToken = containerGroupJToken.SelectToken "extensions"
+                let propertiesJToken = containerGroupJToken.SelectToken "properties"
+
+                let extensionsJToken = propertiesJToken.SelectToken "extensions"
 
                 Expect.equal
                     (extensionsJToken.First.SelectToken "name" |> string)

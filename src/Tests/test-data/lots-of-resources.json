@@ -427,7 +427,6 @@
     {
       "apiVersion": "2021-10-01",
       "dependsOn": [],
-      "extensions": [],
       "identity": {
         "type": "None"
       },
@@ -461,6 +460,7 @@
             }
           }
         ],
+        "extensions": [],
         "imageRegistryCredentials": [],
         "initContainers": [],
         "ipAddress": {
