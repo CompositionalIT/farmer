@@ -473,6 +473,7 @@ type ContainerGroup =
                                 this.SubnetIds
                                 |> List.map (fun subnetId -> {| id = subnetId.ResourceId.Eval() |})
                                 |> box
+                        extensions = this.Extensions |> List.map DeploymentExtensionSpec.JsonModel
                         volumes =
                             [
                                 for key, value in Map.toSeq this.Volumes do
@@ -533,5 +534,4 @@ type ContainerGroup =
                             ]
                     |}
                 zones = this.AvailabilityZone |> Option.map Array.singleton |> Option.defaultValue null
-                extensions = this.Extensions |> List.map DeploymentExtensionSpec.JsonModel
             |}
