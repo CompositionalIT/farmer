@@ -844,6 +844,7 @@ let tests =
                 let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection>
                 Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
             }
+
             let data =
                 [
                     (FunctionsRuntime.DotNetFramework48, "v4.0")
