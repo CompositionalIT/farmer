@@ -165,12 +165,44 @@ type DnsZone =
     static member getNameServers(name: ResourceName, ?resourceGroup) =
         DnsZone.getNameServers (ResourceId.create (zones, name, ?group = resourceGroup))
 
+type PrivateDnsZoneVirtualNetworkLinkConfig =
+    {
+        Name: ResourceName
+        PrivateDnsZone: LinkedResource option
+        RegistrationEnabled: bool option
+        VirtualNetworkId: LinkedResource option
+        Dependencies: Set<ResourceId>
+        Tags: Map<string, string>
+    }
+
+    interface IBuilder with
+        member this.BuildResources _ =
+            if this.PrivateDnsZone.IsNone then
+                raiseFarmer "Private DNS Zone virtual network link requires a DNS zone."
+
+            if this.VirtualNetworkId.IsNone then
+                raiseFarmer "Private DNS Zone virtual network link requires a virtual network ID."
+
+            [
+                {
+                    PrivateDnsZoneVirtualNetworkLink.Name = this.Name
+                    PrivateDnsZone = this.PrivateDnsZone.Value
+                    RegistrationEnabled = this.RegistrationEnabled |> Option.defaultValue true
+                    VirtualNetworkId = this.VirtualNetworkId.Value
+                    Dependencies = this.Dependencies
+                    Tags = this.Tags
+                }
+            ]
+
+        member this.ResourceId = failwith "todo"
+
 type DnsZoneConfig =
     {
         Name: ResourceName
         Dependencies: Set<ResourceId>
         ZoneType: DnsZoneType
         Records: DnsZoneRecordConfig list
+        Tags: Map<string, string>
     }
 
     /// Gets the ARM expression path to the NameServers. When evaluated, will return a JSON array as string. E.g.: """["ns1-01.azure-dns.com.","ns2-01.azure-dns.net.","ns3-01.azure-dns.org.","ns4-01.azure-dns.info."]"""
@@ -188,6 +220,7 @@ type DnsZoneConfig =
                     DnsZone.Name = this.Name
                     Dependencies = this.Dependencies
                     Properties = {| ZoneType = this.ZoneType |> string |}
+                    Tags = this.Tags
                 }
 
                 for record in this.Records do
@@ -286,7 +319,7 @@ type DnsCNameRecordBuilder() =
             Zone = Some(Managed zone.ResourceId)
         }
 
-    /// Enable support for additional dependencies.
+    // Enable support for additional dependencies.
     interface IDependable<CNameRecordProperties> with
         member _.Add state newDeps =
             { state with
@@ -376,7 +409,7 @@ type DnsARecordBuilder() =
     [<CustomOperation "zone_type">]
     member _.RecordZoneType(state: ARecordProperties, zoneType) = { state with ZoneType = zoneType }
 
-    /// Enable support for additional dependencies.
+    // Enable support for additional dependencies.
     interface IDependable<ARecordProperties> with
         member _.Add state newDeps =
             { state with
@@ -466,7 +499,7 @@ type DnsAaaaRecordBuilder() =
     [<CustomOperation "zone_type">]
     member _.RecordZoneType(state: AaaaRecordProperties, zoneType) = { state with ZoneType = zoneType }
 
-    /// Enable support for additional dependencies.
+    // Enable support for additional dependencies.
     interface IDependable<AaaaRecordProperties> with
         member _.Add state newDeps =
             { state with
@@ -561,7 +594,7 @@ type DnsNsRecordBuilder() =
             Zone = Some(Managed zone.ResourceId)
         }
 
-    /// Enable support for additional dependencies.
+    // Enable support for additional dependencies.
     interface IDependable<NsRecordProperties> with
         member _.Add state newDeps =
             { state with
@@ -633,7 +666,7 @@ type DnsPtrRecordBuilder() =
     [<CustomOperation "zone_type">]
     member _.RecordZoneType(state: PtrRecordProperties, zoneType) = { state with ZoneType = zoneType }
 
-    /// Enable support for additional dependencies.
+    // Enable support for additional dependencies.
     interface IDependable<PtrRecordProperties> with
         member _.Add state newDeps =
             { state with
@@ -705,7 +738,7 @@ type DnsTxtRecordBuilder() =
     [<CustomOperation "zone_type">]
     member _.RecordZoneType(state: TxtRecordProperties, zoneType) = { state with ZoneType = zoneType }
 
-    /// Enable support for additional dependencies.
+    // Enable support for additional dependencies.
     interface IDependable<TxtRecordProperties> with
         member _.Add state newDeps =
             { state with
@@ -784,7 +817,7 @@ type DnsMxRecordBuilder() =
     [<CustomOperation "zone_type">]
     member _.RecordZoneType(state: MxRecordProperties, zoneType) = { state with ZoneType = zoneType }
 
-    /// Enable support for additional dependencies.
+    // Enable support for additional dependencies.
     interface IDependable<MxRecordProperties> with
         member _.Add state newDeps =
             { state with
@@ -856,7 +889,7 @@ type DnsSrvRecordBuilder() =
     [<CustomOperation "zone_type">]
     member _.RecordZoneType(state: SrvRecordProperties, zoneType) = { state with ZoneType = zoneType }
 
-    /// Enable support for additional dependencies.
+    // Enable support for additional dependencies.
     interface IDependable<SrvRecordProperties> with
         member _.Add state newDeps =
             { state with
@@ -975,7 +1008,7 @@ type DnsSoaRecordBuilder() =
     [<CustomOperation "zone_type">]
     member _.RecordZoneType(state: SoaRecordProperties, zoneType) = { state with ZoneType = zoneType }
 
-    /// Enable support for additional dependencies.
+    // Enable support for additional dependencies.
     interface IDependable<SoaRecordProperties> with
         member _.Add state newDeps =
             { state with
@@ -989,6 +1022,7 @@ type DnsZoneBuilder() =
             Dependencies = Set.empty
             Records = []
             ZoneType = Public
+            Tags = Map.empty
         }
 
     member _.Run(state) : DnsZoneConfig =
@@ -1018,11 +1052,105 @@ type DnsZoneBuilder() =
             Records = state.Records @ records
         }
 
-    /// Enable support for additional dependencies.
+    // Enable support for additional dependencies.
     interface IDependable<DnsZoneConfig> with
         member _.Add state newDeps =
             { state with
                 Dependencies = state.Dependencies + newDeps
+            }
+
+    interface ITaggable<DnsZoneConfig> with
+        member _.Add state tags =
+            { state with
+                Tags = state.Tags |> Map.merge tags
+            }
+
+type PrivateDnsZoneVirtualNetworkLinkBuilder() =
+    member _.Yield _ =
+        {
+            PrivateDnsZoneVirtualNetworkLinkConfig.Name = ResourceName.Empty
+            PrivateDnsZone = None
+            RegistrationEnabled = None
+            VirtualNetworkId = None
+            Dependencies = Set.empty
+            Tags = Map.empty
+        }
+
+    member _.Run(config: PrivateDnsZoneVirtualNetworkLinkConfig) =
+        if config.PrivateDnsZone.IsNone then
+            raiseFarmer "Private DNS Zone virtual network link requires a DNS zone."
+
+        if config.VirtualNetworkId.IsNone then
+            raiseFarmer "Private DNS Zone virtual network link requires a virtual network ID."
+
+        config
+
+    [<CustomOperation "name">]
+    member _.Name(state: PrivateDnsZoneVirtualNetworkLinkConfig, name) = { state with Name = name }
+
+    [<CustomOperation "name">]
+    member _.Name(state: PrivateDnsZoneVirtualNetworkLinkConfig, name) = { state with Name = ResourceName name }
+
+    [<CustomOperation "private_dns_zone">]
+    member _.PrivateDnsZone(state: PrivateDnsZoneVirtualNetworkLinkConfig, privateDnsZone) =
+        { state with
+            PrivateDnsZone = Some(Managed privateDnsZone)
+        }
+
+    member _.PrivateDnsZone(state: PrivateDnsZoneVirtualNetworkLinkConfig, privateDnsZone: IBuilder) =
+        { state with
+            PrivateDnsZone = Some(Managed(privateDnsZone.ResourceId))
+        }
+
+    [<CustomOperation "link_to_private_dns_zone">]
+    member _.LinkToPrivateDnsZone(state: PrivateDnsZoneVirtualNetworkLinkConfig, privateDnsZone) =
+        { state with
+            PrivateDnsZone = Some(Unmanaged privateDnsZone)
+        }
+
+    member _.LinkToPrivateDnsZone(state: PrivateDnsZoneVirtualNetworkLinkConfig, privateDnsZone: IBuilder) =
+        { state with
+            PrivateDnsZone = Some(Unmanaged(privateDnsZone.ResourceId))
+        }
+
+    [<CustomOperation "registration_enabled">]
+    member _.RegistrationEnabled(state: PrivateDnsZoneVirtualNetworkLinkConfig, autoregister) =
+        { state with
+            RegistrationEnabled = Some autoregister
+        }
+
+    [<CustomOperation "virtual_network_id">]
+    member _.VirtualNetworkId(state: PrivateDnsZoneVirtualNetworkLinkConfig, vnetId) =
+        { state with
+            VirtualNetworkId = Some(Managed vnetId)
+        }
+
+    member _.VirtualNetworkId(state: PrivateDnsZoneVirtualNetworkLinkConfig, vnetId: IBuilder) =
+        { state with
+            VirtualNetworkId = Some(Managed vnetId.ResourceId)
+        }
+
+    [<CustomOperation "link_to_virtual_network_id">]
+    member _.LinkToVirtualNetworkId(state: PrivateDnsZoneVirtualNetworkLinkConfig, vnetId) =
+        { state with
+            VirtualNetworkId = Some(Unmanaged vnetId)
+        }
+
+    member _.LinkToVirtualNetworkId(state: PrivateDnsZoneVirtualNetworkLinkConfig, vnetId: IBuilder) =
+        { state with
+            VirtualNetworkId = Some(Unmanaged vnetId.ResourceId)
+        }
+
+    interface IDependable<PrivateDnsZoneVirtualNetworkLinkConfig> with
+        member _.Add state newDeps =
+            { state with
+                Dependencies = state.Dependencies + newDeps
+            }
+
+    interface ITaggable<PrivateDnsZoneVirtualNetworkLinkConfig> with
+        member _.Add state tags =
+            { state with
+                Tags = state.Tags |> Map.merge tags
             }
 
 let dnsZone = DnsZoneBuilder()
@@ -1035,3 +1163,4 @@ let txtRecord = DnsTxtRecordBuilder()
 let mxRecord = DnsMxRecordBuilder()
 let srvRecord = DnsSrvRecordBuilder()
 let soaRecord = DnsSoaRecordBuilder()
+let privateDnsZoneVirtualNetworkLink = PrivateDnsZoneVirtualNetworkLinkBuilder()

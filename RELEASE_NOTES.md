@@ -3,6 +3,8 @@ Release Notes
 
 ## 1.7.30
 * Docker Images: Support parsing of tags with one or more colons in tag name.
+* Private DNS Zones: Support linking a Private DNS Zone to a Virtual Network to provide DNS resolution within the vnet.
+* DNS Zones: Enable tagging the DNS Zone resource.
 
 ## 1.7.29
 * Bug fix - Add Container Group extensions object under properties block of Container Group
