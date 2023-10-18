@@ -1,5 +1,9 @@
 Release Notes
 =============
+
+## 1.7.30
+* Docker Images: Support parsing of tags with one or more colons in tag name.
+
 ## 1.7.29
 * Bug fix - Add Container Group extensions object under properties block of Container Group
 
