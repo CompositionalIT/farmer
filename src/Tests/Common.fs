@@ -159,5 +159,12 @@ let tests =
                     privateRepoNamedContainerVersion.ImageTag
                     "my.azurecr.io/foo/bar:1.2.3"
                     "Private named and versioned container image generated with incorrect tag"
+
+                Expect.equal
+                    (Containers.DockerImage.Parse
+                        "myimages.azurecr.io/image:specialtag@sha256:4f6fd68183af663e87551adccbab7322b7ba3cb6f93e1c9a87e7580a508a99c1")
+                        .ImageTag
+                    "myimages.azurecr.io/image:specialtag@sha256:4f6fd68183af663e87551adccbab7322b7ba3cb6f93e1c9a87e7580a508a99c1"
+                    "Tag with multiple colons parses correctly"
             }
         ]
