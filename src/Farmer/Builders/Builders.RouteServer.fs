@@ -85,6 +85,7 @@ type RouteServerConfig =
                     AssociatedServiceEndpointPolicies = []
                     PrivateEndpointNetworkPolicies = None
                     PrivateLinkServiceNetworkPolicies = None
+                    Dependencies = Set.empty
                 }
 
                 //ip configuration

@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.7.31
+* Subnets: Support for `depends_on` when defining standalone subnets.
+
 ## 1.7.30
 * Docker Images: Support parsing of tags with one or more colons in tag name.
 * Private DNS Zones: Support linking a Private DNS Zone to a Virtual Network to provide DNS resolution within the vnet.
