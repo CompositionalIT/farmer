@@ -971,7 +971,7 @@ let tests =
                     "Microsoft.Network/privateDnsZones/SOA"
                     "DNS record type is wrong"
             }
-            ftest "Private DNS Zone is linked to vnet" {
+            test "Private DNS Zone is linked to vnet" {
                 let deployment =
                     arm {
                         add_resources
