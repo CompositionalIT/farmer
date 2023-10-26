@@ -590,12 +590,45 @@ let tests =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks/subnets')].dependsOn"
                     :?> Newtonsoft.Json.Linq.JArray
 
-                Expect.isNull dependsOn "Linking to unmanaged vnet should have no dependencies"
+                Expect.isEmpty dependsOn "Linking to unmanaged vnet should have no dependencies"
 
                 let subnet =
                     jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks/subnets')].name"
 
                 Expect.equal (string subnet) "my-vnet/services" "Incorrect name on subnet"
+            }
+            test "Add multiple subnets linked to existing (unmanaged) vnet with dependencies" {
+                let vnetName = "my-vnet"
+
+                let template =
+                    arm {
+                        add_resources
+                            [
+                                subnet {
+                                    name "subnet1"
+                                    link_to_unmanaged_vnet (virtualNetworks.resourceId vnetName)
+                                    prefix "10.28.0.0/24"
+                                }
+                                subnet {
+                                    name "subnet2"
+                                    link_to_unmanaged_vnet (virtualNetworks.resourceId vnetName)
+                                    prefix "10.28.1.0/24"
+                                    depends_on (subnets.resourceId (ResourceName vnetName / ResourceName "subnet1"))
+                                }
+                            ]
+                    }
+
+                let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+                let dependsOn =
+                    jobj.SelectToken "resources[?(@.name=='my-vnet/subnet2')].dependsOn" :?> Newtonsoft.Json.Linq.JArray
+
+                Expect.hasLength dependsOn 1 "subnet2 should have a single dependency"
+
+                Expect.equal
+                    (string dependsOn[0])
+                    "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'my-vnet', 'subnet1')]"
+                    "subnet2 should have a dependency on subnet1"
             }
             test "Standalone subnet without linked vnet not allowed" {
                 Expect.throws
