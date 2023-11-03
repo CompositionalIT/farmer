@@ -69,6 +69,7 @@ type RouteServerConfig =
                     Location = location
                     Sku = PublicIpAddress.Sku.Standard
                     AllocationMethod = PublicIpAddress.AllocationMethod.Static
+                    AddressVersion = PublicIpAddress.AddressVersion.IPv4
                     DomainNameLabel = None
                     Tags = this.Tags
                 }

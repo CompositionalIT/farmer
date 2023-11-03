@@ -768,6 +768,14 @@ module Vm =
             | CustomImage c -> c
             | _ -> this.ToString()
 
+        /// The convention for compute SKU is that they are named starting with the tier,
+        /// followed by an underscore, then the rest of the VM hardware. This gets just the tier.
+        member this.Tier =
+            if isNull this.ArmValue then
+                null
+            else
+                this.ArmValue.Split('_') |> Array.head
+
     type Offer =
         | Offer of string
 
@@ -899,6 +907,18 @@ module Vm =
             | Low -> "Low"
             | Regular -> "Regular"
             | Spot _ -> "Spot"
+
+    /// Upgrade mode for using VM scale set upgrade policies.
+    type UpgradeMode =
+        | Automatic
+        | Manual
+        | Rolling
+
+        member this.ArmValue =
+            match this with
+            | Automatic -> "Automatic"
+            | Manual -> "Manual"
+            | Rolling -> "Rolling"
 
 module Image =
     type Architecture =
@@ -2397,6 +2417,24 @@ module LoadBalancer =
             | HTTP -> "Http"
             | HTTPS -> "Https"
 
+[<RequireQualifiedAccess>]
+type ApplicationHealthExtensionProtocol =
+    | TCP
+    | HTTP of Path: string
+    | HTTPS of Path: string
+
+    member this.ArmValue =
+        match this with
+        | TCP -> "tcp"
+        | HTTP _ -> "http"
+        | HTTPS _ -> "https"
+
+    member this.RequestPath =
+        match this with
+        | TCP -> None
+        | HTTP path -> Some path
+        | HTTPS path -> Some path
+
 module ApplicationGateway =
     [<RequireQualifiedAccess>]
     type Tier =
@@ -3010,6 +3048,15 @@ module PublicIpAddress =
             match this with
             | Dynamic -> "Dynamic"
             | Static -> "Static"
+
+    type AddressVersion =
+        | IPv4
+        | IPv6
+
+        member this.ArmValue =
+            match this with
+            | IPv4 -> "IPv4"
+            | IPv6 -> "IPv6"
 
     type Sku =
         | Basic

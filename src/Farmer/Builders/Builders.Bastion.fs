@@ -26,6 +26,7 @@ type BastionConfig =
                     AvailabilityZone = None
                     Location = location
                     AllocationMethod = AllocationMethod.Static
+                    AddressVersion = AddressVersion.IPv4
                     Sku = PublicIpAddress.Sku.Standard
                     DomainNameLabel = None
                     Tags = this.Tags

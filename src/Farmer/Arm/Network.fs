@@ -20,6 +20,9 @@ let expressRouteCircuitAuthorizations =
 let networkInterfaces =
     ResourceType("Microsoft.Network/networkInterfaces", "2018-11-01")
 
+let networkInterfacesIpConfigurations =
+    ResourceType("Microsoft.Network/networkInterfaces/ipConfigurations", "2023-04-01")
+
 let networkProfiles =
     ResourceType("Microsoft.Network/networkProfiles", "2020-04-01")
 
@@ -264,6 +267,7 @@ type PublicIpAddress =
         Location: Location
         Sku: PublicIpAddress.Sku
         AllocationMethod: PublicIpAddress.AllocationMethod
+        AddressVersion: PublicIpAddress.AddressVersion
         DomainNameLabel: string option
         Tags: Map<string, string>
     }
@@ -277,6 +281,7 @@ type PublicIpAddress =
                 properties =
                     {|
                         publicIPAllocationMethod = this.AllocationMethod.ArmValue
+                        publicIPAddressVersion = this.AddressVersion.ArmValue
                         dnsSettings =
                             match this.DomainNameLabel with
                             | Some label -> box {| domainNameLabel = label.ToLower() |}
@@ -680,6 +685,47 @@ module NetworkInterface =
             | Standard_B8ms -> AcceleratedNetworkingUnsupported // failwithf "Accelerated networking unsupported for specified VM size. Using '%s'." state.Size.ArmValue
             | _ -> AcceleratedNetworkingSupported
 
+type IpConfiguration with
+
+    member ipConfig.ToArmJson(index: int, vnetId: ResourceId) =
+        {|
+            name = $"ipconfig{index + 1}"
+            properties =
+                let allocationMethod, ip =
+                    match ipConfig.PrivateIpAllocation with
+                    | Some (StaticPrivateIp ip) -> "Static", string ip
+                    | _ -> "Dynamic", null
+
+                {|
+                    loadBalancerBackendAddressPools =
+                        match ipConfig.LoadBalancerBackendAddressPools with
+                        | [] -> null // Don't emit the field if there are none set.
+                        | backendPools ->
+                            backendPools
+                            |> List.map (fun lr -> lr.ResourceId |> ResourceId.AsIdObject)
+                            |> box
+                    primary = ipConfig.Primary |> Option.map box |> Option.toObj
+                    // FIXME: privateIPAllocationMethod = allocationMethod
+                    privateIPAddress = ip
+                    publicIPAddress =
+                        ipConfig.PublicIpAddress
+                        |> Option.map (fun pip ->
+                            {|
+                                id = pip.ResourceId.ArmExpression.Eval()
+                            |})
+                        |> Option.defaultValue Unchecked.defaultof<_>
+                    subnet =
+                        {|
+                            id =
+                                { vnetId with
+                                    Type = subnets
+                                    Segments = [ ipConfig.SubnetName ]
+                                }
+                                    .Eval()
+                        |}
+                |}
+        |}
+
 type NetworkInterface =
     {
         Name: ResourceName
@@ -722,44 +768,7 @@ type NetworkInterface =
                     enableIPForwarding = this.EnableIpForwarding |> Option.map box |> Option.toObj
                     ipConfigurations =
                         this.IpConfigs
-                        |> List.mapi (fun index ipConfig ->
-                            {|
-                                name = $"ipconfig{index + 1}"
-                                properties =
-                                    let allocationMethod, ip =
-                                        match ipConfig.PrivateIpAllocation with
-                                        | Some (StaticPrivateIp ip) -> "Static", string ip
-                                        | _ -> "Dynamic", null
-
-                                    {|
-                                        loadBalancerBackendAddressPools =
-                                            match ipConfig.LoadBalancerBackendAddressPools with
-                                            | [] -> null // Don't emit the field if there are none set.
-                                            | backendPools ->
-                                                backendPools
-                                                |> List.map (fun lr -> lr.ResourceId |> ResourceId.AsIdObject)
-                                                |> box
-                                        primary = ipConfig.Primary |> Option.map box |> Option.toObj
-                                        privateIPAllocationMethod = allocationMethod
-                                        privateIPAddress = ip
-                                        publicIPAddress =
-                                            ipConfig.PublicIpAddress
-                                            |> Option.map (fun pip ->
-                                                {|
-                                                    id = pip.ResourceId.ArmExpression.Eval()
-                                                |})
-                                            |> Option.defaultValue Unchecked.defaultof<_>
-                                        subnet =
-                                            {|
-                                                id =
-                                                    { this.VirtualNetwork.ResourceId with
-                                                        Type = subnets
-                                                        Segments = [ ipConfig.SubnetName ]
-                                                    }
-                                                        .Eval()
-                                            |}
-                                    |}
-                            |})
+                        |> List.mapi (fun index ipConfig -> ipConfig.ToArmJson(index, this.VirtualNetwork.ResourceId))
                 |}
 
             match this.NetworkSecurityGroup with
