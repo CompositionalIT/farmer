@@ -308,14 +308,15 @@ let tests =
                 let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
 
                 let publicIpProps =
-                    jobj.SelectTokens("resources[?(@.type=='Microsoft.Network/publicIPAddresses')].properties")
+                    jobj.SelectTokens(
+                        "resources[?(@.type=='Microsoft.Network/publicIPAddresses')].properties.publicIPAllocationMethod"
+                    )
 
                 Expect.isNonEmpty publicIpProps "IP settings not found"
 
                 let ipToken = publicIpProps |> Seq.head
 
-                let expectedToken =
-                    Newtonsoft.Json.Linq.JToken.Parse("{\"publicIPAllocationMethod\": \"Static\"}")
+                let expectedToken = JValue "Static"
 
                 Expect.equal (ipToken.ToString()) (expectedToken.ToString()) "Static IP was not found"
 

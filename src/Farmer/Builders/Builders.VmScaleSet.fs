@@ -7,6 +7,7 @@ open Farmer.FeatureFlag
 open Farmer.Identity
 open Farmer.Vm
 open System
+open Farmer.VmScaleSet
 
 let makeName (vmName: ResourceName) elementType =
     ResourceName $"{vmName.Value}-%s{elementType}"
@@ -25,7 +26,7 @@ type ApplicationHealthExtensionConfig =
         GracePeriod: TimeSpan option
         Tags: Map<string, string>
     }
-    
+
     interface IExtensionBuilder with
         member this.BuildExtension location =
             {
@@ -47,9 +48,7 @@ type ApplicationHealthExtensionConfig =
             )
 
         member this.BuildResources location =
-            [
-                (this :> IExtensionBuilder).BuildExtension location :?> IArmResource
-            ]
+            [ (this :> IExtensionBuilder).BuildExtension location :?> IArmResource ]
 
 type VmScaleSetConfig =
     {
@@ -62,20 +61,24 @@ type VmScaleSetConfig =
         Extensions: IExtensionBuilder list
         HealthProbeId: ResourceId option
         LoadBalancerBackendAddressPools: LinkedResource list
+        ScaleInPolicy: ScaleSetScaleInPolicy option
         UpgradePolicy: ScaleSetUpgradePolicy option
         ZoneBalance: bool option
 
         Tags: Map<string, string>
     }
 
-    member internal this.DeriveResourceName (resourceType: ResourceType) elementName =
-        resourceType.resourceId (makeName this.Name elementName)
+    member internal this.DeriveResourceName (vm: VmConfig) (resourceType: ResourceType) elementName =
+        resourceType.resourceId (makeName vm.Name elementName)
 
-    member this.NicName = this.DeriveResourceName networkInterfaces "nic"
+    member private this.NicName(vm: VmConfig) =
+        this.DeriveResourceName (vm: VmConfig) networkInterfaces "nic"
+
     member this.PasswordParameterArm =
         this.Vm
         |> Option.bind (fun vm -> vm.PasswordParameter)
         |> Option.defaultValue $"password-for-{this.Name.Value}"
+
     member this.SystemIdentity = SystemIdentity this.ResourceId
     member this.ResourceId = virtualMachines.resourceId this.Name
 
@@ -85,7 +88,7 @@ type VmScaleSetConfig =
         match this.Vm with
         | Some vm ->
             let ipConfigsBySubnet =
-                vm.buildIpConfigs()
+                vm.buildIpConfigs ()
                 // Remove Public IP when building scale set IP configs.
                 |> List.map (fun ipconfig -> { ipconfig with PublicIpAddress = None })
                 |> List.groupBy (fun ipconfig -> ipconfig.SubnetName)
@@ -93,7 +96,7 @@ type VmScaleSetConfig =
             ipConfigsBySubnet
             |> List.mapi (fun index (subnetName, subnetIpConfigs) ->
                 {
-                    Name = ResourceName $"{this.NicName.Name.Value}-{subnetName.Value}"
+                    Name = ResourceName $"{subnetName.Value}-nic"
                     EnableAcceleratedNetworking = vm.AcceleratedNetworking |> Option.map toBool
                     EnableIpForwarding = None // Not supporting for VMSS yet.
                     IpConfigs = subnetIpConfigs
@@ -108,8 +111,9 @@ type VmScaleSetConfig =
         | None -> []
 
     member private this.CustomScriptExtension =
-        this.Vm |> Option.bind (fun vm ->
-            if vm.CustomScript.IsSome || not(vm.CustomScriptFiles.IsEmpty) then
+        this.Vm
+        |> Option.bind (fun vm ->
+            if vm.CustomScript.IsSome || not (vm.CustomScriptFiles.IsEmpty) then
                 Some
                     { new IExtensionBuilder with
                         member _.BuildExtension location =
@@ -123,21 +127,20 @@ type VmScaleSetConfig =
                                     match vm.OsDisk with
                                     | FromImage (image, _) -> image.OS
                                     | _ ->
-                                        raiseFarmer "Unable to determine OS for custom script when attaching an existing disk"
+                                        raiseFarmer
+                                            "Unable to determine OS for custom script when attaching an existing disk"
                                 Tags = this.Tags
                             }
                     }
-            else None
-        )
+            else
+                None)
 
     member private this.AadSshLoginExtension =
-        this.Vm |> Option.bind (fun vm ->
+        this.Vm
+        |> Option.bind (fun vm ->
             match vm.AadSshLogin, vm.OsDisk with
-            | FeatureFlag.Enabled, FromImage (image, _) when
-                image.OS = Linux && vm.Identity.SystemAssigned = Disabled
-                ->
-                raiseFarmer
-                    "AAD SSH login requires that system assigned identity be enabled on the virtual machine."
+            | FeatureFlag.Enabled, FromImage (image, _) when image.OS = Linux && vm.Identity.SystemAssigned = Disabled ->
+                raiseFarmer "AAD SSH login requires that system assigned identity be enabled on the virtual machine."
             | FeatureFlag.Enabled, FromImage (image, _) when image.OS = Windows ->
                 raiseFarmer "AAD SSH login is only supported for Linux Virtual Machines"
             // Assuming a user that attaches a disk knows to only using this extension for Linux images.
@@ -151,8 +154,7 @@ type VmScaleSetConfig =
                                 Tags = this.Tags
                             }
                     }
-            | FeatureFlag.Disabled, _ -> None
-        )
+            | FeatureFlag.Disabled, _ -> None)
 
     member private this.extensions =
         seq {
@@ -166,53 +168,66 @@ type VmScaleSetConfig =
         member this.ResourceId = this.ResourceId
 
         member this.BuildResources location =
-            this.Vm |> Option.map (fun vm ->
-                
-                {
-                    Name = this.Name
-                    Location = location
-                    Dependencies = this.Dependencies
-                    AutomaticRepairsPolicy = this.AutomaticRepairsPolicy
-                    AvailabilityZones = this.AvailabilityZones
-                    Capacity = this.Capacity |> Option.defaultValue 1
-                    Credentials =
-                        match vm.Username with
-                        | Some username ->
-                            {|
-                                Username = username
-                                Password = SecureParameter this.PasswordParameterArm
-                            |}
-                        | None -> raiseFarmer $"You must specify a username for virtual machine {this.Name.Value}"
-                    CustomData = vm.CustomData
-                    DataDisks = vm.DataDisks |> Option.defaultValue []
-                    DiagnosticsEnabled = vm.DiagnosticsEnabled
-                    DisablePasswordAuthentication = vm.DisablePasswordAuthentication
-                    Extensions = this.extensions
-                        |> List.map(fun ext -> ext.BuildExtension location)
-                    HealthProbeId = this.HealthProbeId
-                    Identity = vm.Identity
-                    NetworkInterfaceConfigs =
-                        let nsgId = vm.NetworkSecurityGroup |> Option.map (fun lr -> lr.ResourceId)
-                        let linkedVnet = vm.VNet.toLinkedResource(vm)
-                        this.buildNetworkInterfaceConfigurations (linkedVnet, nsgId)
-                    OsDisk = vm.OsDisk
-                    Priority = vm.Priority
-                    PublicKeys =
-                        if
-                            vm.DisablePasswordAuthentication.IsSome
-                            && vm.DisablePasswordAuthentication.Value
-                            && vm.SshPathAndPublicKeys.IsNone
-                        then
-                            raiseFarmer
-                                $"You must include at least one ssh key when Password Authentication is disabled"
-                        else
-                            (vm.SshPathAndPublicKeys)
-                    Size = vm.Size
-                    UpgradePolicy = this.UpgradePolicy |> Option.defaultValue { Mode = Rolling }
-                    ZoneBalance = this.ZoneBalance
-                    Tags = this.Tags
-                }
-            ) |> Option.map (fun vmss -> vmss :> IArmResource) |> Option.toList
+            match this.Vm with
+            | None -> raiseFarmer "The 'vm_profile' must be set for the VM scale set."
+            | Some vm ->
+                let nsgId = vm.NetworkSecurityGroup |> Option.map (fun lr -> lr.ResourceId)
+
+                [
+                    // The VM Scale Set
+                    {
+                        Name = this.Name
+                        Location = location
+                        Dependencies = this.Dependencies
+                        AutomaticRepairsPolicy = this.AutomaticRepairsPolicy
+                        AvailabilityZones = this.AvailabilityZones
+                        Capacity = this.Capacity |> Option.defaultValue 1
+                        Credentials =
+                            match vm.Username with
+                            | Some username ->
+                                {|
+                                    Username = username
+                                    Password = SecureParameter this.PasswordParameterArm
+                                |}
+                            | None -> raiseFarmer $"You must specify a username for virtual machine {this.Name.Value}"
+                        CustomData = vm.CustomData
+                        DataDisks = vm.DataDisks |> Option.defaultValue []
+                        DiagnosticsEnabled = vm.DiagnosticsEnabled
+                        DisablePasswordAuthentication = vm.DisablePasswordAuthentication
+                        Extensions = this.extensions |> List.map (fun ext -> ext.BuildExtension location)
+                        HealthProbeId = this.HealthProbeId
+                        Identity = vm.Identity
+                        NetworkInterfaceConfigs =
+                            let linkedVnet = vm.VNet.toLinkedResource (vm)
+                            this.buildNetworkInterfaceConfigurations (linkedVnet, nsgId)
+                        OsDisk = vm.OsDisk
+                        Priority = vm.Priority
+                        PublicKeys =
+                            if
+                                vm.DisablePasswordAuthentication.IsSome
+                                && vm.DisablePasswordAuthentication.Value
+                                && vm.SshPathAndPublicKeys.IsNone
+                            then
+                                raiseFarmer
+                                    $"You must include at least one ssh key when Password Authentication is disabled"
+                            else
+                                (vm.SshPathAndPublicKeys)
+                        ScaleInPolicy =
+                            this.ScaleInPolicy
+                            |> Option.defaultValue
+                                {
+                                    ForceDeletion = false
+                                    Rules = [ ScaleInPolicyRule.Default ]
+                                }
+                        Size = vm.Size
+                        UpgradePolicy = this.UpgradePolicy |> Option.defaultValue { Mode = UpgradeMode.Automatic }
+                        ZoneBalance = this.ZoneBalance
+                        Tags = this.Tags
+                    }
+                    :> IArmResource
+
+                    yield! vm.BuildVNet(location, nsgId) |> Option.toList
+                ]
 
 type ApplicationHealthExtensionBuilder() =
     member _.Yield _ =
@@ -246,10 +261,7 @@ type ApplicationHealthExtensionBuilder() =
 
     /// Sets the VMSS where this health extension should be installed.
     [<CustomOperation "os">]
-    member _.Os(state: ApplicationHealthExtensionConfig, os) =
-        { state with
-            OS = Some os
-        }
+    member _.Os(state: ApplicationHealthExtensionConfig, os) = { state with OS = Some os }
 
     /// Sets the protocol for connections to probe.
     [<CustomOperation "protocol">]
@@ -271,7 +283,7 @@ type ApplicationHealthExtensionBuilder() =
     member _.Interval(state: ApplicationHealthExtensionConfig, interval: TimeSpan) =
         { state with Interval = Some interval }
 
-    /// Sets the number of probes to consider this backend a failure and remove from the pool.
+    /// Sets the number of probes to consider this instance as failed.
     [<CustomOperation "number_of_probes">]
     member _.NumberOfProbes(state: ApplicationHealthExtensionConfig, numberOfProbes) =
         { state with
@@ -284,9 +296,10 @@ type VirtualMachineScaleSetBuilder() =
     member _.Yield _ : VmScaleSetConfig =
         {
             Name = ResourceName.Empty
-            Dependencies = Set.empty 
+            Dependencies = Set.empty
             Vm = None
             Capacity = None
+            ScaleInPolicy = None
             UpgradePolicy = None
             AutomaticRepairsPolicy = None
             AvailabilityZones = []
@@ -308,7 +321,27 @@ type VirtualMachineScaleSetBuilder() =
                 | NetworkInterface.AcceleratedNetworkingSupported -> ()
             | _ -> ()
         | None -> ()
-        state
+        
+        // Using automatic repair policy requires the health extension.
+        match state.AutomaticRepairsPolicy with
+        | Some { Enabled = true; GracePeriod = _ } ->
+            if
+                state.Extensions
+                |> List.exists (function | :? ApplicationHealthExtensionConfig -> true | _ -> false)
+                |> not
+            then
+                raiseFarmer "Enabling automatic repairs requires adding the application health extension."
+        | _ -> ()
+
+        // Name the VM for the scale set so generated resources are named properly.
+        { state with
+            Vm =
+                state.Vm
+                |> Option.map (fun vm ->
+                    { vm with
+                        Name = vm.Name.IfEmpty state.Name.Value
+                    })
+        }
 
     /// Sets the name of the VM.
     [<CustomOperation "name">]
@@ -330,38 +363,25 @@ type VirtualMachineScaleSetBuilder() =
 
     /// Defines the VM settings to use when provisioning VMs for this scale set.
     [<CustomOperation "vm_profile">]
-    member _.VmProfile(state: VmScaleSetConfig, vm:VmConfig) =
+    member _.VmProfile(state: VmScaleSetConfig, vm: VmConfig) =
         let vmSize = // Fix up the VM size since the current default is not supported.
             match vm.Size with
             | Basic_A0
-            | Basic_A1 ->
-                Standard_A1_v2
-            | Basic_A2 ->
-                Standard_A2_v2
-            | Basic_A3 ->
-                Standard_A3
-            | Basic_A4 ->
-                Standard_A4
-            | _ ->
-                vm.Size
-        { state with Vm = Some { vm with Size = vmSize } }
+            | Basic_A1 -> Standard_A1_v2
+            | Basic_A2 -> Standard_A2_v2
+            | Basic_A3 -> Standard_A3
+            | Basic_A4 -> Standard_A4
+            | _ -> vm.Size
+
+        { state with
+            Vm = Some { vm with Size = vmSize }
+        }
 
     [<CustomOperation "add_availability_zones">]
     member _.AddAvailabilityZone(state: VmScaleSetConfig, zones: string list) =
         { state with
             AvailabilityZones = state.AvailabilityZones @ zones
         }
-
-    [<CustomOperation "capacity">]
-    member _.Capacity(state: VmScaleSetConfig, capacity: int) = { state with Capacity = Some capacity }
-
-    [<CustomOperation "health_probe_id">]
-    member _.HealthProbeId(state: VmScaleSetConfig, healthProbeId: ResourceId) =
-        { state with
-            HealthProbeId = Some healthProbeId
-        }
-    member this.HealthProbeId(state: VmScaleSetConfig, healthProbeId: string) =
-        this.HealthProbeId(state, LoadBalancer.loadBalancerProbes.resourceId healthProbeId)
 
     /// Add extensions.
     [<CustomOperation "add_extensions">]
@@ -374,7 +394,7 @@ type VirtualMachineScaleSetBuilder() =
     [<CustomOperation "automatic_repair_policy">]
     member _.AutomaticRepairPolicy(state: VmScaleSetConfig, policy: ScaleSetAutomaticRepairsPolicy) =
         { state with
-            AutomaticRepairsPolicy =  Some(policy)
+            AutomaticRepairsPolicy = Some(policy)
         }
 
     [<CustomOperation "automatic_repair_enabled_after">]
@@ -382,18 +402,65 @@ type VirtualMachineScaleSetBuilder() =
         let policy =
             {
                 ScaleSetAutomaticRepairsPolicy.Enabled = true
-                GracePeriod = timespan 
+                GracePeriod = timespan
             }
+
         { state with
-            AutomaticRepairsPolicy =  Some(policy)
+            AutomaticRepairsPolicy = Some(policy)
         }
+
+    [<CustomOperation "capacity">]
+    member _.Capacity(state: VmScaleSetConfig, capacity: int) = { state with Capacity = Some capacity }
+
+    [<CustomOperation "health_probe">]
+    member _.HealthProbeId(state: VmScaleSetConfig, healthProbeId: ResourceId) =
+        { state with
+            HealthProbeId = Some healthProbeId
+        }
+
+    member this.HealthProbeId(state: VmScaleSetConfig, healthProbeId: string) =
+        this.HealthProbeId(state, LoadBalancer.loadBalancerProbes.resourceId healthProbeId)
+
+    [<CustomOperation "scale_in_policy">]
+    member _.ScaleInPolicy(state: VmScaleSetConfig, scaleInPolicy: ScaleInPolicyRule) =
+        let policy =
+            match state.ScaleInPolicy with
+            | None ->
+                {
+                    ForceDeletion = false
+                    Rules = [ scaleInPolicy ]
+                }
+            | Some existing ->
+                { existing with
+                    Rules = [ scaleInPolicy ]
+                }
+
+        { state with
+            ScaleInPolicy = Some policy
+        }
+
+    [<CustomOperation "scale_in_force_deletion">]
+    member _.ScaleInForceDeletion(state: VmScaleSetConfig, forceDeletion: FeatureFlag) =
+        let policy =
+            match state.ScaleInPolicy with
+            | None ->
+                {
+                    ForceDeletion = forceDeletion.AsBoolean
+                    Rules = [ Default ]
+                }
+            | Some existing ->
+                { existing with
+                    ForceDeletion = forceDeletion.AsBoolean
+                }
+
+        { state with
+            ScaleInPolicy = Some policy
+        }
+
     [<CustomOperation "upgrade_mode">]
     member _.UpgradeMode(state: VmScaleSetConfig, mode: UpgradeMode) =
         { state with
-            UpgradePolicy =
-                {
-                    Mode = mode
-                } |> Some
+            UpgradePolicy = { Mode = mode } |> Some
         }
 
 let vmss = VirtualMachineScaleSetBuilder()

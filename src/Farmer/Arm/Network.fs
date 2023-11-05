@@ -5,6 +5,7 @@ open System.Net.Mail
 open Farmer
 open Farmer.Arm
 open Farmer.ExpressRoute
+open Farmer.PublicIpAddress
 open Farmer.Route
 open Farmer.RouteServer
 open Farmer.VirtualNetworkGateway
@@ -281,7 +282,10 @@ type PublicIpAddress =
                 properties =
                     {|
                         publicIPAllocationMethod = this.AllocationMethod.ArmValue
-                        publicIPAddressVersion = this.AddressVersion.ArmValue
+                        publicIPAddressVersion =
+                            match this.AddressVersion with
+                            | AddressVersion.IPv4 -> null
+                            | AddressVersion.IPv6 -> this.AddressVersion.ArmValue
                         dnsSettings =
                             match this.DomainNameLabel with
                             | Some label -> box {| domainNameLabel = label.ToLower() |}
@@ -687,7 +691,8 @@ module NetworkInterface =
 
 type IpConfiguration with
 
-    member ipConfig.ToArmJson(index: int, vnetId: ResourceId) =
+    /// Serializes to ARM JSON. When serializing for a NetworkInterfaceConfiguration, allocation method is not included.
+    member ipConfig.ToArmJson(index: int, vnetId: ResourceId, includeAllocationMethod: bool) =
         {|
             name = $"ipconfig{index + 1}"
             properties =
@@ -705,7 +710,7 @@ type IpConfiguration with
                             |> List.map (fun lr -> lr.ResourceId |> ResourceId.AsIdObject)
                             |> box
                     primary = ipConfig.Primary |> Option.map box |> Option.toObj
-                    // FIXME: privateIPAllocationMethod = allocationMethod
+                    privateIPAllocationMethod = if includeAllocationMethod then allocationMethod else null
                     privateIPAddress = ip
                     publicIPAddress =
                         ipConfig.PublicIpAddress
@@ -768,7 +773,8 @@ type NetworkInterface =
                     enableIPForwarding = this.EnableIpForwarding |> Option.map box |> Option.toObj
                     ipConfigurations =
                         this.IpConfigs
-                        |> List.mapi (fun index ipConfig -> ipConfig.ToArmJson(index, this.VirtualNetwork.ResourceId))
+                        |> List.mapi (fun index ipConfig ->
+                            ipConfig.ToArmJson(index, this.VirtualNetwork.ResourceId, true))
                 |}
 
             match this.NetworkSecurityGroup with

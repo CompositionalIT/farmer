@@ -908,6 +908,20 @@ module Vm =
             | Regular -> "Regular"
             | Spot _ -> "Spot"
 
+module VmScaleSet =
+
+    /// Policy rule options for scaling in a VM scale set.
+    type ScaleInPolicyRule =
+        | Default
+        | NewestVM
+        | OldestVM
+
+        member this.ArmValue =
+            match this with
+            | Default -> "Default"
+            | NewestVM -> "NewestVM"
+            | OldestVM -> "OldestVM"
+
     /// Upgrade mode for using VM scale set upgrade policies.
     type UpgradeMode =
         | Automatic

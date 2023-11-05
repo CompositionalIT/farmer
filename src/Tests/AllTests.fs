@@ -71,6 +71,7 @@ let allTests =
                     Types.tests
                     VirtualHub.tests
                     VirtualMachine.tests
+                    VmScaleSet.tests
                     VirtualNetworkGateway.tests
                     VirtualWan.tests
                     WebApp.tests

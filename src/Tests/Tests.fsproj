@@ -51,6 +51,7 @@
     <Compile Include="Cosmos.fs" />
     <Compile Include="KeyVault.fs" />
     <Compile Include="VirtualMachine.fs" />
+    <Compile Include="VmScaleSet.fs" />
     <Compile Include="ContainerRegistry.fs" />
     <Compile Include="PostgreSQL.fs" />
     <Compile Include="Maps.fs" />
