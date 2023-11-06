@@ -1,5 +1,10 @@
 Release Notes
 =============
+
+## vNext
+* Load Balancer: Generate an IPv6 public IP address using the `ip_v6` option.
+* Virtual Machine Scale Sets: Support for VM Scale Sets.
+
 ## 1.7.29
 * Bug fix - Add Container Group extensions object under properties block of Container Group
 
