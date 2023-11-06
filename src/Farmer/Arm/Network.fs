@@ -350,6 +350,7 @@ type Subnet =
         AssociatedServiceEndpointPolicies: ResourceId list
         PrivateEndpointNetworkPolicies: FeatureFlag option
         PrivateLinkServiceNetworkPolicies: FeatureFlag option
+        Dependencies: ResourceId Set
     }
 
     member internal this.JsonModelProperties =
@@ -406,11 +407,11 @@ type Subnet =
         member this.JsonModel =
             match this.VirtualNetwork with
             | Some (Managed vnet) ->
-                {| subnets.Create(vnet.Name / this.Name, dependsOn = [ vnet ]) with
+                {| subnets.Create(vnet.Name / this.Name, dependsOn = (this.Dependencies |> Set.add vnet)) with
                     properties = this.JsonModelProperties
                 |}
             | Some (Unmanaged vnet) ->
-                {| subnets.Create(vnet.Name / this.Name) with
+                {| subnets.Create(vnet.Name / this.Name, dependsOn = this.Dependencies) with
                     properties = this.JsonModelProperties
                 |}
             | None -> raiseFarmer "Subnet record must be linked to a virtual network to properly assign the resourceId."

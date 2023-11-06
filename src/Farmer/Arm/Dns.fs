@@ -42,6 +42,9 @@ let privateSrvRecord =
 let privatePtrRecord =
     ResourceType("Microsoft.Network/privateDnsZones/PTR", "2020-06-01")
 
+let privateDnsZoneVirtualNetworkLinks =
+    ResourceType("Microsoft.Network/privateDnsZones/virtualNetworkLinks", "2020-06-01")
+
 let dnsForwardingRulesets =
     ResourceType("Microsoft.Network/dnsForwardingRulesets", "2022-07-01")
 
@@ -95,6 +98,7 @@ type DnsZone =
         Name: ResourceName
         Dependencies: Set<ResourceId>
         Properties: {| ZoneType: string |}
+        Tags: Map<string, string>
     }
 
     member private this.zoneResource =
@@ -107,7 +111,7 @@ type DnsZone =
         member this.ResourceId = this.zoneResource.resourceId this.Name
 
         member this.JsonModel =
-            {| this.zoneResource.Create(this.Name, Location.Global, this.Dependencies) with
+            {| this.zoneResource.Create(this.Name, Location.Global, this.Dependencies, this.Tags) with
                 properties =
                     {|
                         zoneType = this.Properties.ZoneType
@@ -266,6 +270,42 @@ module DnsRecords =
                         ]
                         |> Map
                 |}
+
+type PrivateDnsZoneVirtualNetworkLink =
+    {
+        Name: ResourceName
+        PrivateDnsZone: LinkedResource
+        RegistrationEnabled: bool
+        VirtualNetworkId: LinkedResource
+        Dependencies: Set<ResourceId>
+        Tags: Map<string, string>
+    }
+
+    interface IArmResource with
+        member this.ResourceId =
+            privateDnsZoneVirtualNetworkLinks.resourceId (this.PrivateDnsZone.Name, this.Name)
+
+        member this.JsonModel =
+            let dependencies =
+                this.Dependencies
+                |> LinkedResource.addToSetIfManaged this.PrivateDnsZone
+                |> LinkedResource.addToSetIfManaged this.VirtualNetworkId
+
+            {| privateDnsZoneVirtualNetworkLinks.Create(
+                   this.PrivateDnsZone.Name / this.Name,
+                   Location.Global,
+                   dependencies,
+                   this.Tags
+               ) with
+                properties =
+                    {|
+                        registrationEnabled = this.RegistrationEnabled
+                        virtualNetwork =
+                            {|
+                                id = this.VirtualNetworkId.ResourceId.Eval()
+                            |}
+                    |}
+            |}
 
 type DnsResolver =
     {

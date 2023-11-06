@@ -51,6 +51,7 @@ The Virtual Network module contains four builders
 | associate_service_endpoint_policies   | Associates a subnet with an existing service policy.                                      |
 | allow_private_endpoints               | Enable or disable support for private endpoints, default is `Disabled`                    |
 | private_link_service_network_policies | Enable or disable support for private link service network polices, default is `Disabled` |
+| depends_on                            | Add depdendencies on the deployment of another resource.                                  |
 
 ##### Automatically build out an address space: `addressSpace`
 

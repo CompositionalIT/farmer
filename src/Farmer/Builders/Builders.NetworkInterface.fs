@@ -75,6 +75,7 @@ type NetworkInterfaceConfig =
                             AssociatedServiceEndpointPolicies = []
                             PrivateEndpointNetworkPolicies = None
                             PrivateLinkServiceNetworkPolicies = None
+                            Dependencies = Set.empty
                         }
 
                         //ipConfig

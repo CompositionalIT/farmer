@@ -5,6 +5,14 @@ Release Notes
 * Load Balancer: Generate an IPv6 public IP address using the `ip_v6` option.
 * Virtual Machine Scale Sets: Support for VM Scale Sets.
 
+## 1.7.31
+* Subnets: Support for `depends_on` when defining standalone subnets.
+
+## 1.7.30
+* Docker Images: Support parsing of tags with one or more colons in tag name.
+* Private DNS Zones: Support linking a Private DNS Zone to a Virtual Network to provide DNS resolution within the vnet.
+* DNS Zones: Enable tagging the DNS Zone resource.
+
 ## 1.7.29
 * Bug fix - Add Container Group extensions object under properties block of Container Group
 

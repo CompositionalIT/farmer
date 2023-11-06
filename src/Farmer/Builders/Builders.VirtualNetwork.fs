@@ -23,6 +23,7 @@ type SubnetConfig =
         AssociatedServiceEndpointPolicies: ResourceId list
         AllowPrivateEndpoints: FeatureFlag option
         PrivateLinkServiceNetworkPolicies: FeatureFlag option
+        Dependencies: ResourceId Set
     }
 
     member internal this.AsSubnetResource =
@@ -45,6 +46,7 @@ type SubnetConfig =
             // to ENable private endpoints we have to DISable PrivateEndpointNetworkPolicies
             PrivateEndpointNetworkPolicies = this.AllowPrivateEndpoints |> Option.map FeatureFlag.invert
             PrivateLinkServiceNetworkPolicies = this.PrivateLinkServiceNetworkPolicies
+            Dependencies = this.Dependencies
         }
 
     interface IBuilder with
@@ -72,6 +74,7 @@ type SubnetBuilder() =
             AssociatedServiceEndpointPolicies = []
             AllowPrivateEndpoints = None
             PrivateLinkServiceNetworkPolicies = None
+            Dependencies = Set.empty
         }
 
     /// Sets the name of the subnet
@@ -219,6 +222,12 @@ type SubnetBuilder() =
         { state with
             PrivateLinkServiceNetworkPolicies = Some flag
         }
+
+    interface IDependable<SubnetConfig> with
+        member _.Add state newDeps =
+            { state with
+                Dependencies = state.Dependencies + newDeps
+            }
 
 let subnet = SubnetBuilder()
 
@@ -665,6 +674,7 @@ type VirtualNetworkBuilder() =
                             AssociatedServiceEndpointPolicies = serviceEndpointPolicies
                             AllowPrivateEndpoints = allowPrivateEndpoints
                             PrivateLinkServiceNetworkPolicies = privateLinkServiceNetworkPolicies
+                            Dependencies = Set.empty
                         }))
 
         let newAddressSpaces =

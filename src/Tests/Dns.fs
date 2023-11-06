@@ -971,4 +971,77 @@ let tests =
                     "Microsoft.Network/privateDnsZones/SOA"
                     "DNS record type is wrong"
             }
+            test "Private DNS Zone is linked to vnet" {
+                let deployment =
+                    arm {
+                        add_resources
+                            [
+                                vnet {
+                                    name "my-net"
+                                    add_address_spaces [ "10.100.0.0/20" ]
+
+                                    add_subnets
+                                        [
+                                            subnet {
+                                                name "net1"
+                                                prefix "10.100.0.0/24"
+                                            }
+                                        ]
+                                }
+                                dnsZone {
+                                    name "privnet.net"
+                                    zone_type Private
+
+                                    add_records
+                                        [
+                                            aRecord {
+                                                name "aName"
+                                                ttl 7200
+                                                add_ipv4_addresses [ "192.168.0.1" ]
+                                            }
+                                        ]
+                                }
+                                privateDnsZoneVirtualNetworkLink {
+                                    name "my-net-link"
+                                    registration_enabled true
+                                    private_dns_zone (Arm.Dns.privateZones.resourceId "privnet.net")
+                                    virtual_network_id (Arm.Network.virtualNetworks.resourceId "my-net")
+                                }
+                            ]
+                    }
+
+                let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+                let vnetLink = jobj.SelectToken("resources[?(@.name=='privnet.net/my-net-link')]")
+                Expect.isNotNull vnetLink "Incorrect name for vnet link"
+
+                Expect.equal
+                    (vnetLink.SelectToken("type"))
+                    (JValue "Microsoft.Network/privateDnsZones/virtualNetworkLinks")
+                    "Private DNS zone vnet link type is wrong"
+
+                Expect.hasLength
+                    (vnetLink.SelectToken("dependsOn"))
+                    2
+                    "Private DNS zone vnet link has wrong number of dependencies"
+
+                Expect.contains
+                    (vnetLink.SelectToken("dependsOn"))
+                    (JValue "[resourceId('Microsoft.Network/privateDnsZones', 'privnet.net')]")
+                    "Private DNS zone vnet link missing dependency on DNS zone"
+
+                Expect.contains
+                    (vnetLink.SelectToken("dependsOn"))
+                    (JValue "[resourceId('Microsoft.Network/virtualNetworks', 'my-net')]")
+                    "Private DNS zone vnet link missing dependency on vnet"
+
+                Expect.equal
+                    (vnetLink.SelectToken("properties.registrationEnabled"))
+                    (JValue true)
+                    "Private DNS zone vnet link automatic record registration should be enabled"
+
+                Expect.equal
+                    (vnetLink.SelectToken("properties.virtualNetwork.id"))
+                    (JValue "[resourceId('Microsoft.Network/virtualNetworks', 'my-net')]")
+                    "Private DNS zone vnet link vnet link is incorrect"
+            }
         ]

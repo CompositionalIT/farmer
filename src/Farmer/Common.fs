@@ -2083,18 +2083,22 @@ module Containers =
 
         /// Parses an image tag into a DockerImage record.
         static member Parse(tag: string) =
-            match tag.Split([| ':' |], StringSplitOptions.RemoveEmptyEntries) with
-            | [| repo; version |] ->
+            let firstColon = tag.IndexOf ':'
+
+            if firstColon >= 0 && firstColon < tag.Length then
+                let repo, version = tag.Substring(0, firstColon), tag.Substring(firstColon + 1)
+
                 match repo.Split([| '/' |], StringSplitOptions.RemoveEmptyEntries) |> List.ofArray with
                 | first :: rest when (first.Contains ".") ->
                     DockerImage.PrivateImage(first, (rest |> String.concat "/"), Version = Some version)
                 | _ -> DockerImage.PublicImage(repo, Version = Some version)
-            | [| repo |] ->
+            else
+                let repo = tag
+
                 match repo.Split([| '/' |], StringSplitOptions.RemoveEmptyEntries) |> List.ofArray with
                 | first :: rest when (first.Contains ".") ->
                     DockerImage.PrivateImage(first, (rest |> String.concat "/"), None)
                 | _ -> DockerImage.PublicImage(repo, None)
-            | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of version segments: '{tag}'"
 
 /// Credential for accessing an image registry.
 type ImageRegistryCredential =
