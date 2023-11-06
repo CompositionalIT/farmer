@@ -321,13 +321,15 @@ type VirtualMachineScaleSetBuilder() =
                 | NetworkInterface.AcceleratedNetworkingSupported -> ()
             | _ -> ()
         | None -> ()
-        
+
         // Using automatic repair policy requires the health extension.
         match state.AutomaticRepairsPolicy with
         | Some { Enabled = true; GracePeriod = _ } ->
             if
                 state.Extensions
-                |> List.exists (function | :? ApplicationHealthExtensionConfig -> true | _ -> false)
+                |> List.exists (function
+                    | :? ApplicationHealthExtensionConfig -> true
+                    | _ -> false)
                 |> not
             then
                 raiseFarmer "Enabling automatic repairs requires adding the application health extension."
