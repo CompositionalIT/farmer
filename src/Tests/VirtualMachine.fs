@@ -1178,4 +1178,65 @@ let tests =
                     "Standard disk name should match name from resourceId"
             }
 
+            test "Create VM with private IPv6 address" {
+                let deployment =
+                    arm {
+                        location Location.EastUS
+
+                        add_resources
+                            [
+                                vnet {
+                                    name "my-net"
+                                    add_address_spaces [ "10.100.200.0/24"; "fd0c:53d7:bb31::/48" ]
+
+                                    add_subnets
+                                        [
+                                            subnet {
+                                                name "dual-stack-subnet"
+                                                add_prefixes [ "10.100.200.0/24"; "fd0c:53d7:bb31::/64" ]
+                                            }
+                                        ]
+                                }
+                                vm {
+                                    name "my-vm"
+                                    username "azureuser"
+                                    vm_size Standard_B1s
+                                    no_data_disk
+                                    public_ip None
+                                    operating_system UbuntuServer_2204LTS
+                                    link_to_vnet "my-net"
+                                    subnet_name "dual-stack-subnet"
+
+                                    add_ip_configurations
+                                        [
+                                            ipConfig {
+                                                subnet_name (ResourceName "dual-stack-subnet")
+                                                ip_v6 // will use the IPv6 address space on ths subnet
+                                            }
+                                        ]
+                                }
+                            ]
+                    }
+
+                let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+                let nic = jobj.SelectToken("resources[?(@.name=='my-vm-nic')]")
+                let nicProps = nic.SelectToken("properties")
+
+                let firstSubnetIpConfigAddrVersion =
+                    nicProps.SelectToken("ipConfigurations[?(@.name=='ipconfig1')].properties.privateIPAddressVersion")
+
+                Expect.isNull
+                    firstSubnetIpConfigAddrVersion
+                    "First IpConfig should not have Address Version (defaults to IPv4)."
+
+                let secondSubnetIpConfigAddrVersion =
+                    nicProps.SelectToken("ipConfigurations[?(@.name=='ipconfig2')].properties.privateIPAddressVersion")
+
+                Expect.isNotNull secondSubnetIpConfigAddrVersion "Second IpConfig Address Version is null"
+
+                Expect.equal
+                    (secondSubnetIpConfigAddrVersion.ToString())
+                    "IPv6"
+                    "VM NIC second IP config should have IPv6 address version."
+            }
         ]

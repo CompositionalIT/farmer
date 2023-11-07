@@ -82,7 +82,7 @@ type FrontendIpConfig =
             {
                 Name = resId.Name
                 AllocationMethod = AllocationMethod.Static
-                AddressVersion = AddressVersion.IPv4
+                AddressVersion = Network.AddressVersion.IPv4
                 AvailabilityZone = None
                 Location = location
                 Sku = PublicIpAddress.Sku.Standard

@@ -5,7 +5,7 @@ open System.Net.Mail
 open Farmer
 open Farmer.Arm
 open Farmer.ExpressRoute
-open Farmer.PublicIpAddress
+open Farmer.Network
 open Farmer.Route
 open Farmer.RouteServer
 open Farmer.VirtualNetworkGateway
@@ -268,7 +268,7 @@ type PublicIpAddress =
         Location: Location
         Sku: PublicIpAddress.Sku
         AllocationMethod: PublicIpAddress.AllocationMethod
-        AddressVersion: PublicIpAddress.AddressVersion
+        AddressVersion: AddressVersion
         DomainNameLabel: string option
         Tags: Map<string, string>
     }
@@ -341,7 +341,7 @@ type SubnetDelegation =
 type Subnet =
     {
         Name: ResourceName
-        Prefix: string
+        Prefixes: string list
         VirtualNetwork: LinkedResource option
         NetworkSecurityGroup: LinkedResource option
         Delegations: SubnetDelegation list
@@ -354,8 +354,15 @@ type Subnet =
     }
 
     member internal this.JsonModelProperties =
+        // Either emit 'addressPrefix' if only one or 'addressPrefixes' if there are multiple.
+        let singlePrefix, multiplePrefixes =
+            match this.Prefixes with
+            | [ single ] -> single, null
+            | multiple -> null, multiple |> List.toSeq
+
         {|
-            addressPrefix = this.Prefix
+            addressPrefix = singlePrefix
+            addressPrefixes = multiplePrefixes
             natGateway =
                 this.NatGateway
                 |> Option.map LinkedResource.AsIdObject
@@ -667,7 +674,8 @@ type IpConfiguration =
         SubnetName: ResourceName
         PublicIpAddress: LinkedResource option
         LoadBalancerBackendAddressPools: LinkedResource list
-        PrivateIpAllocation: PrivateIpAddress.AllocationMethod option
+        PrivateIpAllocation: AllocationMethod option
+        PrivateIpAddressVersion: AddressVersion
         Primary: bool option
     }
 
@@ -711,6 +719,10 @@ type IpConfiguration with
                             |> List.map (fun lr -> lr.ResourceId |> ResourceId.AsIdObject)
                             |> box
                     primary = ipConfig.Primary |> Option.map box |> Option.toObj
+                    privateIPAddressVersion =
+                        match ipConfig.PrivateIpAddressVersion with
+                        | IPv6 -> ipConfig.PrivateIpAddressVersion.ArmValue
+                        | _ -> null // Don't include if IPv4 since this is the default (backwards compatibility)
                     privateIPAllocationMethod = if includeAllocationMethod then allocationMethod else null
                     privateIPAddress = ip
                     publicIPAddress =

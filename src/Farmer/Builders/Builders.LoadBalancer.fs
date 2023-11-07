@@ -6,6 +6,7 @@ open Farmer
 open Farmer.Arm.LoadBalancer
 open Farmer.Arm.Network
 open Farmer.LoadBalancer
+open Farmer.Network
 open Farmer.PublicIpAddress
 
 type FrontendIpConfig =

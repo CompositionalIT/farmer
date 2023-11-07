@@ -24,7 +24,7 @@ type NatGatewayConfig =
                     Location = location
                     Sku = Sku.Standard
                     AllocationMethod = AllocationMethod.Static
-                    AddressVersion = AddressVersion.IPv4
+                    AddressVersion = Network.AddressVersion.IPv4
                     DomainNameLabel = None
                     Tags = this.Tags
                 }

@@ -4,8 +4,7 @@ module Farmer.Builders.VirtualMachine
 open Farmer
 open Farmer.Arm
 open Farmer.FeatureFlag
-open Farmer.PublicIpAddress
-open Farmer.PrivateIpAddress
+open Farmer.Network
 open Farmer.Vm
 open Farmer.Helpers
 open Farmer.Arm.Compute
@@ -88,6 +87,7 @@ type VmConfig =
             LoadBalancerBackendAddressPools = this.LoadBalancerBackendAddressPools
             PublicIpAddress = this.PublicIp |> Option.map (fun x -> x.toLinkedResource this)
             PrivateIpAllocation = this.PrivateIpAllocation
+            PrivateIpAddressVersion = AddressVersion.IPv4 // Must have have an IPv4 IP config on the primary.
             Primary = if this.IpConfigs.Length > 0 then Some true else None
         }
         :: this.IpConfigs
@@ -151,7 +151,7 @@ type VmConfig =
                     [
                         {
                             Name = subnetId.Name
-                            Prefix = this.SubnetPrefix
+                            Prefixes = [ this.SubnetPrefix ]
                             VirtualNetwork = Some(Managed vnet)
                             NetworkSecurityGroup = nsgId |> Option.map Managed
                             Delegations = []
@@ -873,11 +873,23 @@ type IpConfigBuilder() =
             PublicIpAddress = None
             LoadBalancerBackendAddressPools = []
             PrivateIpAllocation = None
+            PrivateIpAddressVersion = IPv4
             Primary = None
+        }
+
+    [<CustomOperation "ip_v6">]
+    member _.IpV6(state: IpConfiguration) =
+        { state with
+            PrivateIpAddressVersion = IPv6
         }
 
     [<CustomOperation "subnet_name">]
     member _.SubnetName(state: IpConfiguration, name: ResourceName) = { state with SubnetName = name }
+
+    member _.SubnetName(state: IpConfiguration, name: string) =
+        { state with
+            SubnetName = ResourceName name
+        }
 
     [<CustomOperation "public_ip">]
     member _.PublicIp(state: IpConfiguration, ref: LinkedResource) =

@@ -22,7 +22,7 @@ type LoadBalancer =
         Sku: LoadBalancerSku
         FrontendIpConfigs: {| Name: ResourceName
                               PrivateIpAllocationMethod: PrivateIpAddress.AllocationMethod
-                              AddressVersion: AddressVersion
+                              AddressVersion: Network.AddressVersion
                               PublicIp: ResourceId option
                               Subnet: ResourceId option |} list
         BackendAddressPools: ResourceName list

@@ -3,7 +3,9 @@ Release Notes
 
 ## vNext
 * Load Balancer: Generate an IPv6 public IP address using the `ip_v6` option.
-* Virtual Machine Scale Sets: Support for VM Scale Sets. for 
+* Virtual Machine Scale Sets: Support for VM Scale Sets.
+* Subnets: Support for multiple prefixes as needed for dual-stack IPv6 and IPv4.
+* Virtual Machines: Support for adding an additional 'ip_v6' IP configuration.
 
 ## 1.7.31
 * Subnets: Support for `depends_on` when defining standalone subnets.

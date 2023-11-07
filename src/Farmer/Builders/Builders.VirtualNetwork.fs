@@ -14,7 +14,7 @@ type PeeringMode =
 type SubnetConfig =
     {
         Name: ResourceName
-        Prefix: IPAddressCidr
+        Prefixes: IPAddressCidr list
         VirtualNetwork: LinkedResource option
         NetworkSecurityGroup: LinkedResource option
         Delegations: SubnetDelegationService list
@@ -29,7 +29,7 @@ type SubnetConfig =
     member internal this.AsSubnetResource =
         {
             Name = this.Name
-            Prefix = IPAddressCidr.format this.Prefix
+            Prefixes = this.Prefixes |> List.map IPAddressCidr.format
             VirtualNetwork = this.VirtualNetwork
             NetworkSecurityGroup = this.NetworkSecurityGroup
             Delegations =
@@ -61,11 +61,7 @@ type SubnetBuilder() =
     member _.Yield _ =
         {
             Name = ResourceName.Empty
-            Prefix =
-                {
-                    Address = System.Net.IPAddress.Parse("10.100.0.0")
-                    Prefix = 16
-                }
+            Prefixes = []
             VirtualNetwork = None
             NetworkSecurityGroup = None
             Delegations = []
@@ -77,6 +73,11 @@ type SubnetBuilder() =
             Dependencies = Set.empty
         }
 
+    member this.Run state =
+        match state.Prefixes with
+        | [] -> this.AddPrefixes(state, [ "10.100.0.0/16" ])
+        | _ -> state
+
     /// Sets the name of the subnet
     [<CustomOperation "name">]
     member _.Name(state: SubnetConfig, name) = { state with Name = ResourceName name }
@@ -84,8 +85,20 @@ type SubnetBuilder() =
     /// Sets the network prefix in CIDR notation
     [<CustomOperation "prefix">]
     member _.Prefix(state: SubnetConfig, prefix) =
+        let prefix = IPAddressCidr.parse prefix
+
+        if state.Prefixes |> List.contains prefix then
+            state
+        else
+            { state with
+                Prefixes = prefix :: state.Prefixes
+            }
+
+    /// Sets the network prefix in CIDR notation
+    [<CustomOperation "add_prefixes">]
+    member _.AddPrefixes(state: SubnetConfig, prefixes: string list) =
         { state with
-            Prefix = IPAddressCidr.parse prefix
+            Prefixes = (prefixes |> List.map IPAddressCidr.parse) @ state.Prefixes
         }
 
     [<CustomOperation "nat_gateway">]
@@ -665,7 +678,7 @@ type VirtualNetworkBuilder() =
                           cidr) ->
                         {
                             Name = ResourceName name
-                            Prefix = cidr
+                            Prefixes = [ cidr ]
                             VirtualNetwork = Some(Managed(virtualNetworks.resourceId state.Name))
                             NetworkSecurityGroup = nsg
                             Delegations = delegations

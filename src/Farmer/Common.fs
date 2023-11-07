@@ -2895,6 +2895,16 @@ module DataLake =
         | Commitment_5PB
 
 module Network =
+
+    type AddressVersion =
+        | IPv4
+        | IPv6
+
+        member this.ArmValue =
+            match this with
+            | IPv4 -> "IPv4"
+            | IPv6 -> "IPv6"
+
     type SubnetDelegationService =
         | SubnetDelegationService of string
 
@@ -3066,15 +3076,6 @@ module PublicIpAddress =
             match this with
             | Dynamic -> "Dynamic"
             | Static -> "Static"
-
-    type AddressVersion =
-        | IPv4
-        | IPv6
-
-        member this.ArmValue =
-            match this with
-            | IPv4 -> "IPv4"
-            | IPv6 -> "IPv6"
 
     type Sku =
         | Basic
