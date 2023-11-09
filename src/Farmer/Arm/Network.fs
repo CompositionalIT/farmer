@@ -672,6 +672,7 @@ type Connection =
 type IpConfiguration =
     {
         SubnetName: ResourceName
+        ApplicationSecurityGroups: LinkedResource list
         PublicIpAddress: LinkedResource option
         LoadBalancerBackendAddressPools: LinkedResource list
         PrivateIpAllocation: AllocationMethod option
@@ -711,6 +712,10 @@ type IpConfiguration with
                     | _ -> "Dynamic", null
 
                 {|
+                    applicationSecurityGroups =
+                        match ipConfig.ApplicationSecurityGroups with
+                        | [] -> null
+                        | asgs -> asgs |> List.map LinkedResource.AsIdObject |> Seq.ofList
                     loadBalancerBackendAddressPools =
                         match ipConfig.LoadBalancerBackendAddressPools with
                         | [] -> null // Don't emit the field if there are none set.
@@ -770,6 +775,11 @@ type NetworkInterface =
                         match config.PublicIpAddress with
                         | Some ipName -> ipName.ResourceId
                         | _ -> ()
+
+                        for linkedResource in config.ApplicationSecurityGroups do
+                            match linkedResource with
+                            | Managed resId -> resId
+                            | _ -> ()
 
                         for linkedResource in config.LoadBalancerBackendAddressPools do
                             match linkedResource with

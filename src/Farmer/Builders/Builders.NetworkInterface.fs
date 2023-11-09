@@ -41,6 +41,7 @@ type NetworkInterfaceConfig =
                         [
                             {
                                 SubnetName = subnet.Name
+                                ApplicationSecurityGroups = []
                                 LoadBalancerBackendAddressPools = []
                                 PublicIpAddress = None
                                 PrivateIpAllocation = Some(this.PrivateIpAddress)
@@ -86,6 +87,7 @@ type NetworkInterfaceConfig =
                             [
                                 {
                                     SubnetName = ResourceName subnetName
+                                    ApplicationSecurityGroups = []
                                     LoadBalancerBackendAddressPools = []
                                     PublicIpAddress = None
                                     PrivateIpAllocation = Some(this.PrivateIpAddress)
