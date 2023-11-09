@@ -2974,15 +2974,17 @@ module NetworkSecurity =
         let ArmValue (port: Port) = port.ArmValue
 
     type Endpoint =
+        | ApplicationSecurityGroup of LinkedResource
         | Host of Net.IPAddress
         | Network of IPAddressCidr
         | Tag of string
         | AnyEndpoint
 
-        member this.ArmValue =
+        member this.ArmValue: obj =
             match this with
+            | ApplicationSecurityGroup asgId -> LinkedResource.AsIdObject asgId |> box
             | Host ip -> string ip
-            | Network cidr -> cidr |> IPAddressCidr.format
+            | Network cidr -> cidr |> IPAddressCidr.format |> box
             | Tag tag -> tag
             | AnyEndpoint -> "*"
 

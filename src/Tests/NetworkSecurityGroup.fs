@@ -9,6 +9,7 @@ open Microsoft.Azure.Management.Network
 open Microsoft.Azure.Management.Network.Models
 open Microsoft.Rest
 open System
+open Newtonsoft.Json.Linq
 
 let client =
     new NetworkManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
@@ -23,6 +24,7 @@ let tests =
                         {
                             Name = ResourceName "my-nsg"
                             Location = Location.WestEurope
+                            Dependencies = Set.empty
                             SecurityRules = []
                             Tags = Map.empty
                         }
@@ -39,6 +41,7 @@ let tests =
                         {
                             Name = ResourceName "my-nsg"
                             Location = Location.WestEurope
+                            Dependencies = Set.empty
                             SecurityRules = []
                             Tags = Map.empty
                         }
@@ -50,10 +53,12 @@ let tests =
                                 Some(sprintf "Rule created on %s" (DateTimeOffset.Now.Date.ToShortDateString()))
                             SecurityGroup = Managed (nsg :> IArmResource).ResourceId
                             Protocol = TCP
-                            SourcePorts = Set [ AnyPort ]
-                            DestinationPorts = Set [ Port 80us; Port 443us ]
                             SourceAddresses = [ AnyEndpoint ]
+                            SourceApplicationSecurityGroups = []
+                            SourcePorts = Set [ AnyPort ]
                             DestinationAddresses = [ Network(IPAddressCidr.parse "10.100.30.0/24") ]
+                            DestinationApplicationSecurityGroups = []
+                            DestinationPorts = Set [ Port 80us; Port 443us ]
                             Access = Allow
                             Direction = Inbound
                             Priority = 100
@@ -283,4 +288,119 @@ let tests =
                 Expect.equal rule.SourcePortRanges.Count 0 ""
             }
 
+            test "Add application security group to NSG and VMs" {
+                let appServersSecGrp = applicationSecurityGroup { name "app-servers" }
+                let dbServersSecGrp = applicationSecurityGroup { name "db-servers" }
+
+                let myNsg =
+                    nsg {
+                        name "my-nsg"
+
+                        add_rules
+                            [
+                                securityRule {
+                                    name "apps-to-dbs"
+                                    add_source_application_security_group TCP appServersSecGrp
+                                    add_destination_application_security_group dbServersSecGrp
+                                    services [ NetworkService("postgres", Port 5432us) ]
+                                }
+                                securityRule {
+                                    name "deny-everything-else"
+                                    add_source_any AnyProtocol
+                                    add_destination_any
+                                    deny_traffic
+                                }
+                            ]
+                    }
+
+                let myVnet =
+                    vnet {
+                        name "network"
+                        add_address_spaces [ "10.100.0.0/20" ]
+
+                        add_subnets
+                            [
+                                subnet {
+                                    name "vms"
+                                    prefix "10.100.4.0/24"
+                                    network_security_group myNsg
+                                }
+                            ]
+                    }
+
+                let deployment =
+                    arm {
+                        add_resources
+                            [
+                                appServersSecGrp
+                                dbServersSecGrp
+                                myNsg
+                                myVnet
+                                vm {
+                                    name "appSvr"
+                                    vm_size Vm.Standard_B1s
+                                    operating_system Vm.UbuntuServer_2204LTS
+                                    username "azureuser"
+                                    link_to_vnet myVnet
+                                    subnet_name "vms"
+                                    add_application_security_groups [ appServersSecGrp ]
+                                }
+                                vm {
+                                    name "dbSvr"
+                                    vm_size Vm.Standard_B1s
+                                    add_application_security_groups [ dbServersSecGrp ]
+                                    username "azureuser"
+                                    link_to_vnet myVnet
+                                    subnet_name "vms"
+                                    operating_system Vm.UbuntuServer_2204LTS
+                                }
+                            ]
+                    }
+
+                let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+
+                let asgs =
+                    jobj.SelectTokens "resources[?(@.type=='Microsoft.Network/applicationSecurityGroups')]"
+
+                Expect.hasLength asgs 2 "Wrong number of application security groups generated"
+
+                Expect.containsAll
+                    (asgs |> Seq.map (fun asg -> string asg.["name"]))
+                    [ "db-servers"; "app-servers" ]
+                    "Missing db-servers ASG"
+
+                let nsg =
+                    jobj.SelectToken "resources[?(@.type=='Microsoft.Network/networkSecurityGroups')]"
+
+                Expect.containsAll
+                    (nsg.["dependsOn"] |> Seq.map string)
+                    [
+                        "[resourceId('Microsoft.Network/applicationSecurityGroups', 'app-servers')]"
+                        "[resourceId('Microsoft.Network/applicationSecurityGroups', 'db-servers')]"
+                    ]
+                    "NSG should depend on both ASGs"
+
+                let nics =
+                    jobj.SelectTokens "resources[?(@.type=='Microsoft.Network/networkInterfaces')]"
+
+                Expect.hasLength nics 2 "Incorrect number of VM NICs"
+
+                for nic in nics do
+                    let nicAsgs =
+                        nic.SelectTokens("properties.ipConfigurations[*].properties.applicationSecurityGroups[*].id")
+
+                    Expect.hasLength nicAsgs 1 $"Wrong number of NIC ASGs on NIC: {nic}"
+
+                    if (nic[ "name" ].ToString()) = "appSvr-nic" then
+                        Expect.contains
+                            (nicAsgs |> Seq.map string)
+                            "[resourceId('Microsoft.Network/applicationSecurityGroups', 'app-servers')]"
+                            "appSvr-nic should have 'app-servers' ASG"
+
+                    if (nic[ "name" ].ToString()) = "dbSvr-nic" then
+                        Expect.contains
+                            (nicAsgs |> Seq.map string)
+                            "[resourceId('Microsoft.Network/applicationSecurityGroups', 'db-servers')]"
+                            "dbSvr-nic should have 'db-servers' ASG"
+            }
         ]

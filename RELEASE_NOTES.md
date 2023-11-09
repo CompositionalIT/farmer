@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+## 1.7.32
+* Network Security Groups: Support for [application security groups](https://learn.microsoft.com/azure/virtual-network/application-security-groups).
+* Virtual Machines: Assign VM to an application security group.
+
 ## 1.7.31
 * Subnets: Support for `depends_on` when defining standalone subnets.
 
