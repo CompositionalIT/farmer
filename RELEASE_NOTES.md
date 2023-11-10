@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-## 1.7.32
+## 1.8.0
 * Load Balancer: Generate an IPv6 public IP address using the `ip_v6` option.
 * Network Security Groups: Support for [application security groups](https://learn.microsoft.com/azure/virtual-network/application-security-groups).
 * Subnets: Support for multiple prefixes as needed for dual-stack IPv6 and IPv4.
