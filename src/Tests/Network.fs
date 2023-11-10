@@ -400,6 +400,65 @@ let tests =
                 Expect.equal foundPeerings.[0].AllowGatewayTransit (Nullable true) "incorrect transit"
                 Expect.equal foundPeerings.[0].UseRemoteGateways (Nullable false) "incorrect gateway"
             }
+            test "Two VNets with one-directional peering advanced settings" {
+                let vnet1 =
+                    vnet {
+                        name "vnet1"
+                        add_address_spaces [ "10.100.50.0/24"; "10.100.255.0/24" ]
+
+                        add_subnets
+                            [
+                                subnet {
+                                    name "net1-1"
+                                    prefix "10.100.50.0/28"
+                                }
+                                subnet {
+                                    name "GatewaySubnet"
+                                    prefix "10.100.255.0/24"
+                                }
+                            ]
+                    }
+
+                let vnetGateway =
+                    gateway {
+                        name "vnet1-gw"
+                        vnet vnet1
+                    }
+
+                let vnet2 =
+                    vnet {
+                        name "vnet2"
+
+                        add_peering (
+                            vnetPeering {
+                                remote_vnet vnet1
+                                direction OneWayToRemote
+                                access AccessOnly
+                                transit UseRemoteGateway
+                                do_not_verify_remote_gateways true
+                                peering_state PeeringState.Initiated
+                                peering_sync_level PeeringSyncLevel.RemoteNotInSync
+                                add_remote_address_space_prefixes [ "192.168.50.0/24" ]
+                                add_remote_vnet_address_space_prefixes [ "10.100.200.0/24" ]
+                                depends_on vnetGateway
+                            }
+                        )
+
+                        add_address_spaces [ "172.16.120.0/24" ]
+
+                        add_subnets
+                            [
+                                subnet {
+                                    name "net2-1"
+                                    prefix "172.16.120.0/28"
+                                }
+                            ]
+                    }
+
+                let deployment = arm { add_resources [ vnet1; vnetGateway; vnet2 ] }
+                let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+                Expect.isNull jobj "work in progress on this test"
+            }
             test "Automatically carved subnets with network security group support" {
                 let webPolicy =
                     securityRule {

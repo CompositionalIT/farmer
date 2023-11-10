@@ -3,7 +3,7 @@ module Farmer.Arm.Network
 
 open System.Net.Mail
 open Farmer
-open Farmer.Arm
+open Farmer.Network
 open Farmer.ExpressRoute
 open Farmer.Route
 open Farmer.RouteServer
@@ -33,10 +33,10 @@ let serviceEndpointPolicies =
     ResourceType("Microsoft.Network/serviceEndpointPolicies", "2020-07-01")
 
 let subnets =
-    ResourceType("Microsoft.Network/virtualNetworks/subnets", "2020-07-01")
+    ResourceType("Microsoft.Network/virtualNetworks/subnets", "2023-04-01")
 
 let virtualNetworks =
-    ResourceType("Microsoft.Network/virtualNetworks", "2020-07-01")
+    ResourceType("Microsoft.Network/virtualNetworks", "2023-04-01")
 
 let virtualNetworkGateways =
     ResourceType("Microsoft.Network/virtualNetworkGateways", "2020-05-01")
@@ -50,7 +50,7 @@ let privateEndpoints =
     ResourceType("Microsoft.Network/privateEndpoints", "2021-05-01")
 
 let virtualNetworkPeering =
-    ResourceType("Microsoft.Network/virtualNetworks/virtualNetworkPeerings", "2020-05-01")
+    ResourceType("Microsoft.Network/virtualNetworks/virtualNetworkPeerings", "2023-04-01")
 
 let routeTables = ResourceType("Microsoft.Network/routeTables", "2021-01-01")
 let routes = ResourceType("Microsoft.Network/routeTables/routes", "2021-01-01")
@@ -973,26 +973,31 @@ type PrivateEndpoint =
                     |}
             |}
 
-type GatewayTransit =
-    | UseRemoteGateway
-    | UseLocalGateway
-    | GatewayTransitDisabled
-
-type PeerAccess =
-    | AccessDenied
-    | AccessOnly
-    | ForwardOnly
-    | AccessAndForward
-
 type NetworkPeering =
     {
         Location: Location
+        DoNotVerifyRemoteGateways: bool option
         OwningVNet: LinkedResource
+        PeeringState: PeeringState option
+        PeeringSyncLevel: PeeringSyncLevel option
         RemoteVNet: LinkedResource
         RemoteAccess: PeerAccess
+        RemoteAddressSpace: IPAddressCidr list
+        RemoteVirtualNetworkAddressSpace: IPAddressCidr list
         GatewayTransit: GatewayTransit
         DependsOn: ResourceId Set
     }
+
+    /// Emits the prefix list in the addressPrefixes field if there are any, but empty list will be null
+    /// so the serializer won't emit anything.
+    static member private prefixListArmJson(addressPrefixes: IPAddressCidr list) =
+        if addressPrefixes.IsEmpty then
+            null
+        else
+            box
+                {|
+                    addressPrefixes = addressPrefixes |> Seq.map IPAddressCidr.format
+                |}
 
     member this.Name = this.OwningVNet.Name / $"peering-%s{this.RemoteVNet.Name.Value}"
 
@@ -1014,11 +1019,6 @@ type NetworkPeering =
             {| virtualNetworkPeering.Create(this.Name, this.Location, deps) with
                 properties =
                     {|
-                        allowVirtualNetworkAccess =
-                            match this.RemoteAccess with
-                            | AccessOnly
-                            | AccessAndForward -> true
-                            | _ -> false
                         allowForwardedTraffic =
                             match this.RemoteAccess with
                             | ForwardOnly
@@ -1029,10 +1029,22 @@ type NetworkPeering =
                             | UseLocalGateway
                             | UseRemoteGateway -> true
                             | _ -> false
-                        useRemoteGateways =
-                            match this.GatewayTransit with
-                            | UseRemoteGateway -> true
+                        allowVirtualNetworkAccess =
+                            match this.RemoteAccess with
+                            | AccessOnly
+                            | AccessAndForward -> true
                             | _ -> false
+                        doNotVerifyRemoteGateways =
+                            this.DoNotVerifyRemoteGateways |> Option.map box |> Option.defaultValue null
+                        peeringState =
+                            this.PeeringState
+                            |> Option.map (fun p -> p.ArmValue)
+                            |> Option.defaultValue null
+                        peeringSyncLevel =
+                            this.PeeringSyncLevel
+                            |> Option.map (fun p -> p.ArmValue)
+                            |> Option.defaultValue null
+                        remoteAddressSpace = this.RemoteAddressSpace |> NetworkPeering.prefixListArmJson
                         remoteVirtualNetwork =
                             {|
                                 id =
@@ -1040,6 +1052,11 @@ type NetworkPeering =
                                     | Managed id
                                     | Unmanaged id -> id.ArmExpression.Eval()
                             |}
+                        remoteVirtualNetworkAddressSpace = this.RemoteAddressSpace |> NetworkPeering.prefixListArmJson
+                        useRemoteGateways =
+                            match this.GatewayTransit with
+                            | UseRemoteGateway -> true
+                            | _ -> false
                     |}
             |}
 

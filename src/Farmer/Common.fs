@@ -2914,6 +2914,40 @@ module Network =
         /// Microsoft.Web
         static member Web = EndpointServiceType "Microsoft.Web"
 
+    type GatewayTransit =
+        | UseRemoteGateway
+        | UseLocalGateway
+        | GatewayTransitDisabled
+
+    type PeerAccess =
+        | AccessDenied
+        | AccessOnly
+        | ForwardOnly
+        | AccessAndForward
+
+    type PeeringState =
+        | Connected
+        | Disconnected
+        | Initiated
+
+        member this.ArmValue =
+            match this with
+            | Connected -> "Connected"
+            | Disconnected -> "Disconnected"
+            | Initiated -> "Initiated"
+
+    type PeeringSyncLevel =
+        | FullyInSync
+        | LocalAndRemoteNotInSync
+        | LocalNotInSync
+        | RemoteNotInSync
+
+        member this.ArmValue =
+            match this with
+            | FullyInSync -> "FullyInSync"
+            | LocalAndRemoteNotInSync -> "LocalAndRemoteNotInSync"
+            | LocalNotInSync -> "LocalNotInSync"
+            | RemoteNotInSync -> "RemoteNotInSync"
 
 module NetworkSecurity =
     type Operation =

@@ -6,11 +6,6 @@ open Farmer.Builders
 open Farmer.Network
 open Farmer.Arm.Network
 
-type PeeringMode =
-    | TwoWay
-    | OneWayToRemote
-    | OneWayFromRemote
-
 type SubnetConfig =
     {
         Name: ResourceName
@@ -477,11 +472,21 @@ type AddressSpaceBuilder() =
 
 let addressSpace = AddressSpaceBuilder()
 
+type PeeringMode =
+    | TwoWay
+    | OneWayToRemote
+    | OneWayFromRemote
+
 type VNetPeeringSpec =
     {
         RemoteVNet: LinkedResource
+        DoNotVerifyRemoteGateways: bool option
         Direction: PeeringMode
         Access: PeerAccess
+        PeeringState: PeeringState option
+        PeeringSyncLevel: PeeringSyncLevel option
+        RemoteAddressSpace: IPAddressCidr list
+        RemoteVirtualNetworkAddressSpace: IPAddressCidr list
         Transit: GatewayTransit
         DependsOn: ResourceId Set
     }
@@ -514,40 +519,44 @@ type VirtualNetworkConfig =
                     Subnets = this.Subnets |> List.map (fun subnetConfig -> subnetConfig.AsSubnetResource)
                     Tags = this.Tags
                 }
-                for {
-                        RemoteVNet = remote
-                        Direction = direction
-                        Access = access
-                        Transit = transit
-                        DependsOn = deps
-                    } in this.Peers do
-                    match direction with
+                for peering in this.Peers do
+                    match peering.Direction with
                     | OneWayToRemote
                     | TwoWay ->
                         {
                             Location = location
+                            DoNotVerifyRemoteGateways = None
                             OwningVNet = Managed this.ResourceId
-                            RemoteVNet = remote
-                            RemoteAccess = access
-                            GatewayTransit = transit
-                            DependsOn = deps
+                            PeeringState = peering.PeeringState
+                            PeeringSyncLevel = peering.PeeringSyncLevel
+                            RemoteVNet = peering.RemoteVNet
+                            RemoteAccess = peering.Access
+                            RemoteAddressSpace = peering.RemoteAddressSpace
+                            RemoteVirtualNetworkAddressSpace = peering.RemoteVirtualNetworkAddressSpace
+                            GatewayTransit = peering.Transit
+                            DependsOn = peering.DependsOn
                         }
                     | _ -> ()
 
-                    match direction with
+                    match peering.Direction with
                     | OneWayFromRemote
                     | TwoWay ->
                         {
                             Location = location
-                            OwningVNet = remote
+                            DoNotVerifyRemoteGateways = None
+                            OwningVNet = peering.RemoteVNet
+                            PeeringState = peering.PeeringState
+                            PeeringSyncLevel = peering.PeeringSyncLevel
                             RemoteVNet = Managed this.ResourceId
-                            RemoteAccess = access
+                            RemoteAccess = peering.Access
+                            RemoteAddressSpace = peering.RemoteAddressSpace
+                            RemoteVirtualNetworkAddressSpace = peering.RemoteVirtualNetworkAddressSpace
                             GatewayTransit =
-                                match transit with
+                                match peering.Transit with
                                 | UseRemoteGateway -> UseLocalGateway
                                 | UseLocalGateway -> UseRemoteGateway
                                 | GatewayTransitDisabled -> GatewayTransitDisabled
-                            DependsOn = deps
+                            DependsOn = peering.DependsOn
                         }
                     | _ -> ()
             ]
@@ -594,6 +603,11 @@ type VirtualNetworkBuilder() =
                 Direction = direction
                 Access = AccessAndForward
                 Transit = GatewayTransitDisabled
+                DoNotVerifyRemoteGateways = None
+                PeeringState = None
+                PeeringSyncLevel = None
+                RemoteAddressSpace = []
+                RemoteVirtualNetworkAddressSpace = []
                 DependsOn = Set.empty
             }
 
@@ -700,6 +714,11 @@ type VNetPeeringSpecBuilder() =
             Direction = TwoWay
             Access = AccessAndForward
             Transit = GatewayTransitDisabled
+            DoNotVerifyRemoteGateways = None
+            PeeringState = None
+            PeeringSyncLevel = None
+            RemoteAddressSpace = []
+            RemoteVirtualNetworkAddressSpace = []
             DependsOn = Set.empty
         }
 
@@ -711,11 +730,51 @@ type VNetPeeringSpecBuilder() =
             RemoteVNet = Managed vnet.ResourceId
         }
 
+    [<CustomOperation "do_not_verify_remote_gateways">]
+    member _.DoNotVerifyRemoteGateways(state: VNetPeeringSpec, doNotVerify: bool) =
+        { state with
+            DoNotVerifyRemoteGateways = Some doNotVerify
+        }
+
     [<CustomOperation "direction">]
     member _.Mode(state: VNetPeeringSpec, direction) = { state with Direction = direction }
 
     [<CustomOperation "access">]
     member _.Access(state: VNetPeeringSpec, access) = { state with Access = access }
+
+    [<CustomOperation "peering_state">]
+    member _.PeeringState(state: VNetPeeringSpec, peeringState: PeeringState) =
+        { state with
+            PeeringState = Some peeringState
+        }
+
+    [<CustomOperation "peering_sync_level">]
+    member _.PeeringSyncLevel(state: VNetPeeringSpec, peeringSyncLevel: PeeringSyncLevel) =
+        { state with
+            PeeringSyncLevel = Some peeringSyncLevel
+        }
+
+    [<CustomOperation "add_remote_address_space_prefixes">]
+    member _.AddRemoteAddressSpacePrefixes(state: VNetPeeringSpec, remoteAddressSpacePrefixes: IPAddressCidr list) =
+        { state with
+            RemoteAddressSpace = state.RemoteAddressSpace @ remoteAddressSpacePrefixes
+        }
+
+    member this.AddRemoteAddressSpacePrefixes(state: VNetPeeringSpec, remoteAddressSpacePrefixes: string list) =
+        this.AddRemoteAddressSpacePrefixes(state, remoteAddressSpacePrefixes |> List.map IPAddressCidr.parse)
+
+    [<CustomOperation "add_remote_vnet_address_space_prefixes">]
+    member _.AddRemoteVnetAddressSpacePrefixes
+        (
+            state: VNetPeeringSpec,
+            remoteVnetAddressSpacePrefixes: IPAddressCidr list
+        ) =
+        { state with
+            RemoteAddressSpace = state.RemoteVirtualNetworkAddressSpace @ remoteVnetAddressSpacePrefixes
+        }
+
+    member this.AddRemoteVnetAddressSpacePrefixes(state: VNetPeeringSpec, remoteVnetAddressSpacePrefixes: string list) =
+        this.AddRemoteVnetAddressSpacePrefixes(state, remoteVnetAddressSpacePrefixes |> List.map IPAddressCidr.parse)
 
     [<CustomOperation "transit">]
     member _.GatewayTransit(state: VNetPeeringSpec, transit) = { state with Transit = transit }
