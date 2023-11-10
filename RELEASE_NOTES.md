@@ -2,7 +2,11 @@ Release Notes
 =============
 
 ## 1.7.32
+* Load Balancer: Generate an IPv6 public IP address using the `ip_v6` option.
 * Network Security Groups: Support for [application security groups](https://learn.microsoft.com/azure/virtual-network/application-security-groups).
+* Subnets: Support for multiple prefixes as needed for dual-stack IPv6 and IPv4.
+* Virtual Machine Scale Sets: Support for VM Scale Sets.
+* Virtual Machines: Support for adding an additional 'ip_v6' IP configuration.
 * Virtual Machines: Assign VM to an application security group.
 
 ## 1.7.31

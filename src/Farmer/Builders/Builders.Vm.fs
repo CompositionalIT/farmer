@@ -4,8 +4,7 @@ module Farmer.Builders.VirtualMachine
 open Farmer
 open Farmer.Arm
 open Farmer.FeatureFlag
-open Farmer.PublicIpAddress
-open Farmer.PrivateIpAddress
+open Farmer.Network
 open Farmer.Vm
 open Farmer.Helpers
 open Farmer.Arm.Compute
@@ -20,6 +19,7 @@ let makeName (vmName: ResourceName) elementType =
 type VmConfig =
     {
         Name: ResourceName
+        Dependencies: ResourceId Set
         AvailabilityZone: string option
         DiagnosticsEnabled: bool option
         DiagnosticsStorageAccount: ResourceRef<VmConfig> option
@@ -80,7 +80,7 @@ type VmConfig =
     member this.PasswordParameterArm =
         this.PasswordParameter |> Option.defaultValue $"password-for-{this.Name.Value}"
 
-    member private this.buildIpConfigs() =
+    member internal this.buildIpConfigs() =
         let subnetId = this.Subnet.resourceId this
 
         { // Always has at least one IP config.
@@ -89,6 +89,7 @@ type VmConfig =
             LoadBalancerBackendAddressPools = this.LoadBalancerBackendAddressPools
             PublicIpAddress = this.PublicIp |> Option.map (fun x -> x.toLinkedResource this)
             PrivateIpAllocation = this.PrivateIpAllocation
+            PrivateIpAddressVersion = AddressVersion.IPv4 // Must have have an IPv4 IP config on the primary.
             Primary = if this.IpConfigs.Length > 0 then Some true else None
         }
         :: this.IpConfigs
@@ -137,6 +138,39 @@ type VmConfig =
                 Tags = this.Tags
             })
 
+    /// Builds a VNet resource if the VNet is a DeployableResource.
+    member internal this.BuildVNet(location, nsgId) =
+        // VNET
+        match this.VNet with
+        | DeployableResource this vnet ->
+            let subnetId = this.Subnet.resourceId this
+
+            {
+                Name = this.VNet.resourceId(this).Name
+                Location = location
+                AddressSpacePrefixes = [ this.AddressPrefix ]
+                Subnets =
+                    [
+                        {
+                            Name = subnetId.Name
+                            Prefixes = [ this.SubnetPrefix ]
+                            VirtualNetwork = Some(Managed vnet)
+                            NetworkSecurityGroup = nsgId |> Option.map Managed
+                            Delegations = []
+                            NatGateway = None
+                            ServiceEndpoints = []
+                            AssociatedServiceEndpointPolicies = []
+                            PrivateEndpointNetworkPolicies = None
+                            PrivateLinkServiceNetworkPolicies = None
+                            Dependencies = Set.empty
+                        }
+                    ]
+                Tags = this.Tags
+            }
+            :> IArmResource
+            |> Some
+        | _ -> None
+
     interface IBuilder with
         member this.ResourceId = this.ResourceId
 
@@ -148,6 +182,7 @@ type VmConfig =
                 // VM itself
                 {
                     Name = this.Name
+                    Dependencies = this.Dependencies
                     AvailabilityZone = this.AvailabilityZone
                     Location = location
                     DiagnosticsEnabled = this.DiagnosticsEnabled
@@ -183,38 +218,11 @@ type VmConfig =
                     Tags = this.Tags
                 }
 
-                let subnetId = this.Subnet.resourceId this
-
                 // NICs
                 for nic in generatedNics do
                     nic
 
-                // VNET
-                match this.VNet with
-                | DeployableResource this vnet ->
-                    {
-                        Name = this.VNet.resourceId(this).Name
-                        Location = location
-                        AddressSpacePrefixes = [ this.AddressPrefix ]
-                        Subnets =
-                            [
-                                {
-                                    Name = subnetId.Name
-                                    Prefix = this.SubnetPrefix
-                                    VirtualNetwork = Some(Managed vnet)
-                                    NetworkSecurityGroup = nsgId |> Option.map (fun x -> Managed x)
-                                    Delegations = []
-                                    NatGateway = None
-                                    ServiceEndpoints = []
-                                    AssociatedServiceEndpointPolicies = []
-                                    PrivateEndpointNetworkPolicies = None
-                                    PrivateLinkServiceNetworkPolicies = None
-                                    Dependencies = Set.empty
-                                }
-                            ]
-                        Tags = this.Tags
-                    }
-                | _ -> ()
+                yield! this.BuildVNet(location, nsgId) |> Option.toList
 
                 // IP Address
                 match this.PublicIp with
@@ -227,6 +235,7 @@ type VmConfig =
                             | Some x -> x
                             | None when this.AvailabilityZone.IsSome -> PublicIpAddress.AllocationMethod.Static
                             | None -> PublicIpAddress.AllocationMethod.Dynamic
+                        AddressVersion = IPv4
                         Sku =
                             if this.AvailabilityZone.IsSome then
                                 PublicIpAddress.Sku.Standard
@@ -309,6 +318,7 @@ type VirtualMachineBuilder() =
     member _.Yield _ =
         {
             Name = ResourceName.Empty
+            Dependencies = Set.empty
             AvailabilityZone = None
             DiagnosticsEnabled = None
             DiagnosticsStorageAccount = None
@@ -682,12 +692,14 @@ type VirtualMachineBuilder() =
             LoadBalancerBackendAddressPools = Managed(backendResourceId) :: state.LoadBalancerBackendAddressPools
         }
 
-    member _.LinkToBackendAddressPool(state: VmConfig, backend: BackendAddressPoolConfig) =
-        { state with
-            LoadBalancerBackendAddressPools =
-                Managed((backend :> IBuilder).ResourceId)
-                :: state.LoadBalancerBackendAddressPools
-        }
+    member this.LinkToBackendAddressPool(state: VmConfig, backend: BackendAddressPoolConfig) =
+        this.LinkToExistingBackendAddressPool(state, (backend :> IBuilder).ResourceId)
+
+    member this.LinkToBackendAddressPool(state: VmConfig, backendPoolName: string) =
+        this.LinkToExistingBackendAddressPool(
+            state,
+            LoadBalancer.loadBalancerBackendAddressPools.resourceId backendPoolName
+        )
 
     /// Adds the VM network interface to an existing load balancer backend address pool.
     [<CustomOperation "link_to_unmanaged_backend_address_pool">]
@@ -695,6 +707,15 @@ type VirtualMachineBuilder() =
         { state with
             LoadBalancerBackendAddressPools = Unmanaged(backendResourceId) :: state.LoadBalancerBackendAddressPools
         }
+
+    member this.LinkToExistingBackendAddressPool(state: VmConfig, backendPoolName: string) =
+        this.LinkToExistingBackendAddressPool(
+            state,
+            LoadBalancer.loadBalancerBackendAddressPools.resourceId backendPoolName
+        )
+
+    member this.LinkToExistingBackendAddressPool(state: VmConfig, backend: BackendAddressPoolConfig) =
+        this.LinkToExistingBackendAddressPool(state, (backend :> IBuilder).ResourceId)
 
     [<CustomOperation "custom_script">]
     member _.CustomScript(state: VmConfig, script: string) =
@@ -735,6 +756,12 @@ type VirtualMachineBuilder() =
         member _.Add state updater =
             { state with
                 Identity = updater state.Identity
+            }
+
+    interface IDependable<VmConfig> with
+        member _.Add state newDeps =
+            { state with
+                Dependencies = state.Dependencies + newDeps
             }
 
     [<CustomOperation "custom_data">]
@@ -870,11 +897,23 @@ type IpConfigBuilder() =
             PublicIpAddress = None
             LoadBalancerBackendAddressPools = []
             PrivateIpAllocation = None
+            PrivateIpAddressVersion = IPv4
             Primary = None
+        }
+
+    [<CustomOperation "ip_v6">]
+    member _.IpV6(state: IpConfiguration) =
+        { state with
+            PrivateIpAddressVersion = IPv6
         }
 
     [<CustomOperation "subnet_name">]
     member _.SubnetName(state: IpConfiguration, name: ResourceName) = { state with SubnetName = name }
+
+    member _.SubnetName(state: IpConfiguration, name: string) =
+        { state with
+            SubnetName = ResourceName name
+        }
 
     [<CustomOperation "add_application_security_groups">]
     member _.AddApplicationSecurityGroups(state: IpConfiguration, asgIds: ResourceId list) =

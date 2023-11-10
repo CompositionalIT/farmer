@@ -69,6 +69,7 @@ type RouteServerConfig =
                     Location = location
                     Sku = PublicIpAddress.Sku.Standard
                     AllocationMethod = PublicIpAddress.AllocationMethod.Static
+                    AddressVersion = Network.AddressVersion.IPv4
                     DomainNameLabel = None
                     Tags = this.Tags
                 }
@@ -76,7 +77,7 @@ type RouteServerConfig =
                 //subnet
                 {
                     Subnet.Name = ResourceName "RouteServerSubnet"
-                    Prefix = IPAddressCidr.format this.SubnetPrefix
+                    Prefixes = [ IPAddressCidr.format this.SubnetPrefix ]
                     VirtualNetwork = Some(vnetId)
                     NetworkSecurityGroup = None
                     Delegations = []

@@ -1,6 +1,7 @@
 [<AutoOpen>]
 module Farmer.Builders.NetworkInterface
 
+open System.Net.Sockets
 open Farmer
 open Farmer.Arm
 open Farmer
@@ -19,6 +20,7 @@ type NetworkInterfaceConfig =
         SubnetPrefix: IPAddressCidr option
         LinkedSubnet: LinkedResource option
         PrivateIpAddress: AllocationMethod
+        PrivateIpAddressVersion: AddressVersion
         Tags: Map<string, string>
     }
 
@@ -43,6 +45,7 @@ type NetworkInterfaceConfig =
                                 LoadBalancerBackendAddressPools = []
                                 PublicIpAddress = None
                                 PrivateIpAllocation = Some(this.PrivateIpAddress)
+                                PrivateIpAddressVersion = this.PrivateIpAddressVersion
                                 Primary = this.IsPrimary
                             }
                         ]
@@ -67,7 +70,7 @@ type NetworkInterfaceConfig =
                         //subnet
                         {
                             Subnet.Name = ResourceName subnetName
-                            Prefix = IPAddressCidr.format subnetPrefix
+                            Prefixes = [ IPAddressCidr.format subnetPrefix ]
                             VirtualNetwork = Some(vnetId)
                             NetworkSecurityGroup = None
                             Delegations = []
@@ -88,6 +91,7 @@ type NetworkInterfaceConfig =
                                     LoadBalancerBackendAddressPools = []
                                     PublicIpAddress = None
                                     PrivateIpAllocation = Some(this.PrivateIpAddress)
+                                    PrivateIpAddressVersion = AddressVersion.IPv4
                                     Primary = this.IsPrimary
                                 }
                             ]
@@ -122,6 +126,7 @@ type NetworkInterfaceBuilder() =
             SubnetPrefix = None
             LinkedSubnet = None
             PrivateIpAddress = AllocationMethod.DynamicPrivateIp
+            PrivateIpAddressVersion = IPv4
             Tags = Map.empty
         }
 
@@ -132,6 +137,12 @@ type NetworkInterfaceBuilder() =
     member _.AcceleratedNetworkingflag(state: NetworkInterfaceConfig, flag: bool) =
         { state with
             AcceleratedNetworkingflag = Some(FeatureFlag.ofBool flag)
+        }
+
+    [<CustomOperation "ip_v6">]
+    member _.IpV6(state: NetworkInterfaceConfig) =
+        { state with
+            PrivateIpAddressVersion = IPv6
         }
 
     [<CustomOperation "ip_forwarding_flag">]
@@ -178,8 +189,14 @@ type NetworkInterfaceBuilder() =
 
     [<CustomOperation "add_static_ip">]
     member _.StaticIpAllocation(state: NetworkInterfaceConfig, addr) =
+        let ipAddress = System.Net.IPAddress.Parse addr
+
         { state with
-            PrivateIpAddress = AllocationMethod.StaticPrivateIp(System.Net.IPAddress.Parse addr)
+            PrivateIpAddress = AllocationMethod.StaticPrivateIp(ipAddress)
+            PrivateIpAddressVersion =
+                match ipAddress.AddressFamily with
+                | AddressFamily.InterNetworkV6 -> IPv6
+                | _ -> IPv4
         }
 
     interface ITaggable<NetworkInterfaceConfig> with

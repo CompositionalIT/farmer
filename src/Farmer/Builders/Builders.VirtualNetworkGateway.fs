@@ -50,6 +50,7 @@ type VNetGatewayConfig =
                         Name = ResourceName $"{this.Name.Value}-ip"
                         AvailabilityZone = None
                         AllocationMethod = AllocationMethod.Dynamic
+                        AddressVersion = Network.AddressVersion.IPv4
                         Location = location
                         Sku = PublicIpAddress.Sku.Basic
                         DomainNameLabel = None

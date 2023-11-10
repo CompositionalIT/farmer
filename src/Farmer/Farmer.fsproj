@@ -151,6 +151,7 @@
     <Compile Include="Builders/Builders.VirtualNetwork.fs" />
     <Compile Include="Builders\Builders.LoadBalancer.fs" />
     <Compile Include="Builders/Builders.Vm.fs" />
+    <Compile Include="Builders/Builders.VmScaleSet.fs" />
     <Compile Include="Builders/Builders.ServicePlan.fs" />
     <Compile Include="Builders\Builders.AvailabilityTest.fs" />
     <Compile Include="Builders/Builders.WebApp.fs" />

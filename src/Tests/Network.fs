@@ -35,13 +35,14 @@ let tests =
                 let myNet =
                     vnet {
                         name vnetName
-                        add_address_spaces [ "10.100.200.0/23" ]
+                        add_address_spaces [ "10.100.200.0/22" ]
 
                         add_subnets
                             [
                                 subnet {
                                     name webServerSubnet
                                     prefix "10.100.200.0/24"
+                                    add_prefixes [ "10.100.202.0/24" ]
                                 }
                                 subnet {
                                     name databaseSubnet
@@ -61,17 +62,17 @@ let tests =
 
                 Expect.equal builtVnet.Subnets.[0].Name webServerSubnet "Incorrect name for web server subnet"
 
-                Expect.equal
-                    builtVnet.Subnets.[0].AddressPrefix
-                    "10.100.200.0/24"
-                    "Incorrect prefix for web server subnet"
+                Expect.containsAll
+                    builtVnet.Subnets.[0].AddressPrefixes
+                    [ "10.100.200.0/24"; "10.100.202.0/24" ]
+                    "Incorrect prefix for web server subnet (multiple address prefixes)"
 
                 Expect.equal builtVnet.Subnets.[1].Name databaseSubnet "Incorrect name for database server subnet"
 
                 Expect.equal
                     builtVnet.Subnets.[1].AddressPrefix
                     "10.100.201.0/24"
-                    "Incorrect prefix for database server subnet"
+                    "Incorrect prefix for database server subnet (single address prefix)"
 
                 Expect.isNull
                     builtVnet.Subnets.[1].PrivateEndpointNetworkPolicies

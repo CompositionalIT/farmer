@@ -6,12 +6,14 @@ open Farmer
 open Farmer.Arm.LoadBalancer
 open Farmer.Arm.Network
 open Farmer.LoadBalancer
+open Farmer.Network
 open Farmer.PublicIpAddress
 
 type FrontendIpConfig =
     {
         Name: ResourceName
         PrivateIpAllocationMethod: PrivateIpAddress.AllocationMethod
+        AddressVersion: AddressVersion
         PublicIp: LinkedResource option
         Subnet: LinkedResource option
     }
@@ -20,13 +22,13 @@ type FrontendIpConfig =
         {|
             Name = frontend.Name
             PrivateIpAllocationMethod = frontend.PrivateIpAllocationMethod
+            AddressVersion = frontend.AddressVersion
             PublicIp = frontend.PublicIp |> Option.map (fun linkedRes -> linkedRes.ResourceId)
             Subnet = frontend.Subnet |> Option.map (fun linkedRes -> linkedRes.ResourceId)
         |}
 
     static member BuildIp
         (frontend: FrontendIpConfig)
-        (lbName: string)
         (lbSku: LoadBalancer.Sku)
         (location: Location)
         : PublicIpAddress option =
@@ -35,6 +37,7 @@ type FrontendIpConfig =
             {
                 Name = resId.Name
                 AllocationMethod = AllocationMethod.Static
+                AddressVersion = frontend.AddressVersion
                 AvailabilityZone = None
                 Location = location
                 Sku =
@@ -53,6 +56,7 @@ type FrontendIpBuilder() =
         {
             Name = ResourceName.Empty
             PrivateIpAllocationMethod = PrivateIpAddress.DynamicPrivateIp
+            AddressVersion = AddressVersion.IPv4
             PublicIp = None
             Subnet = None
         }
@@ -73,6 +77,12 @@ type FrontendIpBuilder() =
     member _.PublicIp(state: FrontendIpConfig, publicIp) =
         { state with
             PublicIp = Some(Managed(Farmer.Arm.Network.publicIPAddresses.resourceId (ResourceName publicIp)))
+        }
+
+    [<CustomOperation "ip_v6">]
+    member _.Ipv6(state: FrontendIpConfig) =
+        { state with
+            AddressVersion = AddressVersion.IPv6
         }
 
     /// Links the frontend to an existing public IP.
@@ -456,7 +466,7 @@ type LoadBalancerConfig =
         member this.BuildResources location =
             let frontendPublicIps =
                 this.FrontendIpConfigs
-                |> List.map (fun frontend -> FrontendIpConfig.BuildIp frontend this.Name.Value this.Sku.Name location)
+                |> List.map (fun frontend -> FrontendIpConfig.BuildIp frontend this.Sku.Name location)
                 |> List.choose id
 
             let backendPools =

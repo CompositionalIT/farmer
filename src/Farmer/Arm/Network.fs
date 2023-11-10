@@ -5,6 +5,7 @@ open System.Net.Mail
 open Farmer
 open Farmer.Arm
 open Farmer.ExpressRoute
+open Farmer.Network
 open Farmer.Route
 open Farmer.RouteServer
 open Farmer.VirtualNetworkGateway
@@ -19,6 +20,9 @@ let expressRouteCircuitAuthorizations =
 
 let networkInterfaces =
     ResourceType("Microsoft.Network/networkInterfaces", "2018-11-01")
+
+let networkInterfacesIpConfigurations =
+    ResourceType("Microsoft.Network/networkInterfaces/ipConfigurations", "2023-04-01")
 
 let networkProfiles =
     ResourceType("Microsoft.Network/networkProfiles", "2020-04-01")
@@ -264,6 +268,7 @@ type PublicIpAddress =
         Location: Location
         Sku: PublicIpAddress.Sku
         AllocationMethod: PublicIpAddress.AllocationMethod
+        AddressVersion: AddressVersion
         DomainNameLabel: string option
         Tags: Map<string, string>
     }
@@ -277,6 +282,10 @@ type PublicIpAddress =
                 properties =
                     {|
                         publicIPAllocationMethod = this.AllocationMethod.ArmValue
+                        publicIPAddressVersion =
+                            match this.AddressVersion with
+                            | AddressVersion.IPv4 -> null
+                            | AddressVersion.IPv6 -> this.AddressVersion.ArmValue
                         dnsSettings =
                             match this.DomainNameLabel with
                             | Some label -> box {| domainNameLabel = label.ToLower() |}
@@ -332,7 +341,7 @@ type SubnetDelegation =
 type Subnet =
     {
         Name: ResourceName
-        Prefix: string
+        Prefixes: string list
         VirtualNetwork: LinkedResource option
         NetworkSecurityGroup: LinkedResource option
         Delegations: SubnetDelegation list
@@ -345,8 +354,15 @@ type Subnet =
     }
 
     member internal this.JsonModelProperties =
+        // Either emit 'addressPrefix' if only one or 'addressPrefixes' if there are multiple.
+        let singlePrefix, multiplePrefixes =
+            match this.Prefixes with
+            | [ single ] -> single, null
+            | multiple -> null, multiple |> List.toSeq
+
         {|
-            addressPrefix = this.Prefix
+            addressPrefix = singlePrefix
+            addressPrefixes = multiplePrefixes
             natGateway =
                 this.NatGateway
                 |> Option.map LinkedResource.AsIdObject
@@ -659,7 +675,8 @@ type IpConfiguration =
         ApplicationSecurityGroups: LinkedResource list
         PublicIpAddress: LinkedResource option
         LoadBalancerBackendAddressPools: LinkedResource list
-        PrivateIpAllocation: PrivateIpAddress.AllocationMethod option
+        PrivateIpAllocation: AllocationMethod option
+        PrivateIpAddressVersion: AddressVersion
         Primary: bool option
     }
 
@@ -681,6 +698,56 @@ module NetworkInterface =
             | Standard_B4ms
             | Standard_B8ms -> AcceleratedNetworkingUnsupported // failwithf "Accelerated networking unsupported for specified VM size. Using '%s'." state.Size.ArmValue
             | _ -> AcceleratedNetworkingSupported
+
+type IpConfiguration with
+
+    /// Serializes to ARM JSON. When serializing for a NetworkInterfaceConfiguration, allocation method is not included.
+    member ipConfig.ToArmJson(index: int, vnetId: ResourceId, includeAllocationMethod: bool) =
+        {|
+            name = $"ipconfig{index + 1}"
+            properties =
+                let allocationMethod, ip =
+                    match ipConfig.PrivateIpAllocation with
+                    | Some (StaticPrivateIp ip) -> "Static", string ip
+                    | _ -> "Dynamic", null
+
+                {|
+                    applicationSecurityGroups =
+                        match ipConfig.ApplicationSecurityGroups with
+                        | [] -> null
+                        | asgs -> asgs |> List.map LinkedResource.AsIdObject |> Seq.ofList
+                    loadBalancerBackendAddressPools =
+                        match ipConfig.LoadBalancerBackendAddressPools with
+                        | [] -> null // Don't emit the field if there are none set.
+                        | backendPools ->
+                            backendPools
+                            |> List.map (fun lr -> lr.ResourceId |> ResourceId.AsIdObject)
+                            |> box
+                    primary = ipConfig.Primary |> Option.map box |> Option.toObj
+                    privateIPAddressVersion =
+                        match ipConfig.PrivateIpAddressVersion with
+                        | IPv6 -> ipConfig.PrivateIpAddressVersion.ArmValue
+                        | _ -> null // Don't include if IPv4 since this is the default (backwards compatibility)
+                    privateIPAllocationMethod = if includeAllocationMethod then allocationMethod else null
+                    privateIPAddress = ip
+                    publicIPAddress =
+                        ipConfig.PublicIpAddress
+                        |> Option.map (fun pip ->
+                            {|
+                                id = pip.ResourceId.ArmExpression.Eval()
+                            |})
+                        |> Option.defaultValue Unchecked.defaultof<_>
+                    subnet =
+                        {|
+                            id =
+                                { vnetId with
+                                    Type = subnets
+                                    Segments = [ ipConfig.SubnetName ]
+                                }
+                                    .Eval()
+                        |}
+                |}
+        |}
 
 type NetworkInterface =
     {
@@ -730,47 +797,7 @@ type NetworkInterface =
                     ipConfigurations =
                         this.IpConfigs
                         |> List.mapi (fun index ipConfig ->
-                            {|
-                                name = $"ipconfig{index + 1}"
-                                properties =
-                                    let allocationMethod, ip =
-                                        match ipConfig.PrivateIpAllocation with
-                                        | Some (StaticPrivateIp ip) -> "Static", string ip
-                                        | _ -> "Dynamic", null
-
-                                    {|
-                                        applicationSecurityGroups =
-                                            match ipConfig.ApplicationSecurityGroups with
-                                            | [] -> null
-                                            | asgs -> asgs |> List.map LinkedResource.AsIdObject |> Seq.ofList
-                                        loadBalancerBackendAddressPools =
-                                            match ipConfig.LoadBalancerBackendAddressPools with
-                                            | [] -> null // Don't emit the field if there are none set.
-                                            | backendPools ->
-                                                backendPools
-                                                |> List.map (fun lr -> lr.ResourceId |> ResourceId.AsIdObject)
-                                                |> box
-                                        primary = ipConfig.Primary |> Option.map box |> Option.toObj
-                                        privateIPAllocationMethod = allocationMethod
-                                        privateIPAddress = ip
-                                        publicIPAddress =
-                                            ipConfig.PublicIpAddress
-                                            |> Option.map (fun pip ->
-                                                {|
-                                                    id = pip.ResourceId.ArmExpression.Eval()
-                                                |})
-                                            |> Option.defaultValue Unchecked.defaultof<_>
-                                        subnet =
-                                            {|
-                                                id =
-                                                    { this.VirtualNetwork.ResourceId with
-                                                        Type = subnets
-                                                        Segments = [ ipConfig.SubnetName ]
-                                                    }
-                                                        .Eval()
-                                            |}
-                                    |}
-                            |})
+                            ipConfig.ToArmJson(index, this.VirtualNetwork.ResourceId, true))
                 |}
 
             match this.NetworkSecurityGroup with

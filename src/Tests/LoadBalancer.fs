@@ -7,6 +7,7 @@ open System
 open Farmer
 open Farmer.LoadBalancer
 open Farmer.Builders
+open Newtonsoft.Json.Linq
 
 let client =
     new NetworkManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
@@ -259,5 +260,30 @@ let tests =
                         nic.IpConfigs.[0].LoadBalancerBackendAddressPools.[0].ResourceId
                         "Backend ID didn't match"
                 | _ -> failwith "Only expecting two resources in the template."
+            }
+
+            test "Load balancer frontend with 'ip_v6' creates IPv6 Public IP Address" {
+                let lb =
+                    loadBalancer {
+                        name "lb"
+                        sku Sku.Standard
+
+                        add_frontends
+                            [
+                                frontend {
+                                    name "lb-frontend"
+                                    public_ip "lb-pip"
+                                    ip_v6
+                                }
+                            ]
+                    }
+
+                let deployment = arm { add_resource lb }
+                let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+
+                let frontendPublicIpAddressVersion =
+                    jobj.SelectToken("resources[?(@.name=='lb-pip')].properties.publicIPAddressVersion")
+
+                Expect.equal (frontendPublicIpAddressVersion.ToString()) "IPv6" "Public IP not generated as IPv6"
             }
         ]

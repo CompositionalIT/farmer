@@ -2,6 +2,7 @@ module Farmer.Arm.LoadBalancer
 
 open Farmer
 open Farmer.LoadBalancer
+open Farmer.PublicIpAddress
 
 let loadBalancers = ResourceType("Microsoft.Network/loadBalancers", "2020-11-01")
 
@@ -21,6 +22,7 @@ type LoadBalancer =
         Sku: LoadBalancerSku
         FrontendIpConfigs: {| Name: ResourceName
                               PrivateIpAllocationMethod: PrivateIpAddress.AllocationMethod
+                              AddressVersion: Network.AddressVersion
                               PublicIp: ResourceId option
                               Subnet: ResourceId option |} list
         BackendAddressPools: ResourceName list
