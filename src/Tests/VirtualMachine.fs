@@ -1239,4 +1239,45 @@ let tests =
                     "IPv6"
                     "VM NIC second IP config should have IPv6 address version."
             }
+            test "Provisions VM with gallery application" {
+                let deployment =
+                    arm {
+                        location Location.EastUS
+
+                        add_resources
+                            [
+                                vm {
+                                    name "my-vm"
+                                    vm_size Standard_B1s
+                                    operating_system UbuntuServer_2204LTS
+                                    username "azureuser"
+                                    diagnostics_support_managed
+
+                                    add_gallery_applications
+                                        [
+                                            vmGalleryApplication {
+                                                package_reference_id (
+                                                    Farmer.Arm.Gallery.galleryApplicationVersions.resourceId (
+                                                        ResourceName "farmer.app.gallery/some-data/1.0.1"
+                                                    )
+                                                )
+                                            }
+                                        ]
+                                }
+                            ]
+                    }
+
+                let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+                let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+                Expect.isNotNull vmProps "VM properties missing from template"
+                let appProfile = vmProps.SelectToken("applicationProfile")
+                Expect.isNotNull appProfile "VM missing applicationProfile"
+                let galleryApps = appProfile.SelectToken("galleryApplications")
+                Expect.hasLength galleryApps 1 "Should have one gallery application."
+
+                Expect.equal
+                    (galleryApps[ 0 ].SelectToken "packageReferenceId" |> string)
+                    "[resourceId('Microsoft.Compute/galleries/applications/versions', 'farmer.app.gallery', 'some-data', '1.0.1')]"
+                    "Missing on incorrect packageReferenceId"
+            }
         ]

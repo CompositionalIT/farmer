@@ -841,6 +841,16 @@ module Vm =
     let WindowsServer_2008R2SP1 = makeWindowsVm "2008-R2-SP1"
     let Windows10Pro = makeVm Windows "Windows-10" "MicrosoftWindowsDesktop" "20h2-pro"
 
+    type VmGalleryApplication =
+        {
+            ConfigurationReference: string option
+            EnableAutomaticUpgrade: bool option
+            Order: int option
+            PackageReferenceId: ResourceId
+            Tags: string option
+            TreatFailureAsDeploymentFailure: bool option
+        }
+
     /// The type of disk to use.
     type DiskType =
         | PremiumV2_LRS

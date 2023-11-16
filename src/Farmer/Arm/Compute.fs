@@ -10,7 +10,7 @@ open System.Text
 open Farmer.VmScaleSet
 
 let virtualMachines =
-    ResourceType("Microsoft.Compute/virtualMachines", "2020-06-01")
+    ResourceType("Microsoft.Compute/virtualMachines", "2023-03-01")
 
 let virtualMachineScaleSets =
     ResourceType("Microsoft.Compute/virtualMachineScaleSets", "2023-03-01")
@@ -225,6 +225,27 @@ module VirtualMachine =
         | Some priority -> priority.ArmValue
         | _ -> Unchecked.defaultof<_>
 
+    let applicationProfile (galleryApplications: VmGalleryApplication list) =
+        match galleryApplications with
+        | [] -> null
+        | galleryApps ->
+            {|
+                galleryApplications =
+                    galleryApps
+                    |> List.map (fun galleryApp ->
+                        {|
+                            configurationReference = galleryApp.ConfigurationReference |> Option.toObj
+                            enableAutomaticUpgrade =
+                                galleryApp.EnableAutomaticUpgrade |> (Option.map box >> Option.toObj)
+                            order = galleryApp.Order |> (Option.map box >> Option.toObj)
+                            packageReferenceId = galleryApp.PackageReferenceId.Eval()
+                            tags = galleryApp.Tags |> Option.toObj
+                            treatFailureAsDeploymentFailure =
+                                galleryApp.TreatFailureAsDeploymentFailure |> (Option.map box >> Option.toObj)
+                        |})
+            |}
+            |> box
+
     let osProfile
         (
             name: ResourceName,
@@ -412,6 +433,7 @@ type VirtualMachine =
                         Password: SecureParameter |}
         CustomData: string option
         DisablePasswordAuthentication: bool option
+        GalleryApplications: VmGalleryApplication list
         PublicKeys: (string * string) list option
         OsDisk: OsDiskCreateOption
         DataDisks: DataDiskCreateOption list
@@ -452,6 +474,7 @@ type VirtualMachine =
             let properties =
                 {|
                     additionalCapabilities = VirtualMachine.additionalCapabilities this.DataDisks
+                    applicationProfile = VirtualMachine.applicationProfile this.GalleryApplications
                     priority = VirtualMachine.priority this.Priority
                     hardwareProfile = {| vmSize = this.Size.ArmValue |}
                     osProfile =
@@ -543,6 +566,7 @@ type VirtualMachineScaleSet =
         CustomData: string option
         DisablePasswordAuthentication: bool option
         Extensions: IExtension list
+        GalleryApplications: VmGalleryApplication list
         PublicKeys: (string * string) list option
         OsDisk: OsDiskCreateOption
         DataDisks: DataDiskCreateOption list
@@ -597,6 +621,7 @@ type VirtualMachineScaleSet =
                         additionalCapabilities = VirtualMachine.additionalCapabilities this.DataDisks
                         virtualMachineProfile =
                             {|
+                                applicationProfile = VirtualMachine.applicationProfile this.GalleryApplications
                                 diagnosticsProfile = VirtualMachine.diagnosticsProfile (this.DiagnosticsEnabled, None)
                                 extensionProfile =
                                     if this.Extensions = [] then
