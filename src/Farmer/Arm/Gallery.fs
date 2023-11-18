@@ -12,6 +12,12 @@ let galleryImages = ResourceType("Microsoft.Compute/galleries/images", "2022-03-
 let imageVersions =
     ResourceType("Microsoft.Compute/galleries/images/versions", "2022-03-03")
 
+let galleryApplications =
+    ResourceType("Microsoft.Compute/galleries/applications", "2022-03-03")
+
+let galleryApplicationVersions =
+    ResourceType("Microsoft.Compute/galleries/applications/versions", "2022-03-03")
+
 type CommunityGalleryInfo =
     {
         Eula: string

@@ -195,6 +195,7 @@ type VmScaleSetConfig =
                         DiagnosticsEnabled = vm.DiagnosticsEnabled
                         DisablePasswordAuthentication = vm.DisablePasswordAuthentication
                         Extensions = this.extensions |> List.map (fun ext -> ext.BuildExtension location)
+                        GalleryApplications = vm.GalleryApplications
                         HealthProbeId = this.HealthProbeId
                         Identity = vm.Identity
                         NetworkInterfaceConfigs =
