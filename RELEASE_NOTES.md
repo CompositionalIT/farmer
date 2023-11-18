@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.8.1
+* Bastion Hosts: Supports advanced settings for bastion hosts, such as native client tunneling.
+
 ## 1.8.0
 * Load Balancer: Generate an IPv6 public IP address using the `ip_v6` option.
 * Network Security Groups: Support for [application security groups](https://learn.microsoft.com/azure/virtual-network/application-security-groups).
