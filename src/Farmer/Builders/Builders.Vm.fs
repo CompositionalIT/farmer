@@ -34,6 +34,7 @@ type VmConfig =
 
         CustomScript: string option
         CustomScriptFiles: Uri list
+        GalleryApplications: VmGalleryApplication list
 
         DomainNamePrefix: string option
 
@@ -202,6 +203,7 @@ type VmConfig =
                         | None -> raiseFarmer $"You must specify a username for virtual machine {this.Name.Value}"
                     CustomData = this.CustomData
                     DisablePasswordAuthentication = this.DisablePasswordAuthentication
+                    GalleryApplications = this.GalleryApplications
                     PublicKeys =
                         if
                             this.DisablePasswordAuthentication.IsSome
@@ -330,6 +332,7 @@ type VirtualMachineBuilder() =
             Identity = ManagedIdentity.Empty
             CustomScript = None
             CustomScriptFiles = []
+            GalleryApplications = []
             DomainNamePrefix = None
             CustomData = None
             DisablePasswordAuthentication = None
@@ -746,6 +749,26 @@ type VirtualMachineBuilder() =
             CustomScriptFiles = uris |> List.map Uri
         }
 
+    [<CustomOperation "add_gallery_applications">]
+    member _.AddGalleryApplication(state: VmConfig, galleryApps: VmGalleryApplication list) =
+        { state with
+            GalleryApplications = state.GalleryApplications @ galleryApps
+        }
+
+    /// Adds gallery applications and sets the install order based on the list of applications
+    [<CustomOperation "add_gallery_applications_install_order">]
+    member _.AddGalleryApplicationInstallOrder(state: VmConfig, galleryApps: VmGalleryApplication list) =
+        let orderedGalleryApplications =
+            state.GalleryApplications @ galleryApps
+            |> List.mapi (fun idx galleryApp ->
+                { galleryApp with
+                    Order = Some(idx + 1)
+                })
+
+        { state with
+            GalleryApplications = orderedGalleryApplications
+        }
+
     interface ITaggable<VmConfig> with
         member _.Add state tags =
             { state with
@@ -888,6 +911,52 @@ type VirtualMachineBuilder() =
 
 
 let vm = VirtualMachineBuilder()
+
+type VmGalleryApplicationBuilder() =
+    member _.Yield _ =
+        {
+            ConfigurationReference = None
+            EnableAutomaticUpgrade = None
+            Order = None
+            PackageReferenceId = galleryApplicationVersions.resourceId ""
+            Tags = None
+            TreatFailureAsDeploymentFailure = None
+        }
+
+    member _.Run(galleryApp: VmGalleryApplication) =
+        if galleryApp.PackageReferenceId.Name = ResourceName.Empty then
+            raiseFarmer "Gallery Application requires PackageReferenceId to a GalleryApplicationVersion."
+
+        galleryApp
+
+    [<CustomOperation "enable_automatic_upgrade">]
+    member _.EnableAutomaticUpgrade(state, enable) =
+        { state with
+            EnableAutomaticUpgrade = Some enable
+        }
+
+    [<CustomOperation "order">]
+    member _.Order(state: VmGalleryApplication, order) = { state with Order = Some order }
+
+    [<CustomOperation "package_reference_id">]
+    member _.PackageReferenceId(state, applicationVersionId: ResourceId) =
+        if applicationVersionId.Type <> galleryApplicationVersions then
+            raiseFarmer "Must configura the package reference as a galleryAppplicationVerions resource Id."
+
+        { state with
+            PackageReferenceId = applicationVersionId
+        }
+
+    [<CustomOperation "tags">]
+    member _.Tags(state: VmGalleryApplication, tags) = { state with Tags = Some tags }
+
+    [<CustomOperation "treat_failure_as_deployment_failure">]
+    member _.TreatFailureAsDeploymentFailure(state, treatFailureAsDeploymentFailure) =
+        { state with
+            TreatFailureAsDeploymentFailure = Some treatFailureAsDeploymentFailure
+        }
+
+let vmGalleryApplication = VmGalleryApplicationBuilder()
 
 type IpConfigBuilder() =
     member _.Yield _ =
