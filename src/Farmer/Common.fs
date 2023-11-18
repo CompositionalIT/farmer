@@ -2986,6 +2986,28 @@ module Network =
         /// Microsoft.Web
         static member Web = EndpointServiceType "Microsoft.Web"
 
+    type BastionStandardSkuOptions =
+        {
+            DisableCopyPaste: bool option
+            DnsName: string option
+            EnableFileCopy: bool option
+            EnableIpConnect: bool option
+            EnableKerberos: bool option
+            EnableShareableLink: bool option
+            EnableTunneling: bool option
+            ScaleUnits: int option
+        }
+
+    type BastionSku =
+        | Basic
+        | Standard of BastionStandardSkuOptions
+        | Developer
+
+        member this.ArmValue =
+            match this with
+            | Basic -> "Basic"
+            | Standard _ -> "Standard"
+            | Developer -> "Developer"
 
 module NetworkSecurity =
     type Operation =

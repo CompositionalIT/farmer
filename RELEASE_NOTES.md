@@ -2,6 +2,7 @@ Release Notes
 =============
 
 ## 1.8.1
+* Bastion Hosts: Supports advanced settings for bastion hosts, such as native client tunneling.
 * Virtual Machines and Scale Sets: Support for deploying gallery applications to a VM or VM Scale Set.
 
 ## 1.8.0
