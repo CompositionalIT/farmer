@@ -279,6 +279,7 @@ module Vm =
         | Standard_D16d_v5
         | Standard_D16ds_v4
         | Standard_D16ds_v5
+        | Standard_D16ps_v5
         | Standard_D16s_v3
         | Standard_D16s_v4
         | Standard_D16s_v5
@@ -295,6 +296,7 @@ module Vm =
         | Standard_D2d_v5
         | Standard_D2ds_v4
         | Standard_D2ds_v5
+        | Standard_D2ps_v5
         | Standard_D2s_v3
         | Standard_D2s_v4
         | Standard_D2s_v5
@@ -311,6 +313,7 @@ module Vm =
         | Standard_D32d_v5
         | Standard_D32ds_v4
         | Standard_D32ds_v5
+        | Standard_D32ps_v5
         | Standard_D32s_v3
         | Standard_D32s_v4
         | Standard_D32s_v5
@@ -330,6 +333,7 @@ module Vm =
         | Standard_D48d_v5
         | Standard_D48ds_v4
         | Standard_D48ds_v5
+        | Standard_D48ps_v5
         | Standard_D48s_v3
         | Standard_D48s_v4
         | Standard_D48s_v5
@@ -341,6 +345,7 @@ module Vm =
         | Standard_D4d_v5
         | Standard_D4ds_v4
         | Standard_D4ds_v5
+        | Standard_D4ps_v5
         | Standard_D4s_v3
         | Standard_D4s_v4
         | Standard_D4s_v5
@@ -356,6 +361,7 @@ module Vm =
         | Standard_D64d_v5
         | Standard_D64ds_v4
         | Standard_D64ds_v5
+        | Standard_D64ps_v5
         | Standard_D64s_v3
         | Standard_D64s_v4
         | Standard_D64s_v5
@@ -370,6 +376,7 @@ module Vm =
         | Standard_D8d_v5
         | Standard_D8ds_v4
         | Standard_D8ds_v5
+        | Standard_D8ps_v5
         | Standard_D8s_v3
         | Standard_D8s_v4
         | Standard_D8s_v5
@@ -827,8 +834,26 @@ module Vm =
     let UbuntuServer_2004LTS =
         makeLinuxVm "0001-com-ubuntu-server-focal" "canonical" "20_04-lts-gen2"
 
+    let UbuntuServer_2004LTSArm =
+        makeLinuxVm "0001-com-ubuntu-server-focal" "canonical" "20_04-lts-arm64"
+
     let UbuntuServer_2204LTS =
         makeLinuxVm "0001-com-ubuntu-server-jammy" "canonical" "22_04-lts-gen2"
+
+    let UbuntuServer_2204LTSArm =
+        makeLinuxVm "0001-com-ubuntu-server-jammy" "canonical" "22_04-lts-arm64"
+
+    let UbuntuServer_2304 =
+        makeLinuxVm "0001-com-ubuntu-server-lunar" "canonical" "23_04-gen2"
+
+    let UbuntuServer_2304Arm =
+        makeLinuxVm "0001-com-ubuntu-server-lunar" "canonical" "23_04-arm64"
+
+    let UbuntuServer_2310 =
+        makeLinuxVm "0001-com-ubuntu-server-mantic" "canonical" "23_10-gen2"
+
+    let UbuntuServer_2310Arm =
+        makeLinuxVm "0001-com-ubuntu-server-mantic" "canonical" "23_10-arm64"
 
     let WindowsServer_2022DatacenterAzureEdition =
         makeWindowsVm "2022-datacenter-azure-edition"

@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+## 1.8.2
+* Adds Ubuntu 20.04 ARM 64, 22.04 ARM 64, 23.04, 23.04 ARM 64, 23.10, 23.10 ARM 64
+* Adds ARM 64 VM sizes.
+
 ## 1.8.1
 * Bastion Hosts: Supports advanced settings for bastion hosts, such as native client tunneling.
 * Virtual Machines and Scale Sets: Support for deploying gallery applications to a VM or VM Scale Set.
