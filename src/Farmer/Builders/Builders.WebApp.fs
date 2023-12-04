@@ -70,6 +70,7 @@ type Runtime =
     static member Java8WildFly14 = Java(Java8, WildFly14)
     static member Java8Tomcat90 = Java(Java8, JavaHost.Tomcat90)
     static member Java8Tomcat85 = Java(Java8, JavaHost.Tomcat85)
+    static member DotNet80 = DotNet "8.0"
     static member DotNet70 = DotNet "7.0"
     static member DotNet60 = DotNet "6.0"
     static member DotNet50 = DotNet "5.0"
