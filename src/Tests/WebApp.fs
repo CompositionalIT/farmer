@@ -720,7 +720,7 @@ let tests =
                 Expect.equal site.NetFrameworkVersion.Value "v7.0" "Wrong dotnet version"
                 Expect.equal site.Metadata.Head ("CURRENT_STACK", "dotnet") "Stack should be dotnet"
             }
-            
+
             test "Supports .NET 8" {
                 let app =
                     webApp {
