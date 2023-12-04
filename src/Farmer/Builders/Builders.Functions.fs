@@ -334,7 +334,7 @@ type FunctionsConfig =
                                 | _, Some version -> Some $"{functionsRuntime.ToUpper()}|{version}"
                                 | _, None -> None
                         NetFrameworkVersion =
-                            let possibleVersions = [ "4.0"; "6.0"; "7.0" ]
+                            let possibleVersions = [ "4.0"; "6.0"; "7.0"; "8.0" ]
 
                             match this.VersionedRuntime with
                             | (DotNet
