@@ -80,7 +80,7 @@ type VmScaleSetConfig =
         |> Option.defaultValue $"password-for-{this.Name.Value}"
 
     member this.SystemIdentity = SystemIdentity this.ResourceId
-    member this.ResourceId = virtualMachines.resourceId this.Name
+    member this.ResourceId = virtualMachineScaleSets.resourceId this.Name
 
     /// Builds NICs for this VM, one for each subnet.
     member private this.buildNetworkInterfaceConfigurations(vnetId, nsgId) : NetworkInterfaceConfiguration list =
