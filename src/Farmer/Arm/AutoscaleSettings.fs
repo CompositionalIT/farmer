@@ -5,12 +5,30 @@ open Farmer
 
 let autoscaleSettings = ResourceType("Microsoft.Insights/autoscalesettings", "2022-10-01")
 
+// Have avoided SRTPs in the past but end up with a lot of repetitive code, so trying them.
+
+module private Option =
+    let defaultUnchecked<'t> = Option.defaultValue Unchecked.defaultof<'t>
+    let inline toArmJson resourceOpt =
+        resourceOpt |> Option.map(fun resource ->
+            (^Resource: (member ToArmJson: unit -> 't) resource)
+        ) |> defaultUnchecked
+module private List =
+    let inline mapToArmJson (list:List<_>) =
+        if list.IsEmpty then
+            null
+        else
+            list |> List.map(fun resource ->
+                (^Resource: (member ToArmJson: unit -> 't) resource)
+            ) |> Seq.ofList
+        
+
 // Let ChatGPT to the really boring stuff
 // https://chat.openai.com/share/d6ef3c5e-869c-469d-bf8b-e6488675407c
-module internal Json =
+module Json =
 
     type Email = {
-        customEmails: string list
+        customEmails: string seq
         sendToSubscriptionAdministrator: bool
         sendToSubscriptionCoAdministrators: bool
     }
@@ -23,7 +41,7 @@ module internal Json =
     type Notification = {
         email: Email
         operation: string
-        webhooks: Webhook list
+        webhooks: Webhook seq
     }
 
     type Capacity = {
@@ -46,7 +64,7 @@ module internal Json =
     }
 
     type MetricTrigger = {
-        dimensions: Dimension list
+        dimensions: Dimension seq
         dividePerInstance: bool
         metricName: string
         metricNamespace: string
@@ -63,7 +81,7 @@ module internal Json =
     type ScaleAction = {
         cooldown: string
         direction: string
-        type_: string
+        ``type``: string
         value: string
     }
 
@@ -88,7 +106,7 @@ module internal Json =
         fixedDate: FixedDate
         name: string
         recurrence: Recurrence
-        rules: Rule list
+        rules: Rule seq
     }
 
     type PredictiveAutoscalePolicy = {
@@ -99,9 +117,9 @@ module internal Json =
     type AutoscaleSettingsProperties = {
         enabled: bool
         name: string
-        notifications: Notification list
+        notifications: Notification seq
         predictiveAutoscalePolicy: PredictiveAutoscalePolicy
-        profiles: Profile list
+        profiles: Profile seq
         targetResourceLocation: string
         targetResourceUri: string
     }
@@ -113,7 +131,7 @@ type Email = {
     SendToSubscriptionAdministrator: bool
     SendToSubscriptionCoAdministrators: bool
 } with
-    member internal this.ToArmJson =
+    member this.ToArmJson() =
         {
             customEmails = this.CustomEmails
             sendToSubscriptionAdministrator = this.SendToSubscriptionAdministrator
@@ -124,7 +142,7 @@ type Webhook = {
     Properties: obj
     ServiceUri: string
 } with
-    member internal this.ToArmJson =
+    member this.ToArmJson() =
         {
             properties = this.Properties
             serviceUri = this.ServiceUri
@@ -135,11 +153,11 @@ type Notification = {
     Operation: string
     Webhooks: Webhook list
 } with
-    member internal this.ToArmJson =
+    member this.ToArmJson() =
         {
-            email = this.Email.ToArmJson
+            email = this.Email.ToArmJson()
             operation = this.Operation
-            webhooks = this.Webhooks |> List.map (fun webhook -> webhook.ToArmJson)
+            webhooks = this.Webhooks |> List.mapToArmJson
         }
 
 
@@ -148,7 +166,7 @@ type Capacity = {
     Maximum: string
     Minimum: string
 } with
-    member internal this.ToArmJson =
+    member this.ToArmJson() =
         {
             ``default`` = this.Default
             maximum = this.Maximum
@@ -161,7 +179,7 @@ type Schedule = {
     Minutes: int list
     TimeZone: string
 } with
-    member internal this.ToArmJson =
+    member this.ToArmJson() =
         {
             days = this.Days
             hours = this.Hours
@@ -174,7 +192,7 @@ type Dimension = {
     Operator: string
     Values: string list
 } with
-    member internal this.ToArmJson =
+    member this.ToArmJson() =
         {
             dimensionName = this.DimensionName
             operator = this.Operator
@@ -195,9 +213,9 @@ type MetricTrigger = {
     TimeGrain: string
     TimeWindow: string
 } with
-    member internal this.ToArmJson =
+    member this.ToArmJson() =
         {
-            dimensions = this.Dimensions |> List.map (fun dimension -> dimension.ToArmJson)
+            dimensions = this.Dimensions |> List.mapToArmJson
             dividePerInstance = this.DividePerInstance
             metricName = this.MetricName
             metricNamespace = this.MetricNamespace
@@ -214,14 +232,14 @@ type MetricTrigger = {
 type ScaleAction = {
     Cooldown: string
     Direction: string
-    Type_: string
+    Type: string
     Value: string
 } with
-    member internal this.ToArmJson =
+    member this.ToArmJson() =
         {
             cooldown = this.Cooldown
             direction = this.Direction
-            type_ = this.Type_
+            ``type`` = this.Type
             value = this.Value
         }
 
@@ -229,20 +247,20 @@ type Rule = {
     MetricTrigger: MetricTrigger
     ScaleAction: ScaleAction
 } with
-    member internal this.ToArmJson =
+    member this.ToArmJson() =
         {
-            metricTrigger = this.MetricTrigger.ToArmJson
-            scaleAction = this.ScaleAction.ToArmJson
+            metricTrigger = this.MetricTrigger.ToArmJson()
+            scaleAction = this.ScaleAction.ToArmJson()
         }
 
 type Recurrence = {
     Frequency: string
     Schedule: Schedule
 } with
-    member internal this.ToArmJson =
+    member this.ToArmJson() =
         {
             frequency = this.Frequency
-            schedule = this.Schedule.ToArmJson
+            schedule = this.Schedule.ToArmJson()
         }
 
 type FixedDate = {
@@ -250,7 +268,7 @@ type FixedDate = {
     Start: string
     TimeZone: string
 } with
-    member internal this.ToArmJson =
+    member this.ToArmJson() =
         {
             ``end`` = this.End
             start = this.Start
@@ -259,25 +277,25 @@ type FixedDate = {
 
 type Profile = {
     Capacity: Capacity
-    FixedDate: FixedDate
+    FixedDate: FixedDate option
     Name: string
-    Recurrence: Recurrence
+    Recurrence: Recurrence option
     Rules: Rule list
 } with
-    member internal this.ToArmJson =
+    member this.ToArmJson() =
         {
-            capacity = this.Capacity.ToArmJson
-            fixedDate = this.FixedDate.ToArmJson
+            capacity = this.Capacity.ToArmJson()
+            fixedDate = this.FixedDate |> Option.toArmJson
             name = this.Name
-            recurrence = this.Recurrence.ToArmJson
-            rules = this.Rules |> List.map (fun rule -> rule.ToArmJson)
+            recurrence = this.Recurrence |> Option.toArmJson
+            rules = this.Rules |> List.mapToArmJson
         }
 
 type PredictiveAutoscalePolicy = {
     ScaleLookAheadTime: string
     ScaleMode: string
 } with
-    member internal this.ToArmJson =
+    member this.ToArmJson() =
         {
             scaleLookAheadTime = this.ScaleLookAheadTime
             scaleMode = this.ScaleMode
@@ -287,18 +305,18 @@ type AutoscaleSettingsProperties = {
     Enabled: bool
     Name: string
     Notifications: Notification list
-    PredictiveAutoscalePolicy: PredictiveAutoscalePolicy
+    PredictiveAutoscalePolicy: PredictiveAutoscalePolicy option
     Profiles: Profile list
     TargetResourceLocation: string
     TargetResourceUri: string
 } with
-    member internal this.ToArmJson =
+    member this.ToArmJson() =
         {
             enabled = this.Enabled
             name = this.Name
-            notifications = this.Notifications |> List.map (fun notification -> notification.ToArmJson)
-            predictiveAutoscalePolicy = this.PredictiveAutoscalePolicy.ToArmJson
-            profiles = this.Profiles |> List.map (fun profile -> profile.ToArmJson)
+            notifications = this.Notifications |> List.mapToArmJson
+            predictiveAutoscalePolicy = this.PredictiveAutoscalePolicy |> Option.toArmJson
+            profiles = this.Profiles |> List.mapToArmJson
             targetResourceLocation = this.TargetResourceLocation
             targetResourceUri = this.TargetResourceUri
         }
@@ -313,6 +331,6 @@ with
     interface IArmResource with
         member this.JsonModel =
             {| autoscaleSettings.Create(this.Name, this.Location, tags = this.Tags) with
-                properties = this.Properties.ToArmJson
+                properties = this.Properties.ToArmJson()
             |}
         member this.ResourceId = autoscaleSettings.resourceId this.Name

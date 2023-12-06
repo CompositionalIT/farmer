@@ -24,6 +24,7 @@ let allTests =
                     AppInsightsAvailability.tests
                     if notEnv "BUILD_REASON" "PullRequest" then
                         AzCli.tests
+                    AutoscaleSettings.tests
                     AzureFirewall.tests
                     Bastion.tests
                     BingSearch.tests
