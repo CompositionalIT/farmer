@@ -1,5 +1,6 @@
 module AutoscaleSettings
 
+open System
 open Expecto
 open Farmer
 open Farmer.Arm.AutoscaleSettings
@@ -8,7 +9,21 @@ open Newtonsoft.Json.Linq
 
 let tests =
     testList "Autoscale Settings" [
-        ftest "Basic Autoscale Settings ARM Resource (no builder)" {
+        test "Basic Autoscale Settings ARM Resource (no builder)" {
+            let myVmss =
+                vmss {
+                    name "my-vmss"
+                    vm_profile (
+                        vm {
+                            vm_size Vm.Standard_B1s
+                            username "azureuser"
+                            operating_system Vm.UbuntuServer_2204LTS
+                            os_disk 30 Vm.Premium_LRS
+                            no_data_disk
+                            custom_script "apt update && apt install -y stress"
+                        }
+                    )
+                }
             let settings =
                 {
                     Name = ResourceName "test-autoscale-settings"
@@ -23,9 +38,9 @@ let tests =
                             {
                                 Name = "DefaultAutoscaleProfile"
                                 Capacity = {
-                                    Minimum = "1"
-                                    Maximum = "10"
-                                    Default = "1" 
+                                    Minimum = 1
+                                    Maximum = 10
+                                    Default = 1 
                                 }
                                 FixedDate = None
                                 Recurrence = None
@@ -34,74 +49,72 @@ let tests =
                                         MetricTrigger = {
                                             MetricName = "Percentage CPU"
                                             Dimensions = []
-                                            DividePerInstance = false
-                                            MetricNamespace = null
-                                            MetricResourceLocation = null
-                                            MetricResourceUri = "[resourceId('Microsoft.Compute/virtualMachineScaleSets', 'my-vmss')]"
-                                            Operator = "GreaterThan"
-                                            Statistic = "Average"
+                                            DividePerInstance = None
+                                            MetricNamespace = None
+                                            MetricResourceLocation = None
+                                            MetricResourceUri = myVmss.ResourceId
+                                            Operator = MetricTriggerOperator.GreaterThan
+                                            Statistic = MetricTriggerStatistic.Average
                                             Threshold = 60
-                                            TimeAggregation = "Average"
-                                            TimeGrain = "PT5M"
-                                            TimeWindow = "PT10M"
+                                            TimeAggregation = MetricTriggerTimeAggregation.Average
+                                            TimeGrain = TimeSpan.FromMinutes 5
+                                            TimeWindow = TimeSpan.FromMinutes 10
                                         }
                                         ScaleAction = {
-                                            Cooldown = "PT10M"
-                                            Direction = "Increase"
-                                            Type = "ChangeCount"
-                                            Value = "1" 
+                                            Cooldown = TimeSpan.FromMinutes 10
+                                            Direction = ScaleActionDirection.Increase
+                                            Type = ScaleActionType.ChangeCount
+                                            Value = 1
                                         } 
                                     }
                                     {
                                         MetricTrigger = {
                                             MetricName = "Percentage CPU"
                                             Dimensions = []
-                                            DividePerInstance = false
-                                            MetricNamespace = null
-                                            MetricResourceLocation = null
-                                            MetricResourceUri = "[resourceId('Microsoft.Compute/virtualMachineScaleSets', 'my-vmss')]"
-                                            Operator = "LessThan"
-                                            Statistic = "Average"
+                                            DividePerInstance = None
+                                            MetricNamespace = None
+                                            MetricResourceLocation = None
+                                            MetricResourceUri = myVmss.ResourceId
+                                            Operator = MetricTriggerOperator.LessThan
+                                            Statistic = MetricTriggerStatistic.Average
                                             Threshold = 30
-                                            TimeAggregation = "Average"
-                                            TimeGrain = "PT5M"
-                                            TimeWindow = "PT10M"
+                                            TimeAggregation = MetricTriggerTimeAggregation.Average
+                                            TimeGrain = TimeSpan.FromMinutes 5
+                                            TimeWindow = TimeSpan.FromMinutes 10
                                         }
                                         ScaleAction = {
-                                            Cooldown = "PT10M"
-                                            Direction = "Decrease"
-                                            Type = "ChangeCount"
-                                            Value = "1" 
+                                            Cooldown = TimeSpan.FromMinutes 10
+                                            Direction = ScaleActionDirection.Decrease
+                                            Type = ScaleActionType.ChangeCount
+                                            Value = 1
                                         } 
-                                    }                                ]
+                                    }
+                                ]
                             }
                         ]
-                        TargetResourceUri = "[resourceId('Microsoft.Compute/virtualMachineScaleSets', 'my-vmss')]"
+                        TargetResourceUri = myVmss.ResourceId
                         TargetResourceLocation = null
                     } 
                 }
             let deployment = arm {
                 location Location.WestEurope
                 add_resources [
-                    vmss {
-                        name "my-vmss"
-                        vm_profile (
-                            vm {
-                                vm_size Vm.Standard_B1s
-                                username "azureuser"
-                                operating_system Vm.UbuntuServer_2204LTS
-                                os_disk 30 Vm.Premium_LRS
-                                no_data_disk
-                                custom_script "apt update && apt install -y stress"
-                            }
-                        )
-                    }
+                    myVmss
                 ]
                 add_resource settings
             }
             let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
             let autoscaleJson = jobj.SelectToken "resources[?(@.name=='test-autoscale-settings')]"
             Expect.isNotNull autoscaleJson "Autoscale Settings are null"
+            let dependencies = autoscaleJson["dependsOn"]
+            Expect.hasLength
+                dependencies
+                1
+                "Should have one dependency for the target resource being scaled."
+            Expect.contains
+                (dependencies.ToObject<string array>())
+                "[resourceId('Microsoft.Compute/virtualMachineScaleSets', 'my-vmss')]"
+                "Incorrect dependency"
             let autoscaleProps = autoscaleJson.SelectToken("properties")
             Expect.isNotNull
                 autoscaleProps

@@ -1,7 +1,9 @@
 [<AutoOpen>]
 module Farmer.Arm.AutoscaleSettings
 
+open System.Xml
 open Farmer
+open System
 
 let autoscaleSettings = ResourceType("Microsoft.Insights/autoscalesettings", "2022-10-01")
 
@@ -140,37 +142,36 @@ type Email = {
 
 type Webhook = {
     Properties: obj
-    ServiceUri: string
+    ServiceUri: Uri
 } with
     member this.ToArmJson() =
         {
             properties = this.Properties
-            serviceUri = this.ServiceUri
+            serviceUri = this.ServiceUri.AbsoluteUri
         }
 
 type Notification = {
     Email: Email
-    Operation: string
     Webhooks: Webhook list
 } with
     member this.ToArmJson() =
         {
             email = this.Email.ToArmJson()
-            operation = this.Operation
+            operation = "Scale"
             webhooks = this.Webhooks |> List.mapToArmJson
         }
 
 
 type Capacity = {
-    Default: string
-    Maximum: string
-    Minimum: string
+    Default: int
+    Maximum: int
+    Minimum: int
 } with
     member this.ToArmJson() =
         {
-            ``default`` = this.Default
-            maximum = this.Maximum
-            minimum = this.Minimum
+            ``default`` = string this.Default
+            maximum = string this.Maximum
+            minimum = string this.Minimum
         }
 
 type Schedule = {
@@ -187,60 +188,146 @@ type Schedule = {
             timeZone = this.TimeZone
         }
 
+type DimensionOperator =
+    | Equals
+    | NotEquals
+    with
+        member this.ArmValue =
+            match this with
+            | Equals -> "Equals"
+            | NotEquals -> "NotEquals"
+
 type Dimension = {
     DimensionName: string
-    Operator: string
+    Operator: DimensionOperator
     Values: string list
 } with
     member this.ToArmJson() =
         {
             dimensionName = this.DimensionName
-            operator = this.Operator
+            operator = this.Operator.ArmValue
             values = this.Values
         }
 
+[<RequireQualifiedAccess>]
+type MetricTriggerOperator =
+    | Equals
+    | GreaterThan
+    | GreaterThanOrEqual
+    | LessThan
+    | LessThanOrEqual
+    | NotEquals
+    with
+        member this.ArmValue =
+            match this with
+            | Equals -> "Equals"
+            | GreaterThan -> "GreaterThan"
+            | GreaterThanOrEqual -> "GreaterThanOrEqual"
+            | LessThan -> "LessThan"
+            | LessThanOrEqual -> "LessThanOrEqual"
+            | NotEquals -> "NotEquals"
+
+[<RequireQualifiedAccess>]
+type MetricTriggerStatistic =
+    | Average
+    | Count
+    | Max
+    | Min
+    | Sum
+    with
+        member this.ArmValue =
+            match this with
+            | Average -> "Average"
+            | Count -> "Count"
+            | Max -> "Max"
+            | Min -> "Min"
+            | Sum -> "Sum"
+
+[<RequireQualifiedAccess>]
+type MetricTriggerTimeAggregation =
+    | Average
+    | Count
+    | Last
+    | Maximum
+    | Minimum
+    | Total
+    with
+        member this.ArmValue =
+            match this with
+            | Average -> "Average"
+            | Count -> "Count"
+            | Last -> "Last"
+            | Maximum -> "Maximum"
+            | Minimum -> "Minimum"
+            | Total -> "Total"
+
 type MetricTrigger = {
     Dimensions: Dimension list
-    DividePerInstance: bool
+    DividePerInstance: bool option
     MetricName: string
-    MetricNamespace: string
-    MetricResourceLocation: string
-    MetricResourceUri: string
-    Operator: string
-    Statistic: string
+    MetricNamespace: string option
+    MetricResourceLocation: string option
+    MetricResourceUri: ResourceId
+    Operator: MetricTriggerOperator
+    Statistic: MetricTriggerStatistic
     Threshold: int
-    TimeAggregation: string
-    TimeGrain: string
-    TimeWindow: string
+    TimeAggregation: MetricTriggerTimeAggregation
+    TimeGrain: TimeSpan // Between 12 hours and 1 minute
+    TimeWindow: TimeSpan // Between 12 hours and 5 minutes
 } with
     member this.ToArmJson() =
         {
             dimensions = this.Dimensions |> List.mapToArmJson
-            dividePerInstance = this.DividePerInstance
+            dividePerInstance = this.DividePerInstance |> Option.defaultValue false
             metricName = this.MetricName
-            metricNamespace = this.MetricNamespace
-            metricResourceLocation = this.MetricResourceLocation
-            metricResourceUri = this.MetricResourceUri
-            operator = this.Operator
-            statistic = this.Statistic
+            metricNamespace = this.MetricNamespace |> Option.toObj
+            metricResourceLocation = this.MetricResourceLocation |> Option.toObj
+            metricResourceUri = this.MetricResourceUri.Eval()
+            operator = this.Operator.ArmValue
+            statistic = this.Statistic.ArmValue
             threshold = this.Threshold
-            timeAggregation = this.TimeAggregation
-            timeGrain = this.TimeGrain
-            timeWindow = this.TimeWindow
+            timeAggregation = this.TimeAggregation.ArmValue
+            timeGrain = XmlConvert.ToString this.TimeGrain
+            timeWindow = XmlConvert.ToString this.TimeWindow
         }
 
+[<RequireQualifiedAccess>]
+type ScaleActionDirection =
+    | Decrease
+    | Increase
+    | None
+    with
+        member this.ArmValue =
+            match this with
+            | Decrease -> "Decrease"
+            | Increase -> "Increase"
+            | None -> "None"
+
+[<RequireQualifiedAccess>]
+type ScaleActionType =
+    | ChangeCount
+    | ExactCount
+    | PercentChangeCount
+    | ServiceAllowedNextValue
+    with
+        member this.ArmValue =
+            match this with
+            | ChangeCount -> "ChangeCount"
+            | ExactCount -> "ExactCount"
+            | PercentChangeCount -> "PercentChangeCount"
+            | ServiceAllowedNextValue -> "ServiceAllowedNextValue"
 type ScaleAction = {
-    Cooldown: string
-    Direction: string
-    Type: string
-    Value: string
+    Cooldown: TimeSpan // from one week to one minute
+    Direction: ScaleActionDirection
+    Type: ScaleActionType
+    Value: int
 } with
     member this.ToArmJson() =
         {
-            cooldown = this.Cooldown
-            direction = this.Direction
-            ``type`` = this.Type
-            value = this.Value
+            cooldown = XmlConvert.ToString this.Cooldown
+            direction = this.Direction.ArmValue
+            ``type`` = this.Type.ArmValue
+            value = string this.Value 
         }
 
 type Rule = {
@@ -308,7 +395,7 @@ type AutoscaleSettingsProperties = {
     PredictiveAutoscalePolicy: PredictiveAutoscalePolicy option
     Profiles: Profile list
     TargetResourceLocation: string
-    TargetResourceUri: string
+    TargetResourceUri: ResourceId
 } with
     member this.ToArmJson() =
         {
@@ -318,7 +405,7 @@ type AutoscaleSettingsProperties = {
             predictiveAutoscalePolicy = this.PredictiveAutoscalePolicy |> Option.toArmJson
             profiles = this.Profiles |> List.mapToArmJson
             targetResourceLocation = this.TargetResourceLocation
-            targetResourceUri = this.TargetResourceUri
+            targetResourceUri = this.TargetResourceUri.Eval()
         }
 
 type AutoscaleSettings = {
@@ -330,7 +417,8 @@ type AutoscaleSettings = {
 with
     interface IArmResource with
         member this.JsonModel =
-            {| autoscaleSettings.Create(this.Name, this.Location, tags = this.Tags) with
+            let dependencies = seq { this.Properties.TargetResourceUri } |> Set.ofSeq
+            {| autoscaleSettings.Create(this.Name, this.Location, dependsOn = dependencies, tags = this.Tags) with
                 properties = this.Properties.ToArmJson()
             |}
         member this.ResourceId = autoscaleSettings.resourceId this.Name
