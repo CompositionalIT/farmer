@@ -3,6 +3,7 @@ module Farmer.Arm.AutoscaleSettings
 
 open System.Xml
 open Farmer
+open Farmer.Insights
 open System
 
 let autoscaleSettings = ResourceType("Microsoft.Insights/autoscalesettings", "2022-10-01")
@@ -13,7 +14,7 @@ module private Option =
     let defaultUnchecked<'t> = Option.defaultValue Unchecked.defaultof<'t>
     let inline toArmJson resourceOpt =
         resourceOpt |> Option.map(fun resource ->
-            (^Resource: (member ToArmJson: unit -> 't) resource)
+            (^Resource: (member ToArmJson: 't) resource)
         ) |> defaultUnchecked
 module private List =
     let inline mapToArmJson (list:List<_>) =
@@ -21,7 +22,7 @@ module private List =
             null
         else
             list |> List.map(fun resource ->
-                (^Resource: (member ToArmJson: unit -> 't) resource)
+                (^Resource: (member ToArmJson: 't) resource)
             ) |> Seq.ofList
         
 
@@ -133,7 +134,7 @@ type Email = {
     SendToSubscriptionAdministrator: bool
     SendToSubscriptionCoAdministrators: bool
 } with
-    member this.ToArmJson() =
+    member this.ToArmJson =
         {
             customEmails = this.CustomEmails
             sendToSubscriptionAdministrator = this.SendToSubscriptionAdministrator
@@ -144,7 +145,7 @@ type Webhook = {
     Properties: obj
     ServiceUri: Uri
 } with
-    member this.ToArmJson() =
+    member this.ToArmJson =
         {
             properties = this.Properties
             serviceUri = this.ServiceUri.AbsoluteUri
@@ -154,9 +155,9 @@ type Notification = {
     Email: Email
     Webhooks: Webhook list
 } with
-    member this.ToArmJson() =
+    member this.ToArmJson =
         {
-            email = this.Email.ToArmJson()
+            email = this.Email.ToArmJson
             operation = "Scale"
             webhooks = this.Webhooks |> List.mapToArmJson
         }
@@ -167,7 +168,7 @@ type Capacity = {
     Maximum: int
     Minimum: int
 } with
-    member this.ToArmJson() =
+    member this.ToArmJson =
         {
             ``default`` = string this.Default
             maximum = string this.Maximum
@@ -180,7 +181,7 @@ type Schedule = {
     Minutes: int list
     TimeZone: string
 } with
-    member this.ToArmJson() =
+    member this.ToArmJson =
         {
             days = this.Days
             hours = this.Hours
@@ -202,64 +203,12 @@ type Dimension = {
     Operator: DimensionOperator
     Values: string list
 } with
-    member this.ToArmJson() =
+    member this.ToArmJson =
         {
             dimensionName = this.DimensionName
             operator = this.Operator.ArmValue
             values = this.Values
         }
-
-[<RequireQualifiedAccess>]
-type MetricTriggerOperator =
-    | Equals
-    | GreaterThan
-    | GreaterThanOrEqual
-    | LessThan
-    | LessThanOrEqual
-    | NotEquals
-    with
-        member this.ArmValue =
-            match this with
-            | Equals -> "Equals"
-            | GreaterThan -> "GreaterThan"
-            | GreaterThanOrEqual -> "GreaterThanOrEqual"
-            | LessThan -> "LessThan"
-            | LessThanOrEqual -> "LessThanOrEqual"
-            | NotEquals -> "NotEquals"
-
-[<RequireQualifiedAccess>]
-type MetricTriggerStatistic =
-    | Average
-    | Count
-    | Max
-    | Min
-    | Sum
-    with
-        member this.ArmValue =
-            match this with
-            | Average -> "Average"
-            | Count -> "Count"
-            | Max -> "Max"
-            | Min -> "Min"
-            | Sum -> "Sum"
-
-[<RequireQualifiedAccess>]
-type MetricTriggerTimeAggregation =
-    | Average
-    | Count
-    | Last
-    | Maximum
-    | Minimum
-    | Total
-    with
-        member this.ArmValue =
-            match this with
-            | Average -> "Average"
-            | Count -> "Count"
-            | Last -> "Last"
-            | Maximum -> "Maximum"
-            | Minimum -> "Minimum"
-            | Total -> "Total"
 
 type MetricTrigger = {
     Dimensions: Dimension list
@@ -275,7 +224,7 @@ type MetricTrigger = {
     TimeGrain: TimeSpan // Between 12 hours and 1 minute
     TimeWindow: TimeSpan // Between 12 hours and 5 minutes
 } with
-    member this.ToArmJson() =
+    member this.ToArmJson =
         {
             dimensions = this.Dimensions |> List.mapToArmJson
             dividePerInstance = this.DividePerInstance |> Option.defaultValue false
@@ -291,38 +240,13 @@ type MetricTrigger = {
             timeWindow = XmlConvert.ToString this.TimeWindow
         }
 
-[<RequireQualifiedAccess>]
-type ScaleActionDirection =
-    | Decrease
-    | Increase
-    | None
-    with
-        member this.ArmValue =
-            match this with
-            | Decrease -> "Decrease"
-            | Increase -> "Increase"
-            | None -> "None"
-
-[<RequireQualifiedAccess>]
-type ScaleActionType =
-    | ChangeCount
-    | ExactCount
-    | PercentChangeCount
-    | ServiceAllowedNextValue
-    with
-        member this.ArmValue =
-            match this with
-            | ChangeCount -> "ChangeCount"
-            | ExactCount -> "ExactCount"
-            | PercentChangeCount -> "PercentChangeCount"
-            | ServiceAllowedNextValue -> "ServiceAllowedNextValue"
 type ScaleAction = {
     Cooldown: TimeSpan // from one week to one minute
     Direction: ScaleActionDirection
     Type: ScaleActionType
     Value: int
 } with
-    member this.ToArmJson() =
+    member this.ToArmJson =
         {
             cooldown = XmlConvert.ToString this.Cooldown
             direction = this.Direction.ArmValue
@@ -334,20 +258,20 @@ type Rule = {
     MetricTrigger: MetricTrigger
     ScaleAction: ScaleAction
 } with
-    member this.ToArmJson() =
+    member this.ToArmJson =
         {
-            metricTrigger = this.MetricTrigger.ToArmJson()
-            scaleAction = this.ScaleAction.ToArmJson()
+            metricTrigger = this.MetricTrigger.ToArmJson
+            scaleAction = this.ScaleAction.ToArmJson
         }
 
 type Recurrence = {
     Frequency: string
     Schedule: Schedule
 } with
-    member this.ToArmJson() =
+    member this.ToArmJson =
         {
             frequency = this.Frequency
-            schedule = this.Schedule.ToArmJson()
+            schedule = this.Schedule.ToArmJson
         }
 
 type FixedDate = {
@@ -355,7 +279,7 @@ type FixedDate = {
     Start: string
     TimeZone: string
 } with
-    member this.ToArmJson() =
+    member this.ToArmJson =
         {
             ``end`` = this.End
             start = this.Start
@@ -369,9 +293,9 @@ type Profile = {
     Recurrence: Recurrence option
     Rules: Rule list
 } with
-    member this.ToArmJson() =
+    member this.ToArmJson =
         {
-            capacity = this.Capacity.ToArmJson()
+            capacity = this.Capacity.ToArmJson
             fixedDate = this.FixedDate |> Option.toArmJson
             name = this.Name
             recurrence = this.Recurrence |> Option.toArmJson
@@ -382,7 +306,7 @@ type PredictiveAutoscalePolicy = {
     ScaleLookAheadTime: string
     ScaleMode: string
 } with
-    member this.ToArmJson() =
+    member this.ToArmJson =
         {
             scaleLookAheadTime = this.ScaleLookAheadTime
             scaleMode = this.ScaleMode
@@ -397,7 +321,7 @@ type AutoscaleSettingsProperties = {
     TargetResourceLocation: string
     TargetResourceUri: ResourceId
 } with
-    member this.ToArmJson() =
+    member this.ToArmJson =
         {
             enabled = this.Enabled
             name = this.Name
@@ -419,6 +343,6 @@ with
         member this.JsonModel =
             let dependencies = seq { this.Properties.TargetResourceUri } |> Set.ofSeq
             {| autoscaleSettings.Create(this.Name, this.Location, dependsOn = dependencies, tags = this.Tags) with
-                properties = this.Properties.ToArmJson()
+                properties = this.Properties.ToArmJson
             |}
         member this.ResourceId = autoscaleSettings.resourceId this.Name

@@ -5,6 +5,7 @@ open Expecto
 open Farmer
 open Farmer.Arm.AutoscaleSettings
 open Farmer.Builders
+open Farmer.Insights
 open Newtonsoft.Json.Linq
 
 let tests =
