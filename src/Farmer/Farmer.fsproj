@@ -188,6 +188,7 @@
     <Compile Include="Builders\Builders.HostGroup.fs" />
     <Compile Include="Builders\Builders.NetworkInterface.fs" />
     <Compile Include="Builders\Builders.RouteServer.fs" />
+    <Compile Include="Builders\Builders.AutoscaleSettings.fs" />
     <Compile Include="Aliases.fs" />
   </ItemGroup>
 </Project>
