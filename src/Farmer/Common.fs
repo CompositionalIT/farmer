@@ -1214,6 +1214,16 @@ module Insights =
         static member SQL_DB_Size = MetricsName "storage_percent"
 
     [<RequireQualifiedAccess>]
+    type DimensionOperator =
+        | Equals
+        | NotEquals
+
+        member this.ArmValue =
+            match this with
+            | Equals -> "Equals"
+            | NotEquals -> "NotEquals"
+
+    [<RequireQualifiedAccess>]
     type MetricTriggerOperator =
         | Equals
         | GreaterThan

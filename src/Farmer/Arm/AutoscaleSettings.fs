@@ -6,134 +6,149 @@ open Farmer
 open Farmer.Insights
 open System
 
-let autoscaleSettings = ResourceType("Microsoft.Insights/autoscalesettings", "2022-10-01")
+let autoscaleSettings =
+    ResourceType("Microsoft.Insights/autoscalesettings", "2022-10-01")
 
 // Have avoided SRTPs in the past but end up with a lot of repetitive code, so trying them.
 
 module private Option =
     let defaultUnchecked<'t> = Option.defaultValue Unchecked.defaultof<'t>
+
     let inline toArmJson resourceOpt =
-        resourceOpt |> Option.map(fun resource ->
-            (^Resource: (member ToArmJson: 't) resource)
-        ) |> defaultUnchecked
+        resourceOpt
+        |> Option.map (fun resource -> (^Resource: (member ToArmJson: 't) resource))
+        |> defaultUnchecked
+
 module private List =
-    let inline mapToArmJson (list:List<_>) =
+    let inline mapToArmJson (list: List<_>) =
         if list.IsEmpty then
             null
         else
-            list |> List.map(fun resource ->
-                (^Resource: (member ToArmJson: 't) resource)
-            ) |> Seq.ofList
-        
+            list
+            |> List.map (fun resource -> (^Resource: (member ToArmJson: 't) resource))
+            |> Seq.ofList
+
 
 // Let ChatGPT to the really boring stuff
 // https://chat.openai.com/share/d6ef3c5e-869c-469d-bf8b-e6488675407c
 module Json =
 
-    type Email = {
-        customEmails: string seq
-        sendToSubscriptionAdministrator: bool
-        sendToSubscriptionCoAdministrators: bool
-    }
+    type Email =
+        {
+            customEmails: string seq
+            sendToSubscriptionAdministrator: bool
+            sendToSubscriptionCoAdministrators: bool
+        }
 
-    type Webhook = {
-        properties: obj
-        serviceUri: string
-    }
+    type Webhook = { properties: obj; serviceUri: string }
 
-    type Notification = {
-        email: Email
-        operation: string
-        webhooks: Webhook seq
-    }
+    type Notification =
+        {
+            email: Email
+            operation: string
+            webhooks: Webhook seq
+        }
 
-    type Capacity = {
-        ``default``: string
-        maximum: string
-        minimum: string
-    }
+    type Capacity =
+        {
+            ``default``: string
+            maximum: string
+            minimum: string
+        }
 
-    type Schedule = {
-        days: string list
-        hours: int list
-        minutes: int list
-        timeZone: string
-    }
+    type Schedule =
+        {
+            days: string list
+            hours: int list
+            minutes: int list
+            timeZone: string
+        }
 
-    type Dimension = {
-        dimensionName: string
-        operator: string
-        values: string list
-    }
+    type Dimension =
+        {
+            dimensionName: string
+            operator: string
+            values: string list
+        }
 
-    type MetricTrigger = {
-        dimensions: Dimension seq
-        dividePerInstance: bool
-        metricName: string
-        metricNamespace: string
-        metricResourceLocation: string
-        metricResourceUri: string
-        operator: string
-        statistic: string
-        threshold: int
-        timeAggregation: string
-        timeGrain: string
-        timeWindow: string
-    }
+    type MetricTrigger =
+        {
+            dimensions: Dimension seq
+            dividePerInstance: bool
+            metricName: string
+            metricNamespace: string
+            metricResourceLocation: string
+            metricResourceUri: string
+            operator: string
+            statistic: string
+            threshold: int
+            timeAggregation: string
+            timeGrain: string
+            timeWindow: string
+        }
 
-    type ScaleAction = {
-        cooldown: string
-        direction: string
-        ``type``: string
-        value: string
-    }
+    type ScaleAction =
+        {
+            cooldown: string
+            direction: string
+            ``type``: string
+            value: string
+        }
 
-    type Rule = {
-        metricTrigger: MetricTrigger
-        scaleAction: ScaleAction
-    }
+    type Rule =
+        {
+            metricTrigger: MetricTrigger
+            scaleAction: ScaleAction
+        }
 
-    type Recurrence = {
-        frequency: string
-        schedule: Schedule
-    }
+    type Recurrence =
+        {
+            frequency: string
+            schedule: Schedule
+        }
 
-    type FixedDate = {
-        ``end``: string
-        start: string
-        timeZone: string
-    }
+    type FixedDate =
+        {
+            ``end``: string
+            start: string
+            timeZone: string
+        }
 
-    type Profile = {
-        capacity: Capacity
-        fixedDate: FixedDate
-        name: string
-        recurrence: Recurrence
-        rules: Rule seq
-    }
+    type Profile =
+        {
+            capacity: Capacity
+            fixedDate: FixedDate
+            name: string
+            recurrence: Recurrence
+            rules: Rule seq
+        }
 
-    type PredictiveAutoscalePolicy = {
-        scaleLookAheadTime: string
-        scaleMode: string
-    }
+    type PredictiveAutoscalePolicy =
+        {
+            scaleLookAheadTime: string
+            scaleMode: string
+        }
 
-    type AutoscaleSettingsProperties = {
-        enabled: bool
-        name: string
-        notifications: Notification seq
-        predictiveAutoscalePolicy: PredictiveAutoscalePolicy
-        profiles: Profile seq
-        targetResourceLocation: string
-        targetResourceUri: string
-    }
+    type AutoscaleSettingsProperties =
+        {
+            enabled: bool
+            name: string
+            notifications: Notification seq
+            predictiveAutoscalePolicy: PredictiveAutoscalePolicy
+            profiles: Profile seq
+            targetResourceLocation: string
+            targetResourceUri: string
+        }
 
 open Json
 
-type Email = {
-    CustomEmails: string list
-    SendToSubscriptionAdministrator: bool
-    SendToSubscriptionCoAdministrators: bool
-} with
+type Email =
+    {
+        CustomEmails: string list
+        SendToSubscriptionAdministrator: bool
+        SendToSubscriptionCoAdministrators: bool
+    }
+
     member this.ToArmJson =
         {
             customEmails = this.CustomEmails
@@ -141,20 +156,24 @@ type Email = {
             sendToSubscriptionCoAdministrators = this.SendToSubscriptionCoAdministrators
         }
 
-type Webhook = {
-    Properties: obj
-    ServiceUri: Uri
-} with
+type Webhook =
+    {
+        Properties: obj
+        ServiceUri: Uri
+    }
+
     member this.ToArmJson =
         {
             properties = this.Properties
             serviceUri = this.ServiceUri.AbsoluteUri
         }
 
-type Notification = {
-    Email: Email
-    Webhooks: Webhook list
-} with
+type Notification =
+    {
+        Email: Email
+        Webhooks: Webhook list
+    }
+
     member this.ToArmJson =
         {
             email = this.Email.ToArmJson
@@ -163,11 +182,13 @@ type Notification = {
         }
 
 
-type Capacity = {
-    Default: int
-    Maximum: int
-    Minimum: int
-} with
+type Capacity =
+    {
+        Default: int
+        Maximum: int
+        Minimum: int
+    }
+
     member this.ToArmJson =
         {
             ``default`` = string this.Default
@@ -175,12 +196,14 @@ type Capacity = {
             minimum = string this.Minimum
         }
 
-type Schedule = {
-    Days: string list
-    Hours: int list
-    Minutes: int list
-    TimeZone: string
-} with
+type Schedule =
+    {
+        Days: string list
+        Hours: int list
+        Minutes: int list
+        TimeZone: string
+    }
+
     member this.ToArmJson =
         {
             days = this.Days
@@ -189,20 +212,13 @@ type Schedule = {
             timeZone = this.TimeZone
         }
 
-type DimensionOperator =
-    | Equals
-    | NotEquals
-    with
-        member this.ArmValue =
-            match this with
-            | Equals -> "Equals"
-            | NotEquals -> "NotEquals"
+type Dimension =
+    {
+        DimensionName: string
+        Operator: DimensionOperator
+        Values: string list
+    }
 
-type Dimension = {
-    DimensionName: string
-    Operator: DimensionOperator
-    Values: string list
-} with
     member this.ToArmJson =
         {
             dimensionName = this.DimensionName
@@ -210,20 +226,22 @@ type Dimension = {
             values = this.Values
         }
 
-type MetricTrigger = {
-    Dimensions: Dimension list
-    DividePerInstance: bool option
-    MetricName: string
-    MetricNamespace: string option
-    MetricResourceLocation: string option
-    MetricResourceUri: ResourceId
-    Operator: MetricTriggerOperator
-    Statistic: MetricTriggerStatistic
-    Threshold: int
-    TimeAggregation: MetricTriggerTimeAggregation
-    TimeGrain: TimeSpan // Between 12 hours and 1 minute
-    TimeWindow: TimeSpan // Between 12 hours and 5 minutes
-} with
+type MetricTrigger =
+    {
+        Dimensions: Dimension list
+        DividePerInstance: bool option
+        MetricName: string
+        MetricNamespace: string option
+        MetricResourceLocation: string option
+        MetricResourceUri: ResourceId
+        Operator: MetricTriggerOperator
+        Statistic: MetricTriggerStatistic
+        Threshold: int
+        TimeAggregation: MetricTriggerTimeAggregation
+        TimeGrain: TimeSpan // Between 12 hours and 1 minute
+        TimeWindow: TimeSpan // Between 12 hours and 5 minutes
+    }
+
     member this.ToArmJson =
         {
             dimensions = this.Dimensions |> List.mapToArmJson
@@ -240,45 +258,53 @@ type MetricTrigger = {
             timeWindow = XmlConvert.ToString this.TimeWindow
         }
 
-type ScaleAction = {
-    Cooldown: TimeSpan // from one week to one minute
-    Direction: ScaleActionDirection
-    Type: ScaleActionType
-    Value: int
-} with
+type ScaleAction =
+    {
+        Cooldown: TimeSpan // from one week to one minute
+        Direction: ScaleActionDirection
+        Type: ScaleActionType
+        Value: int
+    }
+
     member this.ToArmJson =
         {
             cooldown = XmlConvert.ToString this.Cooldown
             direction = this.Direction.ArmValue
             ``type`` = this.Type.ArmValue
-            value = string this.Value 
+            value = string this.Value
         }
 
-type Rule = {
-    MetricTrigger: MetricTrigger
-    ScaleAction: ScaleAction
-} with
+type Rule =
+    {
+        MetricTrigger: MetricTrigger
+        ScaleAction: ScaleAction
+    }
+
     member this.ToArmJson =
         {
             metricTrigger = this.MetricTrigger.ToArmJson
             scaleAction = this.ScaleAction.ToArmJson
         }
 
-type Recurrence = {
-    Frequency: string
-    Schedule: Schedule
-} with
+type Recurrence =
+    {
+        Frequency: string
+        Schedule: Schedule
+    }
+
     member this.ToArmJson =
         {
             frequency = this.Frequency
             schedule = this.Schedule.ToArmJson
         }
 
-type FixedDate = {
-    End: string
-    Start: string
-    TimeZone: string
-} with
+type FixedDate =
+    {
+        End: string
+        Start: string
+        TimeZone: string
+    }
+
     member this.ToArmJson =
         {
             ``end`` = this.End
@@ -286,13 +312,15 @@ type FixedDate = {
             timeZone = this.TimeZone
         }
 
-type Profile = {
-    Capacity: Capacity
-    FixedDate: FixedDate option
-    Name: string
-    Recurrence: Recurrence option
-    Rules: Rule list
-} with
+type Profile =
+    {
+        Capacity: Capacity
+        FixedDate: FixedDate option
+        Name: string
+        Recurrence: Recurrence option
+        Rules: Rule list
+    }
+
     member this.ToArmJson =
         {
             capacity = this.Capacity.ToArmJson
@@ -302,25 +330,29 @@ type Profile = {
             rules = this.Rules |> List.mapToArmJson
         }
 
-type PredictiveAutoscalePolicy = {
-    ScaleLookAheadTime: string
-    ScaleMode: string
-} with
+type PredictiveAutoscalePolicy =
+    {
+        ScaleLookAheadTime: string
+        ScaleMode: string
+    }
+
     member this.ToArmJson =
         {
             scaleLookAheadTime = this.ScaleLookAheadTime
             scaleMode = this.ScaleMode
         }
 
-type AutoscaleSettingsProperties = {
-    Enabled: bool
-    Name: string
-    Notifications: Notification list
-    PredictiveAutoscalePolicy: PredictiveAutoscalePolicy option
-    Profiles: Profile list
-    TargetResourceLocation: string
-    TargetResourceUri: ResourceId
-} with
+type AutoscaleSettingsProperties =
+    {
+        Enabled: bool
+        Name: string
+        Notifications: Notification list
+        PredictiveAutoscalePolicy: PredictiveAutoscalePolicy option
+        Profiles: Profile list
+        TargetResourceLocation: string
+        TargetResourceUri: ResourceId
+    }
+
     member this.ToArmJson =
         {
             enabled = this.Enabled
@@ -332,17 +364,20 @@ type AutoscaleSettingsProperties = {
             targetResourceUri = this.TargetResourceUri.Eval()
         }
 
-type AutoscaleSettings = {
-    Name: ResourceName
-    Location: Location
-    Tags: Map<string, string>
-    Properties: AutoscaleSettingsProperties
-}
-with
+type AutoscaleSettings =
+    {
+        Name: ResourceName
+        Location: Location
+        Tags: Map<string, string>
+        Properties: AutoscaleSettingsProperties
+    }
+
     interface IArmResource with
         member this.JsonModel =
             let dependencies = seq { this.Properties.TargetResourceUri } |> Set.ofSeq
+
             {| autoscaleSettings.Create(this.Name, this.Location, dependsOn = dependencies, tags = this.Tags) with
                 properties = this.Properties.ToArmJson
             |}
+
         member this.ResourceId = autoscaleSettings.resourceId this.Name
