@@ -124,6 +124,7 @@
     <Compile Include="IdentityExtensions.fs" />
     <Compile Include="Builders/Extensions.fs" />
     <Compile Include="Builders\Builders.ActionGroup.fs" />
+    <Compile Include="Builders\Builders.AutoscaleSettings.fs" />
     <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
     <Compile Include="Builders/Builders.ResourceGroup.fs" />
     <Compile Include="Builders/Builders.LogAnalytics.fs" />
@@ -188,7 +189,6 @@
     <Compile Include="Builders\Builders.HostGroup.fs" />
     <Compile Include="Builders\Builders.NetworkInterface.fs" />
     <Compile Include="Builders\Builders.RouteServer.fs" />
-    <Compile Include="Builders\Builders.AutoscaleSettings.fs" />
     <Compile Include="Aliases.fs" />
   </ItemGroup>
 </Project>

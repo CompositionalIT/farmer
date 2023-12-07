@@ -198,7 +198,7 @@ type Capacity =
 
 type Schedule =
     {
-        Days: string list
+        Days: DayOfWeek list
         Hours: int list
         Minutes: int list
         TimeZone: string
@@ -206,7 +206,7 @@ type Schedule =
 
     member this.ToArmJson =
         {
-            days = this.Days
+            days = this.Days |> List.map string
             hours = this.Hours
             minutes = this.Minutes
             timeZone = this.TimeZone
@@ -300,16 +300,16 @@ type Recurrence =
 
 type FixedDate =
     {
-        End: string
-        Start: string
-        TimeZone: string
+        End: DateTimeOffset
+        Start: DateTimeOffset
+        TimeZone: string option
     }
 
     member this.ToArmJson =
         {
-            ``end`` = this.End
-            start = this.Start
-            timeZone = this.TimeZone
+            ``end`` = this.End.ToString("o")
+            start = this.Start.ToString("o")
+            timeZone = this.TimeZone |> Option.toObj
         }
 
 type Profile =
@@ -350,7 +350,7 @@ type AutoscaleSettingsProperties =
         PredictiveAutoscalePolicy: PredictiveAutoscalePolicy option
         Profiles: Profile list
         TargetResourceLocation: string
-        TargetResourceUri: ResourceId
+        TargetResourceUri: LinkedResource
     }
 
     member this.ToArmJson =
@@ -361,7 +361,7 @@ type AutoscaleSettingsProperties =
             predictiveAutoscalePolicy = this.PredictiveAutoscalePolicy |> Option.toArmJson
             profiles = this.Profiles |> List.mapToArmJson
             targetResourceLocation = this.TargetResourceLocation
-            targetResourceUri = this.TargetResourceUri.Eval()
+            targetResourceUri = this.TargetResourceUri.ResourceId.Eval()
         }
 
 type AutoscaleSettings =
@@ -370,14 +370,22 @@ type AutoscaleSettings =
         Location: Location
         Tags: Map<string, string>
         Properties: AutoscaleSettingsProperties
+        Dependencies: ResourceId Set
     }
 
     interface IArmResource with
         member this.JsonModel =
-            let dependencies = seq { this.Properties.TargetResourceUri } |> Set.ofSeq
+            let dependencies = this.Dependencies |> LinkedResource.addToSetIfManaged this.Properties.TargetResourceUri
 
             {| autoscaleSettings.Create(this.Name, this.Location, dependsOn = dependencies, tags = this.Tags) with
                 properties = this.Properties.ToArmJson
             |}
 
+        member this.ResourceId = autoscaleSettings.resourceId this.Name
+
+    interface IBuilder with
+        member this.BuildResources location =
+            if(this.Properties.TargetResourceUri.ResourceId = ResourceId.Empty) then
+                raiseFarmer "Must set 'target_resource_uri' for autoscale_settings."
+            [ this ]
         member this.ResourceId = autoscaleSettings.resourceId this.Name

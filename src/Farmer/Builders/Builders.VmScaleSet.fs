@@ -191,7 +191,8 @@ type VmScaleSetConfig =
                                         Username = username
                                         Password = SecureParameter this.PasswordParameterArm
                                     |}
-                                | None -> raiseFarmer $"You must specify a username for virtual machine {this.Name.Value}"
+                                | None ->
+                                    raiseFarmer $"You must specify a username for virtual machine {this.Name.Value}"
                             CustomData = vm.CustomData
                             DataDisks = vm.DataDisks |> Option.defaultValue []
                             DiagnosticsEnabled = vm.DiagnosticsEnabled
@@ -232,8 +233,28 @@ type VmScaleSetConfig =
                     | Some autoscaleSettings ->
                         yield
                             { autoscaleSettings with
-                               Location = location
-                               Properties = { autoscaleSettings.Properties with TargetResourceUri = this.ResourceId }
+                                Location = location
+                                Properties =
+                                    { autoscaleSettings.Properties with
+                                        TargetResourceUri = Managed this.ResourceId
+                                        Profiles =
+                                            seq {
+                                                for profile in autoscaleSettings.Properties.Profiles do
+                                                    { profile with
+                                                        Rules =
+                                                        seq {
+                                                            for rule in profile.Rules do
+                                                                if rule.MetricTrigger.MetricResourceUri = ResourceId.Empty then
+                                                                    { rule with
+                                                                        MetricTrigger = {
+                                                                            rule.MetricTrigger with MetricResourceUri = this.ResourceId
+                                                                        }
+                                                                    }
+                                                                else rule
+                                                        } |> List.ofSeq
+                                                    }
+                                            } |> List.ofSeq
+                                    }
                             }
                     | None -> ()
                 ]
@@ -420,10 +441,12 @@ type VirtualMachineScaleSetBuilder() =
         { state with
             AutomaticRepairsPolicy = Some(policy)
         }
-    
-    [<CustomOperation "autoscale_settings">]
-    member _.AutoscaleSettings(state: VmScaleSetConfig, autoscale: AutoscaleSettings) =
-        { state with Autoscale = Some autoscale }
+
+    [<CustomOperation "autoscale">]
+    member _.Autoscale(state: VmScaleSetConfig, autoscaleSettings: AutoscaleSettings) =
+        { state with
+            Autoscale = Some autoscaleSettings
+        }
 
     [<CustomOperation "capacity">]
     member _.Capacity(state: VmScaleSetConfig, capacity: int) = { state with Capacity = Some capacity }

@@ -82,6 +82,9 @@ type ResourceType =
         match this with
         | ResourceType (_, v) -> v
 
+    /// Empty resource type for default and comparison purposes.
+    static member Empty = ResourceType("", "")
+
 type ResourceId =
     {
         Type: ResourceType
@@ -237,6 +240,10 @@ type ResourceId with
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     member this.Eval() = this.ArmExpression.Eval()
     static member Eval(resourceId: ResourceId) = resourceId.ArmExpression.Eval()
+
+    /// Empty ResourceId for default and comparison purposes.
+    static member Empty = ResourceId.create(ResourceType.Empty, ResourceName.Empty)
+
     static member internal AsIdObject(resourceId: ResourceId) = {| id = resourceId.Eval() |}
 
 type ArmExpression with

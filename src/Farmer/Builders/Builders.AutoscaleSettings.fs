@@ -6,6 +6,10 @@ open Farmer
 open Farmer.Arm.AutoscaleSettings
 open Farmer.Insights
 
+
+// Written during a good conversation with ChatGPT.
+// https://chat.openai.com/share/821d8f25-f37c-4cfc-8ca5-0ff7200e3f04
+
 type NotificationEmailBuilder() =
     member _.Yield _ =
         {
@@ -90,7 +94,7 @@ let autoscaleCapacity = CapacityBuilder()
 
 type ScheduleBuilder() =
     [<CustomOperation("days")>]
-    member _.Days(schedule: Schedule, days: string list) = { schedule with Days = days }
+    member _.Days(schedule: Schedule, days: DayOfWeek list) = { schedule with Days = days }
 
     [<CustomOperation("hours")>]
     member _.Hours(schedule: Schedule, hours: int list) = { schedule with Hours = hours }
@@ -141,7 +145,7 @@ type ScaleActionBuilder() =
             Direction = direction
         }
 
-    [<CustomOperation("type")>]
+    [<CustomOperation("action_type")>]
     member _.Type(scaleAction: ScaleAction, actionType: ScaleActionType) = { scaleAction with Type = actionType }
 
     [<CustomOperation("value")>]
@@ -149,7 +153,7 @@ type ScaleActionBuilder() =
 
     member _.Yield _ =
         {
-            Cooldown = TimeSpan.Zero
+            Cooldown = TimeSpan.FromMinutes 10
             Direction = ScaleActionDirection.Increase
             Type = ScaleActionType.ChangeCount
             Value = 1
@@ -195,56 +199,74 @@ let predictiveAutoscalePolicy = PredictiveAutoscalePolicyBuilder()
 
 type FixedDateBuilder() =
     [<CustomOperation("end")>]
-    member _.End(fixedDate: FixedDate, endValue: string) = { fixedDate with End = endValue }
+    member _.End(fixedDate: FixedDate, endValue: DateTimeOffset) = { fixedDate with End = endValue }
 
     [<CustomOperation("start")>]
-    member _.Start(fixedDate: FixedDate, startValue: string) = { fixedDate with Start = startValue }
+    member _.Start(fixedDate: FixedDate, startValue: DateTimeOffset) = { fixedDate with Start = startValue }
 
     [<CustomOperation("time_zone")>]
-    member _.TimeZone(fixedDate: FixedDate, timeZone: string) = { fixedDate with TimeZone = timeZone }
+    member _.TimeZone(fixedDate: FixedDate, timeZone: string) =
+        { fixedDate with
+            TimeZone = Some timeZone
+        }
 
-    member _.Yield _ = { End = ""; Start = ""; TimeZone = "" }
+    member _.Yield _ =
+        {
+            End = DateTimeOffset.MinValue
+            Start = DateTimeOffset.MinValue
+            TimeZone = None
+        }
 
 let fixedDate = FixedDateBuilder()
 
 type MetricTriggerBuilder() =
     [<CustomOperation("dimensions")>]
-    member _.Dimensions(metricTrigger: MetricTrigger, dimensions: Dimension list) =
-        { metricTrigger with
-            Dimensions = dimensions
-        }
+    member _.Dimensions (metricTrigger: MetricTrigger, dimensions: Dimension list) =
+        { metricTrigger with Dimensions = dimensions }
 
     [<CustomOperation("divide_per_instance")>]
-    member _.DividePerInstance(metricTrigger: MetricTrigger, divide: bool option) =
-        { metricTrigger with
-            DividePerInstance = divide
-        }
+    member _.DividePerInstance (metricTrigger: MetricTrigger, divide: bool) =
+        { metricTrigger with DividePerInstance = Some divide }
 
     [<CustomOperation("metric_name")>]
-    member _.MetricName(metricTrigger: MetricTrigger, metricName: string) =
-        { metricTrigger with
-            MetricName = metricName
-        }
+    member _.MetricName (metricTrigger: MetricTrigger, metricName: string) =
+        { metricTrigger with MetricName = metricName }
 
     [<CustomOperation("metric_namespace")>]
-    member _.MetricNamespace(metricTrigger: MetricTrigger, metricNamespace: string option) =
-        { metricTrigger with
-            MetricNamespace = metricNamespace
-        }
+    member _.MetricNamespace (metricTrigger: MetricTrigger, metricNamespace: string) =
+        { metricTrigger with MetricNamespace = Some metricNamespace }
 
     [<CustomOperation("metric_resource_location")>]
-    member _.MetricResourceLocation(metricTrigger: MetricTrigger, metricResourceLocation: string option) =
-        { metricTrigger with
-            MetricResourceLocation = metricResourceLocation
-        }
+    member _.MetricResourceLocation (metricTrigger: MetricTrigger, metricResourceLocation: string) =
+        { metricTrigger with MetricResourceLocation = Some metricResourceLocation }
 
-    [<CustomOperation("metric_resource_rri")>]
-    member _.MetricResourceUri(metricTrigger: MetricTrigger, metricResourceUri: ResourceId) =
-        { metricTrigger with
-            MetricResourceUri = metricResourceUri
-        }
+    [<CustomOperation("metric_resource_uri")>]
+    member _.MetricResourceUri (metricTrigger: MetricTrigger, metricResourceUri: ResourceId) =
+        { metricTrigger with MetricResourceUri = metricResourceUri }
 
-    // Add CustomOperation annotations and methods for other fields
+    [<CustomOperation("operator")>]
+    member _.Operator (metricTrigger: MetricTrigger, op: MetricTriggerOperator) =
+        { metricTrigger with Operator = op }
+
+    [<CustomOperation("statistic")>]
+    member _.Statistic (metricTrigger: MetricTrigger, statistic: MetricTriggerStatistic) =
+        { metricTrigger with Statistic = statistic }
+
+    [<CustomOperation("threshold")>]
+    member _.Threshold (metricTrigger: MetricTrigger, threshold: int) =
+        { metricTrigger with Threshold = threshold }
+
+    [<CustomOperation("time_aggregation")>]
+    member _.TimeAggregation (metricTrigger: MetricTrigger, timeAggregation: MetricTriggerTimeAggregation) =
+        { metricTrigger with TimeAggregation = timeAggregation }
+
+    [<CustomOperation("time_grain")>]
+    member _.TimeGrain (metricTrigger: MetricTrigger, timeGrain: TimeSpan) =
+        { metricTrigger with TimeGrain = timeGrain }
+
+    [<CustomOperation("time_window")>]
+    member _.TimeWindow (metricTrigger: MetricTrigger, timeWindow: TimeSpan) =
+        { metricTrigger with TimeWindow = timeWindow }
 
     member _.Yield _ =
         {
@@ -253,15 +275,8 @@ type MetricTriggerBuilder() =
             MetricName = ""
             MetricNamespace = None
             MetricResourceLocation = None
-            MetricResourceUri =
-                {
-                    Name = ResourceName.Empty
-                    Type = ResourceType("", "")
-                    ResourceGroup = None
-                    Subscription = None
-                    Segments = []
-                }
-            Operator = MetricTriggerOperator.GreaterThan
+            MetricResourceUri = ResourceId.Empty
+            Operator = MetricTriggerOperator.Equals
             Statistic = MetricTriggerStatistic.Average
             Threshold = 0
             TimeAggregation = MetricTriggerTimeAggregation.Average
@@ -307,9 +322,98 @@ type ProfileBuilder() =
         {
             Capacity = CapacityBuilder().Yield()
             FixedDate = None
-            Name = null
+            Name = "DefaultAutoscaleProfile"
             Recurrence = None
             Rules = []
         }
 
 let autoscaleProfile = ProfileBuilder()
+
+type AutoscaleSettingsPropertiesBuilder() =
+    [<CustomOperation("enabled")>]
+    member _.Enabled(props: AutoscaleSettingsProperties, enabled: bool) = { props with Enabled = enabled }
+
+    [<CustomOperation("name")>]
+    member _.Name(props: AutoscaleSettingsProperties, name: string) = { props with Name = name }
+
+    [<CustomOperation("notifications")>]
+    member _.Notifications(props: AutoscaleSettingsProperties, notifications: Notification list) =
+        { props with
+            Notifications = notifications
+        }
+
+    [<CustomOperation("predictive_autoscale_policy")>]
+    member _.PredictiveAutoscalePolicy(props: AutoscaleSettingsProperties, policy: PredictiveAutoscalePolicy option) =
+        { props with
+            PredictiveAutoscalePolicy = policy
+        }
+
+    [<CustomOperation("profiles")>]
+    member _.Profiles(props: AutoscaleSettingsProperties, profiles: Profile list) = { props with Profiles = profiles }
+
+    [<CustomOperation("target_resource_location")>]
+    member _.TargetResourceLocation(props: AutoscaleSettingsProperties, location: string) =
+        { props with
+            TargetResourceLocation = location
+        }
+
+    [<CustomOperation("target_resource_uri")>]
+    member _.TargetResourceUri(props: AutoscaleSettingsProperties, resourceId: ResourceId) =
+        { props with
+            TargetResourceUri = Managed resourceId
+        }
+
+    member _.Yield _ =
+        {
+            Enabled = true
+            Name = ""
+            Notifications = []
+            PredictiveAutoscalePolicy = None
+            Profiles = []
+            TargetResourceLocation = ""
+            TargetResourceUri = Unmanaged ResourceId.Empty
+        }
+
+let autoscaleSettingsProperties = AutoscaleSettingsPropertiesBuilder()
+
+type AutoscaleSettingsBuilder() =
+    [<CustomOperation("name")>]
+    member _.Name(state: AutoscaleSettings, name: string) = { state with Name = ResourceName name }
+
+    [<CustomOperation("location")>]
+    member _.Name(state: AutoscaleSettings, location: Location) = { state with Location = location }
+
+    [<CustomOperation("properties")>]
+    member _.Properties(state: AutoscaleSettings, properties) = { state with Properties = properties }
+
+    member _.Yield _ =
+        {
+            AutoscaleSettings.Name = ResourceName.Empty
+            Location = Location.Location "[resourceGroup().Location]"
+            Dependencies = Set.empty
+            Tags = Map.empty
+            Properties = AutoscaleSettingsPropertiesBuilder().Yield()
+        }
+
+    member _.Run(state: AutoscaleSettings) =
+        { state with
+            Properties =
+                {
+                    state.Properties with
+                        Name = state.Name.Value
+                }
+        }
+
+    interface ITaggable<AutoscaleSettings> with
+        member _.Add state tags =
+            { state with
+                Tags = state.Tags |> Map.merge tags
+            }
+
+    interface IDependable<AutoscaleSettings> with
+        member _.Add state newDeps =
+            { state with
+                Dependencies = state.Dependencies + newDeps
+            }
+
+let autoscaleSettings = AutoscaleSettingsBuilder()
