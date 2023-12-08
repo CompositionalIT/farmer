@@ -242,18 +242,24 @@ type VmScaleSetConfig =
                                                 for profile in autoscaleSettings.Properties.Profiles do
                                                     { profile with
                                                         Rules =
-                                                        seq {
-                                                            for rule in profile.Rules do
-                                                                if rule.MetricTrigger.MetricResourceUri = ResourceId.Empty then
-                                                                    { rule with
-                                                                        MetricTrigger = {
-                                                                            rule.MetricTrigger with MetricResourceUri = this.ResourceId
+                                                            seq {
+                                                                for rule in profile.Rules do
+                                                                    if
+                                                                        rule.MetricTrigger.MetricResourceUri = ResourceId.Empty
+                                                                    then
+                                                                        { rule with
+                                                                            MetricTrigger =
+                                                                                { rule.MetricTrigger with
+                                                                                    MetricResourceUri = this.ResourceId
+                                                                                }
                                                                         }
-                                                                    }
-                                                                else rule
-                                                        } |> List.ofSeq
+                                                                    else
+                                                                        rule
+                                                            }
+                                                            |> List.ofSeq
                                                     }
-                                            } |> List.ofSeq
+                                            }
+                                            |> List.ofSeq
                                     }
                             }
                     | None -> ()

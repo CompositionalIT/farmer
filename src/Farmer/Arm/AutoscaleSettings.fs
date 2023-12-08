@@ -375,7 +375,9 @@ type AutoscaleSettings =
 
     interface IArmResource with
         member this.JsonModel =
-            let dependencies = this.Dependencies |> LinkedResource.addToSetIfManaged this.Properties.TargetResourceUri
+            let dependencies =
+                this.Dependencies
+                |> LinkedResource.addToSetIfManaged this.Properties.TargetResourceUri
 
             {| autoscaleSettings.Create(this.Name, this.Location, dependsOn = dependencies, tags = this.Tags) with
                 properties = this.Properties.ToArmJson
@@ -385,7 +387,9 @@ type AutoscaleSettings =
 
     interface IBuilder with
         member this.BuildResources location =
-            if(this.Properties.TargetResourceUri.ResourceId = ResourceId.Empty) then
+            if (this.Properties.TargetResourceUri.ResourceId = ResourceId.Empty) then
                 raiseFarmer "Must set 'target_resource_uri' for autoscale_settings."
+
             [ this ]
+
         member this.ResourceId = autoscaleSettings.resourceId this.Name

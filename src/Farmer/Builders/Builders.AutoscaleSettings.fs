@@ -221,52 +221,73 @@ let fixedDate = FixedDateBuilder()
 
 type MetricTriggerBuilder() =
     [<CustomOperation("dimensions")>]
-    member _.Dimensions (metricTrigger: MetricTrigger, dimensions: Dimension list) =
-        { metricTrigger with Dimensions = dimensions }
+    member _.Dimensions(metricTrigger: MetricTrigger, dimensions: Dimension list) =
+        { metricTrigger with
+            Dimensions = dimensions
+        }
 
     [<CustomOperation("divide_per_instance")>]
-    member _.DividePerInstance (metricTrigger: MetricTrigger, divide: bool) =
-        { metricTrigger with DividePerInstance = Some divide }
+    member _.DividePerInstance(metricTrigger: MetricTrigger, divide: bool) =
+        { metricTrigger with
+            DividePerInstance = Some divide
+        }
 
     [<CustomOperation("metric_name")>]
-    member _.MetricName (metricTrigger: MetricTrigger, metricName: string) =
-        { metricTrigger with MetricName = metricName }
+    member _.MetricName(metricTrigger: MetricTrigger, metricName: string) =
+        { metricTrigger with
+            MetricName = metricName
+        }
 
     [<CustomOperation("metric_namespace")>]
-    member _.MetricNamespace (metricTrigger: MetricTrigger, metricNamespace: string) =
-        { metricTrigger with MetricNamespace = Some metricNamespace }
+    member _.MetricNamespace(metricTrigger: MetricTrigger, metricNamespace: string) =
+        { metricTrigger with
+            MetricNamespace = Some metricNamespace
+        }
 
     [<CustomOperation("metric_resource_location")>]
-    member _.MetricResourceLocation (metricTrigger: MetricTrigger, metricResourceLocation: string) =
-        { metricTrigger with MetricResourceLocation = Some metricResourceLocation }
+    member _.MetricResourceLocation(metricTrigger: MetricTrigger, metricResourceLocation: string) =
+        { metricTrigger with
+            MetricResourceLocation = Some metricResourceLocation
+        }
 
     [<CustomOperation("metric_resource_uri")>]
-    member _.MetricResourceUri (metricTrigger: MetricTrigger, metricResourceUri: ResourceId) =
-        { metricTrigger with MetricResourceUri = metricResourceUri }
+    member _.MetricResourceUri(metricTrigger: MetricTrigger, metricResourceUri: ResourceId) =
+        { metricTrigger with
+            MetricResourceUri = metricResourceUri
+        }
 
     [<CustomOperation("operator")>]
-    member _.Operator (metricTrigger: MetricTrigger, op: MetricTriggerOperator) =
-        { metricTrigger with Operator = op }
+    member _.Operator(metricTrigger: MetricTrigger, op: MetricTriggerOperator) = { metricTrigger with Operator = op }
 
     [<CustomOperation("statistic")>]
-    member _.Statistic (metricTrigger: MetricTrigger, statistic: MetricTriggerStatistic) =
-        { metricTrigger with Statistic = statistic }
+    member _.Statistic(metricTrigger: MetricTrigger, statistic: MetricTriggerStatistic) =
+        { metricTrigger with
+            Statistic = statistic
+        }
 
     [<CustomOperation("threshold")>]
-    member _.Threshold (metricTrigger: MetricTrigger, threshold: int) =
-        { metricTrigger with Threshold = threshold }
+    member _.Threshold(metricTrigger: MetricTrigger, threshold: int) =
+        { metricTrigger with
+            Threshold = threshold
+        }
 
     [<CustomOperation("time_aggregation")>]
-    member _.TimeAggregation (metricTrigger: MetricTrigger, timeAggregation: MetricTriggerTimeAggregation) =
-        { metricTrigger with TimeAggregation = timeAggregation }
+    member _.TimeAggregation(metricTrigger: MetricTrigger, timeAggregation: MetricTriggerTimeAggregation) =
+        { metricTrigger with
+            TimeAggregation = timeAggregation
+        }
 
     [<CustomOperation("time_grain")>]
-    member _.TimeGrain (metricTrigger: MetricTrigger, timeGrain: TimeSpan) =
-        { metricTrigger with TimeGrain = timeGrain }
+    member _.TimeGrain(metricTrigger: MetricTrigger, timeGrain: TimeSpan) =
+        { metricTrigger with
+            TimeGrain = timeGrain
+        }
 
     [<CustomOperation("time_window")>]
-    member _.TimeWindow (metricTrigger: MetricTrigger, timeWindow: TimeSpan) =
-        { metricTrigger with TimeWindow = timeWindow }
+    member _.TimeWindow(metricTrigger: MetricTrigger, timeWindow: TimeSpan) =
+        { metricTrigger with
+            TimeWindow = timeWindow
+        }
 
     member _.Yield _ =
         {
@@ -398,9 +419,8 @@ type AutoscaleSettingsBuilder() =
     member _.Run(state: AutoscaleSettings) =
         { state with
             Properties =
-                {
-                    state.Properties with
-                        Name = state.Name.Value
+                { state.Properties with
+                    Name = state.Name.Value
                 }
         }
 

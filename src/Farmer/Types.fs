@@ -242,7 +242,7 @@ type ResourceId with
     static member Eval(resourceId: ResourceId) = resourceId.ArmExpression.Eval()
 
     /// Empty ResourceId for default and comparison purposes.
-    static member Empty = ResourceId.create(ResourceType.Empty, ResourceName.Empty)
+    static member Empty = ResourceId.create (ResourceType.Empty, ResourceName.Empty)
 
     static member internal AsIdObject(resourceId: ResourceId) = {| id = resourceId.Eval() |}
 

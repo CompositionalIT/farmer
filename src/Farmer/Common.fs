@@ -1231,15 +1231,15 @@ module Insights =
         | LessThan
         | LessThanOrEqual
         | NotEquals
-        with
-            member this.ArmValue =
-                match this with
-                | Equals -> "Equals"
-                | GreaterThan -> "GreaterThan"
-                | GreaterThanOrEqual -> "GreaterThanOrEqual"
-                | LessThan -> "LessThan"
-                | LessThanOrEqual -> "LessThanOrEqual"
-                | NotEquals -> "NotEquals"
+
+        member this.ArmValue =
+            match this with
+            | Equals -> "Equals"
+            | GreaterThan -> "GreaterThan"
+            | GreaterThanOrEqual -> "GreaterThanOrEqual"
+            | LessThan -> "LessThan"
+            | LessThanOrEqual -> "LessThanOrEqual"
+            | NotEquals -> "NotEquals"
 
     [<RequireQualifiedAccess>]
     type MetricTriggerStatistic =
@@ -1248,14 +1248,14 @@ module Insights =
         | Max
         | Min
         | Sum
-        with
-            member this.ArmValue =
-                match this with
-                | Average -> "Average"
-                | Count -> "Count"
-                | Max -> "Max"
-                | Min -> "Min"
-                | Sum -> "Sum"
+
+        member this.ArmValue =
+            match this with
+            | Average -> "Average"
+            | Count -> "Count"
+            | Max -> "Max"
+            | Min -> "Min"
+            | Sum -> "Sum"
 
     [<RequireQualifiedAccess>]
     type MetricTriggerTimeAggregation =
@@ -1265,27 +1265,27 @@ module Insights =
         | Maximum
         | Minimum
         | Total
-        with
-            member this.ArmValue =
-                match this with
-                | Average -> "Average"
-                | Count -> "Count"
-                | Last -> "Last"
-                | Maximum -> "Maximum"
-                | Minimum -> "Minimum"
-                | Total -> "Total"
+
+        member this.ArmValue =
+            match this with
+            | Average -> "Average"
+            | Count -> "Count"
+            | Last -> "Last"
+            | Maximum -> "Maximum"
+            | Minimum -> "Minimum"
+            | Total -> "Total"
 
     [<RequireQualifiedAccess>]
     type ScaleActionDirection =
         | Decrease
         | Increase
         | None
-        with
-            member this.ArmValue =
-                match this with
-                | Decrease -> "Decrease"
-                | Increase -> "Increase"
-                | None -> "None"
+
+        member this.ArmValue =
+            match this with
+            | Decrease -> "Decrease"
+            | Increase -> "Increase"
+            | None -> "None"
 
     [<RequireQualifiedAccess>]
     type ScaleActionType =
@@ -1293,13 +1293,13 @@ module Insights =
         | ExactCount
         | PercentChangeCount
         | ServiceAllowedNextValue
-        with
-            member this.ArmValue =
-                match this with
-                | ChangeCount -> "ChangeCount"
-                | ExactCount -> "ExactCount"
-                | PercentChangeCount -> "PercentChangeCount"
-                | ServiceAllowedNextValue -> "ServiceAllowedNextValue"
+
+        member this.ArmValue =
+            match this with
+            | ChangeCount -> "ChangeCount"
+            | ExactCount -> "ExactCount"
+            | PercentChangeCount -> "PercentChangeCount"
+            | ServiceAllowedNextValue -> "ServiceAllowedNextValue"
 
 module Storage =
     open Validation
