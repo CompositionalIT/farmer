@@ -32,6 +32,7 @@ type FunctionsRuntime with
     static member DotNet60 = DotNet, Some "6.0"
     static member DotNet60Isolated = DotNetIsolated, Some "6.0"
     static member DotNet70Isolated = DotNetIsolated, Some "7.0"
+    static member DotNet80Isolated = DotNetIsolated, Some "8.0"
     static member Node14 = Node, Some "14-lts"
     static member Node12 = Node, Some "12-lts"
     static member Node10 = Node, Some "10-lts"
