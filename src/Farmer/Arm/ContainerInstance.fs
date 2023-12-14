@@ -229,7 +229,7 @@ type ContainerGroup =
 
             match this.Diagnostics with
             | Some {
-                       Workspace = LogAnalyticsWorkspace.WorkspaceResourceId (LinkedResource.Managed (resId))
+                       Workspace = LogAnalyticsWorkspace.WorkspaceResourceId (LinkedResource.Managed resId)
                    } -> resId
             | _ -> ()
             // If the identity is set, include any dependent identity's resource ID
@@ -446,7 +446,7 @@ type ContainerGroup =
                                         match ipAddresses.Type with
                                         | PublicAddress
                                         | PublicAddressWithDns _ -> "Public"
-                                        | PrivateAddress _ -> "Private"
+                                        | PrivateAddress -> "Private"
                                     ports =
                                         [
                                             for port in ipAddresses.Ports do
