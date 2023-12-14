@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.8.3
+* Functions: Dotnet 8: Added missing DotNet80Isolated option to fully support functions
+
 ## 1.8.2
 * Virtual Machines: Adds Ubuntu 20.04 ARM 64, 22.04 ARM 64, 23.04, 23.04 ARM 64, 23.10, 23.10 ARM 64
 * Virtual Machines: Adds ARM 64 VM sizes.
