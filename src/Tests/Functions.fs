@@ -851,6 +851,7 @@ let tests =
                     (FunctionsRuntime.DotNet60Isolated, "v6.0")
                     (FunctionsRuntime.DotNet60, "v6.0")
                     (FunctionsRuntime.DotNet70Isolated, "v7.0")
+                    (FunctionsRuntime.DotNet80Isolated, "v8.0")
                 ]
 
             for runtime, expectedVersion in data do
