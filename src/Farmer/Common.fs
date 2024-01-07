@@ -1213,6 +1213,94 @@ module Insights =
         static member SQL_DB_DTU = MetricsName "dtu_consumption_percent"
         static member SQL_DB_Size = MetricsName "storage_percent"
 
+    [<RequireQualifiedAccess>]
+    type DimensionOperator =
+        | Equals
+        | NotEquals
+
+        member this.ArmValue =
+            match this with
+            | Equals -> "Equals"
+            | NotEquals -> "NotEquals"
+
+    [<RequireQualifiedAccess>]
+    type MetricTriggerOperator =
+        | Equals
+        | GreaterThan
+        | GreaterThanOrEqual
+        | LessThan
+        | LessThanOrEqual
+        | NotEquals
+
+        member this.ArmValue =
+            match this with
+            | Equals -> "Equals"
+            | GreaterThan -> "GreaterThan"
+            | GreaterThanOrEqual -> "GreaterThanOrEqual"
+            | LessThan -> "LessThan"
+            | LessThanOrEqual -> "LessThanOrEqual"
+            | NotEquals -> "NotEquals"
+
+    [<RequireQualifiedAccess>]
+    type MetricTriggerStatistic =
+        | Average
+        | Count
+        | Max
+        | Min
+        | Sum
+
+        member this.ArmValue =
+            match this with
+            | Average -> "Average"
+            | Count -> "Count"
+            | Max -> "Max"
+            | Min -> "Min"
+            | Sum -> "Sum"
+
+    [<RequireQualifiedAccess>]
+    type MetricTriggerTimeAggregation =
+        | Average
+        | Count
+        | Last
+        | Maximum
+        | Minimum
+        | Total
+
+        member this.ArmValue =
+            match this with
+            | Average -> "Average"
+            | Count -> "Count"
+            | Last -> "Last"
+            | Maximum -> "Maximum"
+            | Minimum -> "Minimum"
+            | Total -> "Total"
+
+    [<RequireQualifiedAccess>]
+    type ScaleActionDirection =
+        | Decrease
+        | Increase
+        | None
+
+        member this.ArmValue =
+            match this with
+            | Decrease -> "Decrease"
+            | Increase -> "Increase"
+            | None -> "None"
+
+    [<RequireQualifiedAccess>]
+    type ScaleActionType =
+        | ChangeCount
+        | ExactCount
+        | PercentChangeCount
+        | ServiceAllowedNextValue
+
+        member this.ArmValue =
+            match this with
+            | ChangeCount -> "ChangeCount"
+            | ExactCount -> "ExactCount"
+            | PercentChangeCount -> "PercentChangeCount"
+            | ServiceAllowedNextValue -> "ServiceAllowedNextValue"
+
 module Storage =
     open Validation
 

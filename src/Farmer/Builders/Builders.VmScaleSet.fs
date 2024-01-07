@@ -56,6 +56,7 @@ type VmScaleSetConfig =
         Dependencies: ResourceId Set
         Vm: VmConfig option
         AutomaticRepairsPolicy: ScaleSetAutomaticRepairsPolicy option
+        Autoscale: AutoscaleSettings option
         AvailabilityZones: string list
         Capacity: int option
         Extensions: IExtensionBuilder list
@@ -175,59 +176,93 @@ type VmScaleSetConfig =
 
                 [
                     // The VM Scale Set
-                    {
-                        Name = this.Name
-                        Location = location
-                        Dependencies = this.Dependencies
-                        AutomaticRepairsPolicy = this.AutomaticRepairsPolicy
-                        AvailabilityZones = this.AvailabilityZones
-                        Capacity = this.Capacity |> Option.defaultValue 1
-                        Credentials =
-                            match vm.Username with
-                            | Some username ->
-                                {|
-                                    Username = username
-                                    Password = SecureParameter this.PasswordParameterArm
-                                |}
-                            | None -> raiseFarmer $"You must specify a username for virtual machine {this.Name.Value}"
-                        CustomData = vm.CustomData
-                        DataDisks = vm.DataDisks |> Option.defaultValue []
-                        DiagnosticsEnabled = vm.DiagnosticsEnabled
-                        DisablePasswordAuthentication = vm.DisablePasswordAuthentication
-                        Extensions = this.extensions |> List.map (fun ext -> ext.BuildExtension location)
-                        GalleryApplications = vm.GalleryApplications
-                        HealthProbeId = this.HealthProbeId
-                        Identity = vm.Identity
-                        NetworkInterfaceConfigs =
-                            let linkedVnet = vm.VNet.toLinkedResource (vm)
-                            this.buildNetworkInterfaceConfigurations (linkedVnet, nsgId)
-                        OsDisk = vm.OsDisk
-                        Priority = vm.Priority
-                        PublicKeys =
-                            if
-                                vm.DisablePasswordAuthentication.IsSome
-                                && vm.DisablePasswordAuthentication.Value
-                                && vm.SshPathAndPublicKeys.IsNone
-                            then
-                                raiseFarmer
-                                    $"You must include at least one ssh key when Password Authentication is disabled"
-                            else
-                                (vm.SshPathAndPublicKeys)
-                        ScaleInPolicy =
-                            this.ScaleInPolicy
-                            |> Option.defaultValue
-                                {
-                                    ForceDeletion = false
-                                    Rules = [ ScaleInPolicyRule.Default ]
-                                }
-                        Size = vm.Size
-                        UpgradePolicy = this.UpgradePolicy |> Option.defaultValue { Mode = UpgradeMode.Automatic }
-                        ZoneBalance = this.ZoneBalance
-                        Tags = this.Tags
-                    }
-                    :> IArmResource
-
+                    yield
+                        {
+                            Name = this.Name
+                            Location = location
+                            Dependencies = this.Dependencies
+                            AutomaticRepairsPolicy = this.AutomaticRepairsPolicy
+                            AvailabilityZones = this.AvailabilityZones
+                            Capacity = this.Capacity |> Option.defaultValue 1
+                            Credentials =
+                                match vm.Username with
+                                | Some username ->
+                                    {|
+                                        Username = username
+                                        Password = SecureParameter this.PasswordParameterArm
+                                    |}
+                                | None ->
+                                    raiseFarmer $"You must specify a username for virtual machine {this.Name.Value}"
+                            CustomData = vm.CustomData
+                            DataDisks = vm.DataDisks |> Option.defaultValue []
+                            DiagnosticsEnabled = vm.DiagnosticsEnabled
+                            DisablePasswordAuthentication = vm.DisablePasswordAuthentication
+                            Extensions = this.extensions |> List.map (fun ext -> ext.BuildExtension location)
+                            GalleryApplications = vm.GalleryApplications
+                            HealthProbeId = this.HealthProbeId
+                            Identity = vm.Identity
+                            NetworkInterfaceConfigs =
+                                let linkedVnet = vm.VNet.toLinkedResource (vm)
+                                this.buildNetworkInterfaceConfigurations (linkedVnet, nsgId)
+                            OsDisk = vm.OsDisk
+                            Priority = vm.Priority
+                            PublicKeys =
+                                if
+                                    vm.DisablePasswordAuthentication.IsSome
+                                    && vm.DisablePasswordAuthentication.Value
+                                    && vm.SshPathAndPublicKeys.IsNone
+                                then
+                                    raiseFarmer
+                                        $"You must include at least one ssh key when Password Authentication is disabled"
+                                else
+                                    (vm.SshPathAndPublicKeys)
+                            ScaleInPolicy =
+                                this.ScaleInPolicy
+                                |> Option.defaultValue
+                                    {
+                                        ForceDeletion = false
+                                        Rules = [ ScaleInPolicyRule.Default ]
+                                    }
+                            Size = vm.Size
+                            UpgradePolicy = this.UpgradePolicy |> Option.defaultValue { Mode = UpgradeMode.Automatic }
+                            ZoneBalance = this.ZoneBalance
+                            Tags = this.Tags
+                        }
                     yield! vm.BuildVNet(location, nsgId) |> Option.toList
+                    match this.Autoscale with
+                    | Some autoscaleSettings ->
+                        yield
+                            { autoscaleSettings with
+                                Location = location
+                                Properties =
+                                    { autoscaleSettings.Properties with
+                                        TargetResourceUri = Managed this.ResourceId
+                                        Profiles =
+                                            seq {
+                                                for profile in autoscaleSettings.Properties.Profiles do
+                                                    { profile with
+                                                        Rules =
+                                                            seq {
+                                                                for rule in profile.Rules do
+                                                                    if
+                                                                        rule.MetricTrigger.MetricResourceUri = ResourceId.Empty
+                                                                    then
+                                                                        { rule with
+                                                                            MetricTrigger =
+                                                                                { rule.MetricTrigger with
+                                                                                    MetricResourceUri = this.ResourceId
+                                                                                }
+                                                                        }
+                                                                    else
+                                                                        rule
+                                                            }
+                                                            |> List.ofSeq
+                                                    }
+                                            }
+                                            |> List.ofSeq
+                                    }
+                            }
+                    | None -> ()
                 ]
 
 type ApplicationHealthExtensionBuilder() =
@@ -303,6 +338,7 @@ type VirtualMachineScaleSetBuilder() =
             ScaleInPolicy = None
             UpgradePolicy = None
             AutomaticRepairsPolicy = None
+            Autoscale = None
             AvailabilityZones = []
             HealthProbeId = None
             LoadBalancerBackendAddressPools = []
@@ -410,6 +446,12 @@ type VirtualMachineScaleSetBuilder() =
 
         { state with
             AutomaticRepairsPolicy = Some(policy)
+        }
+
+    [<CustomOperation "autoscale">]
+    member _.Autoscale(state: VmScaleSetConfig, autoscaleSettings: AutoscaleSettings) =
+        { state with
+            Autoscale = Some autoscaleSettings
         }
 
     [<CustomOperation "capacity">]

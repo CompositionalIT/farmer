@@ -66,6 +66,7 @@
     <Compile Include="Deploy.fs" />
     <Compile Include="Arm\ActionGroup.fs" />
     <Compile Include="Arm\AutomationAccount.fs" />
+    <Compile Include="Arm\AutoscaleSettings.fs" />
     <Compile Include="Arm\ResourceGroup.fs" />
 
     <Compile Include="Arm/DiagnosticSetting.fs" />
@@ -123,6 +124,7 @@
     <Compile Include="IdentityExtensions.fs" />
     <Compile Include="Builders/Extensions.fs" />
     <Compile Include="Builders\Builders.ActionGroup.fs" />
+    <Compile Include="Builders\Builders.AutoscaleSettings.fs" />
     <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
     <Compile Include="Builders/Builders.ResourceGroup.fs" />
     <Compile Include="Builders/Builders.LogAnalytics.fs" />
