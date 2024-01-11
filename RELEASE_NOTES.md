@@ -1,8 +1,10 @@
 Release Notes
 =============
 
-## 1.8.3
+## 1.8.4
 * Autoscale Settings: Adds support for defining autoscale settings for VM scale sets.
+
+## 1.8.3
 * Functions: Dotnet 8: Added missing DotNet80Isolated option to fully support functions
 
 ## 1.8.2
