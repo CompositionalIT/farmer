@@ -10,7 +10,7 @@ type RSBGPConnectionConfig =
     {
         Name: string
         PeerIp: string
-        PeerAsn: int
+        PeerAsn: int64
         Dependencies: Set<ResourceId>
     }
 
@@ -30,7 +30,10 @@ type RSBGPConnectionBuilder() =
     member _.PeerIp(state: RSBGPConnectionConfig, peerIp) = { state with PeerIp = peerIp }
 
     [<CustomOperation "peer_asn">]
-    member _.PeerAsn(state: RSBGPConnectionConfig, peerAsn) = { state with PeerAsn = peerAsn }
+    member _.PeerAsn(state: RSBGPConnectionConfig, peerAsn: int64) = { state with PeerAsn = peerAsn }
+
+    member this.PeerAsn(state: RSBGPConnectionConfig, peerAsn: int) =
+        this.PeerAsn(state, System.Convert.ToInt64(peerAsn))
 
     interface IDependable<RSBGPConnectionConfig> with
         /// Adds an explicit dependency to this Container App Environment.

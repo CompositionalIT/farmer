@@ -232,7 +232,7 @@ type RouteServerBGPConnection =
         Name: ResourceName
         RouteServer: LinkedResource
         PeerIp: string
-        PeerAsn: int
+        PeerAsn: int64
         IpConfig: LinkedResource
         Dependencies: Set<ResourceId>
     }

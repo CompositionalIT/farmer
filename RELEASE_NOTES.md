@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.8.5
+* Route Server: int64 support for `peerAsn` on BGP connection.
+
 ## 1.8.4
 * Autoscale Settings: Adds support for defining autoscale settings for VM scale sets.
 
