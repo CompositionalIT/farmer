@@ -880,6 +880,7 @@ let tests =
                                     sku RouteServer.Sku.Standard
                                     subnet_prefix "10.0.12.0/24"
                                     link_to_vnet (virtualNetworks.resourceId "test-vnet")
+                                    public_ip_name "my-route-server-public-ip-name"
 
                                     add_bgp_connections
                                         [
@@ -925,7 +926,7 @@ let tests =
 
                 Expect.equal
                     publicipName
-                    (JToken.op_Implicit "my-route-server-publicip")
+                    (JToken.op_Implicit "my-route-server-public-ip-name")
                     "Incorrect default value for public ip name"
 
                 let publicipProps = publicip.["properties"]
@@ -974,7 +975,7 @@ let tests =
 
                 Expect.equal
                     (ipConfigDependencies.[0].ToString())
-                    "[resourceId(\u0027Microsoft.Network/publicIPAddresses\u0027, \u0027my-route-server-publicip\u0027)]"
+                    "[resourceId(\u0027Microsoft.Network/publicIPAddresses\u0027, \u0027my-route-server-public-ip-name\u0027)]"
                     "Incorrect ipConfig dependencies"
 
                 Expect.equal
@@ -991,7 +992,7 @@ let tests =
 
                 Expect.equal
                     ipConfigPip
-                    "[resourceId(\u0027Microsoft.Network/publicIPAddresses\u0027, \u0027my-route-server-publicip\u0027)]"
+                    "[resourceId(\u0027Microsoft.Network/publicIPAddresses\u0027, \u0027my-route-server-public-ip-name\u0027)]"
                     "Incorrect publicIPAddress id for ipConfig"
 
                 let ipConfigSubnet = ipConfig.SelectToken("properties.subnet.id").ToString()
