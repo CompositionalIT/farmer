@@ -891,7 +891,7 @@ let tests =
                                             routeServerBGPConnection {
                                                 name "my-bgp-conn-2"
                                                 peer_ip "10.0.1.86"
-                                                peer_asn 65000
+                                                peer_asn 4510002310L
 
                                                 depends_on (
                                                     ResourceId.create (
@@ -1066,6 +1066,11 @@ let tests =
                     jobj.SelectToken "resources[?(@.name=='my-route-server/my-bgp-conn-2')]"
 
                 Expect.isNotNull bgpConnWithDep "bgp connection with dependency should be generated"
+
+                Expect.equal
+                    (bgpConnWithDep.SelectToken("properties.peerAsn"))
+                    (JValue(4510002310L))
+                    "peer_asn long value incorrect did not match"
 
                 let bgpConnWithDepName = bgpConnWithDep.["name"]
 
