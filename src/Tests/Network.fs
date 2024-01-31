@@ -1070,7 +1070,7 @@ let tests =
 
                 Expect.equal
                     (bgpConnWithDep.SelectToken("properties.peerAsn"))
-                    (JValue(4510002310L))
+                    (JValue(4110002310L))
                     "peer_asn long value incorrect did not match"
 
                 let bgpConnWithDepName = bgpConnWithDep.["name"]
