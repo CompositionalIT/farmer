@@ -53,6 +53,7 @@ type RouteServerConfig =
         BGPConnections: RSBGPConnectionConfig list
         VirtualNetwork: LinkedResource option
         SubnetPrefix: IPAddressCidr
+        PublicIPName: ResourceName option
         Tags: Map<string, string>
     }
 
@@ -65,9 +66,13 @@ type RouteServerConfig =
                     this.VirtualNetwork
                     |> Option.defaultWith (fun _ -> raiseFarmer "Must set 'vnet' for route server")
 
+                let publicIpName =
+                    this.PublicIPName
+                    |> Option.defaultValue (ResourceName $"{this.Name.Value}-publicip")
+
                 //public ip
                 {
-                    PublicIpAddress.Name = ResourceName $"{this.Name.Value}-publicip"
+                    PublicIpAddress.Name = publicIpName
                     AvailabilityZone = None
                     Location = location
                     Sku = PublicIpAddress.Sku.Standard
@@ -96,7 +101,7 @@ type RouteServerConfig =
                 {
                     RouteServerIPConfig.Name = ResourceName $"{this.Name.Value}-ipconfig"
                     RouteServer = Managed(routeServers.resourceId this.Name)
-                    PublicIpAddress = LinkedResource.Managed(publicIPAddresses.resourceId $"{this.Name.Value}-publicip")
+                    PublicIpAddress = LinkedResource.Managed(publicIPAddresses.resourceId publicIpName)
                     SubnetId =
                         LinkedResource.Managed(
                             subnets.resourceId (ResourceName vnetId.Name.Value, ResourceName "RouteServerSubnet")
@@ -148,6 +153,7 @@ type RouteServerBuilder() =
                     Address = System.Net.IPAddress.Parse("10.0.100.0")
                     Prefix = 16
                 }
+            PublicIPName = None
             Tags = Map.empty
         }
 
@@ -192,6 +198,13 @@ type RouteServerBuilder() =
     member _.LinkToVNetId(state: RouteServerConfig, vnetName: string) =
         { state with
             VirtualNetwork = Some(Unmanaged(virtualNetworks.resourceId (ResourceName vnetName)))
+        }
+
+    // create public ip with custom name
+    [<CustomOperation "public_ip_name">]
+    member _.WithPublicIpName(state: RouteServerConfig, publicIpName: string) =
+        { state with
+            PublicIPName = Some(ResourceName publicIpName)
         }
 
     interface ITaggable<RouteServerConfig> with

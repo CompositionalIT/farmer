@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.8.6
+* Route Server: Custom name support for Route Server Public IP.
+
 ## 1.8.5
 * Route Server: int64 support for `peerAsn` on BGP connection.
 
