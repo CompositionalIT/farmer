@@ -892,7 +892,7 @@ let tests =
                                             routeServerBGPConnection {
                                                 name "my-bgp-conn-2"
                                                 peer_ip "10.0.1.86"
-                                                peer_asn 4510002310L
+                                                peer_asn 4110002310L
 
                                                 depends_on (
                                                     ResourceId.create (
