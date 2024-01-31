@@ -2301,6 +2301,12 @@ module ContainerService =
             | Kubenet -> "kubenet"
             | AzureCni -> "azure"
 
+module B2cTenant =
+    type Sku =
+        | PremiumP1
+        | PremiumP2
+        | Standard
+
 module Redis =
     type Sku =
         | Basic
