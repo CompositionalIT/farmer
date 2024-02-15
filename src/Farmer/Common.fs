@@ -2307,6 +2307,22 @@ module B2cTenant =
         | PremiumP2
         | Standard
 
+    /// Check official documentation for more details: https://learn.microsoft.com/en-us/azure/active-directory-b2c/data-residency#data-residency
+    type B2cDataResidency =
+        | UnitedStates
+        | Europe
+        | AsiaPacific
+        | Japan
+        | Australia
+
+        member this.Location =
+            match this with
+            | UnitedStates -> Location "United States"
+            | Europe -> Location "Europe"
+            | AsiaPacific -> Location "Asia Pacific"
+            | Japan -> Location "Japan"
+            | Australia -> Location "Australia"
+
 module Redis =
     type Sku =
         | Basic

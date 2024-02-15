@@ -26,6 +26,7 @@ Basic creation of a B2C tenant, while avoiding having an error when such tenant 
 
 ```fsharp
 open Farmer
+open Farmer.B2cTenant
 open Farmer.Builders
 open Farmer.Deploy
 
@@ -35,7 +36,7 @@ let myb2c =
     b2cTenant {
         initial_domain_name initialDomainName
         display_name "My B2C"
-        sku B2cTenant.Sku.PremiumP1
+        sku Sku.PremiumP1
         country_code "FR"
         data_residency B2cDataResidency.Europe
     }

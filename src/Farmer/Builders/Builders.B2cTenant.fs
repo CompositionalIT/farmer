@@ -4,6 +4,7 @@ module Farmer.Builders.B2cTenant
 open Farmer
 open Farmer.Arm
 open Farmer.Validation
+open Farmer.B2cTenant
 
 type B2cDomainName with
 
@@ -12,29 +13,13 @@ type B2cDomainName with
         |> validate "B2c initial domain name" initialDomainName
         |> Result.map (fun x -> B2cDomainName $"{x}.onmicrosoft.com")
 
-/// Check official documentation for more details: https://learn.microsoft.com/en-us/azure/active-directory-b2c/data-residency#data-residency
-type B2cDataResidency =
-    | UnitedStates
-    | Europe
-    | AsiaPacific
-    | Japan
-    | Australia
-
-    member this.Location =
-        match this with
-        | UnitedStates -> Location "United States"
-        | Europe -> Location "Europe"
-        | AsiaPacific -> Location "Asia Pacific"
-        | Japan -> Location "Japan"
-        | Australia -> Location "Australia"
-
 type B2cTenantConfig =
     {
         Name: B2cDomainName
         DisplayName: string
         DataResidency: Location
         CountryCode: string
-        Sku: B2cTenant.Sku
+        Sku: Sku
         Tags: Map<string, string>
     }
 
@@ -60,7 +45,7 @@ type B2cTenantBuilder() =
             DisplayName = ""
             DataResidency = B2cDataResidency.Europe.Location
             CountryCode = "FR"
-            Sku = B2cTenant.Sku.PremiumP1
+            Sku = Sku.PremiumP1
             Tags = Map.empty
         }
 
@@ -75,7 +60,7 @@ type B2cTenantBuilder() =
         { state with DisplayName = displayName }
 
     [<CustomOperation("sku")>]
-    member _.Sku(state: B2cTenantConfig, sku: B2cTenant.Sku) = { state with Sku = sku }
+    member _.Sku(state: B2cTenantConfig, sku: Sku) = { state with Sku = sku }
 
     /// Data residency location as described in: https://learn.microsoft.com/en-us/azure/active-directory-b2c/data-residency#data-residency
     [<CustomOperation("data_residency")>]

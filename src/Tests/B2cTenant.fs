@@ -2,6 +2,7 @@ module B2cTenant
 
 open Expecto
 open Farmer
+open Farmer.B2cTenant
 open Farmer.Builders
 open Newtonsoft.Json.Linq
 
@@ -19,7 +20,7 @@ let tests =
                                 b2cTenant {
                                     initial_domain_name "myb2c"
                                     display_name "My B2C tenant"
-                                    sku B2cTenant.Sku.PremiumP1
+                                    sku Sku.PremiumP1
                                     country_code "FR"
                                     data_residency B2cDataResidency.Europe
                                 }
