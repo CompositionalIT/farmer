@@ -18,6 +18,7 @@
     <Compile Include="AutoscaleSettings.fs" />
     <Compile Include="AvailabilityTests.fs" />
     <Compile Include="AzureFirewall.fs" />
+    <Compile Include="B2cTenant.fs" />
     <Compile Include="DiagnosticSettings.fs" />
     <Compile Include="Disk.fs" />
     <Compile Include="Common.fs" />

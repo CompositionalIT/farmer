@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.8.7
+* B2C Tenants: Support for creating B2C Tenants.
+
 ## 1.8.6
 * Route Server: Custom name support for Route Server Public IP.
 

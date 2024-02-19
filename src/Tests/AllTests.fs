@@ -26,6 +26,7 @@ let allTests =
                         AzCli.tests
                     AutoscaleSettings.tests
                     AzureFirewall.tests
+                    B2cTenant.tests
                     Bastion.tests
                     BingSearch.tests
                     Cdn.tests
