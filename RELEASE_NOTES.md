@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.8.8
+* Storage accounts: restrict_to_ips to support a list of IPs.
+
 ## 1.8.7
 * B2C Tenants: Support for creating B2C Tenants.
 

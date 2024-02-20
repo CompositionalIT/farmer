@@ -35,6 +35,7 @@ The Storage Account builder creates storage accounts and their associated contai
 | add_policies | Adds a list of Policies to the different storage services |
 | enable_versioning | Enabled versioning for different storage services |
 | restrict_to_ip | Restrict access to a given ip address |
+| restrict_to_ips | Restrict access to a given ip address list |
 | restrict_to_subnet | Restrict access to a given virtual network subnet |
 | restrict_to_azure_services | Restrict access to a given set of Azure Services. (Used when access to the storage account already controlled by private endpoint) |
 | disable_public_network_access | Disables public network access to the storage account |

@@ -569,6 +569,35 @@ type StorageAccountBuilder() =
                     |> Some
             }
 
+    [<CustomOperation "restrict_to_ips">]
+    member this.RestrictToIps(state: StorageAccountConfig, ips: string list) =
+        let allowIps = ips |> List.map(fun ip -> 
+            {
+                Value = IpRuleAddress(System.Net.IPAddress.Parse ip)
+                Action = RuleAction.Allow
+            })
+
+        match state.NetworkAcls with
+        | None ->
+            { state with
+                NetworkAcls =
+                    {
+                        Bypass = set [ NetworkRuleSetBypass.AzureServices ]
+                        VirtualNetworkRules = []
+                        IpRules = allowIps
+                        DefaultAction = RuleAction.Deny
+                    }
+                    |> Some
+            }
+        | Some existingAcl ->
+            { state with
+                NetworkAcls =
+                    { existingAcl with
+                        IpRules = allowIps @ existingAcl.IpRules
+                    }
+                    |> Some
+            }
+
     /// Restrict access to this storage account to the private endpoints and azure services.
     [<CustomOperation "restrict_to_azure_services">]
     member _.RestrictToAzureServices(state: StorageAccountConfig, bypass: NetworkRuleSetBypass list) =
