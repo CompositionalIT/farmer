@@ -550,7 +550,7 @@ let tests =
                     }
 
                 let generated = arm { add_resource storage } |> getStorageResource
-                Expect.hasLength generated.NetworkRuleSet.IpRules 2 "Wrong number of IP rules"
+                Expect.hasLength generated.NetworkRuleSet.IpRules 3 "Wrong number of IP rules"
 
                 Expect.containsAll
                     (generated.NetworkRuleSet.IpRules |> Seq.map (fun rule -> rule.IPAddressOrRange))
