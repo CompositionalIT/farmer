@@ -571,11 +571,13 @@ type StorageAccountBuilder() =
 
     [<CustomOperation "restrict_to_ips">]
     member this.RestrictToIps(state: StorageAccountConfig, ips: string list) =
-        let allowIps = ips |> List.map(fun ip -> 
-            {
-                Value = IpRuleAddress(System.Net.IPAddress.Parse ip)
-                Action = RuleAction.Allow
-            })
+        let allowIps =
+            ips
+            |> List.map (fun ip ->
+                {
+                    Value = IpRuleAddress(System.Net.IPAddress.Parse ip)
+                    Action = RuleAction.Allow
+                })
 
         match state.NetworkAcls with
         | None ->

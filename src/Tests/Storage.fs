@@ -545,7 +545,7 @@ let tests =
                     storageAccount {
                         name "onlymyhouse24125"
                         restrict_to_ip "8.8.8.8"
-                        restrict_to_ips ["1.2.3.4"]
+                        restrict_to_ips [ "1.2.3.4" ]
                         restrict_to_prefix "8.8.8.0/24"
                     }
 
