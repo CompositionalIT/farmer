@@ -855,6 +855,14 @@ module Vm =
     let UbuntuServer_2310Arm =
         makeLinuxVm "0001-com-ubuntu-server-mantic" "canonical" "23_10-arm64"
 
+    let Mariner_2 = makeLinuxVm "cbl-mariner" "MicrosoftCBLMariner" "cbl-mariner-2-gen2"
+
+    let Mariner_2Arm =
+        makeLinuxVm "cbl-mariner" "MicrosoftCBLMariner" "cbl-mariner-2-arm64"
+
+    let Mariner_2_Fips =
+        makeLinuxVm "cbl-mariner" "MicrosoftCBLMariner" "cbl-mariner-2-gen2-fips"
+
     let WindowsServer_2022DatacenterAzureEdition =
         makeWindowsVm "2022-datacenter-azure-edition"
 
