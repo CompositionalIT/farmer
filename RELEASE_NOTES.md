@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.8.8
+* Virtual Machines: Adds [CBL Mariner 2.0](https://microsoft.github.io/CBL-Mariner/docs/) images.
+
 ## 1.8.7
 * B2C Tenants: Support for creating B2C Tenants.
 
