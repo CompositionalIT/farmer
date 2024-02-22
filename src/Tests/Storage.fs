@@ -545,15 +545,16 @@ let tests =
                     storageAccount {
                         name "onlymyhouse24125"
                         restrict_to_ip "8.8.8.8"
+                        restrict_to_ips [ "1.2.3.4" ]
                         restrict_to_prefix "8.8.8.0/24"
                     }
 
                 let generated = arm { add_resource storage } |> getStorageResource
-                Expect.hasLength generated.NetworkRuleSet.IpRules 2 "Wrong number of IP rules"
+                Expect.hasLength generated.NetworkRuleSet.IpRules 3 "Wrong number of IP rules"
 
                 Expect.containsAll
                     (generated.NetworkRuleSet.IpRules |> Seq.map (fun rule -> rule.IPAddressOrRange))
-                    [ "8.8.8.8"; "8.8.8.0/24" ]
+                    [ "8.8.8.8"; "1.2.3.4"; "8.8.8.0/24" ]
                     "Missing IP rules"
             }
             test "Restrict to vnet" {
