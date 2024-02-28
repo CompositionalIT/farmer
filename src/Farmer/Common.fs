@@ -2138,7 +2138,7 @@ module VirtualNetworkGateway =
 
         member this.ArmValue =
             match this with
-            | ExpressRoute _ -> "ExpressRoute"
+            | ExpressRoute -> "ExpressRoute"
             | IPsec -> "IPsec"
             | Vnet2Vnet -> "Vnet2Vnet"
 

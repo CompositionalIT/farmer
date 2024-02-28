@@ -488,10 +488,7 @@ type AksBuilder() =
         | Some identityProfile ->
             { state with
                 IdentityProfile =
-                    Some
-                        { identityProfile with
-                            KubeletIdentity = Some identity
-                        }
+                    Some { KubeletIdentity = Some identity }
             }
 
     member this.KubeletIdentity(state: AksConfig, identity: UserAssignedIdentity.UserAssignedIdentityConfig) =

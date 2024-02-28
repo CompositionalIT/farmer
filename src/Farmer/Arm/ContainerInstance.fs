@@ -395,7 +395,7 @@ type ContainerGroup =
                                         match ipAddresses.Type with
                                         | PublicAddress
                                         | PublicAddressWithDns _ -> "Public"
-                                        | PrivateAddress _ -> "Private"
+                                        | PrivateAddress -> "Private"
                                     ports =
                                         [
                                             for port in ipAddresses.Ports do
