@@ -151,7 +151,9 @@ type ContainerApp =
         ScaleRules: Map<string, ScaleRule>
         Identity: ManagedIdentity
         Replicas: {| Min: int; Max: int |} option
-        DaprConfig: {| AppId: string; Port: uint16 option |} option
+        DaprConfig: {| AppId: string
+                       Port: uint16 option
+                       Protocol: string |} option
         Secrets: Map<ContainerAppSettingKey, SecretValue>
         EnvironmentVariables: Map<string, EnvVar>
         ImageRegistryCredentials: ImageRegistryAuthentication list
@@ -313,6 +315,7 @@ type ContainerApp =
                                             enabled = true
                                             appId = settings.AppId
                                             appPort = settings.Port |> Option.toNullable
+                                            appProtocol = settings.Protocol
                                         |}
                                         :> obj
                                     | None -> {| enabled = false |}

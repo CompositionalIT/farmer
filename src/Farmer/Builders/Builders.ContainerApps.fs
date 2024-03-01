@@ -39,7 +39,8 @@ type ContainerAppConfig =
         Identity: ManagedIdentity
         Replicas: {| Min: int; Max: int |} option
         DaprConfig: {| AppId: string option
-                       Port: uint16 option |} option
+                       Port: uint16 option
+                       Protocol: string option |} option
         Secrets: Map<ContainerAppSettingKey, SecretValue>
         EnvironmentVariables: Map<string, EnvVar>
         Volumes: Map<string, Volume>
@@ -127,7 +128,12 @@ type ContainerEnvironmentConfig =
                             containerApp.DaprConfig
                             |> Option.map (fun x ->
                                 match x.AppId with
-                                | Some appId -> {| AppId = appId; Port = x.Port |}
+                                | Some appId ->
+                                    {|
+                                        AppId = appId
+                                        Port = x.Port
+                                        Protocol = Option.defaultValue "http" x.Protocol
+                                    |}
                                 | None ->
                                     raiseFarmer
                                         $"The container app '{containerApp.Name.Value}' requires a Dapr App ID when Dapr is enabled.")
@@ -441,6 +447,9 @@ type ContainerAppBuilder() =
                 Some(External(existingPort, Some transport))
         }
 
+
+
+
     /// Configures Dapr App Id in the Azure Container App.
     [<CustomOperation "dapr_app_id">]
     member _.SetDaprAppId(state: ContainerAppConfig, appId) =
@@ -448,7 +457,12 @@ type ContainerAppBuilder() =
             DaprConfig =
                 state.DaprConfig
                 |> Option.map (fun x -> {| x with AppId = Some appId |})
-                |> Option.defaultWith (fun () -> {| AppId = Some appId; Port = None |})
+                |> Option.defaultWith (fun () ->
+                    {|
+                        AppId = Some appId
+                        Port = None
+                        Protocol = None
+                    |})
                 |> Some
         }
 
@@ -459,7 +473,28 @@ type ContainerAppBuilder() =
             DaprConfig =
                 state.DaprConfig
                 |> Option.map (fun x -> {| x with Port = Some port |})
-                |> Option.defaultWith (fun () -> {| AppId = None; Port = Some port |})
+                |> Option.defaultWith (fun () ->
+                    {|
+                        AppId = None
+                        Port = Some port
+                        Protocol = None
+                    |})
+                |> Some
+        }
+
+    /// Configures Dapr protocol in the Azure Container App.
+    [<CustomOperation "dapr_app_protocol">]
+    member _.SetDaprProtocol(state: ContainerAppConfig, protocol) =
+        { state with
+            DaprConfig =
+                state.DaprConfig
+                |> Option.map (fun x -> {| x with Protocol = Some protocol |})
+                |> Option.defaultWith (fun () ->
+                    {|
+                        AppId = None
+                        Port = None
+                        Protocol = Some protocol
+                    |})
                 |> Some
         }
 
