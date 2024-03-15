@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {},
+  "resources": [
+    {
+      "apiVersion": "2021-10-01",
+      "dependsOn": [],
+      "identity": {
+        "type": "None"
+      },
+      "location": "westeurope",
+      "name": "container-group-with-gpu",
+      "properties": {
+        "containers": [
+          {
+            "name": "gpucontainer",
+            "properties": {
+              "command": [],
+              "environmentVariables": [],
+              "image": "mcr.microsoft.com/azuredocs/samples-tf-mnist-demo:gpu",
+              "ports": [],
+              "resources": {
+                "requests": {
+                  "cpu": 4,
+                  "gpu": {
+                    "count": 1,
+                    "sku": "V100"
+                  },
+                  "memoryInGB": 12
+                }
+              },
+              "volumeMounts": []
+            }
+          }
+        ],
+        "extensions": [],
+        "imageRegistryCredentials": [],
+        "initContainers": [],
+        "osType": "Linux",
+        "restartPolicy": "OnFailure",
+        "volumes": []
+      },
+      "tags": {},
+      "type": "Microsoft.ContainerInstance/containerGroups"
+    }
+  ]
+}

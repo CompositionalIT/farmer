@@ -13,12 +13,16 @@ let sqlDatabases =
 let mongoDatabases =
     ResourceType("Microsoft.DocumentDb/databaseAccounts/mongodbDatabases", "2021-04-15")
 
+let gremlinDatabases =
+    ResourceType("Microsoft.DocumentDB/databaseAccounts/gremlinDatabases", "2021-04-15")
+
 let databaseAccounts =
     ResourceType("Microsoft.DocumentDb/databaseAccounts", "2021-04-15")
 
 type DatabaseKind =
     | Document
     | Mongo
+    | Gremlin
 
 module DatabaseAccounts =
     module SqlDatabases =
@@ -101,6 +105,7 @@ module DatabaseAccounts =
                     match this.Kind with
                     | Document -> sqlDatabases
                     | Mongo -> mongoDatabases
+                    | Gremlin -> gremlinDatabases
 
                 {| resource.Create(this.Account / this.Name, dependsOn = [ databaseAccounts.resourceId this.Account ]) with
                     properties =
@@ -179,7 +184,7 @@ type DatabaseAccount =
             {| databaseAccounts.Create(this.Name, this.Location, tags = this.Tags) with
                 kind =
                     match this.Kind with
-                    | Document -> "GlobalDocumentDB"
+                    | Gremlin| Document -> "GlobalDocumentDB"
                     | Mongo -> "MongoDB"
                 properties =
                     {|
@@ -212,10 +217,16 @@ type DatabaseAccount =
                         publicNetworkAccess = string this.PublicNetworkAccess
                         enableFreeTier = this.FreeTier
                         capabilities =
-                            if this.Serverless = Enabled then
-                                box [ {| name = "EnableServerless" |} ]
-                            else
-                                null
+                               ( [
+                                    if this.Serverless = Enabled then
+                                        "EnableServerless"
+                                    if this.Kind = Gremlin then 
+                                        "EnableGremlin"
+                                ]
+                                |> List.map(fun x -> {|name = x|})
+                                |> function 
+                                | [] -> null
+                                | list -> box list)
                     |}
                     |> box
             |}
