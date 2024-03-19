@@ -2098,9 +2098,9 @@ let tests =
                 // Default "production" slot is not included as it is created automatically in Azure
                 Expect.hasLength slots 1 "Should only be 1 slot"
 
-                let connStrings =
+                let netFrameworkVersion =
                  Expect.wantSome slots[0].NetFrameworkVersion "Net Framework version should be set"
 
-                Expect.equal connStrings "v8.0" "Net Framework version should be set to 8.0"
+                Expect.equal netFrameworkVersion "v8.0" "Net Framework version should be set to 8.0"
             }
         ]
