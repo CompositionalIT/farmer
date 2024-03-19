@@ -72,6 +72,7 @@ type Runtime =
     static member DotNet50 = DotNet "5.0"
     static member DotNet60 = DotNet "6.0"
     static member DotNet70 = DotNet "7.0"
+    static member DotNet80 = DotNet "8.0"
     static member AspNet47 = AspNet "4.0"
     static member AspNet35 = AspNet "2.0"
     static member Python27 = Python("2.7", "2.7")
@@ -110,6 +111,7 @@ type SlotConfig =
         ApplyIPSecurityRestrictionsToScm: bool
         EnablePublicNetworkAccess: bool option
         AlwaysOn: bool option
+        Runtime: Runtime option
     }
 
     member this.ToSite(owner: Arm.Web.Site) =
@@ -137,6 +139,11 @@ type SlotConfig =
             ApplyIPSecurityRestrictionsToScm = this.ApplyIPSecurityRestrictionsToScm
             EnablePublicNetworkAccess = this.EnablePublicNetworkAccess
             ZipDeployPath = None
+            NetFrameworkVersion = this.Runtime |> Option.map (fun r -> r |> function
+                                                                |AspNet version
+                                                                | DotNet ("5.0" as version)
+                                                                | DotNet version -> Some $"v{version}"
+                                                                | _ -> None) |> Option.defaultValue owner.NetFrameworkVersion             
             PostDeployActions =
                 [
                     fun rg ->
@@ -217,6 +224,7 @@ type SlotBuilder() =
             IpSecurityRestrictions = []
             ApplyIPSecurityRestrictionsToScm = false
             EnablePublicNetworkAccess = None
+            Runtime = None 
             AlwaysOn = None
         }
 
@@ -368,6 +376,13 @@ type SlotBuilder() =
     member _.EnablePublicNetworkAccess(state) : SlotConfig =
         { state with 
             EnablePublicNetworkAccess = Some true
+        }
+    
+    /// Adds Runtime to the slot, to allow zero downtime deployments when changing runtime.
+    [<CustomOperation "runtime">]
+    member this.Runtime(state: SlotConfig, runtime : Runtime) =
+        { state with
+            Runtime =  Some runtime
         }
 
     interface ITaggable<SlotConfig> with
