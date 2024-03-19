@@ -373,7 +373,8 @@ type SlotBuilder() =
         { state with 
             EnablePublicNetworkAccess = Some true
         }
-        
+    
+    /// Adds Runtime to the slot, to allow zero downtime deployments when changing runtime.
     [<CustomOperation "runtime">]
     member this.Runtime(state: SlotConfig, runtime : Runtime) =
         { state with NetFrameworkVersion =  match runtime with
