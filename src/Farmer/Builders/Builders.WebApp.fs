@@ -143,7 +143,21 @@ type SlotConfig =
                                                                 |AspNet version
                                                                 | DotNet ("5.0" as version)
                                                                 | DotNet version -> Some $"v{version}"
-                                                                | _ -> None) |> Option.defaultValue owner.NetFrameworkVersion             
+                                                                | _ -> None) |> Option.defaultValue owner.NetFrameworkVersion
+            LinuxFxVersion = match owner.LinuxFxVersion with
+                                | None -> None
+                                | Some target ->
+                                    this.Runtime |> Option.map (fun r -> r |> function
+                                        | DotNetCore version -> Some $"DOTNETCORE|{version}"
+                                        | DotNet version -> Some $"DOTNETCORE|{version}"
+                                        | Node version -> Some $"NODE|{version}"
+                                        | Php version -> Some $"PHP|{version}"
+                                        | Ruby version -> Some $"RUBY|{version}"
+                                        | Java (runtime, JavaSE) -> Some $"JAVA|{runtime.Version}-{runtime.Jre}"
+                                        | Java (runtime, (Tomcat version)) -> Some $"TOMCAT|{version}-{runtime.Jre}"
+                                        | Java (Java8, WildFly14) -> Some $"WILDFLY|14-{Java8.Jre}"
+                                        | Python (linuxVersion, _) -> Some $"PYTHON|{linuxVersion}"
+                                        | _ -> None) |> Option.defaultValue owner.LinuxFxVersion
             PostDeployActions =
                 [
                     fun rg ->

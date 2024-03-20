@@ -2075,7 +2075,7 @@ let tests =
                 Expect.equal slot.Name.Value "webapp/deployment" "Slot name was not as expected"
                 Expect.equal slot.AlwaysOn false "Slot was not set to Always On -> false"
             }
-            test "WebApp supports runtime on slot" {
+            test "WebApp supports network framework runtime on slot" {
                 let slot =
                     appSlot {
                         name "warm-up"
@@ -2102,5 +2102,34 @@ let tests =
                  Expect.wantSome slots[0].NetFrameworkVersion "Net Framework version should be set"
 
                 Expect.equal netFrameworkVersion "v8.0" "Net Framework version should be set to 8.0"
+            }
+            test "WebApp supports runtime on a linux slot" {
+                let slot =
+                    appSlot {
+                        name "warm-up"
+                        runtime Runtime.DotNet80
+                    }
+
+                let app =
+                    webApp {
+                        name "webapp"
+                        operating_system Linux
+                        add_slot slot
+                    }
+
+                Expect.isTrue (app.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
+
+                let slots =
+                    app
+                    |> getResources
+                    |> getResource<Arm.Web.Site>
+                    |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
+                // Default "production" slot is not included as it is created automatically in Azure
+                Expect.hasLength slots 1 "Should only be 1 slot"
+
+                let linuxFxVersion =
+                 Expect.wantSome slots[0].LinuxFxVersion "Linux FX version should be set"
+
+                Expect.equal linuxFxVersion "DOTNETCORE|8.0" "Linux FX version should be set to 8.0"
             }
         ]
