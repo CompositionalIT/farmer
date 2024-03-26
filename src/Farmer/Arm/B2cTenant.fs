@@ -26,7 +26,7 @@ type B2cTenant =
     }
 
     interface IArmResource with
-        member this.ResourceId = accounts.resourceId this.Name.AsResourceName
+        member this.ResourceId = b2cTenant.resourceId this.Name.AsResourceName
 
         member this.JsonModel =
             {| b2cTenant.Create(this.Name.AsResourceName, this.DataResidency, tags = this.Tags) with

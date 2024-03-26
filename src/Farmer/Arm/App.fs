@@ -4,6 +4,7 @@ module Farmer.Arm.App
 open System
 open Farmer.ContainerApp
 open Farmer
+open Farmer.Arm.ResourceTypes
 
 let containerApps = ResourceType("Microsoft.App/containerApps", "2022-03-01")
 
