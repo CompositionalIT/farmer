@@ -3,6 +3,8 @@ module Farmer.Arm.ContainerInstance
 
 open Farmer
 open Farmer.Arm
+open Farmer.Arm.ResourceTypes.Network
+open Farmer.Arm.ResourceTypes.Storage
 open Farmer.ContainerGroup
 open Farmer.Identity
 open System

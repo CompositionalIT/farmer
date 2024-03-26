@@ -10,62 +10,48 @@ open Farmer.Route
 open Farmer.RouteServer
 open Farmer.VirtualNetworkGateway
 
-let connections = ResourceType("Microsoft.Network/connections", "2020-04-01")
+let connections = ResourceTypes.Network.connections
 
-let expressRouteCircuits =
-    ResourceType("Microsoft.Network/expressRouteCircuits", "2019-02-01")
+let expressRouteCircuits = ResourceTypes.Network.expressRouteCircuits
 
 let expressRouteCircuitAuthorizations =
-    ResourceType("Microsoft.Network/expressRouteCircuits/authorizations", "2019-02-01")
+    ResourceTypes.Network.expressRouteCircuitAuthorizations
 
-let networkInterfaces =
-    ResourceType("Microsoft.Network/networkInterfaces", "2018-11-01")
+let networkInterfaces = ResourceTypes.Network.networkInterfaces
 
 let networkInterfacesIpConfigurations =
-    ResourceType("Microsoft.Network/networkInterfaces/ipConfigurations", "2023-04-01")
+    ResourceTypes.Network.networkInterfacesIpConfigurations
 
-let networkProfiles =
-    ResourceType("Microsoft.Network/networkProfiles", "2020-04-01")
+let networkProfiles = ResourceTypes.Network.networkProfiles
 
-let publicIPAddresses =
-    ResourceType("Microsoft.Network/publicIPAddresses", "2018-11-01")
+let publicIPAddresses = ResourceTypes.Network.publicIPAddresses
 
-let publicIPPrefixes =
-    ResourceType("Microsoft.Network/publicIPPrefixes", "2021-08-01")
+let publicIPPrefixes = ResourceTypes.Network.publicIPPrefixes
 
-let serviceEndpointPolicies =
-    ResourceType("Microsoft.Network/serviceEndpointPolicies", "2020-07-01")
+let serviceEndpointPolicies = ResourceTypes.Network.serviceEndpointPolicies
 
-let subnets =
-    ResourceType("Microsoft.Network/virtualNetworks/subnets", "2020-07-01")
+let subnets = ResourceTypes.Network.subnets
 
-let virtualNetworks =
-    ResourceType("Microsoft.Network/virtualNetworks", "2020-07-01")
+let virtualNetworks = ResourceTypes.Network.virtualNetworks
 
-let virtualNetworkGateways =
-    ResourceType("Microsoft.Network/virtualNetworkGateways", "2020-05-01")
+let virtualNetworkGateways = ResourceTypes.Network.virtualNetworkGateways
 
-let localNetworkGateways =
-    ResourceType("Microsoft.Network/localNetworkGateways", "")
+let localNetworkGateways = ResourceTypes.Network.localNetworkGateways
 
-let natGateways = ResourceType("Microsoft.Network/natGateways", "2021-08-01")
+let natGateways = ResourceTypes.Network.natGateways
 
-let privateEndpoints =
-    ResourceType("Microsoft.Network/privateEndpoints", "2021-05-01")
+let privateEndpoints = ResourceTypes.Network.privateEndpoints
 
-let virtualNetworkPeering =
-    ResourceType("Microsoft.Network/virtualNetworks/virtualNetworkPeerings", "2020-05-01")
+let virtualNetworkPeering = ResourceTypes.Network.virtualNetworkPeering
 
-let routeTables = ResourceType("Microsoft.Network/routeTables", "2021-01-01")
-let routes = ResourceType("Microsoft.Network/routeTables/routes", "2021-01-01")
+let routeTables = ResourceTypes.Network.routeTables
+let routes = ResourceTypes.Network.routes
 
-let routeServers = ResourceType("Microsoft.Network/virtualHubs", "2022-11-01")
+let routeServers = ResourceTypes.Network.routeServers
 
-let routeServerIPConfigs =
-    ResourceType("Microsoft.Network/virtualHubs/ipConfigurations", "2022-11-01")
+let routeServerIPConfigs = ResourceTypes.Network.routeServerIPConfigs
 
-let routeServerBGPConnections =
-    ResourceType("Microsoft.Network/virtualHubs/bgpConnections", "2022-11-01")
+let routeServerBGPConnections = ResourceTypes.Network.routeServerBGPConnections
 
 type SubnetReference =
     | ViaManagedVNet of (ResourceId * ResourceName)
@@ -668,18 +654,6 @@ type Connection =
                     |}
             |}
 
-/// IP configuration for a network interface.
-type IpConfiguration =
-    {
-        SubnetName: ResourceName
-        ApplicationSecurityGroups: LinkedResource list
-        PublicIpAddress: LinkedResource option
-        LoadBalancerBackendAddressPools: LinkedResource list
-        PrivateIpAllocation: AllocationMethod option
-        PrivateIpAddressVersion: AddressVersion
-        Primary: bool option
-    }
-
 module NetworkInterface =
     open Vm
 
@@ -698,56 +672,6 @@ module NetworkInterface =
             | Standard_B4ms
             | Standard_B8ms -> AcceleratedNetworkingUnsupported // failwithf "Accelerated networking unsupported for specified VM size. Using '%s'." state.Size.ArmValue
             | _ -> AcceleratedNetworkingSupported
-
-type IpConfiguration with
-
-    /// Serializes to ARM JSON. When serializing for a NetworkInterfaceConfiguration, allocation method is not included.
-    member ipConfig.ToArmJson(index: int, vnetId: ResourceId, includeAllocationMethod: bool) =
-        {|
-            name = $"ipconfig{index + 1}"
-            properties =
-                let allocationMethod, ip =
-                    match ipConfig.PrivateIpAllocation with
-                    | Some (StaticPrivateIp ip) -> "Static", string ip
-                    | _ -> "Dynamic", null
-
-                {|
-                    applicationSecurityGroups =
-                        match ipConfig.ApplicationSecurityGroups with
-                        | [] -> null
-                        | asgs -> asgs |> List.map LinkedResource.AsIdObject |> Seq.ofList
-                    loadBalancerBackendAddressPools =
-                        match ipConfig.LoadBalancerBackendAddressPools with
-                        | [] -> null // Don't emit the field if there are none set.
-                        | backendPools ->
-                            backendPools
-                            |> List.map (fun lr -> lr.ResourceId |> ResourceId.AsIdObject)
-                            |> box
-                    primary = ipConfig.Primary |> Option.map box |> Option.toObj
-                    privateIPAddressVersion =
-                        match ipConfig.PrivateIpAddressVersion with
-                        | IPv6 -> ipConfig.PrivateIpAddressVersion.ArmValue
-                        | _ -> null // Don't include if IPv4 since this is the default (backwards compatibility)
-                    privateIPAllocationMethod = if includeAllocationMethod then allocationMethod else null
-                    privateIPAddress = ip
-                    publicIPAddress =
-                        ipConfig.PublicIpAddress
-                        |> Option.map (fun pip ->
-                            {|
-                                id = pip.ResourceId.ArmExpression.Eval()
-                            |})
-                        |> Option.defaultValue Unchecked.defaultof<_>
-                    subnet =
-                        {|
-                            id =
-                                { vnetId with
-                                    Type = subnets
-                                    Segments = [ ipConfig.SubnetName ]
-                                }
-                                    .Eval()
-                        |}
-                |}
-        |}
 
 type NetworkInterface =
     {

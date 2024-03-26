@@ -6,34 +6,28 @@ open Farmer.Identity
 open Farmer.WebApp
 open System
 
-let serverFarms = ResourceType("Microsoft.Web/serverfarms", "2018-02-01")
-let sites = ResourceType("Microsoft.Web/sites", "2021-03-01")
-let config = ResourceType("Microsoft.Web/sites/config", "2016-08-01")
+let serverFarms = ResourceTypes.Web.serverFarms
+let sites = ResourceTypes.Web.sites
+let config = ResourceTypes.Web.config
 
-let sourceControls =
-    ResourceType("Microsoft.Web/sites/sourcecontrols", "2019-08-01")
+let sourceControls = ResourceTypes.Web.sourceControls
 
-let staticSites = ResourceType("Microsoft.Web/staticSites", "2019-12-01-preview")
+let staticSites = ResourceTypes.Web.staticSites
 
-let staticSitesConfig =
-    ResourceType("Microsoft.Web/staticSites/config", "2020-09-01")
+let staticSitesConfig = ResourceTypes.Web.staticSitesConfig
+let siteExtensions = ResourceTypes.Web.siteExtensions
 
-let siteExtensions =
-    ResourceType("Microsoft.Web/sites/siteextensions", "2020-06-01")
+let slots = ResourceTypes.Web.slots
+let certificates = ResourceTypes.Web.certificates
 
-let slots = ResourceType("Microsoft.Web/sites/slots", "2020-09-01")
-let certificates = ResourceType("Microsoft.Web/certificates", "2019-08-01")
+let hostNameBindings = ResourceTypes.Web.hostNameBindings
 
-let hostNameBindings =
-    ResourceType("Microsoft.Web/sites/hostNameBindings", "2020-12-01")
+let virtualNetworkConnections = ResourceTypes.Web.virtualNetworkConnections
 
-let virtualNetworkConnections =
-    ResourceType("Microsoft.Web/sites/virtualNetworkConnections", "2021-03-01")
-
-let siteFunctions = ResourceType("Microsoft.Web/sites/functions", "2021-03-01")
+let siteFunctions = ResourceTypes.Web.siteFunctions
 
 let slotsVirtualNetworkConnections =
-    ResourceType("Microsoft.Web/sites/slots/virtualNetworkConnections", "2021-03-01")
+    ResourceTypes.Web.slotsVirtualNetworkConnections
 
 let private mapOrNull f =
     Option.map (Map.toList >> List.map f)

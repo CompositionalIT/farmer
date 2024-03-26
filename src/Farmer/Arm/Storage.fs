@@ -4,38 +4,27 @@ module Farmer.Arm.Storage
 open Farmer
 open Farmer.Storage
 
-let storageAccounts =
-    ResourceType("Microsoft.Storage/storageAccounts", "2022-05-01")
+let storageAccounts = ResourceTypes.Storage.storageAccounts
 
-let blobServices =
-    ResourceType("Microsoft.Storage/storageAccounts/blobServices", "2019-06-01")
+let blobServices = ResourceTypes.Storage.blobServices
 
-let containers =
-    ResourceType("Microsoft.Storage/storageAccounts/blobServices/containers", "2018-03-01-preview")
+let containers = ResourceTypes.Storage.containers
 
-let fileServices =
-    ResourceType("Microsoft.Storage/storageAccounts/fileServices", "2019-06-01")
+let fileServices = ResourceTypes.Storage.fileServices
 
-let fileShares =
-    ResourceType("Microsoft.Storage/storageAccounts/fileServices/shares", "2019-06-01")
+let fileShares = ResourceTypes.Storage.fileServices
 
-let queueServices =
-    ResourceType("Microsoft.Storage/storageAccounts/queueServices", "2019-06-01")
+let queueServices = ResourceTypes.Storage.queueServices
 
-let queues =
-    ResourceType("Microsoft.Storage/storageAccounts/queueServices/queues", "2019-06-01")
+let queues = ResourceTypes.Storage.queues
 
-let tableServices =
-    ResourceType("Microsoft.Storage/storageAccounts/tableServices", "2019-06-01")
+let tableServices = ResourceTypes.Storage.tableServices
 
-let tables =
-    ResourceType("Microsoft.Storage/storageAccounts/tableServices/tables", "2019-06-01")
+let tables = ResourceTypes.Storage.tables
 
-let managementPolicies =
-    ResourceType("Microsoft.Storage/storageAccounts/managementPolicies", "2019-06-01")
+let managementPolicies = ResourceTypes.Storage.managementPolicies
 
-let roleAssignments =
-    ResourceType("Microsoft.Storage/storageAccounts/providers/roleAssignments", "2018-09-01-preview")
+let roleAssignments = ResourceTypes.Storage.roleAssignments
 
 type Metadata = Map<string, string>
 

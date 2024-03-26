@@ -2,27 +2,26 @@
 module Farmer.Arm.Compute
 
 open Farmer
+open Farmer.Arm.ResourceTypes
+open Farmer.Arm.ResourceTypes.Storage
 open Farmer.DedicatedHosts
 open Farmer.Identity
+open Farmer.Network
 open Farmer.Vm
 open System
 open System.Text
 open Farmer.VmScaleSet
 
-let virtualMachines =
-    ResourceType("Microsoft.Compute/virtualMachines", "2023-03-01")
+let virtualMachines = Compute.virtualMachines
 
-let virtualMachineScaleSets =
-    ResourceType("Microsoft.Compute/virtualMachineScaleSets", "2023-03-01")
+let virtualMachineScaleSets = Compute.virtualMachineScaleSets
 
-let extensions =
-    ResourceType("Microsoft.Compute/virtualMachines/extensions", "2019-12-01")
+let extensions = Compute.extensions
 
-let virtualMachineScaleSetsExtensions =
-    ResourceType("Microsoft.Compute/virtualMachineScaleSets/extensions", "2023-03-01")
+let virtualMachineScaleSetsExtensions = Compute.virtualMachineScaleSetsExtensions
 
-let hostGroups = ResourceType("Microsoft.Compute/hostGroups", "2021-03-01")
-let hosts = ResourceType("Microsoft.Compute/hostGroups/hosts", "2021-03-01")
+let hostGroups = Compute.hostGroups
+let hosts = Compute.hosts
 
 /// Interface to get the properties of a VM extension so it can be added to the
 /// extension profile of a VM Scale Set in addition to adding after deployment.
@@ -179,6 +178,66 @@ type ApplicationHealthExtension =
                ) with
                 properties = (this :> IExtension).JsonProperties
             |}
+
+/// IP configuration for a network interface.
+type IpConfiguration =
+    {
+        SubnetName: ResourceName
+        ApplicationSecurityGroups: LinkedResource list
+        PublicIpAddress: LinkedResource option
+        LoadBalancerBackendAddressPools: LinkedResource list
+        PrivateIpAllocation: AllocationMethod option
+        PrivateIpAddressVersion: Network.AddressVersion
+        Primary: bool option
+    }
+
+    /// Serializes to ARM JSON. When serializing for a NetworkInterfaceConfiguration, allocation method is not included.
+    member ipConfig.ToArmJson(index: int, vnetId: ResourceId, includeAllocationMethod: bool) =
+        {|
+            name = $"ipconfig{index + 1}"
+            properties =
+                let allocationMethod, ip =
+                    match ipConfig.PrivateIpAllocation with
+                    | Some (StaticPrivateIp ip) -> "Static", string ip
+                    | _ -> "Dynamic", null
+
+                {|
+                    applicationSecurityGroups =
+                        match ipConfig.ApplicationSecurityGroups with
+                        | [] -> null
+                        | asgs -> asgs |> List.map LinkedResource.AsIdObject |> Seq.ofList
+                    loadBalancerBackendAddressPools =
+                        match ipConfig.LoadBalancerBackendAddressPools with
+                        | [] -> null // Don't emit the field if there are none set.
+                        | backendPools ->
+                            backendPools
+                            |> List.map (fun lr -> lr.ResourceId |> ResourceId.AsIdObject)
+                            |> box
+                    primary = ipConfig.Primary |> Option.map box |> Option.toObj
+                    privateIPAddressVersion =
+                        match ipConfig.PrivateIpAddressVersion with
+                        | IPv6 -> ipConfig.PrivateIpAddressVersion.ArmValue
+                        | _ -> null // Don't include if IPv4 since this is the default (backwards compatibility)
+                    privateIPAllocationMethod = if includeAllocationMethod then allocationMethod else null
+                    privateIPAddress = ip
+                    publicIPAddress =
+                        ipConfig.PublicIpAddress
+                        |> Option.map (fun pip ->
+                            {|
+                                id = pip.ResourceId.ArmExpression.Eval()
+                            |})
+                        |> Option.defaultValue Unchecked.defaultof<_>
+                    subnet =
+                        {|
+                            id =
+                                { vnetId with
+                                    Type = Network.subnets
+                                    Segments = [ ipConfig.SubnetName ]
+                                }
+                                    .Eval()
+                        |}
+                |}
+        |}
 
 type NetworkInterfaceConfiguration =
     {

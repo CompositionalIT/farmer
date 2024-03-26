@@ -3,6 +3,7 @@ module Farmer.Arm.TrafficManager
 
 open Farmer
 open Farmer.TrafficManager
+open Farmer.Arm.ResourceTypes.Web
 
 let profiles =
     ResourceType("Microsoft.Network/trafficManagerProfiles", "2018-04-01")
