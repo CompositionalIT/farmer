@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.8.9
+* Managed Identity: Support for federated identity credentials.
+
 ## 1.8.8
 * Storage accounts: restrict_to_ips to support a list of IPs.
 * Virtual Machines: Adds [CBL Mariner 2.0](https://microsoft.github.io/CBL-Mariner/docs/) images.

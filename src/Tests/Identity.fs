@@ -4,6 +4,8 @@ open Expecto
 open Farmer
 open Farmer.Arm
 open Farmer.Identity
+open Farmer.Builders
+open Newtonsoft.Json.Linq
 
 let tests =
     testList
@@ -85,5 +87,59 @@ let tests =
 
                 Expect.equal json.``type`` "SystemAssigned, UserAssigned" "Wrong type"
                 Expect.hasLength json.userAssignedIdentities 2 "Wrong identities"
+            }
+            test "Create identity with federated credential" {
+                let deployment =
+                    arm {
+                        location Location.EastUS
+
+                        add_resources
+                            [
+                                userAssignedIdentity {
+                                    name "cicd-msi"
+
+                                    add_federated_identity_credentials
+                                        [
+                                            federatedIdentityCredential {
+                                                name "gh-actions-cred"
+                                                audience EntraIdAudience
+                                                issuer "https://token.actions.githubusercontent.com"
+                                                subject "repo:compositionalit/farmer:pull_request"
+                                            }
+                                        ]
+                                }
+                            ]
+                    }
+
+                let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+                let cred = jobj.SelectToken "resources[?(@.name=='cicd-msi/gh-actions-cred')]"
+                Expect.isNotNull cred "Credential resource not found by expected name"
+                let dependencies = cred.SelectToken "dependsOn"
+                Expect.hasLength dependencies 1 "Incorrect number of dependencies"
+
+                Expect.contains
+                    dependencies
+                    (JValue "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'cicd-msi')]")
+                    "Should have dependency on user assigned identity"
+
+                Expect.equal
+                    (string (cred.SelectToken "type"))
+                    "Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials"
+                    "Incorrect type for federated credential"
+
+                Expect.contains
+                    (cred.SelectToken "properties.audiences")
+                    (JValue "api://AzureADTokenExchange")
+                    "Missing AzureAD audience."
+
+                Expect.equal
+                    (string (cred.SelectToken "properties.issuer"))
+                    "https://token.actions.githubusercontent.com"
+                    "Incorrect issuer"
+
+                Expect.equal
+                    (string (cred.SelectToken "properties.subject"))
+                    "repo:compositionalit/farmer:pull_request"
+                    "Incorrect subject"
             }
         ]
