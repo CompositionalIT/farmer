@@ -316,7 +316,7 @@ let tests =
 
                 Expect.equal
                     kubeletIdentityClientId
-                    "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity'), '2018-11-30').clientId]"
+                    "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity'), '2023-01-31').clientId]"
                     "Incorrect kubelet identity reference."
             }
             test "Basic AKS cluster with addons" {

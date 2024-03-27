@@ -9,6 +9,7 @@ weight: 13
 Managed Identity is used to create an identity that resources can run under automatically. This is similar to a service principal except that there is no credential to manage and the authorization token is retrieved through a secure internal handshake between the resource and the identity service in Azure.
 
 * User Assigned Identity (`Microsoft.ManagedIdentity/userAssignedIdentities`)
+* Federated Identity Credential (`Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials`)
 
 Using a managed identity as opposed to e.g. connection strings brings several benefits:
 
@@ -159,3 +160,29 @@ let deployment = arm {
 ```
 
 In this example, notice that we explicitly add the `sharedIdentity` resource to the `arm {}` block.
+
+#### Example: Federated Identity Credentials
+
+A federated identity credential allows the exchange of an OpenID Connect (OIDC) token for an Azure Entra ID token. The audience, issuer, and subject of the OIDC token are registered as a federated identity credential so that Entra ID will issue the access token. Federated identity credentials are a foundation for enabling workload identity federation and removes the need to manage client secrets when connecting to Azure resources for an OIDC identity provider.
+
+The example below create a user assigned identity and then adds a federated identity credential to associate that identity with pull requests from a github repository. This can be used to enable GitHub Actions to access Azure infrastructure under this identity.
+
+```fsharp
+open Farmer.Builders
+
+arm {
+    add_resources [
+        userAssignedIdentity {
+            name "cicd-msi"
+            add_federated_identity_credentials [
+                federatedIdentityCredential {
+                    name "gh-actions-cred"
+                    audience EntraIdAudience
+                    issuer "https://token.actions.githubusercontent.com"
+                    subject "repo:compositionalit/farmer:pull_request"
+                }
+            ]
+        }
+    ]
+}
+```

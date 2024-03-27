@@ -5,7 +5,10 @@ open Farmer
 open Farmer.Identity
 
 let userAssignedIdentities =
-    ResourceType("Microsoft.ManagedIdentity/userAssignedIdentities", "2018-11-30")
+    ResourceType("Microsoft.ManagedIdentity/userAssignedIdentities", "2023-01-31")
+
+let federatedIdentityCredentials =
+    ResourceType("Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials", "2023-01-31")
 
 type UserAssignedIdentity =
     {
@@ -19,6 +22,35 @@ type UserAssignedIdentity =
 
         member this.JsonModel =
             userAssignedIdentities.Create(this.Name, this.Location, [], this.Tags)
+
+/// A federated identity credential from an OpenId Connect issuer.
+type FederatedIdentityCredential =
+    {
+        Name: ResourceName
+        UserAssignedIdentity: LinkedResource
+        Audiences: string list
+        Issuer: string
+        Subject: string
+    }
+
+    interface IArmResource with
+        member this.ResourceId =
+            { federatedIdentityCredentials.resourceId this.UserAssignedIdentity.Name with
+                Segments = [ this.Name ]
+            }
+
+        member this.JsonModel =
+            let dependencies =
+                Set.empty |> LinkedResource.addToSetIfManaged this.UserAssignedIdentity
+
+            {| federatedIdentityCredentials.Create(this.UserAssignedIdentity.Name / this.Name, dependsOn = dependencies) with
+                properties =
+                    {|
+                        audiences = this.Audiences
+                        issuer = this.Issuer
+                        subject = this.Subject
+                    |}
+            |}
 
 /// Builds the JSON ARM value for a resource's identity.
 let toArmJson =
