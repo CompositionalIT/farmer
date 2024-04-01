@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.8.10
+* Container Apps: Add support for setting Dapr protocol (#1083).
+
 ## 1.8.9
 * Managed Identity: Support for federated identity credentials.
 
