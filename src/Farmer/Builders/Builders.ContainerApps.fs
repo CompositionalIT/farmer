@@ -447,9 +447,6 @@ type ContainerAppBuilder() =
                 Some(External(existingPort, Some transport))
         }
 
-
-
-
     /// Configures Dapr App Id in the Azure Container App.
     [<CustomOperation "dapr_app_id">]
     member _.SetDaprAppId(state: ContainerAppConfig, appId) =
