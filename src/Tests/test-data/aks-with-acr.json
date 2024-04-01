@@ -5,7 +5,7 @@
   "parameters": {},
   "resources": [
     {
-      "apiVersion": "2018-11-30",
+      "apiVersion": "2023-01-31",
       "dependsOn": [],
       "location": "eastus",
       "name": "kubeletIdentity",
@@ -13,7 +13,7 @@
       "type": "Microsoft.ManagedIdentity/userAssignedIdentities"
     },
     {
-      "apiVersion": "2018-11-30",
+      "apiVersion": "2023-01-31",
       "dependsOn": [],
       "location": "eastus",
       "name": "clusterIdentity",
@@ -65,8 +65,8 @@
         "enableRBAC": false,
         "identityProfile": {
           "kubeletIdentity": {
-            "clientId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity'), '2018-11-30').clientId]",
-            "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity'), '2018-11-30').principalId]",
+            "clientId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity'), '2023-01-31').clientId]",
+            "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity'), '2023-01-31').principalId]",
             "resourceId": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity')]"
           }
         },
