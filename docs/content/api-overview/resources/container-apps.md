@@ -46,6 +46,7 @@ The Container Apps builder (`containerApp`) is used to define one or more contai
 | system_identity | Activates the system identity of the Azure Container App. |
 | dapr_app_id | Sets the dapr app id for the app. |
 | dapr_app_port | Sets the dapr app port for the app. |
+| dapr_app_protocol | Sets the dapr app protocol for the app. |
 | replicas | Sets the minimum and maximum replicas to scale the container app. |
 | active_revision_mode | Indicates whether multiple version of a container app can be active at once.|
 | add_registry_credentials | Adds container image registry credentials for images in this container app, which are a list of server and usernames. Passwords are supplied as secure parameters. |
