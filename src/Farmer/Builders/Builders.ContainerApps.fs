@@ -132,7 +132,7 @@ type ContainerEnvironmentConfig =
                                     {|
                                         AppId = appId
                                         Port = x.Port
-                                        Protocol = Option.defaultValue "http" x.Protocol
+                                        Protocol = x.Protocol
                                     |}
                                 | None ->
                                     raiseFarmer

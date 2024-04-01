@@ -153,7 +153,7 @@ type ContainerApp =
         Replicas: {| Min: int; Max: int |} option
         DaprConfig: {| AppId: string
                        Port: uint16 option
-                       Protocol: string |} option
+                       Protocol: string option |} option
         Secrets: Map<ContainerAppSettingKey, SecretValue>
         EnvironmentVariables: Map<string, EnvVar>
         ImageRegistryCredentials: ImageRegistryAuthentication list
