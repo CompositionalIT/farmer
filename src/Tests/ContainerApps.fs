@@ -416,8 +416,8 @@ let tests =
                 Expect.isNotNull ruleAuth "auth[0] was null"
                 Expect.equal (ruleAuth["secretRef"] |> string) connectionSecretName "Incorrect secretRef"
                 Expect.equal (ruleAuth["triggerParameter"] |> string) "connection" "Incorrect triggerParameter"
-                
-                let daprConfig = httpContainerApp.SelectToken("properties.configuration.dapr")                
+
+                let daprConfig = httpContainerApp.SelectToken("properties.configuration.dapr")
                 Expect.equal (daprConfig["appPort"] |> uint16) 5000us "Incorrect dapr appPort"
                 Expect.equal (daprConfig["appProtocol"] |> string) "grpc" "Incorrect dapr appProtocol"
             }
