@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.8.10
+* Functions: Added support for setting max scale out limit
 
 ## 1.8.9
 * Managed Identity: Support for federated identity credentials.

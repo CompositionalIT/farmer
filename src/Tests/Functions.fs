@@ -845,6 +845,44 @@ let tests =
                 Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
             }
 
+            test "Correctly sets max scale out limit" {
+                let f =
+                    functions {
+                        name "test"
+                        max_scale_out_limit 3
+                    }
+                    :> IBuilder
+
+                let site = f.BuildResources Location.NorthEurope |> List.item 3 :?> Web.Site
+                Expect.equal site.FunctionAppScaleLimit (Some 3) "Incorrectly sets max scale out limit"
+            }
+
+            test "Max scale out limit is not set by default" {
+                let f = functions { name "test" } :> IBuilder
+                let site = f.BuildResources Location.NorthEurope |> List.item 3 :?> Web.Site
+                Expect.equal site.FunctionAppScaleLimit (None) "Sould not set max scale out limit"
+            }
+
+            test "Max scale out limit must be between 1 and 200" {
+                Expect.throws
+                    (fun () ->
+                        functions {
+                            name "test"
+                            max_scale_out_limit 0
+                        }
+                        |> ignore)
+                    "Max scale out limit must be at least 1"
+
+                Expect.throws
+                    (fun () ->
+                        functions {
+                            name "test"
+                            max_scale_out_limit 201
+                        }
+                        |> ignore)
+                    "Max scale out limit must be at most 200"
+            }
+
             let data =
                 [
                     (FunctionsRuntime.DotNetFramework48, "v4.0")

@@ -52,6 +52,7 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | add_denied_ip_restriction | Adds an 'deny' rule for an ip |
 | link_to_vnet | Enable the VNET integration feature in azure where all outbound traffic from the function with be sent via the specified subnet. Use this operator when the given VNET is in the same deployment |
 | link_to_unmanaged_vnet | Enable the VNET integration feature in azure where all outbound traffic from the function with be sent via the specified subnet. Use this operator when the given VNET is *not* in the same deployment |
+| max_scale_out_limit | Maximum number of workers that a site can scale out to. This setting only applies to the Consumption and Elastic Premium Plans | 
 #### Post-deployment Builder Keywords
 The Functions builder contains special commands that are executed *after* the ARM deployment is completed.
 

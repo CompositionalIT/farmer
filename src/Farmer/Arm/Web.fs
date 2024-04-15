@@ -241,6 +241,7 @@ type Site =
         IpSecurityRestrictions: IpSecurityRestriction list
         LinkToSubnet: SubnetReference option
         VirtualApplications: Map<string, VirtualApplication>
+        FunctionAppScaleLimit: int option
     }
 
     /// Shorthand for SiteType.ResourceType
@@ -421,6 +422,10 @@ type Site =
                                                 preloadEnabled = virtualAppKvp.Value.PreloadEnabled |> Option.toNullable
                                             |})
                                         |> box
+                                functionAppScaleLimit =
+                                    match this.FunctionAppScaleLimit with
+                                    | Some limit -> box limit
+                                    | None -> null
                             |}
                     |}
             |}

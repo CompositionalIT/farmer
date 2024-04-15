@@ -402,6 +402,7 @@ type WebAppConfig =
         DockerPort: int option
         ZoneRedundant: FeatureFlag option
         VirtualApplications: Map<string, VirtualApplication>
+        FunctionAppScaleLimit: int option
     }
 
     member this.Name = this.CommonWebConfig.Name
@@ -678,6 +679,7 @@ type WebAppConfig =
                         IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
                         LinkToSubnet = this.CommonWebConfig.IntegratedSubnet
                         VirtualApplications = this.VirtualApplications
+                        FunctionAppScaleLimit = this.FunctionAppScaleLimit
                     }
 
                 match keyVault with
@@ -904,6 +906,7 @@ type WebAppBuilder() =
             DockerPort = None
             ZoneRedundant = None
             VirtualApplications = Map []
+            FunctionAppScaleLimit = None
         }
 
     member _.Run(state: WebAppConfig) =
