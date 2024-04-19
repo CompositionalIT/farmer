@@ -79,6 +79,7 @@ type FunctionsConfig =
         VersionedRuntime: VersionedFunctionsRuntime
         PublishAs: PublishAs
         ExtensionVersion: FunctionsExtensionVersion
+        FunctionAppScaleLimit: int option
     }
 
     member this.Name = this.CommonWebConfig.Name
@@ -361,6 +362,7 @@ type FunctionsConfig =
                         IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
                         LinkToSubnet = this.CommonWebConfig.IntegratedSubnet
                         VirtualApplications = Map []
+                        FunctionAppScaleLimit = this.FunctionAppScaleLimit
                     }
 
                 match this.CommonWebConfig.ServicePlan with
@@ -480,11 +482,16 @@ type FunctionsBuilder() =
             Dependencies = Set.empty
             PublishAs = Code
             Tags = Map.empty
+            FunctionAppScaleLimit = None
         }
 
     member _.Run(state: FunctionsConfig) =
         if state.Name.ResourceName = ResourceName.Empty then
             raiseFarmer "No Functions instance name has been set."
+
+        match state.FunctionAppScaleLimit with
+        | Some limit when limit < 1 || limit > 200 -> raiseFarmer "Max scale out limit can only be 1-200"
+        | _ -> ()
 
         state.CommonWebConfig.Validate()
         state
@@ -532,6 +539,13 @@ type FunctionsBuilder() =
     member _.ExtensionVersion(state: FunctionsConfig, version) =
         { state with
             ExtensionVersion = version
+        }
+
+    /// Sets the maximum scale out limit for Azure Functions
+    [<CustomOperation "max_scale_out_limit">]
+    member _.MaxScaleOutLimit(state: FunctionsConfig, limit) =
+        { state with
+            FunctionAppScaleLimit = Some limit
         }
 
     interface ITaggable<FunctionsConfig> with
