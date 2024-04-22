@@ -44,6 +44,7 @@ The Service Bus builder creates service bus namespaces and their associated queu
 | Topic | duplicate_detection | Whether to enable duplicate detection, and if so, how long to check for. |
 | Topic | duplicate_detection_minutes | Whether to enable duplicate detection, and if so, how long to check for in minutes. |
 | Topic | enable_partition | Enables partition support on the topic. |
+| Topic | max_message_size | The maximum size of the message payload that can be accepted by the topic in Kilobytes e.g `1024<Kb>`. |
 | Topic | max_topic_size | Maximum size for the topic in Megabytes e.g. `1024<Mb>`. |
 | Topic | message_ttl | Time To Live (TTL) value for messages expressed as a TimeSpan or a TimeSpan string, such as '01:30:00' 1 hour, 30 minutes, or as an integer days e.g. `4<Days>`. |
 | Topic | link_to_unmanaged_namespace | Instead of creating or modifying a namespace, configure this topic to point to another unmanaged namespace instance. |
