@@ -1,5 +1,9 @@
 Release Notes
 =============
+
+## 1.8.11
+* Storage accounts: Added support for setting https traffic only.
+
 ## 1.8.10
 * Functions: Added support for setting max scale out limit
 
