@@ -721,7 +721,45 @@ let tests =
 
                 Expect.equal resource.MinimumTlsVersion "TLS1_2" "Min TLS version is wrong"
             }
+            
+            test "Test Disable HTTPS Traffic only" {
+                let resource =
+                    let account =
+                        storageAccount {
+                            name "mystorage123"
+                            support_https_traffic_only FeatureFlag.Disabled
+                        }
 
+                    arm { add_resource account }
+
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                Expect.equal
+                    (jobj.SelectToken("resources[0].properties.supportsHttpsTrafficOnly").ToString())
+                    "false"
+                    "https traffic only should be disabled"
+            }
+
+            test "Test Enable HTTPS Traffic only" {
+                let resource =
+                    let account =
+                        storageAccount {
+                            name "mystorage123"
+                            support_https_traffic_only
+                        }
+
+                    arm { add_resource account }
+
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                Expect.equal
+                    (jobj.SelectToken("resources[0].properties.supportsHttpsTrafficOnly").ToString())
+                    "true"
+                    "https traffic only should be enabled"
+            }
+                    
             test "dnsEndpointType can be set to AzureDnsZone" {
                 let resource =
                     let account =

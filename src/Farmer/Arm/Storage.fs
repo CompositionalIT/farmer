@@ -108,6 +108,7 @@ type StorageAccount =
                           ErrorPage: string option
                           ContentPath: string |} option
         MinTlsVersion: TlsVersion option
+        SupportsHttpsTrafficOnly:  FeatureFlag option
         DnsZoneType: string option
         DisablePublicNetworkAccess: FeatureFlag option
         DisableBlobPublicAccess: FeatureFlag option
@@ -192,6 +193,11 @@ type StorageAccount =
                             | Some Tls10 -> "TLS1_0"
                             | Some Tls11 -> "TLS1_1"
                             | Some Tls12 -> "TLS1_2"
+                            | None -> null
+                        supportsHttpsTrafficOnly =
+                            match this.SupportsHttpsTrafficOnly with
+                            | Some FeatureFlag.Disabled -> "true"
+                            | Some FeatureFlag.Enabled -> "false"
                             | None -> null
                         dnsEndpointType =
                             match this.DnsZoneType with

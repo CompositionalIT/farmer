@@ -261,6 +261,7 @@ type VmConfig =
                         StaticWebsite = None
                         EnableHierarchicalNamespace = None
                         MinTlsVersion = None
+                        SupportsHttpsTrafficOnly = None 
                         Tags = this.Tags
                         DnsZoneType = None
                         DisablePublicNetworkAccess = None
