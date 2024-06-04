@@ -196,8 +196,8 @@ type StorageAccount =
                             | None -> null
                         supportsHttpsTrafficOnly =
                             match this.SupportsHttpsTrafficOnly with
-                            | Some FeatureFlag.Disabled -> "true"
-                            | Some FeatureFlag.Enabled -> "false"
+                            | Some FeatureFlag.Disabled -> "false"
+                            | Some FeatureFlag.Enabled -> "true"
                             | None -> null
                         dnsEndpointType =
                             match this.DnsZoneType with
