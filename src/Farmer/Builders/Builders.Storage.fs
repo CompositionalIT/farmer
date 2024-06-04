@@ -659,9 +659,9 @@ type StorageAccountBuilder() =
         }
 
     /// Set support https traffic only 
-    [<CustomOperation "support_https_traffic_only">]
-    member _.SupportHttpsTrafficOnly(state: StorageAccountConfig, ?supportHttpsTrafficOnly: FeatureFlag) =
-        let flag = defaultArg supportHttpsTrafficOnly FeatureFlag.Enabled
+    [<CustomOperation "supports_https_traffic_only">]
+    member _.SupportsHttpsTrafficOnly(state: StorageAccountConfig, ?supportsHttpsTrafficOnly: FeatureFlag) =
+        let flag = defaultArg supportsHttpsTrafficOnly FeatureFlag.Enabled
         { state with
             SupportsHttpsTrafficOnly = Some flag
         }

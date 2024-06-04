@@ -727,7 +727,7 @@ let tests =
                     let account =
                         storageAccount {
                             name "mystorage123"
-                            support_https_traffic_only FeatureFlag.Disabled
+                            supports_https_traffic_only FeatureFlag.Disabled
                         }
 
                     arm { add_resource account }
@@ -746,7 +746,7 @@ let tests =
                     let account =
                         storageAccount {
                             name "mystorage123"
-                            support_https_traffic_only
+                            supports_https_traffic_only
                         }
 
                     arm { add_resource account }
