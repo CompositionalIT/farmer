@@ -721,7 +721,7 @@ let tests =
 
                 Expect.equal resource.MinimumTlsVersion "TLS1_2" "Min TLS version is wrong"
             }
-            
+
             test "Test Disable HTTPS Traffic only" {
                 let resource =
                     let account =
@@ -759,7 +759,7 @@ let tests =
                     "true"
                     "https traffic only should be enabled"
             }
-                    
+
             test "dnsEndpointType can be set to AzureDnsZone" {
                 let resource =
                     let account =

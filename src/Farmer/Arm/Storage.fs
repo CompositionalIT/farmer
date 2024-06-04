@@ -108,7 +108,7 @@ type StorageAccount =
                           ErrorPage: string option
                           ContentPath: string |} option
         MinTlsVersion: TlsVersion option
-        SupportsHttpsTrafficOnly:  FeatureFlag option
+        SupportsHttpsTrafficOnly: FeatureFlag option
         DnsZoneType: string option
         DisablePublicNetworkAccess: FeatureFlag option
         DisableBlobPublicAccess: FeatureFlag option

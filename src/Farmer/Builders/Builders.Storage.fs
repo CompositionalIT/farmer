@@ -129,7 +129,7 @@ type StorageAccountConfig =
                     NetworkAcls = this.NetworkAcls
                     StaticWebsite = this.StaticWebsite
                     MinTlsVersion = this.MinTlsVersion
-                    SupportsHttpsTrafficOnly = this.SupportsHttpsTrafficOnly 
+                    SupportsHttpsTrafficOnly = this.SupportsHttpsTrafficOnly
                     DnsZoneType = this.DnsZoneType
                     DisablePublicNetworkAccess = this.DisablePublicNetworkAccess
                     DisableBlobPublicAccess = this.DisableBlobPublicAccess
@@ -245,7 +245,7 @@ type StorageAccountBuilder() =
             Policies = []
             IsVersioningEnabled = []
             MinTlsVersion = None
-            SupportsHttpsTrafficOnly = None 
+            SupportsHttpsTrafficOnly = None
             Tags = Map.empty
             DnsZoneType = None
             DisablePublicNetworkAccess = None
@@ -658,13 +658,15 @@ type StorageAccountBuilder() =
             MinTlsVersion = Some minTlsVersion
         }
 
-    /// Set support https traffic only 
+    /// Set support https traffic only
     [<CustomOperation "supports_https_traffic_only">]
     member _.SupportsHttpsTrafficOnly(state: StorageAccountConfig, ?supportsHttpsTrafficOnly: FeatureFlag) =
         let flag = defaultArg supportsHttpsTrafficOnly FeatureFlag.Enabled
+
         { state with
             SupportsHttpsTrafficOnly = Some flag
         }
+
     /// Set DNS Endpoint type
     [<CustomOperation "use_azure_dns_zone">]
     member _.SetDnsEndpointType(state: StorageAccountConfig) =
