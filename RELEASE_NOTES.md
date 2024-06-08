@@ -1,8 +1,11 @@
 Release Notes
 =============
+
+## 1.8.11
+* Service Bus: Added support for setting max message size.
+
 ## 1.8.10
 * Functions: Added support for setting max scale out limit.
-* Service Bus: Added support for setting max message size.
 
 ## 1.8.9
 * Managed Identity: Support for federated identity credentials.
