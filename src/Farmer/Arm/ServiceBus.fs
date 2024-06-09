@@ -191,6 +191,7 @@ module Namespaces =
             DuplicateDetectionHistoryTimeWindow: IsoDateTime option
             DefaultMessageTimeToLive: IsoDateTime option
             EnablePartitioning: bool option
+            MaxMessageSizeInKilobytes: int<Kb> option
             MaxSizeInMegabytes: int<Mb> option
         }
 
@@ -208,6 +209,7 @@ module Namespaces =
                                 | None -> Nullable()
                             duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
                             enablePartitioning = this.EnablePartitioning |> Option.toNullable
+                            maxMessageSizeInKilobytes = this.MaxMessageSizeInKilobytes |> Option.toNullable
                             maxSizeInMegabytes = this.MaxSizeInMegabytes |> Option.toNullable
                         |}
                 |}

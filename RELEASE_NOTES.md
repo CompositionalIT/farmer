@@ -2,10 +2,12 @@ Release Notes
 =============
 
 ## 1.8.11
+* Service Bus: Added support for setting max message size.
 * Storage accounts: Added support for setting https traffic only.
+* WebApp: Add new Premium V3 SKUs: Entry level SKU: `P0V3`, and memory optimised SKUs: `P1MV3, P2MV3, P3MV3, P4MV3, P5MV3`.
 
 ## 1.8.10
-* Functions: Added support for setting max scale out limit
+* Functions: Added support for setting max scale out limit.
 
 ## 1.8.9
 * Managed Identity: Support for federated identity credentials.
