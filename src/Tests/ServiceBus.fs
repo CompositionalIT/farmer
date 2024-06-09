@@ -475,7 +475,7 @@ let tests =
 
                         Expect.equal sbAuthorizationRule.Name "serviceBus/my-queue/my-rule" "Name is wrong"
                         Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
-                        Expect.equal sbAuthorizationRule.Rights.[0] (Nullable AccessRights.Manage) "Wrong rights"
+                        Expect.equal sbAuthorizationRule.Rights.[0] AccessRights.Manage "Wrong rights"
                     }
 
                     test "Queue IArmResource has correct resourceId for unmanaged namespace" {
@@ -576,6 +576,24 @@ let tests =
                             topic.DuplicateDetectionHistoryTimeWindow
                             (Nullable(TimeSpan.FromMinutes 15.))
                             "Duplicate detection time incorrect"
+                    }
+                    test "Can create a topic with a max message size" {
+                        let topic: SBTopic =
+                            serviceBus {
+                                name "my-bus"
+
+                                add_topics
+                                    [
+                                        topic {
+                                            name "my-topic"
+                                            max_message_size 1024<Kb>
+                                        }
+                                    ]
+                            }
+                            |> getResourceAtIndex 1
+
+                        Expect.equal topic.Name "my-bus/my-topic" "Name not set"
+                        Expect.equal topic.MaxMessageSizeInKilobytes (Nullable 1024) "Max message size not set"
                     }
                     test "Can create a topic with a max size" {
                         let topic: SBTopic =
@@ -954,7 +972,7 @@ let tests =
 
                         Expect.equal sbAuthorizationRule.Name "serviceBus/my-rule" "Wrong name"
                         Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
-                        Expect.equal sbAuthorizationRule.Rights.[0] (Nullable AccessRights.Manage) "Wrong rights"
+                        Expect.equal sbAuthorizationRule.Rights.[0] AccessRights.Manage "Wrong rights"
                     }
                 ]
         ]

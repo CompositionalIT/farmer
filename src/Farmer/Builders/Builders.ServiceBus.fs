@@ -329,6 +329,7 @@ type ServiceBusTopicConfig =
         DuplicateDetection: TimeSpan option
         DefaultMessageTimeToLive: TimeSpan option
         EnablePartitioning: bool option
+        MaxMessageSizeInKilobytes: int<Kb> option
         MaxSizeInMegabytes: int<Mb> option
         Subscriptions: Map<ResourceName, ServiceBusSubscriptionConfig>
     }
@@ -356,6 +357,7 @@ type ServiceBusTopicConfig =
                     DuplicateDetectionHistoryTimeWindow = this.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
                     DefaultMessageTimeToLive = this.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
                     EnablePartitioning = this.EnablePartitioning
+                    MaxMessageSizeInKilobytes = this.MaxMessageSizeInKilobytes
                     MaxSizeInMegabytes = this.MaxSizeInMegabytes
                 }
                 for subscription in this.Subscriptions do
@@ -376,6 +378,7 @@ type ServiceBusTopicBuilder() =
             DuplicateDetection = None
             DefaultMessageTimeToLive = None
             EnablePartitioning = None
+            MaxMessageSizeInKilobytes = None
             MaxSizeInMegabytes = None
             Subscriptions = Map.empty
         }
@@ -401,6 +404,13 @@ type ServiceBusTopicBuilder() =
     member _.DuplicateDetection(state: ServiceBusTopicConfig, maxTimeWindow) =
         { state with
             DuplicateDetection = Some(TimeSpan.FromMinutes(float maxTimeWindow))
+        }
+
+    /// The maximum size of the message payload that can be accepted by the topic in kilobytes.
+    [<CustomOperation "max_message_size">]
+    member _.MaxMessageSize(state: ServiceBusTopicConfig, maxMessageSizeInKilobytes: int<Kb>) =
+        { state with
+            MaxMessageSizeInKilobytes = Some maxMessageSizeInKilobytes
         }
 
     /// The maximum size for the topic in megabytes.
