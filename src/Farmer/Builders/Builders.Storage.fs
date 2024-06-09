@@ -72,6 +72,8 @@ type StorageAccountConfig =
         IsVersioningEnabled: List<Storage.StorageService * bool>
         /// Minimum TLS version
         MinTlsVersion: TlsVersion option
+        /// Supports Https Traffic Only
+        SupportsHttpsTrafficOnly: FeatureFlag option
         /// Tags to apply to the storage account
         Tags: Map<string, string>
         /// DNS endpoint type
@@ -127,6 +129,7 @@ type StorageAccountConfig =
                     NetworkAcls = this.NetworkAcls
                     StaticWebsite = this.StaticWebsite
                     MinTlsVersion = this.MinTlsVersion
+                    SupportsHttpsTrafficOnly = this.SupportsHttpsTrafficOnly
                     DnsZoneType = this.DnsZoneType
                     DisablePublicNetworkAccess = this.DisablePublicNetworkAccess
                     DisableBlobPublicAccess = this.DisableBlobPublicAccess
@@ -242,6 +245,7 @@ type StorageAccountBuilder() =
             Policies = []
             IsVersioningEnabled = []
             MinTlsVersion = None
+            SupportsHttpsTrafficOnly = None
             Tags = Map.empty
             DnsZoneType = None
             DisablePublicNetworkAccess = None
@@ -652,6 +656,15 @@ type StorageAccountBuilder() =
     member _.SetMinTlsVersion(state: StorageAccountConfig, minTlsVersion) =
         { state with
             MinTlsVersion = Some minTlsVersion
+        }
+
+    /// Set support https traffic only
+    [<CustomOperation "supports_https_traffic_only">]
+    member _.SupportsHttpsTrafficOnly(state: StorageAccountConfig, ?supportsHttpsTrafficOnly: FeatureFlag) =
+        let flag = defaultArg supportsHttpsTrafficOnly FeatureFlag.Enabled
+
+        { state with
+            SupportsHttpsTrafficOnly = Some flag
         }
 
     /// Set DNS Endpoint type

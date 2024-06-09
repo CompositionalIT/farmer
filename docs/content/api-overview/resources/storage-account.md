@@ -46,6 +46,7 @@ The Storage Account builder creates storage accounts and their associated contai
 | grant_access | Given a managed identity (can be either user- or system- assigned), and a specific RoleId from the Roles module, grants access to the identity for the provided role. |
 | min_tls_version | Sets the minimum TLS version for the storage account |
 | disable_blob_public_access | Disables public (anonymous) access to blobs for the entire storage account |
+| supports_https_traffic_only | Allows https traffic only |
 | disable_shared_key_access | Disables shared key access for the storage account |
 | default_to_oauth_authentication | Defaults to OAuth (AAD) authentication for requests to blobs, queues and containers in the Azure portal |
 | use_azure_dns_zone | Change the DNS Endpoint type from `Standard` to `AzureDnsZone` |
