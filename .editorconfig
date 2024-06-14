@@ -1,2 +1,12 @@
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = false
+
 [*.{fs,fsx}]
-fsharp_multiline_block_brackets_on_same_column = true
+fsharp_multiline_bracket_style = stroustrup
+fsharp_newline_before_multiline_computation_expression = false

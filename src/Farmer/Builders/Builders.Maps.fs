@@ -6,38 +6,35 @@ open Farmer.Maps
 open Farmer.Helpers
 open Farmer.Arm.Maps
 
-type MapsConfig =
-    {
-        Name: ResourceName
-        Sku: Sku
-        Tags: Map<string, string>
-    }
+type MapsConfig = {
+    Name: ResourceName
+    Sku: Sku
+    Tags: Map<string, string>
+} with
 
     interface IBuilder with
         member this.ResourceId = accounts.resourceId this.Name
 
-        member this.BuildResources _ =
-            [
-                {
-                    Name = this.Name
-                    Location = Location "global"
-                    Sku = this.Sku
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources _ = [
+            {
+                Name = this.Name
+                Location = Location "global"
+                Sku = this.Sku
+                Tags = this.Tags
+            }
+        ]
 
 type MapsBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sku = S0
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = S0
+        Tags = Map.empty
+    }
 
-    member _.Run(state: MapsConfig) =
-        { state with
+    member _.Run(state: MapsConfig) = {
+        state with
             Name = state.Name |> sanitiseMaps |> ResourceName
-        }
+    }
 
     /// Sets the name of the Azure Maps instance.
     [<CustomOperation("name")>]
@@ -50,9 +47,9 @@ type MapsBuilder() =
     member _.Sku(state: MapsConfig, sku) = { state with Sku = sku }
 
     interface ITaggable<MapsConfig> with
-        member _.Add state tags =
-            { state with
+        member _.Add state tags = {
+            state with
                 Tags = state.Tags |> Map.merge tags
-            }
+        }
 
 let maps = MapsBuilder()

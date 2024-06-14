@@ -10,13 +10,12 @@ let myServiceBus = serviceBus {
     min_tls_version TlsVersion.Tls12
     enable_zone_redundancy
     disable_public_network_access
-    add_queues [
-        queue { name "queuenumberone" }
-        queue { name "queuenumbertwo" }
-    ]
+    add_queues [ queue { name "queuenumberone" }; queue { name "queuenumbertwo" } ]
+
     add_topics [
         topic {
             name "thetopic"
+
             add_subscriptions [
                 subscription {
                     name "thesub"
@@ -34,5 +33,4 @@ let deployment = arm {
     output "DefaultSharedAccessPolicyPrimaryKey" myServiceBus.DefaultSharedAccessPolicyPrimaryKey
 }
 
-deployment
-|> Deploy.execute "service-bus-test" []
+deployment |> Deploy.execute "service-bus-test" []

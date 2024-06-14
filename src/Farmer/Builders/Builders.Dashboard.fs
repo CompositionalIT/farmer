@@ -4,39 +4,36 @@ module Farmer.Builders.Dashboard
 open Farmer
 open Farmer.Arm.Dashboard
 
-type DashboardConfig =
-    {
-        Name: ResourceName
-        Title: string option
-        Metadata: DashboardMetadata
-        LensParts: LensPart list
-        Dependencies: Set<ResourceId>
-    }
+type DashboardConfig = {
+    Name: ResourceName
+    Title: string option
+    Metadata: DashboardMetadata
+    LensParts: LensPart list
+    Dependencies: Set<ResourceId>
+} with
 
     interface IBuilder with
         member this.ResourceId = dashboard.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Title = this.Title
-                    Location = location
-                    Metadata = this.Metadata
-                    LensParts = this.LensParts
-                    Dependencies = this.Dependencies
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Title = this.Title
+                Location = location
+                Metadata = this.Metadata
+                LensParts = this.LensParts
+                Dependencies = this.Dependencies
+            }
+        ]
 
 type DashboardBuilder() =
-    member __.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Title = None
-            Metadata = DashboardMetadata.EmptyMetadata
-            LensParts = List.empty
-            Dependencies = Set.empty
-        }
+    member __.Yield _ = {
+        Name = ResourceName.Empty
+        Title = None
+        Metadata = DashboardMetadata.EmptyMetadata
+        LensParts = List.empty
+        Dependencies = Set.empty
+    }
 
     [<CustomOperation "name">]
     /// Sets the name of the dashboard.
@@ -52,23 +49,24 @@ type DashboardBuilder() =
 
     [<CustomOperation "add_custom_lens">]
     /// Create your own lens part for the dashboard
-    member __.CustomLens(state: DashboardConfig, lens) =
-        { state with
+    member __.CustomLens(state: DashboardConfig, lens) = {
+        state with
             LensParts = lens :: state.LensParts
-        }
+    }
 
     [<CustomOperation "add_markdown_part">]
     /// Create markdown lens part for the dashboard
     member __.MarkdownPart(state: DashboardConfig, (position, markdownPart)) =
         let markdown = generateMarkdownPart markdownPart
 
-        { state with
-            LensParts =
-                ({
-                    position = position
-                    metadata = markdown
-                })
-                :: state.LensParts
+        {
+            state with
+                LensParts =
+                    ({
+                        position = position
+                        metadata = markdown
+                    })
+                    :: state.LensParts
         }
 
     [<CustomOperation "add_video_part">]
@@ -76,13 +74,14 @@ type DashboardBuilder() =
     member __.VideoPart(state: DashboardConfig, (position, videoPart)) =
         let videopart = generateVideoPart videoPart
 
-        { state with
-            LensParts =
-                ({
-                    position = position
-                    metadata = videopart
-                })
-                :: state.LensParts
+        {
+            state with
+                LensParts =
+                    ({
+                        position = position
+                        metadata = videopart
+                    })
+                    :: state.LensParts
         }
 
     [<CustomOperation "add_virtual_machine_icon">]
@@ -90,13 +89,14 @@ type DashboardBuilder() =
     member __.VirtualMachinePart(state: DashboardConfig, (position, virtualMachineId)) =
         let vmPart = generateVirtualMachinePart virtualMachineId
 
-        { state with
-            LensParts =
-                ({
-                    position = position
-                    metadata = vmPart
-                })
-                :: state.LensParts
+        {
+            state with
+                LensParts =
+                    ({
+                        position = position
+                        metadata = vmPart
+                    })
+                    :: state.LensParts
         }
 
     [<CustomOperation "add_webtest_results_part">]
@@ -104,13 +104,14 @@ type DashboardBuilder() =
     member __.WebtestResultPart(state: DashboardConfig, (position, applicationInsightsName)) =
         let vmPart = generateWebtestResultPart applicationInsightsName
 
-        { state with
-            LensParts =
-                ({
-                    position = position
-                    metadata = vmPart
-                })
-                :: state.LensParts
+        {
+            state with
+                LensParts =
+                    ({
+                        position = position
+                        metadata = vmPart
+                    })
+                    :: state.LensParts
         }
 
     [<CustomOperation "add_metrics_chart">]
@@ -118,13 +119,14 @@ type DashboardBuilder() =
     member __.MetricsChartPart(state: DashboardConfig, (position, metricsChart)) =
         let metricsChartPart = generateMetricsChartPart metricsChart
 
-        { state with
-            LensParts =
-                ({
-                    position = position
-                    metadata = metricsChartPart
-                })
-                :: state.LensParts
+        {
+            state with
+                LensParts =
+                    ({
+                        position = position
+                        metadata = metricsChartPart
+                    })
+                    :: state.LensParts
         }
 
     [<CustomOperation "add_monitor_chart">]
@@ -132,20 +134,21 @@ type DashboardBuilder() =
     member __.MonitorChartPart(state: DashboardConfig, (position, monitorChart)) =
         let monitorChartPart = generateMonitorChartPart monitorChart
 
-        { state with
-            LensParts =
-                ({
-                    position = position
-                    metadata = monitorChartPart
-                })
-                :: state.LensParts
+        {
+            state with
+                LensParts =
+                    ({
+                        position = position
+                        metadata = monitorChartPart
+                    })
+                    :: state.LensParts
         }
 
     /// Enable support for additional dependencies.
     interface IDependable<DashboardConfig> with
-        member _.Add state newDeps =
-            { state with
+        member _.Add state newDeps = {
+            state with
                 Dependencies = state.Dependencies + newDeps
-            }
+        }
 
 let dashboard = DashboardBuilder()

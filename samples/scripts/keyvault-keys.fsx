@@ -4,23 +4,23 @@ open Farmer
 open Farmer.Builders
 open Farmer.KeyVault
 
-let vault =
-    keyVault {
-        name "TestFarmVault"
-        sku Sku.Standard
-        tenant_id Subscription.TenantId
-        add_tag "test" "test"
-        add_keys [
-            key {
-                name "testKeyInline1"
-                key_type KeyType.RSA_4096
-            }
-            key {
-                name "testKeyInline2"
-                key_type KeyType.EC_P256
-            }
-        ]
-    }
+let vault = keyVault {
+    name "TestFarmVault"
+    sku Sku.Standard
+    tenant_id Subscription.TenantId
+    add_tag "test" "test"
+
+    add_keys [
+        key {
+            name "testKeyInline1"
+            key_type KeyType.RSA_4096
+        }
+        key {
+            name "testKeyInline2"
+            key_type KeyType.EC_P256
+        }
+    ]
+}
 
 
 let myKey = key {

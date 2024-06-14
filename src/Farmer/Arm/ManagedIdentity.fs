@@ -10,12 +10,11 @@ let userAssignedIdentities =
 let federatedIdentityCredentials =
     ResourceType("Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials", "2023-01-31")
 
-type UserAssignedIdentity =
-    {
-        Name: ResourceName
-        Location: Location
-        Tags: Map<string, string>
-    }
+type UserAssignedIdentity = {
+    Name: ResourceName
+    Location: Location
+    Tags: Map<string, string>
+} with
 
     interface IArmResource with
         member this.ResourceId = userAssignedIdentities.resourceId this.Name
@@ -24,28 +23,30 @@ type UserAssignedIdentity =
             userAssignedIdentities.Create(this.Name, this.Location, [], this.Tags)
 
 /// A federated identity credential from an OpenId Connect issuer.
-type FederatedIdentityCredential =
-    {
-        Name: ResourceName
-        UserAssignedIdentity: LinkedResource
-        Audiences: string list
-        Issuer: string
-        Subject: string
-    }
+type FederatedIdentityCredential = {
+    Name: ResourceName
+    UserAssignedIdentity: LinkedResource
+    Audiences: string list
+    Issuer: string
+    Subject: string
+} with
 
     interface IArmResource with
-        member this.ResourceId =
-            { federatedIdentityCredentials.resourceId this.UserAssignedIdentity.Name with
+        member this.ResourceId = {
+            federatedIdentityCredentials.resourceId this.UserAssignedIdentity.Name with
                 Segments = [ this.Name ]
-            }
+        }
 
         member this.JsonModel =
             let dependencies =
                 Set.empty |> LinkedResource.addToSetIfManaged this.UserAssignedIdentity
 
-            {| federatedIdentityCredentials.Create(this.UserAssignedIdentity.Name / this.Name, dependsOn = dependencies) with
-                properties =
-                    {|
+            {|
+                federatedIdentityCredentials.Create(
+                    this.UserAssignedIdentity.Name / this.Name,
+                    dependsOn = dependencies
+                ) with
+                    properties = {|
                         audiences = this.Audiences
                         issuer = this.Issuer
                         subject = this.Subject
@@ -58,41 +59,37 @@ let toArmJson =
     | {
           SystemAssigned = Disabled
           UserAssigned = []
-      } ->
-        {|
-            ``type`` = "None"
-            userAssignedIdentities = null
-        |}
+      } -> {|
+        ``type`` = "None"
+        userAssignedIdentities = null
+      |}
     | {
           SystemAssigned = Enabled
           UserAssigned = []
-      } ->
-        {|
-            ``type`` = "SystemAssigned"
-            userAssignedIdentities = null
-        |}
+      } -> {|
+        ``type`` = "SystemAssigned"
+        userAssignedIdentities = null
+      |}
     | {
           SystemAssigned = Disabled
           UserAssigned = identities
-      } ->
-        {|
-            ``type`` = "UserAssigned"
-            userAssignedIdentities =
-                identities
-                |> List.map (fun identity -> identity.ResourceId.Eval(), obj ())
-                |> dict
-        |}
+      } -> {|
+        ``type`` = "UserAssigned"
+        userAssignedIdentities =
+            identities
+            |> List.map (fun identity -> identity.ResourceId.Eval(), obj ())
+            |> dict
+      |}
     | {
           SystemAssigned = Enabled
           UserAssigned = identities
-      } ->
-        {|
-            ``type`` = "SystemAssigned, UserAssigned"
-            userAssignedIdentities =
-                identities
-                |> List.map (fun identity -> identity.ResourceId.Eval(), obj ())
-                |> dict
-        |}
+      } -> {|
+        ``type`` = "SystemAssigned, UserAssigned"
+        userAssignedIdentities =
+            identities
+            |> List.map (fun identity -> identity.ResourceId.Eval(), obj ())
+            |> dict
+      |}
 
 type ManagedIdentity with
 

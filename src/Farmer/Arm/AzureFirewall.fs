@@ -12,79 +12,71 @@ let azureFirewalls = ResourceType("Microsoft.Network/azureFirewalls", "2020-07-0
 let azureFirewallPolicies =
     ResourceType("Microsoft.Network/firewallPolicies", "2020-07-01")
 
-type HubPublicIPAddresses =
-    {
-        Count: int
-        Addresses: IPAddress list
-    }
+type HubPublicIPAddresses = {
+    Count: int
+    Addresses: IPAddress list
+} with
 
-    member this.JsonModel =
-        {|
-            count = this.Count
-            addresses = this.Addresses |> List.map (fun x -> {| address = x.ToString() |})
-        |}
+    member this.JsonModel = {|
+        count = this.Count
+        addresses = this.Addresses |> List.map (fun x -> {| address = x.ToString() |})
+    |}
 
-type HubIPAddresses =
-    {
-        PublicIPAddresses: HubPublicIPAddresses option
-    }
+type HubIPAddresses = {
+    PublicIPAddresses: HubPublicIPAddresses option
+} with
 
-    member this.JsonModel =
-        {|
-            publicIPs =
-                this.PublicIPAddresses
-                |> Option.map (fun x -> box x.JsonModel)
-                |> Option.defaultValue null
-        |}
+    member this.JsonModel = {|
+        publicIPs =
+            this.PublicIPAddresses
+            |> Option.map (fun x -> box x.JsonModel)
+            |> Option.defaultValue null
+    |}
 
-type Sku =
-    {
-        Name: SkuName
-        Tier: SkuTier
-    }
+type Sku = {
+    Name: SkuName
+    Tier: SkuTier
+} with
 
-    member this.JsonModel =
-        {|
-            name = this.Name.ArmValue
-            tier = this.Tier.ArmValue
-        |}
+    member this.JsonModel = {|
+        name = this.Name.ArmValue
+        tier = this.Tier.ArmValue
+    |}
 
-type AzureFirewall =
-    {
-        Name: ResourceName
-        Location: Location
-        Dependencies: ResourceId Set
-        FirewallPolicy: ResourceId option
-        VirtualHub: ResourceId option
-        HubIPAddresses: HubIPAddresses option
-        AvailabilityZones: string list
-        Sku: Sku
-    }
+type AzureFirewall = {
+    Name: ResourceName
+    Location: Location
+    Dependencies: ResourceId Set
+    FirewallPolicy: ResourceId option
+    VirtualHub: ResourceId option
+    HubIPAddresses: HubIPAddresses option
+    AvailabilityZones: string list
+    Sku: Sku
+} with
 
     interface IArmResource with
         member this.ResourceId = azureFirewalls.resourceId this.Name
 
-        member this.JsonModel =
-            {| azureFirewalls.Create(this.Name, this.Location, this.Dependencies) with
-                properties =
-                    {|
-                        sku = this.Sku.JsonModel
-                        virtualHub =
-                            this.VirtualHub
-                            |> Option.map (fun resId -> box {| id = resId.ArmExpression.Eval() |})
-                            |> Option.defaultValue null
-                        firewallPolicy =
-                            this.FirewallPolicy
-                            |> Option.map (fun resId -> box {| id = resId.ArmExpression.Eval() |})
-                            |> Option.defaultValue null
-                        hubIPAddresses =
-                            this.HubIPAddresses
-                            |> Option.map (fun x -> box x.JsonModel)
-                            |> Option.defaultValue null
-                    |}
+        member this.JsonModel = {|
+            azureFirewalls.Create(this.Name, this.Location, this.Dependencies) with
+                properties = {|
+                    sku = this.Sku.JsonModel
+                    virtualHub =
+                        this.VirtualHub
+                        |> Option.map (fun resId -> box {| id = resId.ArmExpression.Eval() |})
+                        |> Option.defaultValue null
+                    firewallPolicy =
+                        this.FirewallPolicy
+                        |> Option.map (fun resId -> box {| id = resId.ArmExpression.Eval() |})
+                        |> Option.defaultValue null
+                    hubIPAddresses =
+                        this.HubIPAddresses
+                        |> Option.map (fun x -> box x.JsonModel)
+                        |> Option.defaultValue null
+                |}
                 zones =
                     if this.AvailabilityZones.IsEmpty then
                         null
                     else
                         this.AvailabilityZones |> box
-            |}
+        |}

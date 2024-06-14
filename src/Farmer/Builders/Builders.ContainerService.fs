@@ -9,53 +9,49 @@ open Farmer.Arm.RoleAssignment
 open Farmer.Identity
 open Farmer.Vm
 
-type AgentPoolConfig =
-    {
-        Name: ResourceName
-        Count: int
-        MaxPods: int option
-        Mode: AgentPoolMode
-        OsDiskSize: int<Gb>
-        OsType: OS
-        VmSize: VMSize
-        VirtualNetworkName: ResourceName option
-        SubnetName: ResourceName option
+type AgentPoolConfig = {
+    Name: ResourceName
+    Count: int
+    MaxPods: int option
+    Mode: AgentPoolMode
+    OsDiskSize: int<Gb>
+    OsType: OS
+    VmSize: VMSize
+    VirtualNetworkName: ResourceName option
+    SubnetName: ResourceName option
+} with
+
+    static member Default = {
+        Name = ResourceName.Empty
+        Count = 1
+        // Default for CNI is 30, Kubenet default is 110
+        // https://docs.microsoft.com/en-us/azure/aks/configure-azure-cni#maximum-pods-per-node
+        MaxPods = None
+        Mode = System
+        OsDiskSize = 0<Gb>
+        OsType = OS.Linux
+        VirtualNetworkName = None
+        SubnetName = None
+        VmSize = Standard_DS2_v2
     }
 
-    static member Default =
-        {
-            Name = ResourceName.Empty
-            Count = 1
-            // Default for CNI is 30, Kubenet default is 110
-            // https://docs.microsoft.com/en-us/azure/aks/configure-azure-cni#maximum-pods-per-node
-            MaxPods = None
-            Mode = System
-            OsDiskSize = 0<Gb>
-            OsType = OS.Linux
-            VirtualNetworkName = None
-            SubnetName = None
-            VmSize = Standard_DS2_v2
-        }
+type ApiServerAccessProfileConfig = {
+    AuthorizedIPRanges: string list
+    EnablePrivateCluster: bool option
+}
 
-type ApiServerAccessProfileConfig =
-    {
-        AuthorizedIPRanges: string list
-        EnablePrivateCluster: bool option
-    }
-
-type NetworkProfileConfig =
-    {
-        NetworkPlugin: ContainerService.NetworkPlugin option
-        /// If no address is specified, this will use the 2nd address in the service address CIDR
-        DnsServiceIP: System.Net.IPAddress option
-        /// Usually the default 172.17.0.1/16 is acceptable.
-        DockerBridgeCidr: IPAddressCidr option
-        /// Load balancer SKU (defaults to basic)
-        LoadBalancerSku: LoadBalancer.Sku option
-        /// Private IP address CIDR for services in the cluster which should not overlap with the vnet
-        /// for the cluster or peer vnets. Defaults to 10.244.0.0/16.
-        ServiceCidr: IPAddressCidr option
-    }
+type NetworkProfileConfig = {
+    NetworkPlugin: ContainerService.NetworkPlugin option
+    /// If no address is specified, this will use the 2nd address in the service address CIDR
+    DnsServiceIP: System.Net.IPAddress option
+    /// Usually the default 172.17.0.1/16 is acceptable.
+    DockerBridgeCidr: IPAddressCidr option
+    /// Load balancer SKU (defaults to basic)
+    LoadBalancerSku: LoadBalancer.Sku option
+    /// Private IP address CIDR for services in the cluster which should not overlap with the vnet
+    /// for the cluster or peer vnets. Defaults to 10.244.0.0/16.
+    ServiceCidr: IPAddressCidr option
+}
 
 type AddonConfig =
     | AciConnectorLinux of FeatureFlag
@@ -64,72 +60,69 @@ type AddonConfig =
     | KubeDashboard of FeatureFlag
     | OmsAgent of OmsAgent
 
-    static member BuildConfig(addons: AddonConfig list) : AddonProfileConfig =
-        {
-            // TODO: Clean up with active pattern
-            AciConnectorLinux =
-                addons
-                |> List.tryFind (function
-                    | AciConnectorLinux _ -> true
-                    | _ -> false)
-                |> function
-                    | Some (AciConnectorLinux status) -> Some { AciConnectorLinux.Status = status }
-                    | _ -> None
-            HttpApplicationRouting =
-                addons
-                |> List.tryFind (function
-                    | HttpApplicationRouting _ -> true
-                    | _ -> false)
-                |> function
-                    | Some (HttpApplicationRouting status) ->
-                        Some
-                            {
-                                HttpApplicationRouting.Status = status
-                            }
-                    | _ -> None
-            IngressApplicationGateway =
-                addons
-                |> List.tryFind (function
-                    | IngressApplicationGateway _ -> true
-                    | _ -> false)
-                |> function
-                    | Some (IngressApplicationGateway gw) -> Some gw
-                    | _ -> None
-            KubeDashboard =
-                addons
-                |> List.tryFind (function
-                    | KubeDashboard _ -> true
-                    | _ -> false)
-                |> function
-                    | Some (KubeDashboard status) -> Some { KubeDashboard.Status = status }
-                    | _ -> None
-            OmsAgent =
-                addons
-                |> List.tryFind (function
-                    | OmsAgent _ -> true
-                    | _ -> false)
-                |> function
-                    | Some (OmsAgent oms) -> Some oms
-                    | _ -> None
-        }
-
-type AksConfig =
-    {
-        Name: ResourceName
-        AddonProfiles: AddonConfig list
-        AgentPools: AgentPoolConfig list
-        Dependencies: ResourceId Set
-        DependencyExpressions: ArmExpression Set
-        DnsPrefix: string
-        EnableRBAC: bool
-        Identity: ManagedIdentity
-        IdentityProfile: ManagedClusterIdentityProfile option
-        ApiServerAccessProfile: ApiServerAccessProfileConfig option
-        LinuxProfile: (string * string list) option
-        NetworkProfile: NetworkProfileConfig option
-        ServicePrincipalClientID: string
-        WindowsProfileAdminUserName: string option
+    static member BuildConfig(addons: AddonConfig list) : AddonProfileConfig = {
+        // TODO: Clean up with active pattern
+        AciConnectorLinux =
+            addons
+            |> List.tryFind (function
+                | AciConnectorLinux _ -> true
+                | _ -> false)
+            |> function
+                | Some(AciConnectorLinux status) -> Some { AciConnectorLinux.Status = status }
+                | _ -> None
+        HttpApplicationRouting =
+            addons
+            |> List.tryFind (function
+                | HttpApplicationRouting _ -> true
+                | _ -> false)
+            |> function
+                | Some(HttpApplicationRouting status) ->
+                    Some {
+                        HttpApplicationRouting.Status = status
+                    }
+                | _ -> None
+        IngressApplicationGateway =
+            addons
+            |> List.tryFind (function
+                | IngressApplicationGateway _ -> true
+                | _ -> false)
+            |> function
+                | Some(IngressApplicationGateway gw) -> Some gw
+                | _ -> None
+        KubeDashboard =
+            addons
+            |> List.tryFind (function
+                | KubeDashboard _ -> true
+                | _ -> false)
+            |> function
+                | Some(KubeDashboard status) -> Some { KubeDashboard.Status = status }
+                | _ -> None
+        OmsAgent =
+            addons
+            |> List.tryFind (function
+                | OmsAgent _ -> true
+                | _ -> false)
+            |> function
+                | Some(OmsAgent oms) -> Some oms
+                | _ -> None
     }
+
+type AksConfig = {
+    Name: ResourceName
+    AddonProfiles: AddonConfig list
+    AgentPools: AgentPoolConfig list
+    Dependencies: ResourceId Set
+    DependencyExpressions: ArmExpression Set
+    DnsPrefix: string
+    EnableRBAC: bool
+    Identity: ManagedIdentity
+    IdentityProfile: ManagedClusterIdentityProfile option
+    ApiServerAccessProfile: ApiServerAccessProfileConfig option
+    LinuxProfile: (string * string list) option
+    NetworkProfile: NetworkProfileConfig option
+    ServicePrincipalClientID: string
+    WindowsProfileAdminUserName: string option
+} with
 
     member private this.ResourceId = managedClusters.resourceId this.Name
     member this.SystemIdentity = SystemIdentity this.ResourceId
@@ -137,92 +130,85 @@ type AksConfig =
     interface IBuilder with
         member this.ResourceId = this.ResourceId
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    AddOnProfiles =
-                        match this.AddonProfiles with
-                        | [] -> None
-                        | addons -> addons |> AddonConfig.BuildConfig |> Some
-                    Dependencies = this.Dependencies
-                    DependencyExpressions = this.DependencyExpressions
-                    DnsPrefix =
-                        if String.IsNullOrWhiteSpace this.DnsPrefix then
-                            $"{this.Name.Value}-%x{this.Name.Value.GetHashCode()}"
-                        else
-                            this.DnsPrefix
-                    EnableRBAC = this.EnableRBAC
-                    Identity = this.Identity
-                    IdentityProfile = this.IdentityProfile
-                    AgentPoolProfiles =
-                        match this.AgentPools with
-                        | [] ->
-                            [
-                                { AgentPoolConfig.Default with
-                                    Count = 3
-                                }
-                            ]
-                        | agentPools -> agentPools
-                        |> List.map (fun agentPool ->
-                            {|
-                                Name = agentPool.Name
-                                Count = agentPool.Count
-                                MaxPods = agentPool.MaxPods
-                                Mode = agentPool.Mode
-                                OsDiskSize = agentPool.OsDiskSize
-                                OsType = agentPool.OsType
-                                SubnetName = agentPool.SubnetName
-                                VmSize = agentPool.VmSize
-                                VirtualNetworkName = agentPool.VirtualNetworkName
-                            |})
-                    ApiServerAccessProfile =
-                        this.ApiServerAccessProfile
-                        |> Option.map (fun apiAccess ->
-                            {|
-                                AuthorizedIPRanges = apiAccess.AuthorizedIPRanges
-                                EnablePrivateCluster = apiAccess.EnablePrivateCluster
-                            |})
-                    LinuxProfile =
-                        this.LinuxProfile
-                        |> Option.map (fun (username, keys) ->
-                            {|
-                                AdminUserName = username
-                                PublicKeys = keys
-                            |})
-                    NetworkProfile =
-                        this.NetworkProfile
-                        |> Option.map (fun netProfile ->
-                            {|
-                                NetworkPlugin = netProfile.NetworkPlugin
-                                DnsServiceIP =
-                                    match netProfile.DnsServiceIP with
-                                    | Some ip -> Some ip
-                                    | None ->
-                                        netProfile.ServiceCidr
-                                        |> Option.map (IPAddressCidr.addresses >> Seq.skip 2 >> Seq.head)
-                                DockerBridgeCidr = netProfile.DockerBridgeCidr
-                                LoadBalancerSku = netProfile.LoadBalancerSku
-                                ServiceCidr = netProfile.ServiceCidr
-                            |})
-                    ServicePrincipalProfile =
-                        {|
-                            ClientId = this.ServicePrincipalClientID
-                            ClientSecret =
-                                match this.ServicePrincipalClientID with
-                                | "msi" -> None
-                                | _ -> Some(SecureParameter $"client-secret-for-{this.Name.Value}")
-                        |}
-                    WindowsProfile =
-                        this.WindowsProfileAdminUserName
-                        |> Option.map (fun username ->
-                            {|
-                                AdminUserName = username
-                                AdminPassword = SecureParameter $"admin-password-for-{this.Name.Value}"
-                            |})
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                AddOnProfiles =
+                    match this.AddonProfiles with
+                    | [] -> None
+                    | addons -> addons |> AddonConfig.BuildConfig |> Some
+                Dependencies = this.Dependencies
+                DependencyExpressions = this.DependencyExpressions
+                DnsPrefix =
+                    if String.IsNullOrWhiteSpace this.DnsPrefix then
+                        $"{this.Name.Value}-%x{this.Name.Value.GetHashCode()}"
+                    else
+                        this.DnsPrefix
+                EnableRBAC = this.EnableRBAC
+                Identity = this.Identity
+                IdentityProfile = this.IdentityProfile
+                AgentPoolProfiles =
+                    match this.AgentPools with
+                    | [] -> [
+                        {
+                            AgentPoolConfig.Default with
+                                Count = 3
+                        }
+                      ]
+                    | agentPools -> agentPools
+                    |> List.map (fun agentPool -> {|
+                        Name = agentPool.Name
+                        Count = agentPool.Count
+                        MaxPods = agentPool.MaxPods
+                        Mode = agentPool.Mode
+                        OsDiskSize = agentPool.OsDiskSize
+                        OsType = agentPool.OsType
+                        SubnetName = agentPool.SubnetName
+                        VmSize = agentPool.VmSize
+                        VirtualNetworkName = agentPool.VirtualNetworkName
+                    |})
+                ApiServerAccessProfile =
+                    this.ApiServerAccessProfile
+                    |> Option.map (fun apiAccess -> {|
+                        AuthorizedIPRanges = apiAccess.AuthorizedIPRanges
+                        EnablePrivateCluster = apiAccess.EnablePrivateCluster
+                    |})
+                LinuxProfile =
+                    this.LinuxProfile
+                    |> Option.map (fun (username, keys) -> {|
+                        AdminUserName = username
+                        PublicKeys = keys
+                    |})
+                NetworkProfile =
+                    this.NetworkProfile
+                    |> Option.map (fun netProfile -> {|
+                        NetworkPlugin = netProfile.NetworkPlugin
+                        DnsServiceIP =
+                            match netProfile.DnsServiceIP with
+                            | Some ip -> Some ip
+                            | None ->
+                                netProfile.ServiceCidr
+                                |> Option.map (IPAddressCidr.addresses >> Seq.skip 2 >> Seq.head)
+                        DockerBridgeCidr = netProfile.DockerBridgeCidr
+                        LoadBalancerSku = netProfile.LoadBalancerSku
+                        ServiceCidr = netProfile.ServiceCidr
+                    |})
+                ServicePrincipalProfile = {|
+                    ClientId = this.ServicePrincipalClientID
+                    ClientSecret =
+                        match this.ServicePrincipalClientID with
+                        | "msi" -> None
+                        | _ -> Some(SecureParameter $"client-secret-for-{this.Name.Value}")
+                |}
+                WindowsProfile =
+                    this.WindowsProfileAdminUserName
+                    |> Option.map (fun username -> {|
+                        AdminUserName = username
+                        AdminPassword = SecureParameter $"admin-password-for-{this.Name.Value}"
+                    |})
+            }
+        ]
 
 type AgentPoolBuilder() =
     member _.Yield _ = AgentPoolConfig.Default
@@ -237,8 +223,7 @@ type AgentPoolBuilder() =
 
     /// Sets the agent pool to user mode.
     [<CustomOperation "user_mode">]
-    member _.UserMode(state: AgentPoolConfig) =
-        { state with Mode = AgentPoolMode.User }
+    member _.UserMode(state: AgentPoolConfig) = { state with Mode = AgentPoolMode.User }
 
     /// Sets the disk size for the VM's in the agent pool.
     [<CustomOperation "disk_size">]
@@ -253,10 +238,10 @@ type AgentPoolBuilder() =
 
     /// Sets the name of a virtual network subnet where this AKS cluster should be attached.
     [<CustomOperation "subnet">]
-    member _.SubnetName(state: AgentPoolConfig, subnetName) =
-        { state with
+    member _.SubnetName(state: AgentPoolConfig, subnetName) = {
+        state with
             SubnetName = Some(ResourceName subnetName)
-        }
+    }
 
     /// Sets the size of the VM's in the agent pool.
     [<CustomOperation "vm_size">]
@@ -264,10 +249,10 @@ type AgentPoolBuilder() =
 
     /// Sets the name of a virtual network in the same region where this AKS cluster should be attached.
     [<CustomOperation "vnet">]
-    member _.VNetName(state: AgentPoolConfig, vnetName) =
-        { state with
+    member _.VNetName(state: AgentPoolConfig, vnetName) = {
+        state with
             VirtualNetworkName = Some(ResourceName vnetName)
-        }
+    }
 
 /// Builds an AKS cluster agent pool ARM resource definition
 let agentPool = AgentPoolBuilder()
@@ -275,23 +260,22 @@ let agentPool = AgentPoolBuilder()
 type NetworkProfileBuilder() =
     /// Sets the SKU to be used for the load balancer.
     [<CustomOperation "load_balancer_sku">]
-    member _.LoadBalancerSku(state: NetworkProfileConfig, sku: LoadBalancer.Sku) =
-        { state with
+    member _.LoadBalancerSku(state: NetworkProfileConfig, sku: LoadBalancer.Sku) = {
+        state with
             LoadBalancerSku = Some sku
-        }
+    }
 
 /// Builds a configuration for using the Azure CNI plugin.
 type KubenetBuilder() =
     inherit NetworkProfileBuilder()
 
-    member _.Yield _ =
-        {
-            NetworkPlugin = Some ContainerService.NetworkPlugin.Kubenet
-            LoadBalancerSku = None
-            DnsServiceIP = None
-            DockerBridgeCidr = None
-            ServiceCidr = None
-        }
+    member _.Yield _ = {
+        NetworkPlugin = Some ContainerService.NetworkPlugin.Kubenet
+        LoadBalancerSku = None
+        DnsServiceIP = None
+        DockerBridgeCidr = None
+        ServiceCidr = None
+    }
 
 let kubenetNetworkProfile = KubenetBuilder()
 
@@ -299,45 +283,44 @@ let kubenetNetworkProfile = KubenetBuilder()
 type AzureCniBuilder() =
     inherit NetworkProfileBuilder()
 
-    member _.Yield _ =
-        {
-            NetworkPlugin = Some ContainerService.NetworkPlugin.AzureCni
-            LoadBalancerSku = None
-            DnsServiceIP = None
-            DockerBridgeCidr = IPAddressCidr.parse "172.17.0.1/16" |> Some
-            ServiceCidr = IPAddressCidr.parse "10.224.0.0/16" |> Some
-        }
+    member _.Yield _ = {
+        NetworkPlugin = Some ContainerService.NetworkPlugin.AzureCni
+        LoadBalancerSku = None
+        DnsServiceIP = None
+        DockerBridgeCidr = IPAddressCidr.parse "172.17.0.1/16" |> Some
+        ServiceCidr = IPAddressCidr.parse "10.224.0.0/16" |> Some
+    }
 
-    member _.Run(config: NetworkProfileConfig) =
-        { config with
+    member _.Run(config: NetworkProfileConfig) = {
+        config with
             DnsServiceIP =
                 match config.DnsServiceIP with
                 | Some ip -> Some ip
                 | None ->
                     config.ServiceCidr
                     |> Option.map (IPAddressCidr.addresses >> Seq.skip 2 >> Seq.head)
-        }
+    }
 
     /// Sets the docker bridge CIDR to a network other than the default 17.17.0.1/16.
     [<CustomOperation "docker_bridge">]
-    member _.DockerBridge(state: NetworkProfileConfig, dockerBridge) =
-        { state with
+    member _.DockerBridge(state: NetworkProfileConfig, dockerBridge) = {
+        state with
             DockerBridgeCidr = IPAddressCidr.parse dockerBridge |> Some
-        }
+    }
 
     /// Sets the DNS service IP - must be within the service CIDR, default is the second address in the service CIDR.
     [<CustomOperation "dns_service">]
-    member _.DnsServiceIP(state: NetworkProfileConfig, dnsIp: string) =
-        { state with
+    member _.DnsServiceIP(state: NetworkProfileConfig, dnsIp: string) = {
+        state with
             DnsServiceIP = System.Net.IPAddress.Parse dnsIp |> Some
-        }
+    }
 
     /// Sets the service cidr to a network other than the default 10.224.0.0/16.
     [<CustomOperation "service_cidr">]
-    member _.ServiceCidr(state: NetworkProfileConfig, serviceCidr) =
-        { state with
+    member _.ServiceCidr(state: NetworkProfileConfig, serviceCidr) = {
+        state with
             ServiceCidr = IPAddressCidr.parse serviceCidr |> Some
-        }
+    }
 
 let azureCniNetworkProfile = AzureCniBuilder()
 
@@ -362,23 +345,22 @@ let private (|PrivateClusterEnabled|_|) =
         | _ -> None)
 
 type AksBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Dependencies = Set.empty
-            DependencyExpressions = Set.empty
-            AddonProfiles = []
-            AgentPools = []
-            DnsPrefix = ""
-            EnableRBAC = false
-            Identity = ManagedIdentity.Empty
-            IdentityProfile = None
-            ApiServerAccessProfile = None
-            LinuxProfile = None
-            NetworkProfile = None
-            ServicePrincipalClientID = ""
-            WindowsProfileAdminUserName = None
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Dependencies = Set.empty
+        DependencyExpressions = Set.empty
+        AddonProfiles = []
+        AgentPools = []
+        DnsPrefix = ""
+        EnableRBAC = false
+        Identity = ManagedIdentity.Empty
+        IdentityProfile = None
+        ApiServerAccessProfile = None
+        LinuxProfile = None
+        NetworkProfile = None
+        ServicePrincipalClientID = ""
+        WindowsProfileAdminUserName = None
+    }
 
     member _.Run(config: AksConfig) =
         match config.NetworkProfile, config.ApiServerAccessProfile with
@@ -405,54 +387,54 @@ type AksBuilder() =
     member _.EnableRBAC(state: AksConfig) = { state with EnableRBAC = true }
     /// Sets the managed identity on this cluster.
     interface IIdentity<AksConfig> with
-        member _.Add state updater =
-            { state with
+        member _.Add state updater = {
+            state with
                 Identity = updater state.Identity
-            }
+        }
     /// Support for "depends_on"
     interface IDependable<AksConfig> with
-        member _.Add state newDeps =
-            { state with
+        member _.Add state newDeps = {
+            state with
                 Dependencies = state.Dependencies + newDeps
-            }
+        }
 
     [<CustomOperation "depends_on_expression">]
-    member _.DependencyExpressions(state: AksConfig, dependencyExpr: ArmExpression) =
-        { state with
+    member _.DependencyExpressions(state: AksConfig, dependencyExpr: ArmExpression) = {
+        state with
             DependencyExpressions = state.DependencyExpressions.Add dependencyExpr
-        }
+    }
 
     /// Adds agent pools to the AKS cluster.
     [<CustomOperation "add_agent_pools">]
-    member _.AddAgentPools(state: AksConfig, pools) =
-        { state with
+    member _.AddAgentPools(state: AksConfig, pools) = {
+        state with
             AgentPools = state.AgentPools @ pools
-        }
+    }
 
     /// Adds an agent pool to the AKS cluster.
     [<CustomOperation "add_agent_pool">]
-    member _.AddAgentPool(state: AksConfig, pool) =
-        { state with
+    member _.AddAgentPool(state: AksConfig, pool) = {
+        state with
             AgentPools = state.AgentPools @ [ pool ]
-        }
+    }
 
     /// Enables a private cluster so it is not publicly accessible - only accessed from a virtual network.
     [<CustomOperation "enable_private_cluster">]
     member _.EnablePrivateCluster(state: AksConfig, enabled: bool) =
         let accessProfile =
             match state.ApiServerAccessProfile with
-            | None ->
-                {
-                    AuthorizedIPRanges = []
+            | None -> {
+                AuthorizedIPRanges = []
+                EnablePrivateCluster = Some true
+              }
+            | Some profile -> {
+                profile with
                     EnablePrivateCluster = Some true
-                }
-            | Some profile ->
-                { profile with
-                    EnablePrivateCluster = Some true
-                }
+              }
 
-        { state with
-            ApiServerAccessProfile = Some accessProfile
+        {
+            state with
+                ApiServerAccessProfile = Some accessProfile
         }
 
     /// Sets the range of Authorized IP addresses that can access the cluster's API server.
@@ -460,18 +442,18 @@ type AksBuilder() =
     member _.AddApiServerAuthorizedIP(state: AksConfig, range: string list) =
         let accessProfile =
             match state.ApiServerAccessProfile with
-            | None ->
-                {
-                    AuthorizedIPRanges = range
-                    EnablePrivateCluster = None
-                }
-            | Some profile ->
-                { profile with
+            | None -> {
+                AuthorizedIPRanges = range
+                EnablePrivateCluster = None
+              }
+            | Some profile -> {
+                profile with
                     AuthorizedIPRanges = profile.AuthorizedIPRanges @ range
-                }
+              }
 
-        { state with
-            ApiServerAccessProfile = Some accessProfile
+        {
+            state with
+                ApiServerAccessProfile = Some accessProfile
         }
 
     /// Enables any addons.
@@ -482,59 +464,59 @@ type AksBuilder() =
     [<CustomOperation "kubelet_identity">]
     member _.KubeletIdentity(state: AksConfig, identity: ResourceId) =
         match state.IdentityProfile with
-        | None ->
-            { state with
+        | None -> {
+            state with
                 IdentityProfile = Some { KubeletIdentity = Some identity }
-            }
-        | Some identityProfile ->
-            { state with
+          }
+        | Some identityProfile -> {
+            state with
                 IdentityProfile =
-                    Some
-                        { identityProfile with
+                    Some {
+                        identityProfile with
                             KubeletIdentity = Some identity
-                        }
-            }
+                    }
+          }
 
     member this.KubeletIdentity(state: AksConfig, identity: UserAssignedIdentity.UserAssignedIdentityConfig) =
         this.KubeletIdentity(state, identity.ResourceId)
 
     /// Sets the network profile for the AKS cluster.
     [<CustomOperation "network_profile">]
-    member _.NetworkProfile(state: AksConfig, networkProfile) =
-        { state with
+    member _.NetworkProfile(state: AksConfig, networkProfile) = {
+        state with
             NetworkProfile = Some networkProfile
-        }
+    }
 
     /// Sets the linux profile for the AKS cluster.
     [<CustomOperation "linux_profile">]
-    member _.LinuxProfile(state: AksConfig, username: string, sshKeys: string list) =
-        { state with
+    member _.LinuxProfile(state: AksConfig, username: string, sshKeys: string list) = {
+        state with
             LinuxProfile = Some(username, sshKeys)
-        }
+    }
 
     member this.LinuxProfile(state: AksConfig, username: string, sshKey: string) =
         this.LinuxProfile(state, username, [ sshKey ])
 
     /// Sets the client id of the service principal for the AKS cluster.
     [<CustomOperation "service_principal_client_id">]
-    member _.ServicePrincipalClientID(state: AksConfig, clientId) =
-        { state with
+    member _.ServicePrincipalClientID(state: AksConfig, clientId) = {
+        state with
             ServicePrincipalClientID = clientId
-        }
+    }
 
     /// Uses the managed identity of this resource for the service principal.
     [<CustomOperation "service_principal_use_msi">]
-    member _.ServicePrincipalUseMsi(state: AksConfig) =
-        { state with
+    member _.ServicePrincipalUseMsi(state: AksConfig) = {
+        state with
             ServicePrincipalClientID = "msi"
-        }
+    }
 
     /// Sets the windows admin username for the AKS cluster.
     [<CustomOperation "windows_username">]
-    member _.WindowsUsername(state: AksConfig, username) =
-        { state with
+    member _.WindowsUsername(state: AksConfig, username) = {
+        state with
             WindowsProfileAdminUserName = Some username
-        }
+    }
 
 /// Builds an AKS cluster ARM resource definition
 let aksBuilder = AksBuilder()

@@ -7,11 +7,12 @@ let isaacWebApp = webApp {
     name "isaacsuperweb"
     app_insights_off
 }
-let isaacStorage = storageAccount {
-    name "isaacsuperstore"
-}
+
+let isaacStorage = storageAccount { name "isaacsuperstore" }
+
 let isaacCdn = cdn {
     name "isaacsupercdn"
+
     add_endpoints [
         endpoint {
             origin isaacStorage
@@ -30,12 +31,6 @@ let isaacCdn = cdn {
     ]
 }
 
-let deployment = arm {
-    add_resources [
-        isaacStorage
-        isaacCdn
-        isaacWebApp
-    ]
-}
+let deployment = arm { add_resources [ isaacStorage; isaacCdn; isaacWebApp ] }
 
 deployment |> Writer.quickWrite "generated-template"

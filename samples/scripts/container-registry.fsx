@@ -20,6 +20,4 @@ let deployment = arm {
     output "pwd2" myRegistry.Password2
 }
 
-deployment
-|> Deploy.whatIf "FarmerTest" Deploy.NoParameters
-|> printfn "%A"
+deployment |> Deploy.whatIf "FarmerTest" Deploy.NoParameters |> printfn "%A"

@@ -14,14 +14,16 @@ let omsName = $"SecurityInsights({sentinelWorkspace.Name.Value})"
 
 let sentinelSolution = oms {
     name omsName
-    plan (omsPlan {
-        name omsName
-        publisher "Microsoft"
-        product "OMSGallery/SecurityInsights"
-    })
-    properties(omsProperties {
-        workspace sentinelWorkspace
-    })
+
+    plan (
+        omsPlan {
+            name omsName
+            publisher "Microsoft"
+            product "OMSGallery/SecurityInsights"
+        }
+    )
+
+    properties (omsProperties { workspace sentinelWorkspace })
 }
 
 let deployment = arm {
@@ -30,5 +32,4 @@ let deployment = arm {
     add_resource sentinelSolution
 }
 
-deployment
-|> Writer.quickWrite "operationsManagement"
+deployment |> Writer.quickWrite "operationsManagement"

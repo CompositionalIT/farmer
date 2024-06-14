@@ -9,5 +9,9 @@ store.Open(OpenFlags.ReadWrite)
 store.Add(certWithKey)
 store.Close()
 
-let config = { defaultConfig with bindings = [ HttpBinding.createSimple (HTTPS certWithKey) "0.0.0.0" 443 ] }
+let config = {
+    defaultConfig with
+        bindings = [ HttpBinding.createSimple (HTTPS certWithKey) "0.0.0.0" 443 ]
+}
+
 startWebServer config (Successful.OK "Hello Secure Farmers!")

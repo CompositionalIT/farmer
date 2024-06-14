@@ -30,16 +30,15 @@ type IExtension =
     abstract member JsonProperties: obj
     abstract member Name: string
 
-type CustomScriptExtension =
-    {
-        Name: ResourceName
-        Location: Location
-        VirtualMachine: ResourceName
-        FileUris: Uri list
-        ScriptContents: string
-        OS: OS
-        Tags: Map<string, string>
-    }
+type CustomScriptExtension = {
+    Name: ResourceName
+    Location: Location
+    VirtualMachine: ResourceName
+    FileUris: Uri list
+    ScriptContents: string
+    OS: OS
+    Tags: Map<string, string>
+} with
 
     interface IExtension with
         member this.Name = this.Name.Value
@@ -52,87 +51,80 @@ type CustomScriptExtension =
                     ``type`` = "CustomScriptExtension"
                     typeHandlerVersion = "1.10"
                     autoUpgradeMinorVersion = true
-                    settings =
-                        {|
-                            fileUris = this.FileUris |> List.map string
-                        |}
-                    protectedSettings =
-                        {|
-                            commandToExecute = this.ScriptContents
-                        |}
+                    settings = {|
+                        fileUris = this.FileUris |> List.map string
+                    |}
+                    protectedSettings = {|
+                        commandToExecute = this.ScriptContents
+                    |}
                 |}
                 |> box
-            | Linux ->
-                {|
-                    publisher = "Microsoft.Azure.Extensions"
-                    ``type`` = "CustomScript"
-                    typeHandlerVersion = "2.1"
-                    autoUpgradeMinorVersion = true
-                    protectedSettings =
-                        {|
-                            fileUris = this.FileUris |> List.map string
-                            script = this.ScriptContents |> Encoding.UTF8.GetBytes |> Convert.ToBase64String
-                        |}
+            | Linux -> {|
+                publisher = "Microsoft.Azure.Extensions"
+                ``type`` = "CustomScript"
+                typeHandlerVersion = "2.1"
+                autoUpgradeMinorVersion = true
+                protectedSettings = {|
+                    fileUris = this.FileUris |> List.map string
+                    script = this.ScriptContents |> Encoding.UTF8.GetBytes |> Convert.ToBase64String
                 |}
+              |}
 
     interface IArmResource with
         member this.ResourceId = extensions.resourceId (this.VirtualMachine / this.Name)
 
-        member this.JsonModel =
-            {| extensions.Create(
-                   this.VirtualMachine / this.Name,
-                   this.Location,
-                   [ virtualMachines.resourceId this.VirtualMachine ],
-                   this.Tags
-               ) with
+        member this.JsonModel = {|
+            extensions.Create(
+                this.VirtualMachine / this.Name,
+                this.Location,
+                [ virtualMachines.resourceId this.VirtualMachine ],
+                this.Tags
+            ) with
                 properties = (this :> IExtension).JsonProperties
-            |}
+        |}
 
-type AadSshLoginExtension =
-    {
-        Location: Location
-        VirtualMachine: ResourceName
-        Tags: Map<string, string>
-    }
+type AadSshLoginExtension = {
+    Location: Location
+    VirtualMachine: ResourceName
+    Tags: Map<string, string>
+} with
 
     member this.Name = "AADSSHLoginForLinux"
 
     interface IExtension with
         member this.Name = this.Name
 
-        member this.JsonProperties =
-            {|
-                publisher = "Microsoft.Azure.ActiveDirectory"
-                ``type`` = "AADSSHLoginForLinux"
-                typeHandlerVersion = "1.0"
-                autoUpgradeMinorVersion = true
-            |}
+        member this.JsonProperties = {|
+            publisher = "Microsoft.Azure.ActiveDirectory"
+            ``type`` = "AADSSHLoginForLinux"
+            typeHandlerVersion = "1.0"
+            autoUpgradeMinorVersion = true
+        |}
 
     interface IArmResource with
         member this.ResourceId = extensions.resourceId (this.VirtualMachine / this.Name)
 
-        member this.JsonModel =
-            {| extensions.Create(
-                   this.VirtualMachine / this.Name,
-                   this.Location,
-                   [ virtualMachines.resourceId this.VirtualMachine ],
-                   this.Tags
-               ) with
+        member this.JsonModel = {|
+            extensions.Create(
+                this.VirtualMachine / this.Name,
+                this.Location,
+                [ virtualMachines.resourceId this.VirtualMachine ],
+                this.Tags
+            ) with
                 properties = (this :> IExtension).JsonProperties
-            |}
+        |}
 
-type ApplicationHealthExtension =
-    {
-        Location: Location
-        VirtualMachineScaleSet: ResourceName
-        OS: OS
-        Protocol: ApplicationHealthExtensionProtocol
-        Port: uint16
-        Interval: TimeSpan option
-        NumberOfProbes: int option
-        GracePeriod: TimeSpan option
-        Tags: Map<string, string>
-    }
+type ApplicationHealthExtension = {
+    Location: Location
+    VirtualMachineScaleSet: ResourceName
+    OS: OS
+    Protocol: ApplicationHealthExtensionProtocol
+    Port: uint16
+    Interval: TimeSpan option
+    NumberOfProbes: int option
+    GracePeriod: TimeSpan option
+    Tags: Map<string, string>
+} with
 
     static member Name = "HealthExtension"
 
@@ -140,77 +132,70 @@ type ApplicationHealthExtension =
 
         member _.Name = ApplicationHealthExtension.Name
 
-        member this.JsonProperties =
-            {|
-                publisher = "Microsoft.ManagedServices"
-                ``type`` =
-                    match this.OS with
-                    | Linux -> "ApplicationHealthLinux"
-                    | Windows -> "ApplicationHealthWindows"
-                typeHandlerVersion = "1.0"
-                autoUpgradeMinorVersion = true
-                settings =
-                    {|
-                        protocol = this.Protocol.ArmValue
-                        port = this.Port
-                        requestPath = this.Protocol.RequestPath |> Option.defaultValue null
-                        intervalInSeconds =
-                            this.Interval
-                            |> Option.map (fun i -> box i.TotalSeconds)
-                            |> Option.defaultValue null
-                        numberOfProbes = this.NumberOfProbes |> Option.map box |> Option.defaultValue null
-                        gracePeriod =
-                            this.GracePeriod
-                            |> Option.map (fun p -> box p.TotalSeconds)
-                            |> Option.defaultValue null
-                    |}
+        member this.JsonProperties = {|
+            publisher = "Microsoft.ManagedServices"
+            ``type`` =
+                match this.OS with
+                | Linux -> "ApplicationHealthLinux"
+                | Windows -> "ApplicationHealthWindows"
+            typeHandlerVersion = "1.0"
+            autoUpgradeMinorVersion = true
+            settings = {|
+                protocol = this.Protocol.ArmValue
+                port = this.Port
+                requestPath = this.Protocol.RequestPath |> Option.defaultValue null
+                intervalInSeconds =
+                    this.Interval
+                    |> Option.map (fun i -> box i.TotalSeconds)
+                    |> Option.defaultValue null
+                numberOfProbes = this.NumberOfProbes |> Option.map box |> Option.defaultValue null
+                gracePeriod =
+                    this.GracePeriod
+                    |> Option.map (fun p -> box p.TotalSeconds)
+                    |> Option.defaultValue null
             |}
+        |}
 
     interface IArmResource with
         member this.ResourceId =
             extensions.resourceId (this.VirtualMachineScaleSet / ApplicationHealthExtension.Name)
 
-        member this.JsonModel =
-            {| virtualMachineScaleSetsExtensions.Create(
-                   this.VirtualMachineScaleSet / ApplicationHealthExtension.Name,
-                   this.Location,
-                   [ virtualMachineScaleSets.resourceId this.VirtualMachineScaleSet ],
-                   this.Tags
-               ) with
+        member this.JsonModel = {|
+            virtualMachineScaleSetsExtensions.Create(
+                this.VirtualMachineScaleSet / ApplicationHealthExtension.Name,
+                this.Location,
+                [ virtualMachineScaleSets.resourceId this.VirtualMachineScaleSet ],
+                this.Tags
+            ) with
                 properties = (this :> IExtension).JsonProperties
-            |}
-
-type NetworkInterfaceConfiguration =
-    {
-        Name: ResourceName
-        EnableAcceleratedNetworking: bool option
-        EnableIpForwarding: bool option
-        IpConfigs: IpConfiguration list
-        VirtualNetwork: LinkedResource
-        NetworkSecurityGroup: ResourceId option
-        Primary: bool
-    }
-
-    member this.ToArmJson =
-        {|
-            name = this.Name.Value
-            properties =
-                {|
-                    enableAcceleratedNetworking =
-                        this.EnableAcceleratedNetworking |> Option.map box |> Option.defaultValue null
-                    enableIPForwarding = this.EnableIpForwarding |> Option.map box |> Option.defaultValue null
-                    networkSecurityGroup =
-                        this.NetworkSecurityGroup
-                        |> Option.map ResourceId.AsIdObject
-                        |> Option.map box
-                        |> Option.defaultValue null
-                    ipConfigurations =
-                        this.IpConfigs
-                        |> List.mapi (fun index ipconfig ->
-                            ipconfig.ToArmJson(index, this.VirtualNetwork.ResourceId, false))
-                    primary = this.Primary
-                |}
         |}
+
+type NetworkInterfaceConfiguration = {
+    Name: ResourceName
+    EnableAcceleratedNetworking: bool option
+    EnableIpForwarding: bool option
+    IpConfigs: IpConfiguration list
+    VirtualNetwork: LinkedResource
+    NetworkSecurityGroup: ResourceId option
+    Primary: bool
+} with
+
+    member this.ToArmJson = {|
+        name = this.Name.Value
+        properties = {|
+            enableAcceleratedNetworking = this.EnableAcceleratedNetworking |> Option.map box |> Option.defaultValue null
+            enableIPForwarding = this.EnableIpForwarding |> Option.map box |> Option.defaultValue null
+            networkSecurityGroup =
+                this.NetworkSecurityGroup
+                |> Option.map ResourceId.AsIdObject
+                |> Option.map box
+                |> Option.defaultValue null
+            ipConfigurations =
+                this.IpConfigs
+                |> List.mapi (fun index ipconfig -> ipconfig.ToArmJson(index, this.VirtualNetwork.ResourceId, false))
+            primary = this.Primary
+        |}
+    |}
 
 module VirtualMachine =
     let additionalCapabilities (dataDisks: DataDiskCreateOption list) =
@@ -232,17 +217,15 @@ module VirtualMachine =
             {|
                 galleryApplications =
                     galleryApps
-                    |> List.map (fun galleryApp ->
-                        {|
-                            configurationReference = galleryApp.ConfigurationReference |> Option.toObj
-                            enableAutomaticUpgrade =
-                                galleryApp.EnableAutomaticUpgrade |> (Option.map box >> Option.toObj)
-                            order = galleryApp.Order |> (Option.map box >> Option.toObj)
-                            packageReferenceId = galleryApp.PackageReferenceId.Eval()
-                            tags = galleryApp.Tags |> Option.toObj
-                            treatFailureAsDeploymentFailure =
-                                galleryApp.TreatFailureAsDeploymentFailure |> (Option.map box >> Option.toObj)
-                        |})
+                    |> List.map (fun galleryApp -> {|
+                        configurationReference = galleryApp.ConfigurationReference |> Option.toObj
+                        enableAutomaticUpgrade = galleryApp.EnableAutomaticUpgrade |> (Option.map box >> Option.toObj)
+                        order = galleryApp.Order |> (Option.map box >> Option.toObj)
+                        packageReferenceId = galleryApp.PackageReferenceId.Eval()
+                        tags = galleryApp.Tags |> Option.toObj
+                        treatFailureAsDeploymentFailure =
+                            galleryApp.TreatFailureAsDeploymentFailure |> (Option.map box >> Option.toObj)
+                    |})
             |}
             |> box
 
@@ -251,8 +234,11 @@ module VirtualMachine =
             name: ResourceName,
             isScaleSet: bool,
             osDisk: OsDiskCreateOption,
-            credentials: {| Password: SecureParameter
-                            Username: string |},
+            credentials:
+                {|
+                    Password: SecureParameter
+                    Username: string
+                |},
             disablePasswordAuthentication: bool option,
             customData: string option,
             publicKeys: (string * string) list option
@@ -280,11 +266,9 @@ module VirtualMachine =
                                 disablePasswordAuthentication |> Option.map box |> Option.toObj
                             ssh =
                                 match publicKeys with
-                                | Some publicKeys ->
-                                    {|
-                                        publicKeys =
-                                            publicKeys |> List.map (fun k -> {| path = fst k; keyData = snd k |})
-                                    |}
+                                | Some publicKeys -> {|
+                                    publicKeys = publicKeys |> List.map (fun k -> {| path = fst k; keyData = snd k |})
+                                  |}
                                 | None -> Unchecked.defaultof<_>
                         |}
                     else
@@ -293,18 +277,14 @@ module VirtualMachine =
             :> obj
 
     let storageProfile
-        (
-            name: ResourceName,
-            osDisk: OsDiskCreateOption,
-            dataDisks: DataDiskCreateOption list,
-            isScaleSet: bool
-        ) =
+        (name: ResourceName, osDisk: OsDiskCreateOption, dataDisks: DataDiskCreateOption list, isScaleSet: bool)
+        =
         let vmNameLowerCase = name.Value.ToLower()
 
         {|
             imageReference =
                 match osDisk with
-                | FromImage (imageDefintion, _) ->
+                | FromImage(imageDefintion, _) ->
                     {|
                         publisher = imageDefintion.Publisher.ArmValue
                         offer = imageDefintion.Offer.ArmValue
@@ -315,41 +295,37 @@ module VirtualMachine =
                 | _ -> null
             osDisk =
                 match osDisk with
-                | FromImage (_, diskInfo) ->
+                | FromImage(_, diskInfo) ->
                     {|
                         createOption = "FromImage"
                         name = if isScaleSet then null else $"{vmNameLowerCase}-osdisk"
                         diskSizeGB = diskInfo.Size
-                        managedDisk =
-                            {|
-                                storageAccountType = diskInfo.DiskType.ArmValue
-                            |}
+                        managedDisk = {|
+                            storageAccountType = diskInfo.DiskType.ArmValue
+                        |}
                     |}
                     :> obj
-                | AttachOsDisk (os, managedDiskId) ->
-                    {|
-                        createOption = "Attach"
-                        managedDisk =
-                            {|
-                                id = managedDiskId.ResourceId.Eval()
-                            |}
-                        name = managedDiskId.Name.Value
-                        osType = string<OS> os
+                | AttachOsDisk(os, managedDiskId) -> {|
+                    createOption = "Attach"
+                    managedDisk = {|
+                        id = managedDiskId.ResourceId.Eval()
                     |}
+                    name = managedDiskId.Name.Value
+                    osType = string<OS> os
+                  |}
             dataDisks =
                 dataDisks
                 |> List.mapi (fun lun dataDisk ->
                     match dataDisk with
-                    | AttachDataDisk (managedDiskId)
-                    | AttachUltra (managedDiskId) ->
+                    | AttachDataDisk(managedDiskId)
+                    | AttachUltra(managedDiskId) ->
                         {|
                             createOption = "Attach"
                             name = managedDiskId.Name.Value
                             lun = lun
-                            managedDisk =
-                                {|
-                                    id = managedDiskId.ResourceId.Eval()
-                                |}
+                            managedDisk = {|
+                                id = managedDiskId.ResourceId.Eval()
+                            |}
                         |}
                         :> obj
                     | Empty diskInfo ->
@@ -362,37 +338,33 @@ module VirtualMachine =
                                     null
                             diskSizeGB = diskInfo.Size
                             lun = lun
-                            managedDisk =
-                                {|
-                                    storageAccountType = diskInfo.DiskType.ArmValue
-                                |}
+                            managedDisk = {|
+                                storageAccountType = diskInfo.DiskType.ArmValue
+                            |}
                         |}
                         :> obj)
         |}
 
-    let networkProfile (networkInterfaceIds: ResourceId list, nicConfig: NetworkInterfaceConfiguration list) =
-        {|
-            networkInterfaces =
-                networkInterfaceIds
-                |> List.mapi (fun idx id ->
-                    {|
-                        id = id.Eval()
-                        properties =
-                            if networkInterfaceIds.Length > 1 then
-                                box {| primary = idx = 0 |} // First NIC is primary
-                            else
-                                null // Don't emit primary if there aren't multiple NICs
-                    |})
-        |}
+    let networkProfile (networkInterfaceIds: ResourceId list, nicConfig: NetworkInterfaceConfiguration list) = {|
+        networkInterfaces =
+            networkInterfaceIds
+            |> List.mapi (fun idx id -> {|
+                id = id.Eval()
+                properties =
+                    if networkInterfaceIds.Length > 1 then
+                        box {| primary = idx = 0 |} // First NIC is primary
+                    else
+                        null // Don't emit primary if there aren't multiple NICs
+            |})
+    |}
 
     let diagnosticsProfile (diagnosticsEnabled: bool option, storageAccount: LinkedResource option) =
         match diagnosticsEnabled with
         | None
         | Some false ->
-            box
-                {|
-                    bootDiagnostics = {| enabled = false |}
-                |}
+            box {|
+                bootDiagnostics = {| enabled = false |}
+            |}
         | Some true ->
             match storageAccount with
             | Some storageAccount ->
@@ -405,47 +377,45 @@ module VirtualMachine =
                         .WithOwner(resourceId)
                         .Eval()
 
-                box
-                    {|
-                        bootDiagnostics =
-                            {|
-                                enabled = true
-                                storageUri = storageUriExpr
-                            |}
+                box {|
+                    bootDiagnostics = {|
+                        enabled = true
+                        storageUri = storageUriExpr
                     |}
+                |}
             | None ->
-                box
-                    {|
-                        bootDiagnostics = {| enabled = true |}
-                    |}
+                box {|
+                    bootDiagnostics = {| enabled = true |}
+                |}
 
-type VirtualMachine =
-    {
-        Name: ResourceName
-        Location: Location
-        Dependencies: ResourceId Set
-        AvailabilityZone: string option
-        DiagnosticsEnabled: bool option
-        StorageAccount: LinkedResource option
-        Size: VMSize
-        Priority: Priority option
-        Credentials: {| Username: string
-                        Password: SecureParameter |}
-        CustomData: string option
-        DisablePasswordAuthentication: bool option
-        GalleryApplications: VmGalleryApplication list
-        PublicKeys: (string * string) list option
-        OsDisk: OsDiskCreateOption
-        DataDisks: DataDiskCreateOption list
-        NetworkInterfaceIds: ResourceId list
-        Identity: Identity.ManagedIdentity
-        Tags: Map<string, string>
-    }
+type VirtualMachine = {
+    Name: ResourceName
+    Location: Location
+    Dependencies: ResourceId Set
+    AvailabilityZone: string option
+    DiagnosticsEnabled: bool option
+    StorageAccount: LinkedResource option
+    Size: VMSize
+    Priority: Priority option
+    Credentials: {|
+        Username: string
+        Password: SecureParameter
+    |}
+    CustomData: string option
+    DisablePasswordAuthentication: bool option
+    GalleryApplications: VmGalleryApplication list
+    PublicKeys: (string * string) list option
+    OsDisk: OsDiskCreateOption
+    DataDisks: DataDiskCreateOption list
+    NetworkInterfaceIds: ResourceId list
+    Identity: Identity.ManagedIdentity
+    Tags: Map<string, string>
+} with
 
     interface IParameters with
         member this.SecureParameters =
             match this.DisablePasswordAuthentication, this.OsDisk with
-            | Some (true), _
+            | Some(true), _
             | _, AttachOsDisk _ -> [] // What attaching an OS disk, the osConfig cannot be set, so cannot set password
             | _ -> [ this.Credentials.Password ]
 
@@ -453,78 +423,74 @@ type VirtualMachine =
         member this.ResourceId = virtualMachines.resourceId this.Name
 
         member this.JsonModel =
-            let dependsOn =
-                [
-                    yield! this.Dependencies
-                    yield! this.NetworkInterfaceIds
-                    match this.StorageAccount with
-                    | Some (Managed rid) -> rid
-                    | Some (Unmanaged _)
-                    | None -> ()
-                    match this.OsDisk with
-                    | AttachOsDisk (_, Managed (resourceId)) -> resourceId
+            let dependsOn = [
+                yield! this.Dependencies
+                yield! this.NetworkInterfaceIds
+                match this.StorageAccount with
+                | Some(Managed rid) -> rid
+                | Some(Unmanaged _)
+                | None -> ()
+                match this.OsDisk with
+                | AttachOsDisk(_, Managed(resourceId)) -> resourceId
+                | _ -> ()
+                for disk in this.DataDisks do
+                    match disk with
+                    | AttachDataDisk(Managed(resourceId))
+                    | AttachUltra(Managed(resourceId)) -> resourceId
                     | _ -> ()
-                    for disk in this.DataDisks do
-                        match disk with
-                        | AttachDataDisk (Managed (resourceId))
-                        | AttachUltra (Managed (resourceId)) -> resourceId
-                        | _ -> ()
-                ]
+            ]
 
-            let properties =
-                {|
-                    additionalCapabilities = VirtualMachine.additionalCapabilities this.DataDisks
-                    applicationProfile = VirtualMachine.applicationProfile this.GalleryApplications
-                    priority = VirtualMachine.priority this.Priority
-                    hardwareProfile = {| vmSize = this.Size.ArmValue |}
-                    osProfile =
-                        VirtualMachine.osProfile (
-                            this.Name,
-                            false, // not a VmScaleSet
-                            this.OsDisk,
-                            this.Credentials,
-                            this.DisablePasswordAuthentication,
-                            this.CustomData,
-                            this.PublicKeys
-                        )
-                    storageProfile = VirtualMachine.storageProfile (this.Name, this.OsDisk, this.DataDisks, false)
-                    networkProfile = VirtualMachine.networkProfile (this.NetworkInterfaceIds, [])
-                    diagnosticsProfile =
-                        VirtualMachine.diagnosticsProfile (this.DiagnosticsEnabled, this.StorageAccount)
-                |}
-
-            {| virtualMachines.Create(this.Name, this.Location, dependsOn, this.Tags) with
-                identity =
-                    if this.Identity = ManagedIdentity.Empty then
-                        Unchecked.defaultof<_>
-                    else
-                        this.Identity.ToArmJson
-                properties =
-                    match this.Priority with
-                    | None
-                    | Some Low
-                    | Some Regular -> box properties
-                    | Some (Spot (evictionPolicy, maxPrice)) ->
-                        {| properties with
-                            evictionPolicy = evictionPolicy.ArmValue
-                            billingProfile = {| maxPrice = maxPrice |}
-                        |}
-                zones = this.AvailabilityZone |> Option.map ResizeArray |> Option.toObj
+            let properties = {|
+                additionalCapabilities = VirtualMachine.additionalCapabilities this.DataDisks
+                applicationProfile = VirtualMachine.applicationProfile this.GalleryApplications
+                priority = VirtualMachine.priority this.Priority
+                hardwareProfile = {| vmSize = this.Size.ArmValue |}
+                osProfile =
+                    VirtualMachine.osProfile (
+                        this.Name,
+                        false, // not a VmScaleSet
+                        this.OsDisk,
+                        this.Credentials,
+                        this.DisablePasswordAuthentication,
+                        this.CustomData,
+                        this.PublicKeys
+                    )
+                storageProfile = VirtualMachine.storageProfile (this.Name, this.OsDisk, this.DataDisks, false)
+                networkProfile = VirtualMachine.networkProfile (this.NetworkInterfaceIds, [])
+                diagnosticsProfile = VirtualMachine.diagnosticsProfile (this.DiagnosticsEnabled, this.StorageAccount)
             |}
 
-type ScaleSetUpgradePolicy =
-    {
-        Mode: VmScaleSet.UpgradeMode
-    }
+            {|
+                virtualMachines.Create(this.Name, this.Location, dependsOn, this.Tags) with
+                    identity =
+                        if this.Identity = ManagedIdentity.Empty then
+                            Unchecked.defaultof<_>
+                        else
+                            this.Identity.ToArmJson
+                    properties =
+                        match this.Priority with
+                        | None
+                        | Some Low
+                        | Some Regular -> box properties
+                        | Some(Spot(evictionPolicy, maxPrice)) -> {|
+                            properties with
+                                evictionPolicy = evictionPolicy.ArmValue
+                                billingProfile = {| maxPrice = maxPrice |}
+                          |}
+                    zones = this.AvailabilityZone |> Option.map ResizeArray |> Option.toObj
+            |}
+
+type ScaleSetUpgradePolicy = {
+    Mode: VmScaleSet.UpgradeMode
+} with
 
     member this.ArmJson = {| mode = this.Mode.ArmValue |}
 
-type ScaleSetScaleInPolicy =
-    {
-        // Set false when reusing disks or MAC addresses
-        ForceDeletion: bool
-        Rules: ScaleInPolicyRule list
-    }
+type ScaleSetScaleInPolicy = {
+    // Set false when reusing disks or MAC addresses
+    ForceDeletion: bool
+    Rules: ScaleInPolicyRule list
+} with
 
     member this.ArmJson =
         // https://learn.microsoft.com/azure/templates/microsoft.compute/virtualmachinescalesets?pivots=deployment-language-arm-template#scaleinpolicy-1
@@ -533,53 +499,52 @@ type ScaleSetScaleInPolicy =
             rules = this.Rules |> List.map (fun rule -> rule.ArmValue)
         |}
 
-type ScaleSetAutomaticRepairsPolicy =
-    {
-        Enabled: bool
-        // Amount of time to wait after a change before starting repairs.
-        // Minimum of 10 minutes, maximum 90 minutes.
-        GracePeriod: TimeSpan
-    }
+type ScaleSetAutomaticRepairsPolicy = {
+    Enabled: bool
+    // Amount of time to wait after a change before starting repairs.
+    // Minimum of 10 minutes, maximum 90 minutes.
+    GracePeriod: TimeSpan
+} with
 
-    member this.ArmJson =
-        {|
-            enabled = this.Enabled
-            gracePeriod = (IsoDateTime.OfTimeSpan this.GracePeriod).Value
-        |}
+    member this.ArmJson = {|
+        enabled = this.Enabled
+        gracePeriod = (IsoDateTime.OfTimeSpan this.GracePeriod).Value
+    |}
 
-type VirtualMachineScaleSet =
-    {
-        Name: ResourceName
-        Location: Location
-        Dependencies: ResourceId Set
-        AvailabilityZones: string list
-        ZoneBalance: bool option
-        DiagnosticsEnabled: bool option
-        Size: VMSize
-        Capacity: int
-        ScaleInPolicy: ScaleSetScaleInPolicy
-        UpgradePolicy: ScaleSetUpgradePolicy
-        AutomaticRepairsPolicy: ScaleSetAutomaticRepairsPolicy option
-        Priority: Priority option
-        Credentials: {| Username: string
-                        Password: SecureParameter |}
-        CustomData: string option
-        DisablePasswordAuthentication: bool option
-        Extensions: IExtension list
-        GalleryApplications: VmGalleryApplication list
-        PublicKeys: (string * string) list option
-        OsDisk: OsDiskCreateOption
-        DataDisks: DataDiskCreateOption list
-        HealthProbeId: ResourceId option
-        NetworkInterfaceConfigs: NetworkInterfaceConfiguration list
-        Identity: Identity.ManagedIdentity
-        Tags: Map<string, string>
-    }
+type VirtualMachineScaleSet = {
+    Name: ResourceName
+    Location: Location
+    Dependencies: ResourceId Set
+    AvailabilityZones: string list
+    ZoneBalance: bool option
+    DiagnosticsEnabled: bool option
+    Size: VMSize
+    Capacity: int
+    ScaleInPolicy: ScaleSetScaleInPolicy
+    UpgradePolicy: ScaleSetUpgradePolicy
+    AutomaticRepairsPolicy: ScaleSetAutomaticRepairsPolicy option
+    Priority: Priority option
+    Credentials: {|
+        Username: string
+        Password: SecureParameter
+    |}
+    CustomData: string option
+    DisablePasswordAuthentication: bool option
+    Extensions: IExtension list
+    GalleryApplications: VmGalleryApplication list
+    PublicKeys: (string * string) list option
+    OsDisk: OsDiskCreateOption
+    DataDisks: DataDiskCreateOption list
+    HealthProbeId: ResourceId option
+    NetworkInterfaceConfigs: NetworkInterfaceConfiguration list
+    Identity: Identity.ManagedIdentity
+    Tags: Map<string, string>
+} with
 
     interface IParameters with
         member this.SecureParameters =
             match this.DisablePasswordAuthentication, this.OsDisk with
-            | Some (true), _
+            | Some(true), _
             | _, AttachOsDisk _ -> []
             | _ -> [ this.Credentials.Password ]
 
@@ -587,85 +552,80 @@ type VirtualMachineScaleSet =
         member this.ResourceId = virtualMachineScaleSets.resourceId this.Name
 
         member this.JsonModel =
-            let dependsOn =
-                [
-                    yield! this.Dependencies
-                    for nic in this.NetworkInterfaceConfigs do
-                        match nic.VirtualNetwork with
-                        | Managed rid -> rid
-                        | _ -> ()
-                    match this.OsDisk with
-                    | AttachOsDisk (_, Managed (resourceId)) -> resourceId
+            let dependsOn = [
+                yield! this.Dependencies
+                for nic in this.NetworkInterfaceConfigs do
+                    match nic.VirtualNetwork with
+                    | Managed rid -> rid
                     | _ -> ()
-                    for disk in this.DataDisks do
-                        match disk with
-                        | AttachDataDisk (Managed (resourceId))
-                        | AttachUltra (Managed (resourceId)) -> resourceId
-                        | _ -> ()
-                ]
+                match this.OsDisk with
+                | AttachOsDisk(_, Managed(resourceId)) -> resourceId
+                | _ -> ()
+                for disk in this.DataDisks do
+                    match disk with
+                    | AttachDataDisk(Managed(resourceId))
+                    | AttachUltra(Managed(resourceId)) -> resourceId
+                    | _ -> ()
+            ]
 
-            {| virtualMachineScaleSets.Create(this.Name, this.Location, dependsOn, this.Tags) with
-                identity =
-                    if this.Identity = ManagedIdentity.Empty then
-                        Unchecked.defaultof<_>
-                    else
-                        this.Identity.ToArmJson
-                sku =
-                    {|
+            {|
+                virtualMachineScaleSets.Create(this.Name, this.Location, dependsOn, this.Tags) with
+                    identity =
+                        if this.Identity = ManagedIdentity.Empty then
+                            Unchecked.defaultof<_>
+                        else
+                            this.Identity.ToArmJson
+                    sku = {|
                         capacity = this.Capacity
                         name = this.Size.ArmValue
                         tier = this.Size.Tier
                     |}
-                properties =
-                    {|
+                    properties = {|
                         additionalCapabilities = VirtualMachine.additionalCapabilities this.DataDisks
-                        virtualMachineProfile =
-                            {|
-                                applicationProfile = VirtualMachine.applicationProfile this.GalleryApplications
-                                diagnosticsProfile = VirtualMachine.diagnosticsProfile (this.DiagnosticsEnabled, None)
-                                extensionProfile =
-                                    if this.Extensions = [] then
-                                        null
-                                    else
-                                        {|
-                                            extensions =
-                                                this.Extensions
-                                                |> List.map (fun ext ->
-                                                    {|
-                                                        name = ext.Name
-                                                        properties = ext.JsonProperties
-                                                    |})
-                                        |}
-                                        |> box
-                                osProfile =
-                                    VirtualMachine.osProfile (
-                                        this.Name,
-                                        true, // is a VmScaleSet
-                                        this.OsDisk,
-                                        this.Credentials,
-                                        this.DisablePasswordAuthentication,
-                                        this.CustomData,
-                                        this.PublicKeys
-                                    )
-                                storageProfile =
-                                    VirtualMachine.storageProfile (this.Name, this.OsDisk, this.DataDisks, true)
-                                networkProfile =
+                        virtualMachineProfile = {|
+                            applicationProfile = VirtualMachine.applicationProfile this.GalleryApplications
+                            diagnosticsProfile = VirtualMachine.diagnosticsProfile (this.DiagnosticsEnabled, None)
+                            extensionProfile =
+                                if this.Extensions = [] then
+                                    null
+                                else
                                     {|
-                                        healthProbe =
-                                            this.HealthProbeId
-                                            |> Option.map (ResourceId.AsIdObject >> box)
-                                            |> Option.defaultValue null
-                                        networkInterfaceConfigurations =
-                                            this.NetworkInterfaceConfigs |> List.map (fun c -> c.ToArmJson)
+                                        extensions =
+                                            this.Extensions
+                                            |> List.map (fun ext -> {|
+                                                name = ext.Name
+                                                properties = ext.JsonProperties
+                                            |})
                                     |}
+                                    |> box
+                            osProfile =
+                                VirtualMachine.osProfile (
+                                    this.Name,
+                                    true, // is a VmScaleSet
+                                    this.OsDisk,
+                                    this.Credentials,
+                                    this.DisablePasswordAuthentication,
+                                    this.CustomData,
+                                    this.PublicKeys
+                                )
+                            storageProfile =
+                                VirtualMachine.storageProfile (this.Name, this.OsDisk, this.DataDisks, true)
+                            networkProfile = {|
+                                healthProbe =
+                                    this.HealthProbeId
+                                    |> Option.map (ResourceId.AsIdObject >> box)
+                                    |> Option.defaultValue null
+                                networkInterfaceConfigurations =
+                                    this.NetworkInterfaceConfigs |> List.map (fun c -> c.ToArmJson)
                             |}
+                        |}
                         billingProfile =
                             match this.Priority with
-                            | Some (Spot (_, maxPrice)) -> box {| maxPrice = maxPrice |}
+                            | Some(Spot(_, maxPrice)) -> box {| maxPrice = maxPrice |}
                             | _ -> null
                         evictionPolicy =
                             match this.Priority with
-                            | Some (Spot (evictionPolicy, _)) -> evictionPolicy.ArmValue
+                            | Some(Spot(evictionPolicy, _)) -> evictionPolicy.ArmValue
                             | _ -> null
                         priority = VirtualMachine.priority this.Priority
                         automaticRepairsPolicy =
@@ -675,32 +635,30 @@ type VirtualMachineScaleSet =
                         scaleInPolicy = this.ScaleInPolicy.ArmJson
                         upgradePolicy = this.UpgradePolicy.ArmJson
                     |}
-                zones =
-                    if this.AvailabilityZones.Length > 0 then
-                        Seq.ofList this.AvailabilityZones
-                    else
-                        null
+                    zones =
+                        if this.AvailabilityZones.Length > 0 then
+                            Seq.ofList this.AvailabilityZones
+                        else
+                            null
             |}
 
-type Host =
-    {
-        Name: ResourceName
-        Location: Location
-        Sku: HostSku
-        ParentHostGroupName: ResourceName
-        AutoReplaceOnFailure: FeatureFlag
-        LicenseType: HostLicenseType
-        PlatformFaultDomain: PlatformFaultDomainCount
-        Tags: Map<string, string>
-        DependsOn: Set<ResourceId>
-    }
+type Host = {
+    Name: ResourceName
+    Location: Location
+    Sku: HostSku
+    ParentHostGroupName: ResourceName
+    AutoReplaceOnFailure: FeatureFlag
+    LicenseType: HostLicenseType
+    PlatformFaultDomain: PlatformFaultDomainCount
+    Tags: Map<string, string>
+    DependsOn: Set<ResourceId>
+} with
 
-    member internal this.JsonModelProperties =
-        {|
-            autoReplaceOnFailure = this.AutoReplaceOnFailure.AsBoolean
-            licenseType = HostLicenseType.Print this.LicenseType
-            platformFaultDomain = PlatformFaultDomainCount.ToArmValue this.PlatformFaultDomain
-        |}
+    member internal this.JsonModelProperties = {|
+        autoReplaceOnFailure = this.AutoReplaceOnFailure.AsBoolean
+        licenseType = HostLicenseType.Print this.LicenseType
+        platformFaultDomain = PlatformFaultDomainCount.ToArmValue this.PlatformFaultDomain
+    |}
 
     interface IArmResource with
         member this.ResourceId = hosts.resourceId this.Name
@@ -712,33 +670,32 @@ type Host =
             let hostResourceName =
                 ResourceName($"{this.ParentHostGroupName.Value}/{this.Name.Value}")
 
-            {| hosts.Create(hostResourceName, this.Location, dependsOn, tags = this.Tags) with
-                sku = this.Sku.JsonProperties
-                properties = this.JsonModelProperties
+            {|
+                hosts.Create(hostResourceName, this.Location, dependsOn, tags = this.Tags) with
+                    sku = this.Sku.JsonProperties
+                    properties = this.JsonModelProperties
             |}
 
-type HostGroup =
-    {
-        Name: ResourceName
-        Location: Location
-        AvailabilityZone: string list
-        SupportAutomaticPlacement: FeatureFlag
-        PlatformFaultDomainCount: PlatformFaultDomainCount
-        Tags: Map<string, string>
-        DependsOn: Set<ResourceId>
-    }
+type HostGroup = {
+    Name: ResourceName
+    Location: Location
+    AvailabilityZone: string list
+    SupportAutomaticPlacement: FeatureFlag
+    PlatformFaultDomainCount: PlatformFaultDomainCount
+    Tags: Map<string, string>
+    DependsOn: Set<ResourceId>
+} with
 
-    member internal this.JsonModelProperties =
-        {|
-            supportAutomaticPlacement = this.SupportAutomaticPlacement.AsBoolean
-            platformFaultDomainCount = PlatformFaultDomainCount.ToArmValue this.PlatformFaultDomainCount
-        |}
+    member internal this.JsonModelProperties = {|
+        supportAutomaticPlacement = this.SupportAutomaticPlacement.AsBoolean
+        platformFaultDomainCount = PlatformFaultDomainCount.ToArmValue this.PlatformFaultDomainCount
+    |}
 
     interface IArmResource with
         member this.ResourceId = hostGroups.resourceId this.Name
 
-        member this.JsonModel =
-            {| hostGroups.Create(this.Name, this.Location, tags = this.Tags, dependsOn = this.DependsOn) with
+        member this.JsonModel = {|
+            hostGroups.Create(this.Name, this.Location, tags = this.Tags, dependsOn = this.DependsOn) with
                 zones = this.AvailabilityZone
                 properties = this.JsonModelProperties
-            |}
+        |}

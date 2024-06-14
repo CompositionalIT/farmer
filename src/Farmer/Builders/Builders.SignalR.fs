@@ -7,33 +7,31 @@ open Farmer.Builders
 open Farmer.Helpers
 open Farmer.SignalR
 
-type SignalRConfig =
-    {
-        Name: ResourceName
-        Sku: Sku
-        Capacity: int option
-        AllowedOrigins: string list
-        ServiceMode: ServiceMode
-        Tags: Map<string, string>
-    }
+type SignalRConfig = {
+    Name: ResourceName
+    Sku: Sku
+    Capacity: int option
+    AllowedOrigins: string list
+    ServiceMode: ServiceMode
+    Tags: Map<string, string>
+} with
 
     member this.ResourceId = signalR.resourceId this.Name
 
     interface IBuilder with
         member this.ResourceId = this.ResourceId
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    Sku = this.Sku
-                    Capacity = this.Capacity
-                    AllowedOrigins = this.AllowedOrigins
-                    ServiceMode = this.ServiceMode
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Sku = this.Sku
+                Capacity = this.Capacity
+                AllowedOrigins = this.AllowedOrigins
+                ServiceMode = this.ServiceMode
+                Tags = this.Tags
+            }
+        ]
 
     member private this.GetKeyExpr field =
         let expr =
@@ -45,20 +43,19 @@ type SignalRConfig =
     member this.ConnectionString = this.GetKeyExpr "primaryConnectionString"
 
 type SignalRBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sku = Free
-            Capacity = None
-            AllowedOrigins = []
-            ServiceMode = Default
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = Free
+        Capacity = None
+        AllowedOrigins = []
+        ServiceMode = Default
+        Tags = Map.empty
+    }
 
-    member _.Run(state: SignalRConfig) =
-        { state with
+    member _.Run(state: SignalRConfig) = {
+        state with
             Name = state.Name |> sanitiseSignalR |> ResourceName
-        }
+    }
 
     /// Sets the name of the Azure SignalR instance.
     [<CustomOperation("name")>]
@@ -76,20 +73,19 @@ type SignalRBuilder() =
 
     /// Sets the allowed origins of the Azure SignalR instance.
     [<CustomOperation("allowed_origins")>]
-    member _.AllowedOrigins(state: SignalRConfig, allowedOrigins) =
-        { state with
+    member _.AllowedOrigins(state: SignalRConfig, allowedOrigins) = {
+        state with
             AllowedOrigins = allowedOrigins
-        }
+    }
 
     /// Sets the service mode of the Azure SignalR instance.
     [<CustomOperation("service_mode")>]
-    member _.ServiceMode(state: SignalRConfig, serviceMode) =
-        { state with ServiceMode = serviceMode }
+    member _.ServiceMode(state: SignalRConfig, serviceMode) = { state with ServiceMode = serviceMode }
 
     interface ITaggable<SignalRConfig> with
-        member _.Add state tags =
-            { state with
+        member _.Add state tags = {
+            state with
                 Tags = state.Tags |> Map.merge tags
-            }
+        }
 
 let signalR = SignalRBuilder()

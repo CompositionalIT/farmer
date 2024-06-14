@@ -6,9 +6,7 @@ open Farmer.Builders
 let secretName = "storagekey"
 let vaultName = "isaacsupersecret"
 
-let datastore = storageAccount {
-    name "isaacsuperstore"
-}
+let datastore = storageAccount { name "isaacsuperstore" }
 
 let webapplication = webApp {
     name "isaacsuperweb"
@@ -25,16 +23,11 @@ let secretsvault = keyVault {
 
 let template = arm {
     location Location.WestEurope
-    add_resources [
-        secretsvault
-        datastore
-        webapplication
-    ]
+    add_resources [ secretsvault; datastore; webapplication ]
 }
 
 // Generate the ARM template here...
-template
-|> Writer.quickWrite (__SOURCE_DIRECTORY__ + @"/generated-template")
+template |> Writer.quickWrite (__SOURCE_DIRECTORY__ + @"/generated-template")
 
 // Or deploy it directly to Azure here... (required Azure CLI installed!)
 // template

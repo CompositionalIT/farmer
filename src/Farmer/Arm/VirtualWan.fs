@@ -29,29 +29,27 @@ type VwanType =
         | Standard -> "Standard"
         | Basic -> "Basic"
 
-type VirtualWan =
-    {
-        Name: ResourceName
-        Location: Location
-        AllowBranchToBranchTraffic: bool option
-        DisableVpnEncryption: bool option
-        Office365LocalBreakoutCategory: Office365LocalBreakoutCategory option
-        VwanType: VwanType
-    }
+type VirtualWan = {
+    Name: ResourceName
+    Location: Location
+    AllowBranchToBranchTraffic: bool option
+    DisableVpnEncryption: bool option
+    Office365LocalBreakoutCategory: Office365LocalBreakoutCategory option
+    VwanType: VwanType
+} with
 
     interface IArmResource with
         member this.ResourceId = virtualWans.resourceId this.Name
 
-        member this.JsonModel =
-            {| virtualWans.Create(this.Name, this.Location) with
-                properties =
-                    {|
-                        allowBranchToBranchTraffic = this.AllowBranchToBranchTraffic |> Option.defaultValue false
-                        disableVpnEncryption = this.DisableVpnEncryption |> Option.defaultValue false
-                        office365LocalBreakoutCategory =
-                            (this.Office365LocalBreakoutCategory
-                             |> Option.defaultValue Office365LocalBreakoutCategory.None)
-                                .ArmValue
-                        ``type`` = this.VwanType.ArmValue
-                    |}
-            |}
+        member this.JsonModel = {|
+            virtualWans.Create(this.Name, this.Location) with
+                properties = {|
+                    allowBranchToBranchTraffic = this.AllowBranchToBranchTraffic |> Option.defaultValue false
+                    disableVpnEncryption = this.DisableVpnEncryption |> Option.defaultValue false
+                    office365LocalBreakoutCategory =
+                        (this.Office365LocalBreakoutCategory
+                         |> Option.defaultValue Office365LocalBreakoutCategory.None)
+                            .ArmValue
+                    ``type`` = this.VwanType.ArmValue
+                |}
+        |}
