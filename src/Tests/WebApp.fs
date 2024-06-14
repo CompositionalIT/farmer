@@ -47,7 +47,7 @@ let tests =
             }
 
             for os, version in [ Windows, 2; Linux, 3 ] do
-                ftest $"Web App has App Insights preconfigured for OS {os}" {
+                test $"Web App has App Insights preconfigured for OS {os}" {
                     let resources =
                         webApp {
                             name "test"
