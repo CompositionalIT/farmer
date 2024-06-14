@@ -508,9 +508,10 @@ type WebAppConfig =
 
                             if this.CommonWebConfig.AppInsights.IsSome then
                                 "ApplicationInsightsAgent_EXTENSION_VERSION",
-                                    match this.CommonWebConfig.OperatingSystem with
-                                    | Windows -> "~2"
-                                    | Linux -> "~3"
+                                match this.CommonWebConfig.OperatingSystem with
+                                | Windows -> "~2"
+                                | Linux -> "~3"
+
                                 "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
                                 "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
                                 "DiagnosticServices_EXTENSION_VERSION", "~3"
@@ -1628,6 +1629,3 @@ module Extensions =
 
         member this.LinkToUnmanagedVNet(state: 'T, (vnet, subnetName): VirtualNetworkConfig * ResourceName) =
             this.LinkToUnmanagedVNet(state, vnet.SubnetIds[subnetName.Value])
-
-
-
