@@ -45,6 +45,30 @@ let tests =
                 Expect.hasLength (resources |> getResource<Insights.Components>) 1 "Should be one AI component"
                 Expect.hasLength (resources |> getResource<Web.ServerFarm>) 1 "Should be one server farm"
             }
+
+            for os, version in [ Windows, 2; Linux, 3 ] do
+                ftest $"Web App has App Insights preconfigured for OS {os}" {
+                    let resources = webApp { name "test"; operating_system os } |> getResources
+                    let wa = resources |> getResource<Web.Site> |> List.head
+                    let expectedSettings = [
+                        "APPINSIGHTS_INSTRUMENTATIONKEY"
+                        "APPINSIGHTS_PROFILERFEATURE_VERSION"
+                        "APPINSIGHTS_SNAPSHOTFEATURE_VERSION"
+                        "ApplicationInsightsAgent_EXTENSION_VERSION"
+                        "DiagnosticServices_EXTENSION_VERSION"
+                        "InstrumentationEngine_EXTENSION_VERSION"
+                        "SnapshotDebugger_EXTENSION_VERSION"
+                        "XDT_MicrosoftApplicationInsights_BaseExtensions"
+                        "XDT_MicrosoftApplicationInsights_Mode"
+                    ]
+
+                    let actualSettings = wa.AppSettings |> Option.defaultValue Map.empty
+                    let actualSettingsSeq = actualSettings |> Seq.map _.Key
+                    Expect.containsAll actualSettingsSeq expectedSettings "Missing AI settings"
+
+                    Expect.equal actualSettings["ApplicationInsightsAgent_EXTENSION_VERSION"] (LiteralSetting $"~{version}") "Wrong AI version"
+                }
+
             test "Web App allows renaming of service plan and AI" {
                 let resources =
                     webApp {
@@ -632,7 +656,6 @@ let tests =
             test "Deploys AI configuration correctly" {
                 let hasSetting key message (wa: Site) =
                     Expect.isTrue (wa.SiteConfig.AppSettings |> Seq.exists (fun k -> k.Name = key)) message
-
                 let wa: Site = webApp { name "testsite" } |> getResourceAtIndex 3
 
                 wa
@@ -858,6 +881,8 @@ let tests =
                 Expect.isNone ((sites.[0]).AppSettings) "App service should not have any settings"
                 Expect.isNone ((sites.[0]).ConnectionStrings) "App service should not have any connection strings"
             }
+
+            //test "WebApp creates App Insights" { }
 
             test "WebApp adds literal settings to slots" {
                 let slot = appSlot { name "warm-up" }
