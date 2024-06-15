@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* App Service: Automatic support for App Insights on Linux.
 
 ## 1.8.11
 * Service Bus: Added support for setting max message size.
@@ -204,7 +206,7 @@ Release Notes
 * App Insights: Add ConnectionString member.
 * Communication Services: **Breaking Changes**: Clean up and fix issues regarding naming and Location.
 * Communication Services: Add ConnectionString member.
-* Container Apps: Support for collections of env vars, fix ACR credentials linking 
+* Container Apps: Support for collections of env vars, fix ACR credentials linking
 * Deployments: Use vault-secrets from unmanaged resource groups
 * Event Hub: Don't create the `$Default` consumer group explicitly. It will automatically be created by Azure when the resource is created.
 * SignalR: Add ConnectionString member.

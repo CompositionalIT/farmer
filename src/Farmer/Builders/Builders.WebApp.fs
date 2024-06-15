@@ -505,18 +505,20 @@ type WebAppConfig =
                                     AppInsights
                                         .getInstrumentationKey(resource.resourceId this.Name.ResourceName)
                                         .Eval())
-                            match this.CommonWebConfig.OperatingSystem, this.CommonWebConfig.AppInsights with
-                            | Windows, Some _ ->
+
+                            if this.CommonWebConfig.AppInsights.IsSome then
+                                "ApplicationInsightsAgent_EXTENSION_VERSION",
+                                match this.CommonWebConfig.OperatingSystem with
+                                | Windows -> "~2"
+                                | Linux -> "~3"
+
                                 "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
                                 "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
-                                "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
                                 "DiagnosticServices_EXTENSION_VERSION", "~3"
                                 "InstrumentationEngine_EXTENSION_VERSION", "~1"
                                 "SnapshotDebugger_EXTENSION_VERSION", "~1"
                                 "XDT_MicrosoftApplicationInsights_BaseExtensions", "~1"
                                 "XDT_MicrosoftApplicationInsights_Mode", "recommended"
-                            | Linux, Some _
-                            | _, None -> ()
 
                             yield! this.DockerPort |> Option.mapList AppSettings.WebsitesPort
 

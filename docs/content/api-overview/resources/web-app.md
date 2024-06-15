@@ -76,7 +76,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | App Slot | add_denied_ip_restriction | Denies access from this IP when the slot is in production. |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
 | Service Plan | runtime_stack | Sets the runtime stack. |
-| Service Plan | operating_system | Sets the operating system. If Linux, App Insights configuration settings will be omitted as they are not supported by Azure App Service. |
+| Service Plan | operating_system | Sets the operating system. |
 | Service Plan | sku | Sets the sku of the service plan. |
 | Service Plan | worker_size | Sets the size of the service plan worker. |
 | Service Plan | number_of_workers | Sets the number of instances on the service plan. |
@@ -192,7 +192,7 @@ let wa = webApp {
     add_virtual_applications [
         virtualApplication {
             virtual_path "/"
-            physical_path "frontend" 
+            physical_path "frontend"
         }
         virtualApplication {
             virtual_path "/api"
