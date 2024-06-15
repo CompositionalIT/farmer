@@ -2,6 +2,7 @@
 module Farmer.Arm.ContainerService
 
 open Farmer
+open Farmer.Arm.ResourceTypes.Network
 open Farmer.Identity
 open Farmer.Vm
 
