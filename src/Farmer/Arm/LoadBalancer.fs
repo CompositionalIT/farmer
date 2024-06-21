@@ -155,7 +155,7 @@ type BackendAddressPool =
         LoadBalancer: ResourceName
         /// Addresses of backend services.
         LoadBalancerBackendAddresses: {| Name: ResourceName
-                                         VirtualNetwork: LinkedResource option
+                                         Subnet: LinkedResource option
                                          IpAddress: System.Net.IPAddress |} list
     }
 
@@ -169,8 +169,8 @@ type BackendAddressPool =
                     yield loadBalancers.resourceId this.LoadBalancer
 
                     for addr in this.LoadBalancerBackendAddresses do
-                        match addr.VirtualNetwork with
-                        | Some (Managed vnetId) -> yield vnetId
+                        match addr.Subnet with
+                        | Some (Managed subnetId) -> yield subnetId
                         | _ -> ()
                 }
                 |> Set.ofSeq
@@ -187,10 +187,10 @@ type BackendAddressPool =
                                     properties =
                                         {|
                                             ipAddress = string addr.IpAddress
-                                            virtualNetwork =
-                                                match addr.VirtualNetwork with
-                                                | Some (Managed vnetId) -> {| id = vnetId.Eval() |}
-                                                | Some (Unmanaged vnetId) -> {| id = vnetId.Eval() |}
+                                            Subnet =
+                                                match addr.Subnet with
+                                                | Some (Managed subnetId) -> {| id = subnetId.Eval() |}
+                                                | Some (Unmanaged subnetId) -> {| id = subnetId.Eval() |}
                                                 | None -> Unchecked.defaultof<_>
                                         |}
                                 |})

@@ -123,7 +123,7 @@ let tests =
                         [
                             backendAddressPool {
                                 name "lb-backend"
-                                link_to_vnet "my-vnet"
+                                link_to_subnet "my-subnet"
                                 add_ip_addresses [ "10.0.1.4"; "10.0.1.5" ]
                             }
                         ]
@@ -203,14 +203,14 @@ let tests =
                 Expect.equal resource.Name "lb/lb-backend" "Incorrect name for backend address pool"
             }
 
-            test "Backend pool for existing vnet" {
-                let myVnet = vnet { name "my-vnet" }
+            test "Backend pool for existing subnet" {
+                let mySubnet = subnet { name "my-subnet" }
 
                 let backendPool =
                     backendAddressPool {
                         name "backend-services"
                         load_balancer "existing-lb"
-                        link_to_vnet myVnet
+                        link_to_subnet mySubnet
                         add_ip_addresses [ "10.0.1.4"; "10.0.1.5"; "10.0.1.6" ]
                     }
 
@@ -221,14 +221,14 @@ let tests =
 
                 Expect.equal pool.LoadBalancer (ResourceName "existing-lb") "Pool had incorrect load balancer"
 
-                let expectedVnet =
-                    Unmanaged(Farmer.Arm.Network.virtualNetworks.resourceId (ResourceName "my-vnet"))
+                let expectedSubnet =
+                    Unmanaged(Farmer.Arm.Network.subnets.resourceId (ResourceName "my-subnet"))
 
                 Expect.hasLength pool.LoadBalancerBackendAddresses 3 "Pool should have 3 addresses"
 
                 pool.LoadBalancerBackendAddresses
                 |> List.iter (fun addr ->
-                    Expect.equal addr.VirtualNetwork (Some expectedVnet) "Pool did not have expected vnet")
+                    Expect.equal addr.Subnet (Some expectedSubnet) "Pool did not have expected subnet")
             }
 
             test "Setting backend pool on VM NIC" {
