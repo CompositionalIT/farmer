@@ -447,21 +447,26 @@ let tests =
             }
 
             test "LoadBalancer" {
-                let mySubnet =
-                    subnet {
-                        name "my-subnet"
-                        prefix "10.0.1.0/24"
-                        add_delegations [ SubnetDelegationService.ContainerGroups ]
-                    }
 
                 let myVnet =
                     vnet {
                         name "my-vnet"
                         add_address_spaces [ "10.0.1.0/24" ]
 
-                        add_subnets [ mySubnet ]
+                        add_subnets[subnet {
+                            name "my-subnet"
+                            prefix "10.0.1.0/24"
+                            add_delegations [ SubnetDelegationService.ContainerGroups ]
+                        }]
                     }
 
+
+                let mySubnet =
+                    subnet {
+                        name "my-subnet"
+                        prefix "10.0.1.0/24"
+                        add_delegations [ SubnetDelegationService.ContainerGroups ]
+                    }
 
                 let lb =
                     loadBalancer {
