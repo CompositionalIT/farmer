@@ -135,9 +135,9 @@ type BackendAddressPoolConfig =
                             |> List.mapi (fun idx addr ->
                                 {|
                                     Name = ResourceName $"addr{idx}"
+                                    IpAddress = addr
                                     Subnet = this.Subnet
                                     VirtualNetwork = None
-                                    IpAddress = addr
                                 |})
                     }
                 ]

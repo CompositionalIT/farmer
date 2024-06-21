@@ -224,9 +224,9 @@ let tests =
                     backendAddressPool {
                         name "backend-services"
                         load_balancer "existing-lb"
+                        add_ip_addresses [ "10.0.1.4"; "10.0.1.5"; "10.0.1.6" ]
                         link_to_vnet myVnet
                         link_to_subnet myVnet.Subnets[0]
-                        add_ip_addresses [ "10.0.1.4"; "10.0.1.5"; "10.0.1.6" ]
                     }
 
                 let template = arm { add_resource backendPool }
