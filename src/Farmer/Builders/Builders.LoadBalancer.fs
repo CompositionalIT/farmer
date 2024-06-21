@@ -114,6 +114,7 @@ type BackendAddressPoolConfig =
         Name: ResourceName
         LoadBalancer: ResourceName
         LoadBalancerBackendAddresses: System.Net.IPAddress list
+        VirtualNetwork: LinkedResource option
         Subnet: LinkedResource option
     }
 
@@ -135,6 +136,7 @@ type BackendAddressPoolConfig =
                                 {|
                                     Name = ResourceName $"addr{idx}"
                                     Subnet = this.Subnet
+                                    VirtualNetwork = None
                                     IpAddress = addr
                                 |})
                     }
@@ -146,6 +148,7 @@ type BackendAddressPoolBuilder() =
             Name = ResourceName.Empty
             LoadBalancer = ResourceName.Empty
             LoadBalancerBackendAddresses = []
+            VirtualNetwork = None
             Subnet = None
         }
 
@@ -158,6 +161,41 @@ type BackendAddressPoolBuilder() =
     member _.LoadBalancer(state: BackendAddressPoolConfig, lb) =
         { state with
             LoadBalancer = ResourceName lb
+        }
+
+
+    /// Links to an existing vnet for addresses for this pool.
+    [<CustomOperation "link_to_vnet">]
+    member _.LinkToVirtualNetwork(state: BackendAddressPoolConfig, vnet: string) =
+        { state with
+            VirtualNetwork = Some(Unmanaged(virtualNetworks.resourceId (ResourceName vnet)))
+        }
+
+    member _.LinkToVirtualNetwork(state: BackendAddressPoolConfig, vnet: ResourceId) =
+        { state with
+            VirtualNetwork = Some(Unmanaged vnet)
+        }
+
+    member _.LinkToVirtualNetwork(state: BackendAddressPoolConfig, vnetConfig: VirtualNetworkConfig) =
+        { state with
+            VirtualNetwork = Some(Unmanaged(virtualNetworks.resourceId vnetConfig.Name))
+        }
+
+    /// Links to a vnet that is defined in this same deployment.
+    [<CustomOperation "vnet">]
+    member _.VirtualNetwork(state: BackendAddressPoolConfig, vnet: string) =
+        { state with
+            VirtualNetwork = Some(Managed(virtualNetworks.resourceId (ResourceName vnet)))
+        }
+
+    member _.VirtualNetwork(state: BackendAddressPoolConfig, vnet: ResourceId) =
+        { state with
+            VirtualNetwork = Some(Managed vnet)
+        }
+
+    member _.VirtualNetwork(state: BackendAddressPoolConfig, vnetConfig: VirtualNetworkConfig) =
+        { state with
+            VirtualNetwork = Some(Managed(virtualNetworks.resourceId vnetConfig.Name))
         }
 
     /// Links to an existing subnet for addresses for this pool.

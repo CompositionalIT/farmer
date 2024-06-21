@@ -124,6 +124,7 @@ let tests =
                             backendAddressPool {
                                 name "lb-backend"
                                 link_to_subnet "my-subnet"
+                                link_to_vnet "my-vnet"
                                 add_ip_addresses [ "10.0.1.4"; "10.0.1.5" ]
                             }
                         ]
@@ -204,13 +205,27 @@ let tests =
             }
 
             test "Backend pool for existing subnet" {
-                let mySubnet = subnet { name "my-subnet" }
+
+                let myVnet =
+                    vnet {
+                        name "my-vnet"
+                        add_address_spaces [ "10.0.1.0/24" ]
+
+                        add_subnets
+                            [
+                                subnet {
+                                    name "my-subnet"
+                                    prefix "10.0.1.0/24"
+                                }
+                            ]
+                    }
 
                 let backendPool =
                     backendAddressPool {
                         name "backend-services"
                         load_balancer "existing-lb"
-                        link_to_subnet mySubnet
+                        vnet myVnet
+                        subnet myVnet.Subnets[0]
                         add_ip_addresses [ "10.0.1.4"; "10.0.1.5"; "10.0.1.6" ]
                     }
 

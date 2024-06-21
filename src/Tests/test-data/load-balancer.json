@@ -119,7 +119,7 @@
             "properties": {
               "ipAddress": "10.0.1.4",
               "Subnets": {
-                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'my-subnet')]"
+                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', 'my-vnet'),'/subnets/','my-subnet')]"
               }
             }
           },
@@ -128,7 +128,7 @@
             "properties": {
               "ipAddress": "10.0.1.5",
               "Subnets": {
-                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'my-subnet')]"
+                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', 'my-vnet'),'/subnets/','my-subnet')]"
               }
             }
           }

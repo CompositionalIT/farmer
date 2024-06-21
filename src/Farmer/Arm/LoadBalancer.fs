@@ -155,6 +155,7 @@ type BackendAddressPool =
         LoadBalancer: ResourceName
         /// Addresses of backend services.
         LoadBalancerBackendAddresses: {| Name: ResourceName
+                                         VirtualNetwork: LinkedResource option
                                          Subnet: LinkedResource option
                                          IpAddress: System.Net.IPAddress |} list
     }
