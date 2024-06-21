@@ -447,7 +447,7 @@ let tests =
             }
 
             test "LoadBalancer" {
-                let mySubnet =                  
+                let mySubnet =
                     subnet {
                         name "my-services"
                         prefix "10.0.1.0/24"
