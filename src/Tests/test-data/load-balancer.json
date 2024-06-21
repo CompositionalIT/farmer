@@ -118,7 +118,7 @@
             "name": "addr0",
             "properties": {
               "ipAddress": "10.0.1.4",
-              "subnet": {
+              "Subnets": {
                 "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'my-subnet')]"
               }
             }
@@ -127,7 +127,7 @@
             "name": "addr1",
             "properties": {
               "ipAddress": "10.0.1.5",
-              "virtualNetwork": {
+              "Subnets": {
                 "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'my-subnet')]"
               }
             }
