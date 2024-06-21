@@ -447,19 +447,11 @@ let tests =
             }
 
             test "LoadBalancer" {
-                let myVnet =
-                    vnet {
-                        name "my-vnet"
-                        add_address_spaces [ "10.0.1.0/24" ]
-
-                        add_subnets
-                            [
-                                subnet {
-                                    name "my-services"
-                                    prefix "10.0.1.0/24"
-                                    add_delegations [ SubnetDelegationService.ContainerGroups ]
-                                }
-                            ]
+                let mySubnet =                  
+                    subnet {
+                        name "my-services"
+                        prefix "10.0.1.0/24"
+                        add_delegations [ SubnetDelegationService.ContainerGroups ]
                     }
 
                 let lb =
@@ -479,7 +471,7 @@ let tests =
                             [
                                 backendAddressPool {
                                     name "lb-backend"
-                                    subnet "my-subnet"
+                                    subnet mySubnet
                                     add_ip_addresses [ "10.0.1.4"; "10.0.1.5" ]
                                 }
                             ]
@@ -508,7 +500,7 @@ let tests =
                             ]
                     }
 
-                compareResourcesToJson [ myVnet; lb ] "load-balancer.json"
+                compareResourcesToJson [ mySubnet; lb ] "load-balancer.json"
             }
 
             test "AzureFirewall" {
