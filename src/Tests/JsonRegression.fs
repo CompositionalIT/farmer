@@ -479,7 +479,7 @@ let tests =
                             [
                                 backendAddressPool {
                                     name "lb-backend"
-                                    subnet myVnet.Subnets[0]
+                                    link_to_subnet myVnet.Subnets[0]
                                     link_to_vnet myVnet
                                     add_ip_addresses [ "10.0.1.4"; "10.0.1.5" ]
                                 }
