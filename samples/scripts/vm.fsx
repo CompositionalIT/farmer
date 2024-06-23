@@ -21,5 +21,4 @@ let deployment = arm {
     add_resource myVm
 }
 
-deployment
-|> Deploy.execute "my-resource-group-name" Deploy.NoParameters
+deployment |> Deploy.execute "my-resource-group-name" Deploy.NoParameters

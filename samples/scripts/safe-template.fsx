@@ -3,7 +3,7 @@
 open Farmer
 open Farmer.Builders
 
-let makeSafeApp (environment:string) theLocation storageSku webAppSku =
+let makeSafeApp (environment: string) theLocation storageSku webAppSku =
     let environment = environment.ToLower()
     let generateResourceName = sprintf "safe-%s-%s" environment
 

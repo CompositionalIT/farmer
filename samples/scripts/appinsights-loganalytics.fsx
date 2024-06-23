@@ -3,9 +3,7 @@
 open Farmer
 open Farmer.Builders
 
-let workspace = logAnalytics {
-    name "loganalytics-workspace"
-}
+let workspace = logAnalytics { name "loganalytics-workspace" }
 
 let myAppInsights = appInsights {
     name "appInsights"
@@ -22,5 +20,4 @@ let template = arm {
     add_resources [ workspace; myAppInsights; myFunctions ]
 }
 
-template
-|> Deploy.execute "deleteme" Deploy.NoParameters
+template |> Deploy.execute "deleteme" Deploy.NoParameters

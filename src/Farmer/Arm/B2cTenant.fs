@@ -15,32 +15,28 @@ type B2cDomainName =
         match this with
         | B2cDomainName name -> ResourceName name
 
-type B2cTenant =
-    {
-        Name: B2cDomainName
-        DisplayName: string
-        DataResidency: Location
-        CountryCode: string
-        Tags: Map<string, string>
-        Sku: B2cTenant.Sku
-    }
+type B2cTenant = {
+    Name: B2cDomainName
+    DisplayName: string
+    DataResidency: Location
+    CountryCode: string
+    Tags: Map<string, string>
+    Sku: B2cTenant.Sku
+} with
 
     interface IArmResource with
         member this.ResourceId = accounts.resourceId this.Name.AsResourceName
 
-        member this.JsonModel =
-            {| b2cTenant.Create(this.Name.AsResourceName, this.DataResidency, tags = this.Tags) with
-                sku =
-                    {|
-                        name = string this.Sku
-                        tier = "A0"
+        member this.JsonModel = {|
+            b2cTenant.Create(this.Name.AsResourceName, this.DataResidency, tags = this.Tags) with
+                sku = {|
+                    name = string this.Sku
+                    tier = "A0"
+                |}
+                properties = {|
+                    createTenantProperties = {|
+                        countryCode = this.CountryCode
+                        displayName = this.DisplayName
                     |}
-                properties =
-                    {|
-                        createTenantProperties =
-                            {|
-                                countryCode = this.CountryCode
-                                displayName = this.DisplayName
-                            |}
-                    |}
-            |}
+                |}
+        |}

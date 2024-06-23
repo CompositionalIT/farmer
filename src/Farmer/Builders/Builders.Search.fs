@@ -6,14 +6,13 @@ open Farmer.Search
 open Farmer.Helpers
 open Farmer.Arm.Search
 
-type SearchConfig =
-    {
-        Name: ResourceName
-        Sku: Sku
-        Replicas: int
-        Partitions: int
-        Tags: Map<string, string>
-    }
+type SearchConfig = {
+    Name: ResourceName
+    Sku: Sku
+    Replicas: int
+    Partitions: int
+    Tags: Map<string, string>
+} with
 
     /// Gets an ARM expression for the admin key of the search instance.
     member this.AdminKey =
@@ -34,32 +33,30 @@ type SearchConfig =
     interface IBuilder with
         member this.ResourceId = this.ResourceId
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    Sku = this.Sku
-                    ReplicaCount = this.Replicas
-                    PartitionCount = this.Partitions
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                Sku = this.Sku
+                ReplicaCount = this.Replicas
+                PartitionCount = this.Partitions
+                Tags = this.Tags
+            }
+        ]
 
 type SearchBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sku = Standard
-            Replicas = 1
-            Partitions = 1
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = Standard
+        Replicas = 1
+        Partitions = 1
+        Tags = Map.empty
+    }
 
-    member _.Run(state: SearchConfig) =
-        { state with
+    member _.Run(state: SearchConfig) = {
+        state with
             Name = state.Name |> sanitiseSearch |> ResourceName
-        }
+    }
 
     /// Sets the name of the Azure Search instance.
     [<CustomOperation "name">]
@@ -80,9 +77,9 @@ type SearchBuilder() =
     member _.PartitionCount(state: SearchConfig, partitions: int) = { state with Partitions = partitions }
 
     interface ITaggable<SearchConfig> with
-        member _.Add state tags =
-            { state with
+        member _.Add state tags = {
+            state with
                 Tags = state.Tags |> Map.merge tags
-            }
+        }
 
 let search = SearchBuilder()

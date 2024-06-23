@@ -3,9 +3,7 @@
 open Farmer
 open Farmer.Builders
 
-let myAppInsights = appInsights {
-    name "isaacsAi"
-}
+let myAppInsights = appInsights { name "isaacsAi" }
 
 let myFunctions = functions {
     name "mysuperwebapp"
@@ -18,5 +16,4 @@ let template = arm {
     add_resource myFunctions
 }
 
-template
-|> Deploy.execute "deleteme" Deploy.NoParameters
+template |> Deploy.execute "deleteme" Deploy.NoParameters

@@ -19,5 +19,4 @@ let deployment = arm {
     output "iot_connection" (hub.GetConnectionString IotHub.RegistryReadWrite)
 }
 
-deployment
-|> Writer.quickWrite "generated-template"
+deployment |> Writer.quickWrite "generated-template"

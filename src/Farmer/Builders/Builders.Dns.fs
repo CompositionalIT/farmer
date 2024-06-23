@@ -8,32 +8,30 @@ open Farmer.Dns
 open Farmer.Arm.Dns
 open DnsRecords
 
-type DnsZoneRecordConfig =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        Type: DnsRecordType
-        TTL: int
-        Zone: LinkedResource option
-        DnsZoneType: DnsZoneType
+type DnsZoneRecordConfig = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    Type: DnsRecordType
+    TTL: int
+    Zone: LinkedResource option
+    DnsZoneType: DnsZoneType
+} with
+
+    static member Create(name, ttl, zone, recordType, ?dependencies: Set<ResourceId>, ?zoneType) = {
+        Name =
+            if name = ResourceName.Empty then
+                raiseFarmer "You must set a DNS zone name"
+
+            name
+        Dependencies = dependencies |> Option.defaultValue Set.empty
+        TTL =
+            match ttl with
+            | Some ttl -> ttl
+            | None -> raiseFarmer "You must set a TTL"
+        Zone = zone
+        DnsZoneType = zoneType |> Option.defaultValue Public
+        Type = recordType
     }
-
-    static member Create(name, ttl, zone, recordType, ?dependencies: Set<ResourceId>, ?zoneType) =
-        {
-            Name =
-                if name = ResourceName.Empty then
-                    raiseFarmer "You must set a DNS zone name"
-
-                name
-            Dependencies = dependencies |> Option.defaultValue Set.empty
-            TTL =
-                match ttl with
-                | Some ttl -> ttl
-                | None -> raiseFarmer "You must set a TTL"
-            Zone = zone
-            DnsZoneType = zoneType |> Option.defaultValue Public
-            Type = recordType
-        }
 
     interface IBuilder with
         member this.ResourceId =
@@ -43,116 +41,106 @@ type DnsZoneRecordConfig =
 
         member this.BuildResources _ =
             match this.Zone with
-            | Some zone ->
-                [
-                    {
-                        DnsRecord.Name = this.Name
-                        Dependencies = this.Dependencies
-                        Zone = zone
-                        ZoneType = this.DnsZoneType
-                        TTL = this.TTL
-                        Type = this.Type
-                    }
-                ]
+            | Some zone -> [
+                {
+                    DnsRecord.Name = this.Name
+                    Dependencies = this.Dependencies
+                    Zone = zone
+                    ZoneType = this.DnsZoneType
+                    TTL = this.TTL
+                    Type = this.Type
+                }
+              ]
             | None -> raiseFarmer "DNS record must be linked to a zone."
 
-type CNameRecordProperties =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        CName: string option
-        TTL: int option
-        Zone: LinkedResource option
-        TargetResource: ResourceId option
-        ZoneType: DnsZoneType
-    }
+type CNameRecordProperties = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    CName: string option
+    TTL: int option
+    Zone: LinkedResource option
+    TargetResource: ResourceId option
+    ZoneType: DnsZoneType
+}
 
-type ARecordProperties =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        Ipv4Addresses: string list
-        TTL: int option
-        Zone: LinkedResource option
-        TargetResource: ResourceId option
-        ZoneType: DnsZoneType
-    }
+type ARecordProperties = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    Ipv4Addresses: string list
+    TTL: int option
+    Zone: LinkedResource option
+    TargetResource: ResourceId option
+    ZoneType: DnsZoneType
+}
 
-type AaaaRecordProperties =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        Ipv6Addresses: string list
-        TTL: int option
-        Zone: LinkedResource option
-        TargetResource: ResourceId option
-        ZoneType: DnsZoneType
-    }
+type AaaaRecordProperties = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    Ipv6Addresses: string list
+    TTL: int option
+    Zone: LinkedResource option
+    TargetResource: ResourceId option
+    ZoneType: DnsZoneType
+}
 
-type NsRecordProperties =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        NsdNames: NsRecords
-        TTL: int option
-        Zone: LinkedResource option
-    }
+type NsRecordProperties = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    NsdNames: NsRecords
+    TTL: int option
+    Zone: LinkedResource option
+}
 
-type PtrRecordProperties =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        PtrdNames: string list
-        TTL: int option
-        Zone: LinkedResource option
-        ZoneType: DnsZoneType
-    }
+type PtrRecordProperties = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    PtrdNames: string list
+    TTL: int option
+    Zone: LinkedResource option
+    ZoneType: DnsZoneType
+}
 
-type TxtRecordProperties =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        TxtValues: string list
-        TTL: int option
-        Zone: LinkedResource option
-        ZoneType: DnsZoneType
-    }
+type TxtRecordProperties = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    TxtValues: string list
+    TTL: int option
+    Zone: LinkedResource option
+    ZoneType: DnsZoneType
+}
 
-type MxRecordProperties =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        MxValues: {| Preference: int; Exchange: string |} list
-        TTL: int option
-        Zone: LinkedResource option
-        ZoneType: DnsZoneType
-    }
+type MxRecordProperties = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    MxValues: {| Preference: int; Exchange: string |} list
+    TTL: int option
+    Zone: LinkedResource option
+    ZoneType: DnsZoneType
+}
 
-type SrvRecordProperties =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        SrvValues: SrvRecord list
-        TTL: int option
-        Zone: LinkedResource option
-        ZoneType: DnsZoneType
-    }
+type SrvRecordProperties = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    SrvValues: SrvRecord list
+    TTL: int option
+    Zone: LinkedResource option
+    ZoneType: DnsZoneType
+}
 
-type SoaRecordProperties =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        Host: string option
-        Email: string option
-        SerialNumber: int64 option
-        RefreshTime: int64 option
-        RetryTime: int64 option
-        ExpireTime: int64 option
-        MinimumTTL: int64 option
-        TTL: int option
-        Zone: LinkedResource option
-        ZoneType: DnsZoneType
-    }
+type SoaRecordProperties = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    Host: string option
+    Email: string option
+    SerialNumber: int64 option
+    RefreshTime: int64 option
+    RetryTime: int64 option
+    ExpireTime: int64 option
+    MinimumTTL: int64 option
+    TTL: int option
+    Zone: LinkedResource option
+    ZoneType: DnsZoneType
+}
 
 type DnsZone =
     static member getNameServers(resourceId: ResourceId) =
@@ -165,15 +153,14 @@ type DnsZone =
     static member getNameServers(name: ResourceName, ?resourceGroup) =
         DnsZone.getNameServers (ResourceId.create (zones, name, ?group = resourceGroup))
 
-type PrivateDnsZoneVirtualNetworkLinkConfig =
-    {
-        Name: ResourceName
-        PrivateDnsZone: LinkedResource option
-        RegistrationEnabled: bool option
-        VirtualNetworkId: LinkedResource option
-        Dependencies: Set<ResourceId>
-        Tags: Map<string, string>
-    }
+type PrivateDnsZoneVirtualNetworkLinkConfig = {
+    Name: ResourceName
+    PrivateDnsZone: LinkedResource option
+    RegistrationEnabled: bool option
+    VirtualNetworkId: LinkedResource option
+    Dependencies: Set<ResourceId>
+    Tags: Map<string, string>
+} with
 
     interface IBuilder with
         member this.BuildResources _ =
@@ -196,14 +183,13 @@ type PrivateDnsZoneVirtualNetworkLinkConfig =
 
         member this.ResourceId = failwith "todo"
 
-type DnsZoneConfig =
-    {
-        Name: ResourceName
-        Dependencies: Set<ResourceId>
-        ZoneType: DnsZoneType
-        Records: DnsZoneRecordConfig list
-        Tags: Map<string, string>
-    }
+type DnsZoneConfig = {
+    Name: ResourceName
+    Dependencies: Set<ResourceId>
+    ZoneType: DnsZoneType
+    Records: DnsZoneRecordConfig list
+    Tags: Map<string, string>
+} with
 
     /// Gets the ARM expression path to the NameServers. When evaluated, will return a JSON array as string. E.g.: """["ns1-01.azure-dns.com.","ns2-01.azure-dns.net.","ns3-01.azure-dns.org.","ns4-01.azure-dns.info."]"""
     member this.NameServers = DnsZone.getNameServers this.Name
@@ -214,42 +200,40 @@ type DnsZoneConfig =
             | Public -> zones.resourceId this.Name
             | Private -> privateZones.resourceId this.Name
 
-        member this.BuildResources _ =
-            [
-                {
-                    DnsZone.Name = this.Name
-                    Dependencies = this.Dependencies
-                    Properties = {| ZoneType = this.ZoneType |> string |}
-                    Tags = this.Tags
-                }
+        member this.BuildResources _ = [
+            {
+                DnsZone.Name = this.Name
+                Dependencies = this.Dependencies
+                Properties = {| ZoneType = this.ZoneType |> string |}
+                Tags = this.Tags
+            }
 
-                for record in this.Records do
-                    {
-                        DnsRecord.Name = record.Name
-                        Dependencies = record.Dependencies
-                        Zone =
-                            Managed(
-                                match this.ZoneType with
-                                | Public -> zones.resourceId this.Name
-                                | Private -> privateZones.resourceId this.Name
-                            )
-                        ZoneType = this.ZoneType
-                        TTL = record.TTL
-                        Type = record.Type
-                    }
-            ]
+            for record in this.Records do
+                {
+                    DnsRecord.Name = record.Name
+                    Dependencies = record.Dependencies
+                    Zone =
+                        Managed(
+                            match this.ZoneType with
+                            | Public -> zones.resourceId this.Name
+                            | Private -> privateZones.resourceId this.Name
+                        )
+                    ZoneType = this.ZoneType
+                    TTL = record.TTL
+                    Type = record.Type
+                }
+        ]
 
 type DnsCNameRecordBuilder() =
-    member _.Yield _ =
-        {
-            CNameRecordProperties.CName = None
-            Name = ResourceName.Empty
-            Dependencies = Set.empty
-            TTL = None
-            Zone = None
-            TargetResource = None
-            ZoneType = Public
-        }
+    member _.Yield _ = {
+        CNameRecordProperties.CName = None
+        Name = ResourceName.Empty
+        Dependencies = Set.empty
+        TTL = None
+        Zone = None
+        TargetResource = None
+        ZoneType = Public
+    }
 
     member _.Run(state: CNameRecordProperties) =
         DnsZoneRecordConfig.Create(
@@ -278,20 +262,20 @@ type DnsCNameRecordBuilder() =
 
     /// Sets the target resource of the record.
     [<CustomOperation "target_resource">]
-    member _.RecordTargetResource(state: CNameRecordProperties, targetResource: ResourceId) =
-        { state with
+    member _.RecordTargetResource(state: CNameRecordProperties, targetResource: ResourceId) = {
+        state with
             TargetResource = Some targetResource
-        }
+    }
 
-    member _.RecordTargetResource(state: CNameRecordProperties, targetResource: IArmResource) =
-        { state with
+    member _.RecordTargetResource(state: CNameRecordProperties, targetResource: IArmResource) = {
+        state with
             TargetResource = Some targetResource.ResourceId
-        }
+    }
 
-    member _.RecordTargetResource(state: CNameRecordProperties, targetResource: IBuilder) =
-        { state with
+    member _.RecordTargetResource(state: CNameRecordProperties, targetResource: IBuilder) = {
+        state with
             TargetResource = Some targetResource.ResourceId
-        }
+    }
 
     /// Sets the zone_type of the record.
     [<CustomOperation "zone_type">]
@@ -299,44 +283,42 @@ type DnsCNameRecordBuilder() =
 
     /// Builds a record for an existing DNS zone that is not managed by this Farmer deployment.
     [<CustomOperation "link_to_unmanaged_dns_zone">]
-    member _.LinkToUnmanagedDnsZone(state: CNameRecordProperties, zone: ResourceId) =
-        { state with
+    member _.LinkToUnmanagedDnsZone(state: CNameRecordProperties, zone: ResourceId) = {
+        state with
             Zone = Some(Unmanaged zone)
-        }
+    }
 
     /// Builds a record for an existing DNS zone that is managed by this Farmer deployment.
     [<CustomOperation "link_to_dns_zone">]
-    member _.LinkToDnsZone(state: CNameRecordProperties, zone: ResourceId) =
-        { state with Zone = Some(Managed zone) }
+    member _.LinkToDnsZone(state: CNameRecordProperties, zone: ResourceId) = { state with Zone = Some(Managed zone) }
 
-    member _.LinkToDnsZone(state: CNameRecordProperties, zone: IArmResource) =
-        { state with
+    member _.LinkToDnsZone(state: CNameRecordProperties, zone: IArmResource) = {
+        state with
             Zone = Some(Managed zone.ResourceId)
-        }
+    }
 
-    member _.LinkToDnsZone(state: CNameRecordProperties, zone: IBuilder) =
-        { state with
+    member _.LinkToDnsZone(state: CNameRecordProperties, zone: IBuilder) = {
+        state with
             Zone = Some(Managed zone.ResourceId)
-        }
+    }
 
     // Enable support for additional dependencies.
     interface IDependable<CNameRecordProperties> with
-        member _.Add state newDeps =
-            { state with
+        member _.Add state newDeps = {
+            state with
                 Dependencies = state.Dependencies + newDeps
-            }
+        }
 
 type DnsARecordBuilder() =
-    member _.Yield _ =
-        {
-            ARecordProperties.Ipv4Addresses = []
-            Name = ResourceName "@"
-            Dependencies = Set.empty
-            TTL = None
-            Zone = None
-            TargetResource = None
-            ZoneType = Public
-        }
+    member _.Yield _ = {
+        ARecordProperties.Ipv4Addresses = []
+        Name = ResourceName "@"
+        Dependencies = Set.empty
+        TTL = None
+        Zone = None
+        TargetResource = None
+        ZoneType = Public
+    }
 
     member _.Run(state: ARecordProperties) =
         DnsZoneRecordConfig.Create(
@@ -357,10 +339,10 @@ type DnsARecordBuilder() =
 
     /// Sets the ipv4 address.
     [<CustomOperation "add_ipv4_addresses">]
-    member _.RecordAddress(state: ARecordProperties, ipv4Addresses) =
-        { state with
+    member _.RecordAddress(state: ARecordProperties, ipv4Addresses) = {
+        state with
             Ipv4Addresses = state.Ipv4Addresses @ ipv4Addresses
-        }
+    }
 
     /// Sets the TTL of the record.
     [<CustomOperation "ttl">]
@@ -368,42 +350,41 @@ type DnsARecordBuilder() =
 
     /// Sets the target resource of the record.
     [<CustomOperation "target_resource">]
-    member _.RecordTargetResource(state: ARecordProperties, targetResource: ResourceId) =
-        { state with
+    member _.RecordTargetResource(state: ARecordProperties, targetResource: ResourceId) = {
+        state with
             TargetResource = Some targetResource
-        }
+    }
 
-    member _.RecordTargetResource(state: ARecordProperties, targetResource: IArmResource) =
-        { state with
+    member _.RecordTargetResource(state: ARecordProperties, targetResource: IArmResource) = {
+        state with
             TargetResource = Some targetResource.ResourceId
-        }
+    }
 
-    member _.RecordTargetResource(state: ARecordProperties, targetResource: IBuilder) =
-        { state with
+    member _.RecordTargetResource(state: ARecordProperties, targetResource: IBuilder) = {
+        state with
             TargetResource = Some targetResource.ResourceId
-        }
+    }
 
     /// Builds a record for an existing DNS zone.
     [<CustomOperation "link_to_unmanaged_dns_zone">]
-    member _.LinkToUnmanagedDnsZone(state: ARecordProperties, zone: ResourceId) =
-        { state with
+    member _.LinkToUnmanagedDnsZone(state: ARecordProperties, zone: ResourceId) = {
+        state with
             Zone = Some(Unmanaged zone)
-        }
+    }
 
     /// Builds a record for an existing DNS zone that is managed by this Farmer deployment.
     [<CustomOperation "link_to_dns_zone">]
-    member _.LinkToDnsZone(state: ARecordProperties, zone: ResourceId) =
-        { state with Zone = Some(Managed zone) }
+    member _.LinkToDnsZone(state: ARecordProperties, zone: ResourceId) = { state with Zone = Some(Managed zone) }
 
-    member _.LinkToDnsZone(state: ARecordProperties, zone: IArmResource) =
-        { state with
+    member _.LinkToDnsZone(state: ARecordProperties, zone: IArmResource) = {
+        state with
             Zone = Some(Managed zone.ResourceId)
-        }
+    }
 
-    member _.LinkToDnsZone(state: ARecordProperties, zone: IBuilder) =
-        { state with
+    member _.LinkToDnsZone(state: ARecordProperties, zone: IBuilder) = {
+        state with
             Zone = Some(Managed zone.ResourceId)
-        }
+    }
 
     /// Sets the zone_type of the record.
     [<CustomOperation "zone_type">]
@@ -411,22 +392,21 @@ type DnsARecordBuilder() =
 
     // Enable support for additional dependencies.
     interface IDependable<ARecordProperties> with
-        member _.Add state newDeps =
-            { state with
+        member _.Add state newDeps = {
+            state with
                 Dependencies = state.Dependencies + newDeps
-            }
+        }
 
 type DnsAaaaRecordBuilder() =
-    member _.Yield _ =
-        {
-            AaaaRecordProperties.Ipv6Addresses = []
-            Name = ResourceName "@"
-            Dependencies = Set.empty
-            TTL = None
-            Zone = None
-            TargetResource = None
-            ZoneType = Public
-        }
+    member _.Yield _ = {
+        AaaaRecordProperties.Ipv6Addresses = []
+        Name = ResourceName "@"
+        Dependencies = Set.empty
+        TTL = None
+        Zone = None
+        TargetResource = None
+        ZoneType = Public
+    }
 
     member _.Run(state: AaaaRecordProperties) =
         DnsZoneRecordConfig.Create(
@@ -447,10 +427,10 @@ type DnsAaaaRecordBuilder() =
 
     /// Sets the ipv6 address.
     [<CustomOperation "add_ipv6_addresses">]
-    member _.RecordAddress(state: AaaaRecordProperties, ipv6Addresses) =
-        { state with
+    member _.RecordAddress(state: AaaaRecordProperties, ipv6Addresses) = {
+        state with
             Ipv6Addresses = state.Ipv6Addresses @ ipv6Addresses
-        }
+    }
 
     /// Sets the TTL of the record.
     [<CustomOperation "ttl">]
@@ -458,42 +438,41 @@ type DnsAaaaRecordBuilder() =
 
     /// Sets the target resource of the record.
     [<CustomOperation "target_resource">]
-    member _.RecordTargetResource(state: AaaaRecordProperties, targetResource: ResourceId) =
-        { state with
+    member _.RecordTargetResource(state: AaaaRecordProperties, targetResource: ResourceId) = {
+        state with
             TargetResource = Some targetResource
-        }
+    }
 
-    member _.RecordTargetResource(state: AaaaRecordProperties, targetResource: IArmResource) =
-        { state with
+    member _.RecordTargetResource(state: AaaaRecordProperties, targetResource: IArmResource) = {
+        state with
             TargetResource = Some targetResource.ResourceId
-        }
+    }
 
-    member _.RecordTargetResource(state: AaaaRecordProperties, targetResource: IBuilder) =
-        { state with
+    member _.RecordTargetResource(state: AaaaRecordProperties, targetResource: IBuilder) = {
+        state with
             TargetResource = Some targetResource.ResourceId
-        }
+    }
 
     /// Builds a record for an existing DNS zone.
     [<CustomOperation "link_to_unmanaged_dns_zone">]
-    member _.LinkToUnmanagedDnsZone(state: AaaaRecordProperties, zone: ResourceId) =
-        { state with
+    member _.LinkToUnmanagedDnsZone(state: AaaaRecordProperties, zone: ResourceId) = {
+        state with
             Zone = Some(Unmanaged zone)
-        }
+    }
 
     /// Builds a record for an existing DNS zone that is managed by this Farmer deployment.
     [<CustomOperation "link_to_dns_zone">]
-    member _.LinkToDnsZone(state: AaaaRecordProperties, zone: ResourceId) =
-        { state with Zone = Some(Managed zone) }
+    member _.LinkToDnsZone(state: AaaaRecordProperties, zone: ResourceId) = { state with Zone = Some(Managed zone) }
 
-    member _.LinkToDnsZone(state: AaaaRecordProperties, zone: IArmResource) =
-        { state with
+    member _.LinkToDnsZone(state: AaaaRecordProperties, zone: IArmResource) = {
+        state with
             Zone = Some(Managed zone.ResourceId)
-        }
+    }
 
-    member _.LinkToDnsZone(state: AaaaRecordProperties, zone: IBuilder) =
-        { state with
+    member _.LinkToDnsZone(state: AaaaRecordProperties, zone: IBuilder) = {
+        state with
             Zone = Some(Managed zone.ResourceId)
-        }
+    }
 
     /// Sets the zone_type of the record.
     [<CustomOperation "zone_type">]
@@ -501,20 +480,19 @@ type DnsAaaaRecordBuilder() =
 
     // Enable support for additional dependencies.
     interface IDependable<AaaaRecordProperties> with
-        member _.Add state newDeps =
-            { state with
+        member _.Add state newDeps = {
+            state with
                 Dependencies = state.Dependencies + newDeps
-            }
+        }
 
 type DnsNsRecordBuilder() =
-    member _.Yield _ =
-        {
-            NsRecordProperties.NsdNames = NsRecords.Records []
-            Name = ResourceName "@"
-            Dependencies = Set.empty
-            TTL = None
-            Zone = None
-        }
+    member _.Yield _ = {
+        NsRecordProperties.NsdNames = NsRecords.Records []
+        Name = ResourceName "@"
+        Dependencies = Set.empty
+        TTL = None
+        Zone = None
+    }
 
     member _.Run(state: NsRecordProperties) =
         DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, NS state.NsdNames, state.Dependencies)
@@ -533,10 +511,10 @@ type DnsNsRecordBuilder() =
         | NsRecords.SourceZone _ ->
             raiseFarmer
                 "Cannot add 'add_nsd_names' when using 'add_nsd_reference' to reference another zone's nameservers."
-        | NsRecords.Records existingNsdNames ->
-            { state with
+        | NsRecords.Records existingNsdNames -> {
+            state with
                 NsdNames = NsRecords.Records(existingNsdNames @ nsdNames)
-            }
+          }
 
     /// Ensure no nsd records were already added that will be overwritten by the reference.
     member private this.validateNsdReference(state: NsRecordProperties) =
@@ -550,22 +528,25 @@ type DnsNsRecordBuilder() =
     member this.RecordNsdNameReference(state: NsRecordProperties, dnsZoneResourceId: ResourceId) =
         this.validateNsdReference state
 
-        { state with
-            NsdNames = NsRecords.SourceZone dnsZoneResourceId
+        {
+            state with
+                NsdNames = NsRecords.SourceZone dnsZoneResourceId
         }
 
     member this.RecordNsdNameReference(state: NsRecordProperties, dnsZoneResourceId: IArmResource) =
         this.validateNsdReference state
 
-        { state with
-            NsdNames = NsRecords.SourceZone dnsZoneResourceId.ResourceId
+        {
+            state with
+                NsdNames = NsRecords.SourceZone dnsZoneResourceId.ResourceId
         }
 
     member this.RecordNsdNameReference(state: NsRecordProperties, dnsZoneConfig: DnsZoneConfig) =
         this.validateNsdReference state
 
-        { state with
-            NsdNames = NsRecords.SourceZone (dnsZoneConfig :> IBuilder).ResourceId
+        {
+            state with
+                NsdNames = NsRecords.SourceZone (dnsZoneConfig :> IBuilder).ResourceId
         }
 
     /// Sets the TTL of the record.
@@ -574,43 +555,41 @@ type DnsNsRecordBuilder() =
 
     /// Builds a record for an existing DNS zone.
     [<CustomOperation "link_to_unmanaged_dns_zone">]
-    member _.LinkToUnmanagedDnsZone(state: NsRecordProperties, zone: ResourceId) =
-        { state with
+    member _.LinkToUnmanagedDnsZone(state: NsRecordProperties, zone: ResourceId) = {
+        state with
             Zone = Some(Unmanaged zone)
-        }
+    }
 
     /// Builds a record for an existing DNS zone that is managed by this Farmer deployment.
     [<CustomOperation "link_to_dns_zone">]
-    member _.LinkToDnsZone(state: NsRecordProperties, zone: ResourceId) =
-        { state with Zone = Some(Managed zone) }
+    member _.LinkToDnsZone(state: NsRecordProperties, zone: ResourceId) = { state with Zone = Some(Managed zone) }
 
-    member _.LinkToDnsZone(state: NsRecordProperties, zone: IArmResource) =
-        { state with
+    member _.LinkToDnsZone(state: NsRecordProperties, zone: IArmResource) = {
+        state with
             Zone = Some(Managed zone.ResourceId)
-        }
+    }
 
-    member _.LinkToDnsZone(state: NsRecordProperties, zone: IBuilder) =
-        { state with
+    member _.LinkToDnsZone(state: NsRecordProperties, zone: IBuilder) = {
+        state with
             Zone = Some(Managed zone.ResourceId)
-        }
+    }
 
     // Enable support for additional dependencies.
     interface IDependable<NsRecordProperties> with
-        member _.Add state newDeps =
-            { state with
+        member _.Add state newDeps = {
+            state with
                 Dependencies = state.Dependencies + newDeps
-            }
+        }
 
 type DnsPtrRecordBuilder() =
-    member _.Yield _ =
-        {
-            PtrRecordProperties.PtrdNames = []
-            Name = ResourceName "@"
-            Dependencies = Set.empty
-            TTL = None
-            Zone = None
-            ZoneType = Public
-        }
+    member _.Yield _ = {
+        PtrRecordProperties.PtrdNames = []
+        Name = ResourceName "@"
+        Dependencies = Set.empty
+        TTL = None
+        Zone = None
+        ZoneType = Public
+    }
 
     member _.Run(state: PtrRecordProperties) =
         DnsZoneRecordConfig.Create(
@@ -631,10 +610,10 @@ type DnsPtrRecordBuilder() =
 
     /// Add PTR names
     [<CustomOperation "add_ptrd_names">]
-    member _.RecordPtrdNames(state: PtrRecordProperties, ptrdNames) =
-        { state with
+    member _.RecordPtrdNames(state: PtrRecordProperties, ptrdNames) = {
+        state with
             PtrdNames = state.PtrdNames @ ptrdNames
-        }
+    }
 
     /// Sets the TTL of the record.
     [<CustomOperation "ttl">]
@@ -642,25 +621,24 @@ type DnsPtrRecordBuilder() =
 
     /// Builds a record for an existing DNS zone.
     [<CustomOperation "link_to_unmanaged_dns_zone">]
-    member _.LinkToUnmanagedDnsZone(state: PtrRecordProperties, zone: ResourceId) =
-        { state with
+    member _.LinkToUnmanagedDnsZone(state: PtrRecordProperties, zone: ResourceId) = {
+        state with
             Zone = Some(Unmanaged zone)
-        }
+    }
 
     /// Builds a record for an existing DNS zone that is managed by this Farmer deployment.
     [<CustomOperation "link_to_dns_zone">]
-    member _.LinkToDnsZone(state: PtrRecordProperties, zone: ResourceId) =
-        { state with Zone = Some(Managed zone) }
+    member _.LinkToDnsZone(state: PtrRecordProperties, zone: ResourceId) = { state with Zone = Some(Managed zone) }
 
-    member _.LinkToDnsZone(state: PtrRecordProperties, zone: IArmResource) =
-        { state with
+    member _.LinkToDnsZone(state: PtrRecordProperties, zone: IArmResource) = {
+        state with
             Zone = Some(Managed zone.ResourceId)
-        }
+    }
 
-    member _.LinkToDnsZone(state: PtrRecordProperties, zone: IBuilder) =
-        { state with
+    member _.LinkToDnsZone(state: PtrRecordProperties, zone: IBuilder) = {
+        state with
             Zone = Some(Managed zone.ResourceId)
-        }
+    }
 
     /// Sets the zone_type of the record.
     [<CustomOperation "zone_type">]
@@ -668,21 +646,20 @@ type DnsPtrRecordBuilder() =
 
     // Enable support for additional dependencies.
     interface IDependable<PtrRecordProperties> with
-        member _.Add state newDeps =
-            { state with
+        member _.Add state newDeps = {
+            state with
                 Dependencies = state.Dependencies + newDeps
-            }
+        }
 
 type DnsTxtRecordBuilder() =
-    member _.Yield _ =
-        {
-            TxtRecordProperties.Name = ResourceName "@"
-            Dependencies = Set.empty
-            TxtValues = []
-            TTL = None
-            Zone = None
-            ZoneType = Public
-        }
+    member _.Yield _ = {
+        TxtRecordProperties.Name = ResourceName "@"
+        Dependencies = Set.empty
+        TxtValues = []
+        TTL = None
+        Zone = None
+        ZoneType = Public
+    }
 
     member _.Run(state: TxtRecordProperties) =
         DnsZoneRecordConfig.Create(
@@ -703,10 +680,10 @@ type DnsTxtRecordBuilder() =
 
     /// Add TXT values
     [<CustomOperation "add_values">]
-    member _.RecordValues(state: TxtRecordProperties, txtValues) =
-        { state with
+    member _.RecordValues(state: TxtRecordProperties, txtValues) = {
+        state with
             TxtValues = state.TxtValues @ txtValues
-        }
+    }
 
     /// Sets the TTL of the record.
     [<CustomOperation "ttl">]
@@ -714,25 +691,24 @@ type DnsTxtRecordBuilder() =
 
     /// Builds a record for an existing DNS zone.
     [<CustomOperation "link_to_unmanaged_dns_zone">]
-    member _.LinkToUnmanagedDnsZone(state: TxtRecordProperties, zone: ResourceId) =
-        { state with
+    member _.LinkToUnmanagedDnsZone(state: TxtRecordProperties, zone: ResourceId) = {
+        state with
             Zone = Some(Unmanaged zone)
-        }
+    }
 
     /// Builds a record for an existing DNS zone that is managed by this Farmer deployment.
     [<CustomOperation "link_to_dns_zone">]
-    member _.LinkToDnsZone(state: TxtRecordProperties, zone: ResourceId) =
-        { state with Zone = Some(Managed zone) }
+    member _.LinkToDnsZone(state: TxtRecordProperties, zone: ResourceId) = { state with Zone = Some(Managed zone) }
 
-    member _.LinkToDnsZone(state: TxtRecordProperties, zone: IArmResource) =
-        { state with
+    member _.LinkToDnsZone(state: TxtRecordProperties, zone: IArmResource) = {
+        state with
             Zone = Some(Managed zone.ResourceId)
-        }
+    }
 
-    member _.LinkToDnsZone(state: TxtRecordProperties, zone: IBuilder) =
-        { state with
+    member _.LinkToDnsZone(state: TxtRecordProperties, zone: IBuilder) = {
+        state with
             Zone = Some(Managed zone.ResourceId)
-        }
+    }
 
     /// Sets the zone_type of the record.
     [<CustomOperation "zone_type">]
@@ -740,21 +716,20 @@ type DnsTxtRecordBuilder() =
 
     // Enable support for additional dependencies.
     interface IDependable<TxtRecordProperties> with
-        member _.Add state newDeps =
-            { state with
+        member _.Add state newDeps = {
+            state with
                 Dependencies = state.Dependencies + newDeps
-            }
+        }
 
 type DnsMxRecordBuilder() =
-    member _.Yield _ =
-        {
-            MxRecordProperties.Name = ResourceName "@"
-            Dependencies = Set.empty
-            MxValues = []
-            TTL = None
-            Zone = None
-            ZoneType = Public
-        }
+    member _.Yield _ = {
+        MxRecordProperties.Name = ResourceName "@"
+        Dependencies = Set.empty
+        MxValues = []
+        TTL = None
+        Zone = None
+        ZoneType = Public
+    }
 
     member _.Run(state: MxRecordProperties) =
         DnsZoneRecordConfig.Create(
@@ -775,17 +750,16 @@ type DnsMxRecordBuilder() =
 
     /// Add MX records.
     [<CustomOperation "add_values">]
-    member _.RecordValue(state: MxRecordProperties, mxValues: (int * string) list) =
-        { state with
+    member _.RecordValue(state: MxRecordProperties, mxValues: (int * string) list) = {
+        state with
             MxValues =
                 state.MxValues
                 @ (mxValues
-                   |> List.map (fun x ->
-                       {|
-                           Preference = fst x
-                           Exchange = snd x
-                       |}))
-        }
+                   |> List.map (fun x -> {|
+                       Preference = fst x
+                       Exchange = snd x
+                   |}))
+    }
 
     /// Sets the TTL of the record.
     [<CustomOperation "ttl">]
@@ -793,25 +767,24 @@ type DnsMxRecordBuilder() =
 
     /// Builds a record for an existing DNS zone.
     [<CustomOperation "link_to_unmanaged_dns_zone">]
-    member _.LinkToUnmanagedDnsZone(state: MxRecordProperties, zone: ResourceId) =
-        { state with
+    member _.LinkToUnmanagedDnsZone(state: MxRecordProperties, zone: ResourceId) = {
+        state with
             Zone = Some(Unmanaged zone)
-        }
+    }
 
     /// Builds a record for an existing DNS zone that is managed by this Farmer deployment.
     [<CustomOperation "link_to_dns_zone">]
-    member _.LinkToDnsZone(state: MxRecordProperties, zone: ResourceId) =
-        { state with Zone = Some(Managed zone) }
+    member _.LinkToDnsZone(state: MxRecordProperties, zone: ResourceId) = { state with Zone = Some(Managed zone) }
 
-    member _.LinkToDnsZone(state: MxRecordProperties, zone: IArmResource) =
-        { state with
+    member _.LinkToDnsZone(state: MxRecordProperties, zone: IArmResource) = {
+        state with
             Zone = Some(Managed zone.ResourceId)
-        }
+    }
 
-    member _.LinkToDnsZone(state: MxRecordProperties, zone: IBuilder) =
-        { state with
+    member _.LinkToDnsZone(state: MxRecordProperties, zone: IBuilder) = {
+        state with
             Zone = Some(Managed zone.ResourceId)
-        }
+    }
 
     /// Sets the zone_type of the record.
     [<CustomOperation "zone_type">]
@@ -819,21 +792,20 @@ type DnsMxRecordBuilder() =
 
     // Enable support for additional dependencies.
     interface IDependable<MxRecordProperties> with
-        member _.Add state newDeps =
-            { state with
+        member _.Add state newDeps = {
+            state with
                 Dependencies = state.Dependencies + newDeps
-            }
+        }
 
 type DnsSrvRecordBuilder() =
-    member _.Yield _ =
-        {
-            SrvRecordProperties.Name = ResourceName "@"
-            Dependencies = Set.empty
-            SrvValues = []
-            TTL = None
-            Zone = None
-            ZoneType = Public
-        }
+    member _.Yield _ = {
+        SrvRecordProperties.Name = ResourceName "@"
+        Dependencies = Set.empty
+        SrvValues = []
+        TTL = None
+        Zone = None
+        ZoneType = Public
+    }
 
     member _.Run(state: SrvRecordProperties) =
         DnsZoneRecordConfig.Create(
@@ -854,10 +826,10 @@ type DnsSrvRecordBuilder() =
 
     /// Add SRV records.
     [<CustomOperation "add_values">]
-    member _.RecordValue(state: SrvRecordProperties, srvValues: SrvRecord list) =
-        { state with
+    member _.RecordValue(state: SrvRecordProperties, srvValues: SrvRecord list) = {
+        state with
             SrvValues = state.SrvValues @ srvValues
-        }
+    }
 
     /// Sets the TTL of the record.
     [<CustomOperation "ttl">]
@@ -865,25 +837,24 @@ type DnsSrvRecordBuilder() =
 
     /// Builds a record for an existing DNS zone.
     [<CustomOperation "link_to_unmanaged_dns_zone">]
-    member _.LinkToUnmanagedDnsZone(state: SrvRecordProperties, zone: ResourceId) =
-        { state with
+    member _.LinkToUnmanagedDnsZone(state: SrvRecordProperties, zone: ResourceId) = {
+        state with
             Zone = Some(Unmanaged zone)
-        }
+    }
 
     /// Builds a record for an existing DNS zone that is managed by this Farmer deployment.
     [<CustomOperation "link_to_dns_zone">]
-    member _.LinkToDnsZone(state: SrvRecordProperties, zone: ResourceId) =
-        { state with Zone = Some(Managed zone) }
+    member _.LinkToDnsZone(state: SrvRecordProperties, zone: ResourceId) = { state with Zone = Some(Managed zone) }
 
-    member _.LinkToDnsZone(state: SrvRecordProperties, zone: IArmResource) =
-        { state with
+    member _.LinkToDnsZone(state: SrvRecordProperties, zone: IArmResource) = {
+        state with
             Zone = Some(Managed zone.ResourceId)
-        }
+    }
 
-    member _.LinkToDnsZone(state: SrvRecordProperties, zone: IBuilder) =
-        { state with
+    member _.LinkToDnsZone(state: SrvRecordProperties, zone: IBuilder) = {
+        state with
             Zone = Some(Managed zone.ResourceId)
-        }
+    }
 
     /// Sets the zone_type of the record.
     [<CustomOperation "zone_type">]
@@ -891,39 +862,37 @@ type DnsSrvRecordBuilder() =
 
     // Enable support for additional dependencies.
     interface IDependable<SrvRecordProperties> with
-        member _.Add state newDeps =
-            { state with
+        member _.Add state newDeps = {
+            state with
                 Dependencies = state.Dependencies + newDeps
-            }
-
-type DnsSoaRecordBuilder() =
-    member _.Yield _ =
-        {
-            SoaRecordProperties.Name = ResourceName "@"
-            Dependencies = Set.empty
-            Host = None
-            Email = None
-            SerialNumber = None
-            RefreshTime = None
-            RetryTime = None
-            ExpireTime = None
-            MinimumTTL = None
-            TTL = None
-            Zone = None
-            ZoneType = Public
         }
 
+type DnsSoaRecordBuilder() =
+    member _.Yield _ = {
+        SoaRecordProperties.Name = ResourceName "@"
+        Dependencies = Set.empty
+        Host = None
+        Email = None
+        SerialNumber = None
+        RefreshTime = None
+        RetryTime = None
+        ExpireTime = None
+        MinimumTTL = None
+        TTL = None
+        Zone = None
+        ZoneType = Public
+    }
+
     member _.Run(state: SoaRecordProperties) =
-        let value =
-            {
-                Host = state.Host
-                Email = state.Email
-                SerialNumber = state.SerialNumber
-                RefreshTime = state.RefreshTime
-                RetryTime = state.RetryTime
-                ExpireTime = state.ExpireTime
-                MinimumTTL = state.MinimumTTL
-            }
+        let value = {
+            Host = state.Host
+            Email = state.Email
+            SerialNumber = state.SerialNumber
+            RefreshTime = state.RefreshTime
+            RetryTime = state.RetryTime
+            ExpireTime = state.ExpireTime
+            MinimumTTL = state.MinimumTTL
+        }
 
         DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, SOA value, state.Dependencies, state.ZoneType)
 
@@ -945,10 +914,10 @@ type DnsSoaRecordBuilder() =
     /// Sets the expire time for this SOA record in seconds.
     /// Defaults to 2419200 (28 days).
     [<CustomOperation "expire_time">]
-    member _.RecordExpireTime(state: SoaRecordProperties, expireTime: int64) =
-        { state with
+    member _.RecordExpireTime(state: SoaRecordProperties, expireTime: int64) = {
+        state with
             ExpireTime = Some expireTime
-        }
+    }
 
     /// Sets the minimum time to live for this SOA record in seconds.
     /// Defaults to 300.
@@ -958,25 +927,25 @@ type DnsSoaRecordBuilder() =
     /// Sets the refresh time for this SOA record in seconds.
     /// Defaults to 3600 (1 hour)
     [<CustomOperation "refresh_time">]
-    member _.RecordRefreshTime(state: SoaRecordProperties, refreshTime: int64) =
-        { state with
+    member _.RecordRefreshTime(state: SoaRecordProperties, refreshTime: int64) = {
+        state with
             RefreshTime = Some refreshTime
-        }
+    }
 
     /// Sets the retry time for this SOA record in seconds.
     /// Defaults to 300 seconds.
     [<CustomOperation "retry_time">]
-    member _.RetryTime(state: SoaRecordProperties, retryTime: int64) =
-        { state with
+    member _.RetryTime(state: SoaRecordProperties, retryTime: int64) = {
+        state with
             RetryTime = Some retryTime
-        }
+    }
 
     /// Sets the serial number for this SOA record (required).
     [<CustomOperation "serial_number">]
-    member _.RecordSerialNumber(state: SoaRecordProperties, serialNo: int64) =
-        { state with
+    member _.RecordSerialNumber(state: SoaRecordProperties, serialNo: int64) = {
+        state with
             SerialNumber = Some serialNo
-        }
+    }
 
     /// Sets the TTL of the record.
     [<CustomOperation "ttl">]
@@ -984,25 +953,24 @@ type DnsSoaRecordBuilder() =
 
     /// Builds a record for an existing DNS zone.
     [<CustomOperation "link_to_unmanaged_dns_zone">]
-    member _.LinkToUnmanagedDnsZone(state: SoaRecordProperties, zone: ResourceId) =
-        { state with
+    member _.LinkToUnmanagedDnsZone(state: SoaRecordProperties, zone: ResourceId) = {
+        state with
             Zone = Some(Unmanaged zone)
-        }
+    }
 
     /// Builds a record for an existing DNS zone that is managed by this Farmer deployment.
     [<CustomOperation "link_to_dns_zone">]
-    member _.LinkToDnsZone(state: SoaRecordProperties, zone: ResourceId) =
-        { state with Zone = Some(Managed zone) }
+    member _.LinkToDnsZone(state: SoaRecordProperties, zone: ResourceId) = { state with Zone = Some(Managed zone) }
 
-    member _.LinkToDnsZone(state: SoaRecordProperties, zone: IArmResource) =
-        { state with
+    member _.LinkToDnsZone(state: SoaRecordProperties, zone: IArmResource) = {
+        state with
             Zone = Some(Managed zone.ResourceId)
-        }
+    }
 
-    member _.LinkToDnsZone(state: SoaRecordProperties, zone: IBuilder) =
-        { state with
+    member _.LinkToDnsZone(state: SoaRecordProperties, zone: IBuilder) = {
+        state with
             Zone = Some(Managed zone.ResourceId)
-        }
+    }
 
     /// Sets the zone_type of the record.
     [<CustomOperation "zone_type">]
@@ -1010,29 +978,28 @@ type DnsSoaRecordBuilder() =
 
     // Enable support for additional dependencies.
     interface IDependable<SoaRecordProperties> with
-        member _.Add state newDeps =
-            { state with
+        member _.Add state newDeps = {
+            state with
                 Dependencies = state.Dependencies + newDeps
-            }
-
-type DnsZoneBuilder() =
-    member _.Yield _ =
-        {
-            DnsZoneConfig.Name = ResourceName ""
-            Dependencies = Set.empty
-            Records = []
-            ZoneType = Public
-            Tags = Map.empty
         }
 
-    member _.Run(state) : DnsZoneConfig =
-        { state with
+type DnsZoneBuilder() =
+    member _.Yield _ = {
+        DnsZoneConfig.Name = ResourceName ""
+        Dependencies = Set.empty
+        Records = []
+        ZoneType = Public
+        Tags = Map.empty
+    }
+
+    member _.Run(state) : DnsZoneConfig = {
+        state with
             Name =
                 if state.Name = ResourceName.Empty then
                     raiseFarmer "You must set a DNS zone name"
                 else
                     state.Name
-        }
+    }
 
     /// Sets the name of the DNS Zone.
     [<CustomOperation "name">]
@@ -1047,34 +1014,33 @@ type DnsZoneBuilder() =
 
     /// Add DNS records to the DNS Zone.
     [<CustomOperation "add_records">]
-    member _.AddRecords(state: DnsZoneConfig, records) =
-        { state with
+    member _.AddRecords(state: DnsZoneConfig, records) = {
+        state with
             Records = state.Records @ records
-        }
+    }
 
     // Enable support for additional dependencies.
     interface IDependable<DnsZoneConfig> with
-        member _.Add state newDeps =
-            { state with
+        member _.Add state newDeps = {
+            state with
                 Dependencies = state.Dependencies + newDeps
-            }
+        }
 
     interface ITaggable<DnsZoneConfig> with
-        member _.Add state tags =
-            { state with
+        member _.Add state tags = {
+            state with
                 Tags = state.Tags |> Map.merge tags
-            }
+        }
 
 type PrivateDnsZoneVirtualNetworkLinkBuilder() =
-    member _.Yield _ =
-        {
-            PrivateDnsZoneVirtualNetworkLinkConfig.Name = ResourceName.Empty
-            PrivateDnsZone = None
-            RegistrationEnabled = None
-            VirtualNetworkId = None
-            Dependencies = Set.empty
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        PrivateDnsZoneVirtualNetworkLinkConfig.Name = ResourceName.Empty
+        PrivateDnsZone = None
+        RegistrationEnabled = None
+        VirtualNetworkId = None
+        Dependencies = Set.empty
+        Tags = Map.empty
+    }
 
     member _.Run(config: PrivateDnsZoneVirtualNetworkLinkConfig) =
         if config.PrivateDnsZone.IsNone then
@@ -1092,66 +1058,66 @@ type PrivateDnsZoneVirtualNetworkLinkBuilder() =
     member _.Name(state: PrivateDnsZoneVirtualNetworkLinkConfig, name) = { state with Name = ResourceName name }
 
     [<CustomOperation "private_dns_zone">]
-    member _.PrivateDnsZone(state: PrivateDnsZoneVirtualNetworkLinkConfig, privateDnsZone) =
-        { state with
+    member _.PrivateDnsZone(state: PrivateDnsZoneVirtualNetworkLinkConfig, privateDnsZone) = {
+        state with
             PrivateDnsZone = Some(Managed privateDnsZone)
-        }
+    }
 
-    member _.PrivateDnsZone(state: PrivateDnsZoneVirtualNetworkLinkConfig, privateDnsZone: IBuilder) =
-        { state with
+    member _.PrivateDnsZone(state: PrivateDnsZoneVirtualNetworkLinkConfig, privateDnsZone: IBuilder) = {
+        state with
             PrivateDnsZone = Some(Managed(privateDnsZone.ResourceId))
-        }
+    }
 
     [<CustomOperation "link_to_private_dns_zone">]
-    member _.LinkToPrivateDnsZone(state: PrivateDnsZoneVirtualNetworkLinkConfig, privateDnsZone) =
-        { state with
+    member _.LinkToPrivateDnsZone(state: PrivateDnsZoneVirtualNetworkLinkConfig, privateDnsZone) = {
+        state with
             PrivateDnsZone = Some(Unmanaged privateDnsZone)
-        }
+    }
 
-    member _.LinkToPrivateDnsZone(state: PrivateDnsZoneVirtualNetworkLinkConfig, privateDnsZone: IBuilder) =
-        { state with
+    member _.LinkToPrivateDnsZone(state: PrivateDnsZoneVirtualNetworkLinkConfig, privateDnsZone: IBuilder) = {
+        state with
             PrivateDnsZone = Some(Unmanaged(privateDnsZone.ResourceId))
-        }
+    }
 
     [<CustomOperation "registration_enabled">]
-    member _.RegistrationEnabled(state: PrivateDnsZoneVirtualNetworkLinkConfig, autoregister) =
-        { state with
+    member _.RegistrationEnabled(state: PrivateDnsZoneVirtualNetworkLinkConfig, autoregister) = {
+        state with
             RegistrationEnabled = Some autoregister
-        }
+    }
 
     [<CustomOperation "virtual_network_id">]
-    member _.VirtualNetworkId(state: PrivateDnsZoneVirtualNetworkLinkConfig, vnetId) =
-        { state with
+    member _.VirtualNetworkId(state: PrivateDnsZoneVirtualNetworkLinkConfig, vnetId) = {
+        state with
             VirtualNetworkId = Some(Managed vnetId)
-        }
+    }
 
-    member _.VirtualNetworkId(state: PrivateDnsZoneVirtualNetworkLinkConfig, vnetId: IBuilder) =
-        { state with
+    member _.VirtualNetworkId(state: PrivateDnsZoneVirtualNetworkLinkConfig, vnetId: IBuilder) = {
+        state with
             VirtualNetworkId = Some(Managed vnetId.ResourceId)
-        }
+    }
 
     [<CustomOperation "link_to_virtual_network_id">]
-    member _.LinkToVirtualNetworkId(state: PrivateDnsZoneVirtualNetworkLinkConfig, vnetId) =
-        { state with
+    member _.LinkToVirtualNetworkId(state: PrivateDnsZoneVirtualNetworkLinkConfig, vnetId) = {
+        state with
             VirtualNetworkId = Some(Unmanaged vnetId)
-        }
+    }
 
-    member _.LinkToVirtualNetworkId(state: PrivateDnsZoneVirtualNetworkLinkConfig, vnetId: IBuilder) =
-        { state with
+    member _.LinkToVirtualNetworkId(state: PrivateDnsZoneVirtualNetworkLinkConfig, vnetId: IBuilder) = {
+        state with
             VirtualNetworkId = Some(Unmanaged vnetId.ResourceId)
-        }
+    }
 
     interface IDependable<PrivateDnsZoneVirtualNetworkLinkConfig> with
-        member _.Add state newDeps =
-            { state with
+        member _.Add state newDeps = {
+            state with
                 Dependencies = state.Dependencies + newDeps
-            }
+        }
 
     interface ITaggable<PrivateDnsZoneVirtualNetworkLinkConfig> with
-        member _.Add state tags =
-            { state with
+        member _.Add state tags = {
+            state with
                 Tags = state.Tags |> Map.merge tags
-            }
+        }
 
 let dnsZone = DnsZoneBuilder()
 let cnameRecord = DnsCNameRecordBuilder()

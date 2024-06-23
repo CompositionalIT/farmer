@@ -9,52 +9,48 @@ open Farmer.Arm.DiagnosticSetting
 open Farmer.Builders.Storage
 open Farmer.DiagnosticSettings
 
-type DiagnosticSettingsConfig =
-    {
-        Name: ResourceName
-        MetricsSource: ResourceId
-        Sinks: SinkInformation
-        Metrics: MetricSetting Set
-        Logs: LogSetting Set
+type DiagnosticSettingsConfig = {
+    Name: ResourceName
+    MetricsSource: ResourceId
+    Sinks: SinkInformation
+    Metrics: MetricSetting Set
+    Logs: LogSetting Set
 
-        Dependencies: ResourceId Set
-        Tags: Map<string, string>
-    }
+    Dependencies: ResourceId Set
+    Tags: Map<string, string>
+} with
 
     interface IBuilder with
         member this.ResourceId =
             diagnosticSettingsType(this.MetricsSource.Type).resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    MetricsSource = this.MetricsSource
-                    Sinks = this.Sinks
-                    Logs = this.Logs
-                    Metrics = this.Metrics
-                    Dependencies = this.Dependencies
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                MetricsSource = this.MetricsSource
+                Sinks = this.Sinks
+                Logs = this.Logs
+                Metrics = this.Metrics
+                Dependencies = this.Dependencies
+                Tags = this.Tags
+            }
+        ]
 
 type DiagnosticSettingsBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            Sinks =
-                {
-                    StorageAccount = None
-                    EventHub = None
-                    LogAnalyticsWorkspace = None
-                }
-            Metrics = Set.empty
-            Logs = Set.empty
-            MetricsSource = ResourceId.create (ResourceType("", ""), ResourceName "")
-            Dependencies = Set.empty
-            Tags = Map.empty
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sinks = {
+            StorageAccount = None
+            EventHub = None
+            LogAnalyticsWorkspace = None
         }
+        Metrics = Set.empty
+        Logs = Set.empty
+        MetricsSource = ResourceId.create (ResourceType("", ""), ResourceName "")
+        Dependencies = Set.empty
+        Tags = Map.empty
+    }
 
     member _.Run(state: DiagnosticSettingsConfig) =
         let (|EmptySet|_|) theSet =
@@ -72,18 +68,18 @@ type DiagnosticSettingsBuilder() =
 
     /// Sets the name of the diagnostic settings.
     [<CustomOperation "name">]
-    member _.Name(state: DiagnosticSettingsConfig, resourceName: string) =
-        { state with
+    member _.Name(state: DiagnosticSettingsConfig, resourceName: string) = {
+        state with
             Name = ResourceName resourceName
-        }
+    }
 
     /// The source resource of diagnostic metrics.
     [<CustomOperation "metrics_source">]
-    member _.MetricsSource(state: DiagnosticSettingsConfig, metricsSource: ResourceId) =
-        { state with
+    member _.MetricsSource(state: DiagnosticSettingsConfig, metricsSource: ResourceId) = {
+        state with
             MetricsSource = metricsSource
             Dependencies = state.Dependencies.Add metricsSource
-        }
+    }
 
     member this.MetricsSource(state: DiagnosticSettingsConfig, builder: IBuilder) =
         this.MetricsSource(state, builder.ResourceId)
@@ -91,30 +87,30 @@ type DiagnosticSettingsBuilder() =
     static member AddDestinationPrivate(state: DiagnosticSettingsConfig, resourceId, ?dependency) =
         let dependency = defaultArg dependency resourceId
 
-        { state with
-            Sinks =
-                match resourceId with
-                | HasResourceType storageAccounts ->
-                    { state.Sinks with
-                        StorageAccount = Some resourceId
-                    }
-                | HasResourceType workspaces ->
-                    { state.Sinks with
-                        LogAnalyticsWorkspace = Some(resourceId, AzureDiagnostics)
-                    }
-                | HasResourceType Namespaces.authorizationRules ->
-                    { state.Sinks with
-                        EventHub =
-                            Some
-                                {|
+        {
+            state with
+                Sinks =
+                    match resourceId with
+                    | HasResourceType storageAccounts -> {
+                        state.Sinks with
+                            StorageAccount = Some resourceId
+                      }
+                    | HasResourceType workspaces -> {
+                        state.Sinks with
+                            LogAnalyticsWorkspace = Some(resourceId, AzureDiagnostics)
+                      }
+                    | HasResourceType Namespaces.authorizationRules -> {
+                        state.Sinks with
+                            EventHub =
+                                Some {|
                                     AuthorizationRuleId = resourceId
                                     EventHubName = None
                                 |}
-                    }
-                | _ ->
-                    raiseFarmer
-                        $"Unsupported resource type '{resourceId.Type}'. Supported types are {[ storageAccounts; workspaces ]}"
-            Dependencies = state.Dependencies.Add dependency
+                      }
+                    | _ ->
+                        raiseFarmer
+                            $"Unsupported resource type '{resourceId.Type}'. Supported types are {[ storageAccounts; workspaces ]}"
+                Dependencies = state.Dependencies.Add dependency
         }
 
     /// Adds a destination sink (either a storage account, log analytics workspace or event hub authorization rule)
@@ -141,34 +137,35 @@ type DiagnosticSettingsBuilder() =
         let state =
             DiagnosticSettingsBuilder.AddDestinationPrivate(state, ruleId, (hub :> IBuilder).ResourceId)
 
-        { state with
-            Sinks =
-                { state.Sinks with
-                    EventHub =
-                        state.Sinks.EventHub
-                        |> Option.map (fun h ->
-                            {| h with
-                                EventHubName = Some hub.Name
+        {
+            state with
+                Sinks = {
+                    state.Sinks with
+                        EventHub =
+                            state.Sinks.EventHub
+                            |> Option.map (fun h -> {|
+                                h with
+                                    EventHubName = Some hub.Name
                             |})
                 }
         }
 
     /// The name of the event hub. If none is specified, the default event hub will be selected.
     [<CustomOperation "event_hub_destination_name">]
-    member _.EventHubName(state: DiagnosticSettingsConfig, eventHubName) =
-        { state with
-            Sinks =
-                { state.Sinks with
+    member _.EventHubName(state: DiagnosticSettingsConfig, eventHubName) = {
+        state with
+            Sinks = {
+                state.Sinks with
                     EventHub =
                         match state.Sinks.EventHub with
                         | Some hub ->
-                            Some
-                                {| hub with
+                            Some {|
+                                hub with
                                     EventHubName = Some eventHubName
-                                |}
+                            |}
                         | None -> raiseFarmer "You must set the Authorization Rule Id before setting the event hub name"
-                }
-        }
+            }
+    }
 
     member this.EventHubName(state, eventHubName: string) =
         this.EventHubName(state, ResourceName eventHubName)
@@ -177,13 +174,13 @@ type DiagnosticSettingsBuilder() =
     [<CustomOperation "loganalytics_output_type">]
     member _.DedicatedLogAnalyticsDestination(state: DiagnosticSettingsConfig, outputType) =
         match state.Sinks.LogAnalyticsWorkspace with
-        | Some (resourceId, _) ->
-            { state with
-                Sinks =
-                    { state.Sinks with
+        | Some(resourceId, _) -> {
+            state with
+                Sinks = {
+                    state.Sinks with
                         LogAnalyticsWorkspace = Some(resourceId, outputType)
-                    }
-            }
+                }
+          }
         | None -> raiseFarmer "You must first specify a Log Analytics sink before enabling dedicated outputs."
 
     /// Add metric settings to the resource.
@@ -204,15 +201,15 @@ type DiagnosticSettingsBuilder() =
         this.Logs(state, logs |> Seq.map LogSetting.Create)
 
     interface IDependable<DiagnosticSettingsConfig> with
-        member _.Add state newDeps =
-            { state with
+        member _.Add state newDeps = {
+            state with
                 Dependencies = state.Dependencies + newDeps
-            }
+        }
 
     interface ITaggable<DiagnosticSettingsConfig> with
-        member _.Add state tags =
-            { state with
+        member _.Add state tags = {
+            state with
                 Tags = state.Tags |> Map.merge tags
-            }
+        }
 
 let diagnosticSettings = DiagnosticSettingsBuilder()

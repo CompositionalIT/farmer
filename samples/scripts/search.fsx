@@ -16,5 +16,4 @@ let deployment = arm {
     output "search-query-key" mySearch.QueryKey
 }
 
-deployment
-|> Deploy.execute "my-resource-group-name" Deploy.NoParameters
+deployment |> Deploy.execute "my-resource-group-name" Deploy.NoParameters

@@ -21,11 +21,7 @@ let theWebApp = webApp {
 
 let template = arm {
     location Location.WestEurope
-    add_resources [
-        theDatabase
-        theWebApp
-    ]
+    add_resources [ theDatabase; theWebApp ]
 }
 
-template
-|> Writer.quickWrite @"generated-template"
+template |> Writer.quickWrite @"generated-template"
