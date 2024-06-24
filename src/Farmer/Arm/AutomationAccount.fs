@@ -9,10 +9,9 @@ open System
 let automationAccounts =
     Farmer.ResourceType("Microsoft.Automation/automationAccounts", "2022-08-08")
 
-type AutomationAccount =
-    {
-        Name: Farmer.ResourceName
-    }
+type AutomationAccount = {
+    Name: Farmer.ResourceName
+} with
 
     interface Farmer.IArmResource with
 

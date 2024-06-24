@@ -9,10 +9,9 @@ open System
 let webhooks =
     Farmer.ResourceType("Microsoft.Automation/automationAccounts/webhooks", "2015-10-31")
 
-type Webhook =
-    {
-        Name: Farmer.ResourceName
-    }
+type Webhook = {
+    Name: Farmer.ResourceName
+} with
 
     interface Farmer.IArmResource with
 

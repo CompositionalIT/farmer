@@ -10,6 +10,7 @@ let myCosmosDb = cosmosDb {
     throughput 400<CosmosDb.RU>
     failover_policy NoFailover
     consistency_policy (BoundedStaleness(500, 1000))
+
     add_containers [
         cosmosContainer {
             name "myContainer"
@@ -20,11 +21,9 @@ let myCosmosDb = cosmosDb {
     ]
 }
 
-let deployment =
-    arm {
-        location Location.NorthEurope
-        add_resource myCosmosDb
-    }
+let deployment = arm {
+    location Location.NorthEurope
+    add_resource myCosmosDb
+}
 
-deployment
-|> Deploy.execute "my-resource-group-name" Deploy.NoParameters
+deployment |> Deploy.execute "my-resource-group-name" Deploy.NoParameters

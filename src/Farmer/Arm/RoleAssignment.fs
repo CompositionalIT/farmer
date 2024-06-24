@@ -38,21 +38,20 @@ type AssignmentScope =
     | SpecificResource of ResourceId
     | UnmanagedResource of ResourceId
 
-type RoleAssignment =
-    {
-        /// It's recommended to use a deterministic GUID for the role name.
-        Name: ResourceName
-        /// The role to assign, such as Roles.Contributor
-        RoleDefinitionId: RoleId
-        /// The principal ID of the user or service identity that should be granted this role.
-        PrincipalId: PrincipalId
-        /// The type of principal being assigned - should be set to ServicePrincipal for managed identities to avoid
-        /// the role assignment being created before Active Directory can replicate the principal.
-        PrincipalType: PrincipalType
-        /// Resource this role applies to. If this is set to a specific resource, it will automatically be set as a dependency for you.
-        Scope: AssignmentScope
-        Dependencies: ResourceId Set
-    }
+type RoleAssignment = {
+    /// It's recommended to use a deterministic GUID for the role name.
+    Name: ResourceName
+    /// The role to assign, such as Roles.Contributor
+    RoleDefinitionId: RoleId
+    /// The principal ID of the user or service identity that should be granted this role.
+    PrincipalId: PrincipalId
+    /// The type of principal being assigned - should be set to ServicePrincipal for managed identities to avoid
+    /// the role assignment being created before Active Directory can replicate the principal.
+    PrincipalType: PrincipalType
+    /// Resource this role applies to. If this is set to a specific resource, it will automatically be set as a dependency for you.
+    Scope: AssignmentScope
+    Dependencies: ResourceId Set
+} with
 
     interface IArmResource with
         member this.ResourceId = roleAssignments.resourceId this.Name
@@ -60,22 +59,21 @@ type RoleAssignment =
         member this.JsonModel =
             let dependencies =
                 this.Dependencies
-                + Set
-                    [
-                        match this.Scope with
-                        | SpecificResource resourceId -> resourceId
-                        | UnmanagedResource _
-                        | ResourceGroup -> ()
-                    ]
+                + Set [
+                    match this.Scope with
+                    | SpecificResource resourceId -> resourceId
+                    | UnmanagedResource _
+                    | ResourceGroup -> ()
+                ]
 
-            {| roleAssignments.Create(this.Name, dependsOn = dependencies) with
-                scope =
-                    match this with
-                    | { Scope = ResourceGroup } -> null
-                    | { Scope = UnmanagedResource resourceId } -> resourceId.ArmExpression.Eval()
-                    | { Scope = SpecificResource resourceId } -> resourceId.Eval()
-                properties =
-                    {|
+            {|
+                roleAssignments.Create(this.Name, dependsOn = dependencies) with
+                    scope =
+                        match this with
+                        | { Scope = ResourceGroup } -> null
+                        | { Scope = UnmanagedResource resourceId } -> resourceId.ArmExpression.Eval()
+                        | { Scope = SpecificResource resourceId } -> resourceId.Eval()
+                    properties = {|
                         roleDefinitionId = this.RoleDefinitionId.ArmValue.Eval()
                         principalId = this.PrincipalId.ArmExpression.Eval()
                         principalType = this.PrincipalType.ArmValue

@@ -11,27 +11,26 @@ open Farmer.Insights
 // https://chat.openai.com/share/821d8f25-f37c-4cfc-8ca5-0ff7200e3f04
 
 type NotificationEmailBuilder() =
-    member _.Yield _ =
-        {
-            CustomEmails = []
-            SendToSubscriptionAdministrator = false
-            SendToSubscriptionCoAdministrators = false
-        }
+    member _.Yield _ = {
+        CustomEmails = []
+        SendToSubscriptionAdministrator = false
+        SendToSubscriptionCoAdministrators = false
+    }
 
     [<CustomOperation("custom_emails")>]
     member __.CustomEmails(email: Email, emails: string list) = { email with CustomEmails = emails }
 
     [<CustomOperation("send_to_subscription_administrator")>]
-    member __.SendToSubscriptionAdministrator(email: Email, value: bool) =
-        { email with
+    member __.SendToSubscriptionAdministrator(email: Email, value: bool) = {
+        email with
             SendToSubscriptionAdministrator = value
-        }
+    }
 
     [<CustomOperation("send_to_subscription_co_administrators")>]
-    member __.SendToSubscriptionCoAdministrators(email: Email, value: bool) =
-        { email with
+    member __.SendToSubscriptionCoAdministrators(email: Email, value: bool) = {
+        email with
             SendToSubscriptionCoAdministrators = value
-        }
+    }
 
 let autoscaleNotificationEmail = NotificationEmailBuilder()
 
@@ -42,11 +41,10 @@ type WebhookBuilder() =
     [<CustomOperation("service_uri")>]
     member __.ServiceUri(webhook: Webhook, uri: Uri) = { webhook with ServiceUri = uri }
 
-    member _.Yield _ =
-        {
-            Properties = null
-            ServiceUri = Uri("https://example.com")
-        } // Default Uri value
+    member _.Yield _ = {
+        Properties = null
+        ServiceUri = Uri("https://example.com")
+    } // Default Uri value
 
 let autoscaleWebhook = WebhookBuilder()
 
@@ -55,21 +53,19 @@ type NotificationBuilder() =
     member _.Email(notification: Notification, email: Email) = { notification with Email = email }
 
     [<CustomOperation("webhooks")>]
-    member _.Webhooks(notification: Notification, webhooks: Webhook list) =
-        { notification with
+    member _.Webhooks(notification: Notification, webhooks: Webhook list) = {
+        notification with
             Webhooks = webhooks
-        }
+    }
 
-    member _.Yield _ =
-        {
-            Email =
-                {
-                    CustomEmails = []
-                    SendToSubscriptionAdministrator = false
-                    SendToSubscriptionCoAdministrators = false
-                }
-            Webhooks = []
+    member _.Yield _ = {
+        Email = {
+            CustomEmails = []
+            SendToSubscriptionAdministrator = false
+            SendToSubscriptionCoAdministrators = false
         }
+        Webhooks = []
+    }
 
 let autoscaleNotification = NotificationBuilder()
 
@@ -83,12 +79,11 @@ type CapacityBuilder() =
     [<CustomOperation("minimum")>]
     member _.Minimum(capacity: Capacity, value: int) = { capacity with Minimum = value }
 
-    member _.Yield _ =
-        {
-            Default = 1
-            Maximum = 3
-            Minimum = 1
-        }
+    member _.Yield _ = {
+        Default = 1
+        Maximum = 3
+        Minimum = 1
+    }
 
 let autoscaleCapacity = CapacityBuilder()
 
@@ -105,13 +100,12 @@ type ScheduleBuilder() =
     [<CustomOperation("timeZone")>]
     member _.TimeZone(schedule: Schedule, timeZone: string) = { schedule with TimeZone = timeZone }
 
-    member _.Yield _ =
-        {
-            Days = []
-            Hours = []
-            Minutes = []
-            TimeZone = ""
-        }
+    member _.Yield _ = {
+        Days = []
+        Hours = []
+        Minutes = []
+        TimeZone = ""
+    }
 
 let autoscaleSchedule = ScheduleBuilder()
 
@@ -125,25 +119,23 @@ type DimensionBuilder() =
     [<CustomOperation("values")>]
     member _.Values(dimension: Dimension, values: string list) = { dimension with Values = values }
 
-    member _.Yield _ =
-        {
-            DimensionName = ""
-            Operator = DimensionOperator.Equals
-            Values = []
-        }
+    member _.Yield _ = {
+        DimensionName = ""
+        Operator = DimensionOperator.Equals
+        Values = []
+    }
 
 let autoscaleDimension = DimensionBuilder()
 
 type ScaleActionBuilder() =
     [<CustomOperation("cooldown")>]
-    member _.Cooldown(scaleAction: ScaleAction, cooldown: TimeSpan) =
-        { scaleAction with Cooldown = cooldown }
+    member _.Cooldown(scaleAction: ScaleAction, cooldown: TimeSpan) = { scaleAction with Cooldown = cooldown }
 
     [<CustomOperation("direction")>]
-    member _.Direction(scaleAction: ScaleAction, direction: ScaleActionDirection) =
-        { scaleAction with
+    member _.Direction(scaleAction: ScaleAction, direction: ScaleActionDirection) = {
+        scaleAction with
             Direction = direction
-        }
+    }
 
     [<CustomOperation("action_type")>]
     member _.Type(scaleAction: ScaleAction, actionType: ScaleActionType) = { scaleAction with Type = actionType }
@@ -151,49 +143,46 @@ type ScaleActionBuilder() =
     [<CustomOperation("value")>]
     member _.Value(scaleAction: ScaleAction, value: int) = { scaleAction with Value = value }
 
-    member _.Yield _ =
-        {
-            Cooldown = TimeSpan.FromMinutes 10
-            Direction = ScaleActionDirection.Increase
-            Type = ScaleActionType.ChangeCount
-            Value = 1
-        }
+    member _.Yield _ = {
+        Cooldown = TimeSpan.FromMinutes 10
+        Direction = ScaleActionDirection.Increase
+        Type = ScaleActionType.ChangeCount
+        Value = 1
+    }
 
 let scaleAction = ScaleActionBuilder()
 
 type RecurrenceBuilder() =
     [<CustomOperation("frequency")>]
-    member _.Frequency(recurrence: Recurrence, frequency: string) =
-        { recurrence with
+    member _.Frequency(recurrence: Recurrence, frequency: string) = {
+        recurrence with
             Frequency = frequency
-        }
+    }
 
     [<CustomOperation("schedule")>]
     member _.Schedule(recurrence: Recurrence, schedule: Schedule) = { recurrence with Schedule = schedule }
 
-    member _.Yield _ =
-        {
-            Frequency = ""
-            Schedule = ScheduleBuilder().Yield()
-        }
+    member _.Yield _ = {
+        Frequency = ""
+        Schedule = ScheduleBuilder().Yield()
+    }
 
 let recurrence = RecurrenceBuilder()
 
 type PredictiveAutoscalePolicyBuilder() =
     [<CustomOperation("scale_look_ahead_time")>]
-    member _.ScaleLookAheadTime(policy: PredictiveAutoscalePolicy, lookAheadTime: string) =
-        { policy with
+    member _.ScaleLookAheadTime(policy: PredictiveAutoscalePolicy, lookAheadTime: string) = {
+        policy with
             ScaleLookAheadTime = lookAheadTime
-        }
+    }
 
     [<CustomOperation("scale_mode")>]
     member _.ScaleMode(policy: PredictiveAutoscalePolicy, mode: string) = { policy with ScaleMode = mode }
 
-    member _.Yield _ =
-        {
-            ScaleLookAheadTime = ""
-            ScaleMode = ""
-        }
+    member _.Yield _ = {
+        ScaleLookAheadTime = ""
+        ScaleMode = ""
+    }
 
 let predictiveAutoscalePolicy = PredictiveAutoscalePolicyBuilder()
 
@@ -205,105 +194,103 @@ type FixedDateBuilder() =
     member _.Start(fixedDate: FixedDate, startValue: DateTimeOffset) = { fixedDate with Start = startValue }
 
     [<CustomOperation("time_zone")>]
-    member _.TimeZone(fixedDate: FixedDate, timeZone: string) =
-        { fixedDate with
+    member _.TimeZone(fixedDate: FixedDate, timeZone: string) = {
+        fixedDate with
             TimeZone = Some timeZone
-        }
+    }
 
-    member _.Yield _ =
-        {
-            End = DateTimeOffset.MinValue
-            Start = DateTimeOffset.MinValue
-            TimeZone = None
-        }
+    member _.Yield _ = {
+        End = DateTimeOffset.MinValue
+        Start = DateTimeOffset.MinValue
+        TimeZone = None
+    }
 
 let fixedDate = FixedDateBuilder()
 
 type MetricTriggerBuilder() =
     [<CustomOperation("dimensions")>]
-    member _.Dimensions(metricTrigger: MetricTrigger, dimensions: Dimension list) =
-        { metricTrigger with
+    member _.Dimensions(metricTrigger: MetricTrigger, dimensions: Dimension list) = {
+        metricTrigger with
             Dimensions = dimensions
-        }
+    }
 
     [<CustomOperation("divide_per_instance")>]
-    member _.DividePerInstance(metricTrigger: MetricTrigger, divide: bool) =
-        { metricTrigger with
+    member _.DividePerInstance(metricTrigger: MetricTrigger, divide: bool) = {
+        metricTrigger with
             DividePerInstance = Some divide
-        }
+    }
 
     [<CustomOperation("metric_name")>]
-    member _.MetricName(metricTrigger: MetricTrigger, metricName: string) =
-        { metricTrigger with
+    member _.MetricName(metricTrigger: MetricTrigger, metricName: string) = {
+        metricTrigger with
             MetricName = metricName
-        }
+    }
 
     [<CustomOperation("metric_namespace")>]
-    member _.MetricNamespace(metricTrigger: MetricTrigger, metricNamespace: string) =
-        { metricTrigger with
+    member _.MetricNamespace(metricTrigger: MetricTrigger, metricNamespace: string) = {
+        metricTrigger with
             MetricNamespace = Some metricNamespace
-        }
+    }
 
     [<CustomOperation("metric_resource_location")>]
-    member _.MetricResourceLocation(metricTrigger: MetricTrigger, metricResourceLocation: string) =
-        { metricTrigger with
+    member _.MetricResourceLocation(metricTrigger: MetricTrigger, metricResourceLocation: string) = {
+        metricTrigger with
             MetricResourceLocation = Some metricResourceLocation
-        }
+    }
 
     [<CustomOperation("metric_resource_uri")>]
-    member _.MetricResourceUri(metricTrigger: MetricTrigger, metricResourceUri: ResourceId) =
-        { metricTrigger with
+    member _.MetricResourceUri(metricTrigger: MetricTrigger, metricResourceUri: ResourceId) = {
+        metricTrigger with
             MetricResourceUri = metricResourceUri
-        }
+    }
 
     [<CustomOperation("operator")>]
     member _.Operator(metricTrigger: MetricTrigger, op: MetricTriggerOperator) = { metricTrigger with Operator = op }
 
     [<CustomOperation("statistic")>]
-    member _.Statistic(metricTrigger: MetricTrigger, statistic: MetricTriggerStatistic) =
-        { metricTrigger with
+    member _.Statistic(metricTrigger: MetricTrigger, statistic: MetricTriggerStatistic) = {
+        metricTrigger with
             Statistic = statistic
-        }
+    }
 
     [<CustomOperation("threshold")>]
-    member _.Threshold(metricTrigger: MetricTrigger, threshold: int) =
-        { metricTrigger with
+    member _.Threshold(metricTrigger: MetricTrigger, threshold: int) = {
+        metricTrigger with
             Threshold = threshold
-        }
+    }
 
     [<CustomOperation("time_aggregation")>]
-    member _.TimeAggregation(metricTrigger: MetricTrigger, timeAggregation: MetricTriggerTimeAggregation) =
-        { metricTrigger with
+    member _.TimeAggregation(metricTrigger: MetricTrigger, timeAggregation: MetricTriggerTimeAggregation) = {
+        metricTrigger with
             TimeAggregation = timeAggregation
-        }
+    }
 
     [<CustomOperation("time_grain")>]
-    member _.TimeGrain(metricTrigger: MetricTrigger, timeGrain: TimeSpan) =
-        { metricTrigger with
+    member _.TimeGrain(metricTrigger: MetricTrigger, timeGrain: TimeSpan) = {
+        metricTrigger with
             TimeGrain = timeGrain
-        }
+    }
 
     [<CustomOperation("time_window")>]
-    member _.TimeWindow(metricTrigger: MetricTrigger, timeWindow: TimeSpan) =
-        { metricTrigger with
+    member _.TimeWindow(metricTrigger: MetricTrigger, timeWindow: TimeSpan) = {
+        metricTrigger with
             TimeWindow = timeWindow
-        }
+    }
 
-    member _.Yield _ =
-        {
-            Dimensions = []
-            DividePerInstance = None
-            MetricName = ""
-            MetricNamespace = None
-            MetricResourceLocation = None
-            MetricResourceUri = ResourceId.Empty
-            Operator = MetricTriggerOperator.Equals
-            Statistic = MetricTriggerStatistic.Average
-            Threshold = 0
-            TimeAggregation = MetricTriggerTimeAggregation.Average
-            TimeGrain = TimeSpan.FromMinutes 5
-            TimeWindow = TimeSpan.FromMinutes 10
-        }
+    member _.Yield _ = {
+        Dimensions = []
+        DividePerInstance = None
+        MetricName = ""
+        MetricNamespace = None
+        MetricResourceLocation = None
+        MetricResourceUri = ResourceId.Empty
+        Operator = MetricTriggerOperator.Equals
+        Statistic = MetricTriggerStatistic.Average
+        Threshold = 0
+        TimeAggregation = MetricTriggerTimeAggregation.Average
+        TimeGrain = TimeSpan.FromMinutes 5
+        TimeWindow = TimeSpan.FromMinutes 10
+    }
 
 let autoscaleMetricTrigger = MetricTriggerBuilder()
 
@@ -314,11 +301,10 @@ type RuleBuilder() =
     [<CustomOperation("scale_action")>]
     member _.ScaleAction(rule: Rule, action: ScaleAction) = { rule with ScaleAction = action }
 
-    member _.Yield _ =
-        {
-            MetricTrigger = MetricTriggerBuilder().Yield()
-            ScaleAction = ScaleActionBuilder().Yield()
-        }
+    member _.Yield _ = {
+        MetricTrigger = MetricTriggerBuilder().Yield()
+        ScaleAction = ScaleActionBuilder().Yield()
+    }
 
 let autoscaleRule = RuleBuilder()
 
@@ -333,20 +319,18 @@ type ProfileBuilder() =
     member _.Name(profile: Profile, name: string) = { profile with Name = name }
 
     [<CustomOperation("recurrence")>]
-    member _.Recurrence(profile: Profile, recurrence: Recurrence option) =
-        { profile with Recurrence = recurrence }
+    member _.Recurrence(profile: Profile, recurrence: Recurrence option) = { profile with Recurrence = recurrence }
 
     [<CustomOperation("rules")>]
     member _.Rules(profile: Profile, rules: Rule list) = { profile with Rules = rules }
 
-    member _.Yield _ =
-        {
-            Capacity = CapacityBuilder().Yield()
-            FixedDate = None
-            Name = "DefaultAutoscaleProfile"
-            Recurrence = None
-            Rules = []
-        }
+    member _.Yield _ = {
+        Capacity = CapacityBuilder().Yield()
+        FixedDate = None
+        Name = "DefaultAutoscaleProfile"
+        Recurrence = None
+        Rules = []
+    }
 
 let autoscaleProfile = ProfileBuilder()
 
@@ -358,42 +342,41 @@ type AutoscaleSettingsPropertiesBuilder() =
     member _.Name(props: AutoscaleSettingsProperties, name: string) = { props with Name = name }
 
     [<CustomOperation("notifications")>]
-    member _.Notifications(props: AutoscaleSettingsProperties, notifications: Notification list) =
-        { props with
+    member _.Notifications(props: AutoscaleSettingsProperties, notifications: Notification list) = {
+        props with
             Notifications = notifications
-        }
+    }
 
     [<CustomOperation("predictive_autoscale_policy")>]
-    member _.PredictiveAutoscalePolicy(props: AutoscaleSettingsProperties, policy: PredictiveAutoscalePolicy option) =
-        { props with
+    member _.PredictiveAutoscalePolicy(props: AutoscaleSettingsProperties, policy: PredictiveAutoscalePolicy option) = {
+        props with
             PredictiveAutoscalePolicy = policy
-        }
+    }
 
     [<CustomOperation("profiles")>]
     member _.Profiles(props: AutoscaleSettingsProperties, profiles: Profile list) = { props with Profiles = profiles }
 
     [<CustomOperation("target_resource_location")>]
-    member _.TargetResourceLocation(props: AutoscaleSettingsProperties, location: string) =
-        { props with
+    member _.TargetResourceLocation(props: AutoscaleSettingsProperties, location: string) = {
+        props with
             TargetResourceLocation = location
-        }
+    }
 
     [<CustomOperation("target_resource_uri")>]
-    member _.TargetResourceUri(props: AutoscaleSettingsProperties, resourceId: ResourceId) =
-        { props with
+    member _.TargetResourceUri(props: AutoscaleSettingsProperties, resourceId: ResourceId) = {
+        props with
             TargetResourceUri = Managed resourceId
-        }
+    }
 
-    member _.Yield _ =
-        {
-            Enabled = true
-            Name = ""
-            Notifications = []
-            PredictiveAutoscalePolicy = None
-            Profiles = []
-            TargetResourceLocation = ""
-            TargetResourceUri = Unmanaged ResourceId.Empty
-        }
+    member _.Yield _ = {
+        Enabled = true
+        Name = ""
+        Notifications = []
+        PredictiveAutoscalePolicy = None
+        Profiles = []
+        TargetResourceLocation = ""
+        TargetResourceUri = Unmanaged ResourceId.Empty
+    }
 
 let autoscaleSettingsProperties = AutoscaleSettingsPropertiesBuilder()
 
@@ -407,33 +390,32 @@ type AutoscaleSettingsBuilder() =
     [<CustomOperation("properties")>]
     member _.Properties(state: AutoscaleSettings, properties) = { state with Properties = properties }
 
-    member _.Yield _ =
-        {
-            AutoscaleSettings.Name = ResourceName.Empty
-            Location = Location.Location "[resourceGroup().Location]"
-            Dependencies = Set.empty
-            Tags = Map.empty
-            Properties = AutoscaleSettingsPropertiesBuilder().Yield()
-        }
+    member _.Yield _ = {
+        AutoscaleSettings.Name = ResourceName.Empty
+        Location = Location.Location "[resourceGroup().Location]"
+        Dependencies = Set.empty
+        Tags = Map.empty
+        Properties = AutoscaleSettingsPropertiesBuilder().Yield()
+    }
 
-    member _.Run(state: AutoscaleSettings) =
-        { state with
-            Properties =
-                { state.Properties with
+    member _.Run(state: AutoscaleSettings) = {
+        state with
+            Properties = {
+                state.Properties with
                     Name = state.Name.Value
-                }
-        }
+            }
+    }
 
     interface ITaggable<AutoscaleSettings> with
-        member _.Add state tags =
-            { state with
+        member _.Add state tags = {
+            state with
                 Tags = state.Tags |> Map.merge tags
-            }
+        }
 
     interface IDependable<AutoscaleSettings> with
-        member _.Add state newDeps =
-            { state with
+        member _.Add state newDeps = {
+            state with
                 Dependencies = state.Dependencies + newDeps
-            }
+        }
 
 let autoscaleSettings = AutoscaleSettingsBuilder()

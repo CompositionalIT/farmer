@@ -7,10 +7,13 @@ open Farmer.LoadBalancer
 open Farmer.Arm.Network
 open Farmer.Arm.LoadBalancer
 
-let (lb:LoadBalancer) = {
+let (lb: LoadBalancer) = {
     Name = ResourceName "lb-test"
     Location = Location.EastUS
-    Sku = { Name = Sku.Standard; Tier = Tier.Regional }
+    Sku = {
+        Name = Sku.Standard
+        Tier = Tier.Regional
+    }
     FrontendIpConfigs = [
         {|
             Name = ResourceName "LoadBalancerFrontend"
@@ -33,7 +36,7 @@ let (lb:LoadBalancer) = {
             FrontendIpConfiguration = ResourceName "LoadBalancerFrontend"
             IdleTimeoutMinutes = None
             LoadDistribution = LoadDistributionPolicy.Default
-            Probe = Some (ResourceName "checkHttp")
+            Probe = Some(ResourceName "checkHttp")
         |}
     ]
     Probes = [
@@ -50,60 +53,59 @@ let (lb:LoadBalancer) = {
     Tags = Map.empty
 }
 
-let backendPool =
-    {
-        Name = ResourceName "containerGroups"
-        LoadBalancer = lb.Name
-        LoadBalancerBackendAddresses = [
-            {|
-                Name = ResourceName "group1"
-                IpAddress = System.Net.IPAddress.Parse "10.0.1.4"
-                VirtualNetwork = Some (virtualNetworks.resourceId "ha-container-group-vnet" |> Unmanaged)
-            |}
-            {|
-                Name = ResourceName "group2"
-                IpAddress = System.Net.IPAddress.Parse "10.0.1.5"
-                VirtualNetwork = Some (virtualNetworks.resourceId "ha-container-group-vnet" |> Unmanaged)
-            |}
-        ]
-    }
+let backendPool = {
+    Name = ResourceName "containerGroups"
+    LoadBalancer = lb.Name
+    LoadBalancerBackendAddresses = [
+        {|
+            Name = ResourceName "group1"
+            IpAddress = System.Net.IPAddress.Parse "10.0.1.4"
+            VirtualNetwork = Some(virtualNetworks.resourceId "ha-container-group-vnet" |> Unmanaged)
+        |}
+        {|
+            Name = ResourceName "group2"
+            IpAddress = System.Net.IPAddress.Parse "10.0.1.5"
+            VirtualNetwork = Some(virtualNetworks.resourceId "ha-container-group-vnet" |> Unmanaged)
+        |}
+    ]
+}
 
 arm {
     location Location.EastUS
+
     add_resources [
         vnet {
             name "my-vnet"
             add_address_spaces [ "10.0.1.0/24" ]
+
             add_subnets [
                 subnet {
                     name "my-subnet"
                     prefix "10.0.1.0/24"
-                    add_delegations [
-                        SubnetDelegationService.ContainerGroups
-                    ]
+                    add_delegations [ SubnetDelegationService.ContainerGroups ]
                 }
             ]
         }
         loadBalancer {
             name "lb"
             sku Sku.Standard
+
             add_frontends [
                 frontend {
                     name "lb-frontend"
                     public_ip "lb-pip"
                 }
             ]
+
             add_backend_pools [
                 backendAddressPool {
                     name "lb-backend"
                     link_to_vnet "my-vnet"
                     load_balancer "lb"
-                    add_ip_addresses [
-                        "10.0.1.4"
-                        "10.0.1.5"
-                    ]
+                    add_ip_addresses [ "10.0.1.4"; "10.0.1.5" ]
                 }
             ]
+
             add_probes [
                 loadBalancerProbe {
                     name "httpGet"
@@ -112,6 +114,7 @@ arm {
                     request_path "/"
                 }
             ]
+
             add_rules [
                 loadBalancingRule {
                     name "rule1"
@@ -123,9 +126,9 @@ arm {
                     probe "httpGet"
                 }
             ]
-            add_dependencies [
-                Farmer.Arm.Network.virtualNetworks.resourceId "my-vnet"
-            ]
+
+            add_dependencies [ Farmer.Arm.Network.virtualNetworks.resourceId "my-vnet" ]
         }
     ]
-} |> Writer.quickWrite "loadbalancer"
+}
+|> Writer.quickWrite "loadbalancer"

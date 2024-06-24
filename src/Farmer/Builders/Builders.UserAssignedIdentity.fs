@@ -8,55 +8,48 @@ open Farmer.Arm.ManagedIdentity
 [<Literal>]
 let EntraIdAudience = "api://AzureADTokenExchange"
 
-type FederatedIdentityCredentialConfig =
-    {
-        Name: ResourceName
-        UserAssignedIdentity: LinkedResource option
-        Audiences: string list
-        Issuer: string option
-        Subject: string option
-    }
+type FederatedIdentityCredentialConfig = {
+    Name: ResourceName
+    UserAssignedIdentity: LinkedResource option
+    Audiences: string list
+    Issuer: string option
+    Subject: string option
+} with
 
     interface IBuilder with
         member this.ResourceId =
             match this.UserAssignedIdentity with
-            | Some identity ->
-                { federatedIdentityCredentials.resourceId identity.Name with
+            | Some identity -> {
+                federatedIdentityCredentials.resourceId identity.Name with
                     Segments = [ this.Name ]
-                }
+              }
             | None -> raiseFarmer "A federated identity credential must be assigned to a user assigned identity."
 
         member this.BuildResources _ =
             match this.UserAssignedIdentity with
             | None -> raiseFarmer "A federated identity credential must be assigned to a user assigned identity."
-            | Some identity ->
-                [
-                    {
-                        FederatedIdentityCredential.Name = this.Name
-                        UserAssignedIdentity = identity
-                        Audiences = this.Audiences
-                        Issuer =
-                            this.Issuer
-                            |> Option.defaultValue (
-                                raiseFarmer "Issuer must be set on a federated identity credential."
-                            )
-                        Subject =
-                            this.Subject
-                            |> Option.defaultValue (
-                                raiseFarmer "Subject must be set on a federated identity credential."
-                            )
-                    }
-                ]
+            | Some identity -> [
+                {
+                    FederatedIdentityCredential.Name = this.Name
+                    UserAssignedIdentity = identity
+                    Audiences = this.Audiences
+                    Issuer =
+                        this.Issuer
+                        |> Option.defaultValue (raiseFarmer "Issuer must be set on a federated identity credential.")
+                    Subject =
+                        this.Subject
+                        |> Option.defaultValue (raiseFarmer "Subject must be set on a federated identity credential.")
+                }
+              ]
 
 type FederatedIdentityCredentialBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            UserAssignedIdentity = None
-            Audiences = []
-            Issuer = None
-            Subject = None
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        UserAssignedIdentity = None
+        Audiences = []
+        Issuer = None
+        Subject = None
+    }
 
     /// Sets the name of the federated identity credential.
     [<CustomOperation "name">]
@@ -64,36 +57,36 @@ type FederatedIdentityCredentialBuilder() =
 
     /// Sets the user assigned identity for the federated identity credential.
     [<CustomOperation "user_assigned_identity">]
-    member _.UserAssignedIdentity(state: FederatedIdentityCredentialConfig, identity: LinkedResource) =
-        { state with
+    member _.UserAssignedIdentity(state: FederatedIdentityCredentialConfig, identity: LinkedResource) = {
+        state with
             UserAssignedIdentity = Some identity
-        }
+    }
 
-    member _.UserAssignedIdentity(state: FederatedIdentityCredentialConfig, identity: ResourceId) =
-        { state with
+    member _.UserAssignedIdentity(state: FederatedIdentityCredentialConfig, identity: ResourceId) = {
+        state with
             UserAssignedIdentity = Some(Managed identity)
-        }
+    }
 
-    member _.UserAssignedIdentity(state: FederatedIdentityCredentialConfig, identity: ResourceName) =
-        { state with
+    member _.UserAssignedIdentity(state: FederatedIdentityCredentialConfig, identity: ResourceName) = {
+        state with
             UserAssignedIdentity = Some(Managed(userAssignedIdentities.resourceId identity))
-        }
+    }
 
     [<CustomOperation "link_to_user_assigned_identity">]
-    member _.LinkToUserAssignedIdentity(state: FederatedIdentityCredentialConfig, identity: LinkedResource) =
-        { state with
+    member _.LinkToUserAssignedIdentity(state: FederatedIdentityCredentialConfig, identity: LinkedResource) = {
+        state with
             UserAssignedIdentity = Some identity
-        }
+    }
 
-    member _.LinkToUserAssignedIdentity(state: FederatedIdentityCredentialConfig, identity: ResourceId) =
-        { state with
+    member _.LinkToUserAssignedIdentity(state: FederatedIdentityCredentialConfig, identity: ResourceId) = {
+        state with
             UserAssignedIdentity = Some(Unmanaged identity)
-        }
+    }
 
-    member _.LinkToUserAssignedIdentity(state: FederatedIdentityCredentialConfig, identity: ResourceName) =
-        { state with
+    member _.LinkToUserAssignedIdentity(state: FederatedIdentityCredentialConfig, identity: ResourceName) = {
+        state with
             UserAssignedIdentity = Some(Unmanaged(userAssignedIdentities.resourceId identity))
-        }
+    }
 
     /// Sets the Audiences of the federated identity credential.
     [<CustomOperation "audiences">]
@@ -112,39 +105,37 @@ type FederatedIdentityCredentialBuilder() =
 
 let federatedIdentityCredential = FederatedIdentityCredentialBuilder()
 
-type UserAssignedIdentityConfig =
-    {
-        Name: ResourceName
-        FederatedIdentityCredentials: FederatedIdentityCredentialConfig list
-        Tags: Map<string, string>
-    }
+type UserAssignedIdentityConfig = {
+    Name: ResourceName
+    FederatedIdentityCredentials: FederatedIdentityCredentialConfig list
+    Tags: Map<string, string>
+} with
 
     interface IBuilder with
         member this.ResourceId = this.ResourceId
 
-        member this.BuildResources location =
-            [
+        member this.BuildResources location = [
+            {
+                UserAssignedIdentity.Name = this.Name
+                Location = location
+                Tags = this.Tags
+            }
+            for cred in this.FederatedIdentityCredentials do
                 {
-                    UserAssignedIdentity.Name = this.Name
-                    Location = location
-                    Tags = this.Tags
+                    FederatedIdentityCredential.Name = cred.Name
+                    UserAssignedIdentity = LinkedResource.Managed this.ResourceId
+                    Audiences = cred.Audiences
+                    Issuer =
+                        match cred.Issuer with
+                        | Some issuer -> issuer
+                        | None -> raiseFarmer "Issuer must be set on a federated identity credential."
+                    Subject =
+                        match cred.Subject with
+                        | Some subject -> subject
+                        | None -> raiseFarmer "Subject must be set on a federated identity credential."
                 }
-                for cred in this.FederatedIdentityCredentials do
-                    {
-                        FederatedIdentityCredential.Name = cred.Name
-                        UserAssignedIdentity = LinkedResource.Managed this.ResourceId
-                        Audiences = cred.Audiences
-                        Issuer =
-                            match cred.Issuer with
-                            | Some issuer -> issuer
-                            | None -> raiseFarmer "Issuer must be set on a federated identity credential."
-                        Subject =
-                            match cred.Subject with
-                            | Some subject -> subject
-                            | None -> raiseFarmer "Subject must be set on a federated identity credential."
-                    }
 
-            ]
+        ]
 
     member this.ResourceId = userAssignedIdentities.resourceId this.Name
 
@@ -154,12 +145,11 @@ type UserAssignedIdentityConfig =
     member this.PrincipalId = this.UserAssignedIdentity.PrincipalId
 
 type UserAssignedIdentityBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            FederatedIdentityCredentials = []
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        FederatedIdentityCredentials = []
+        Tags = Map.empty
+    }
 
     /// Sets the name of the user assigned identity.
     [<CustomOperation "name">]
@@ -168,19 +158,18 @@ type UserAssignedIdentityBuilder() =
     /// Adds federated identity credentials to this identity
     [<CustomOperation "add_federated_identity_credentials">]
     member _.AddFederatedIdentityCredentials
-        (
-            state: UserAssignedIdentityConfig,
-            creds: FederatedIdentityCredentialConfig list
-        ) =
-        { state with
-            FederatedIdentityCredentials = state.FederatedIdentityCredentials @ creds
+        (state: UserAssignedIdentityConfig, creds: FederatedIdentityCredentialConfig list)
+        =
+        {
+            state with
+                FederatedIdentityCredentials = state.FederatedIdentityCredentials @ creds
         }
     /// Adds tags to the user assigned identity.
     interface ITaggable<UserAssignedIdentityConfig> with
-        member _.Add state tags =
-            { state with
+        member _.Add state tags = {
+            state with
                 Tags = state.Tags |> Map.merge tags
-            }
+        }
 
 /// Builds a user assigned identity.
 let userAssignedIdentity = UserAssignedIdentityBuilder()
@@ -216,7 +205,7 @@ module Extensions =
 
         [<CustomOperation "system_identity">]
         member this.SystemIdentity(state: 'TConfig) =
-            this.Add state (fun current ->
-                { current with
+            this.Add state (fun current -> {
+                current with
                     SystemAssigned = Enabled
-                })
+            })
