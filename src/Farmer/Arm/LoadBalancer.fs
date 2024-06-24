@@ -145,18 +145,20 @@ type LoadBalancer = {
                 |}
         |}
 
-type BackendAddressPool =
-    {
-        /// Name of the backend address pool
-        Name: ResourceName
-        /// Name of the load balancer where this pool will be added.
-        LoadBalancer: ResourceName
-        /// Addresses of backend services.
-        LoadBalancerBackendAddresses: {| Name: ResourceName
-                                         VirtualNetwork: LinkedResource option
-                                         Subnet: LinkedResource option
-                                         IpAddress: System.Net.IPAddress |} list
-    }
+type BackendAddressPool = {
+    /// Name of the backend address pool
+    Name: ResourceName
+    /// Name of the load balancer where this pool will be added.
+    LoadBalancer: ResourceName
+    /// Addresses of backend services.
+    LoadBalancerBackendAddresses:
+        {|
+            Name: ResourceName
+            VirtualNetwork: LinkedResource option
+            Subnet: LinkedResource option
+            IpAddress: System.Net.IPAddress
+        |} list
+} with
 
     interface IArmResource with
         member this.ResourceId =
@@ -169,7 +171,7 @@ type BackendAddressPool =
 
                     for addr in this.LoadBalancerBackendAddresses do
                         match addr.Subnet with
-                        | Some (Managed subnetId) -> yield subnetId
+                        | Some(Managed subnetId) -> yield subnetId
                         | _ -> ()
                 }
                 |> Set.ofSeq
@@ -180,18 +182,16 @@ type BackendAddressPool =
                     properties = {|
                         loadBalancerBackendAddresses =
                             this.LoadBalancerBackendAddresses
-                            |> List.map (fun addr ->
-                                {|
-                                    name = addr.Name.Value
-                                    properties =
-                                        {|
-                                            ipAddress = string addr.IpAddress
-                                            Subnet =
-                                                match addr.Subnet with
-                                                | Some (Managed subnetId) -> {| id = subnetId.Eval() |}
-                                                | Some (Unmanaged subnetId) -> {| id = subnetId.Eval() |}
-                                                | None -> Unchecked.defaultof<_>
-                                        |}
-                                |})
+                            |> List.map (fun addr -> {|
+                                name = addr.Name.Value
+                                properties = {|
+                                    ipAddress = string addr.IpAddress
+                                    Subnet =
+                                        match addr.Subnet with
+                                        | Some(Managed subnetId) -> {| id = subnetId.Eval() |}
+                                        | Some(Unmanaged subnetId) -> {| id = subnetId.Eval() |}
+                                        | None -> Unchecked.defaultof<_>
+                                |}
+                            |})
                     |}
             |}

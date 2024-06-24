@@ -106,14 +106,13 @@ type FrontendIpBuilder() =
 
 let frontend = FrontendIpBuilder()
 
-type BackendAddressPoolConfig =
-    {
-        Name: ResourceName
-        LoadBalancer: ResourceName
-        LoadBalancerBackendAddresses: System.Net.IPAddress list
-        VirtualNetwork: LinkedResource option
-        Subnet: LinkedResource option
-    }
+type BackendAddressPoolConfig = {
+    Name: ResourceName
+    LoadBalancer: ResourceName
+    LoadBalancerBackendAddresses: System.Net.IPAddress list
+    VirtualNetwork: LinkedResource option
+    Subnet: LinkedResource option
+} with
 
     interface IBuilder with
         member this.ResourceId =
@@ -129,25 +128,23 @@ type BackendAddressPoolConfig =
                         LoadBalancer = this.LoadBalancer
                         LoadBalancerBackendAddresses =
                             this.LoadBalancerBackendAddresses
-                            |> List.mapi (fun idx addr ->
-                                {|
-                                    Name = ResourceName $"addr{idx}"
-                                    IpAddress = addr
-                                    Subnet = this.Subnet
-                                    VirtualNetwork = None
-                                |})
+                            |> List.mapi (fun idx addr -> {|
+                                Name = ResourceName $"addr{idx}"
+                                IpAddress = addr
+                                Subnet = this.Subnet
+                                VirtualNetwork = None
+                            |})
                     }
                 ]
 
 type BackendAddressPoolBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            LoadBalancer = ResourceName.Empty
-            LoadBalancerBackendAddresses = []
-            VirtualNetwork = None
-            Subnet = None
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        LoadBalancer = ResourceName.Empty
+        LoadBalancerBackendAddresses = []
+        VirtualNetwork = None
+        Subnet = None
+    }
 
     /// Sets the name of the backend address pool.
     [<CustomOperation "name">]
@@ -197,37 +194,37 @@ type BackendAddressPoolBuilder() =
 
     /// Links to an existing subnet for addresses for this pool.
     [<CustomOperation "link_to_subnet">]
-    member _.LinkToSubnet(state: BackendAddressPoolConfig, subnet: string) =
-        { state with
+    member _.LinkToSubnet(state: BackendAddressPoolConfig, subnet: string) = {
+        state with
             Subnet = Some(Unmanaged(subnets.resourceId (ResourceName subnet)))
-        }
+    }
 
-    member _.LinkToSubnet(state: BackendAddressPoolConfig, subnet: ResourceId) =
-        { state with
+    member _.LinkToSubnet(state: BackendAddressPoolConfig, subnet: ResourceId) = {
+        state with
             Subnet = Some(Unmanaged subnet)
-        }
+    }
 
-    member _.LinkToSubnet(state: BackendAddressPoolConfig, subnetConfig: SubnetConfig) =
-        { state with
+    member _.LinkToSubnet(state: BackendAddressPoolConfig, subnetConfig: SubnetConfig) = {
+        state with
             Subnet = Some(Unmanaged(subnets.resourceId subnetConfig.Name))
-        }
+    }
 
     /// Links to a subnet that is defined in this same deployment.
     [<CustomOperation "subnet">]
-    member _.Subnet(state: BackendAddressPoolConfig, subnet: string) =
-        { state with
+    member _.Subnet(state: BackendAddressPoolConfig, subnet: string) = {
+        state with
             Subnet = Some(Managed(subnets.resourceId (ResourceName subnet)))
-        }
+    }
 
-    member _.Subnet(state: BackendAddressPoolConfig, subnet: ResourceId) =
-        { state with
+    member _.Subnet(state: BackendAddressPoolConfig, subnet: ResourceId) = {
+        state with
             Subnet = Some(Managed subnet)
-        }
+    }
 
-    member _.Subnet(state: BackendAddressPoolConfig, subnetConfig: SubnetConfig) =
-        { state with
+    member _.Subnet(state: BackendAddressPoolConfig, subnetConfig: SubnetConfig) = {
+        state with
             Subnet = Some(Managed(subnets.resourceId subnetConfig.Name))
-        }
+    }
 
     /// Adds IP addresses for this backend pool.
     [<CustomOperation "add_ip_addresses">]
