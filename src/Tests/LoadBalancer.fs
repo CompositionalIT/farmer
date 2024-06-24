@@ -111,15 +111,14 @@ let tests =
                 }
             ]
 
-                    add_backend_pools
-                        [
-                            backendAddressPool {
-                                name "lb-backend"
-                                link_to_subnet "my-subnet"
-                                link_to_vnet "my-vnet"
-                                add_ip_addresses [ "10.0.1.4"; "10.0.1.5" ]
-                            }
-                        ]
+            add_backend_pools [
+                backendAddressPool {
+                    name "lb-backend"
+                    link_to_subnet "my-subnet"
+                    link_to_vnet "my-vnet"
+                    add_ip_addresses [ "10.0.1.4"; "10.0.1.5" ]
+                }
+            ]
 
             add_probes [
                 loadBalancerProbe {
@@ -191,30 +190,27 @@ let tests =
             Expect.equal resource.Name "lb/lb-backend" "Incorrect name for backend address pool"
         }
 
-            test "Backend pool for existing subnet" {
+        test "Backend pool for existing subnet" {
 
-                let myVnet =
-                    vnet {
-                        name "my-vnet"
-                        add_address_spaces [ "10.0.1.0/24" ]
+            let myVnet = vnet {
+                name "my-vnet"
+                add_address_spaces [ "10.0.1.0/24" ]
 
-                        add_subnets
-                            [
-                                subnet {
-                                    name "my-subnet"
-                                    prefix "10.0.1.0/24"
-                                }
-                            ]
+                add_subnets [
+                    subnet {
+                        name "my-subnet"
+                        prefix "10.0.1.0/24"
                     }
+                ]
+            }
 
-                let backendPool =
-                    backendAddressPool {
-                        name "backend-services"
-                        load_balancer "existing-lb"
-                        add_ip_addresses [ "10.0.1.4"; "10.0.1.5"; "10.0.1.6" ]
-                        link_to_vnet myVnet
-                        link_to_subnet myVnet.Subnets[0]
-                    }
+            let backendPool = backendAddressPool {
+                name "backend-services"
+                load_balancer "existing-lb"
+                add_ip_addresses [ "10.0.1.4"; "10.0.1.5"; "10.0.1.6" ]
+                link_to_vnet myVnet
+                link_to_subnet myVnet.Subnets[0]
+            }
 
             let template = arm { add_resource backendPool }
 
@@ -223,15 +219,15 @@ let tests =
 
             Expect.equal pool.LoadBalancer (ResourceName "existing-lb") "Pool had incorrect load balancer"
 
-                let expectedSubnet =
-                    Unmanaged(Farmer.Arm.Network.subnets.resourceId (ResourceName "my-subnet"))
+            let expectedSubnet =
+                Unmanaged(Farmer.Arm.Network.subnets.resourceId (ResourceName "my-subnet"))
 
             Expect.hasLength pool.LoadBalancerBackendAddresses 3 "Pool should have 3 addresses"
 
-                pool.LoadBalancerBackendAddresses
-                |> List.iter (fun addr ->
-                    Expect.equal addr.Subnet (Some expectedSubnet) "Pool did not have expected subnet")
-            }
+            pool.LoadBalancerBackendAddresses
+            |> List.iter (fun addr ->
+                Expect.equal addr.Subnet (Some expectedSubnet) "Pool did not have expected subnet")
+        }
 
         test "Setting backend pool on VM NIC" {
             let vm1 = vm {

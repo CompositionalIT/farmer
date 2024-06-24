@@ -404,40 +404,36 @@ let tests =
             let myVnet = vnet {
                 name "my-vnet"
 
-                add_address_spaces
-                    [ "10.0.1.0/24" ]
+                add_address_spaces [ "10.0.1.0/24" ]
 
-                    add_subnets
-                    [
-                        subnet {
-                            name "my-subnet"
-                            prefix "10.0.1.0/24"
-                            add_delegations [ SubnetDelegationService.ContainerGroups ]
-                        }
-                    ]
+                add_subnets [
+                    subnet {
+                        name "my-subnet"
+                        prefix "10.0.1.0/24"
+                        add_delegations [ SubnetDelegationService.ContainerGroups ]
+                    }
+                ]
             }
 
             let lb = loadBalancer {
                 name "lb"
                 sku Farmer.LoadBalancer.Sku.Standard
 
-                add_frontends
-                    [
-                        frontend {
-                            name "lb-frontend"
-                            public_ip "lb-pip"
-                        }
-                    ]
+                add_frontends [
+                    frontend {
+                        name "lb-frontend"
+                        public_ip "lb-pip"
+                    }
+                ]
 
-                    add_backend_pools
-                    [
-                        backendAddressPool {
-                            name "lb-backend"
-                            add_ip_addresses [ "10.0.1.4"; "10.0.1.5" ]
-                            vnet "my-vnet"
-                            subnet "my-subnet"
-                        }
-                    ]
+                add_backend_pools [
+                    backendAddressPool {
+                        name "lb-backend"
+                        add_ip_addresses [ "10.0.1.4"; "10.0.1.5" ]
+                        vnet "my-vnet"
+                        subnet "my-subnet"
+                    }
+                ]
 
                 add_probes [
                     loadBalancerProbe {
