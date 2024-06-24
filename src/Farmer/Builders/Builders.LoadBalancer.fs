@@ -132,7 +132,7 @@ type BackendAddressPoolConfig = {
                                 Name = ResourceName $"addr{idx}"
                                 IpAddress = addr
                                 Subnet = this.Subnet
-                                VirtualNetwork = None
+                                VirtualNetwork = this.VirtualNetwork
                             |})
                     }
                 ]

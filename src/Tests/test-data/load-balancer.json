@@ -117,19 +117,19 @@
           {
             "name": "addr0",
             "properties": {
-              "Subnet": {
+              "ipAddress": "10.0.1.4",
+              "subnet": {
                 "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'my-subnet')]"
-              },
-              "ipAddress": "10.0.1.4"
+              }
             }
           },
           {
             "name": "addr1",
             "properties": {
-              "Subnet": {
+              "ipAddress": "10.0.1.5",
+              "subnet": {
                 "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'my-subnet')]"
-              },
-              "ipAddress": "10.0.1.5"
+              }
             }
           }
         ]

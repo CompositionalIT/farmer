@@ -170,9 +170,14 @@ type BackendAddressPool = {
                     yield loadBalancers.resourceId this.LoadBalancer
 
                     for addr in this.LoadBalancerBackendAddresses do
-                        match addr.Subnet with
-                        | Some(Managed subnetId) -> yield subnetId
-                        | _ -> ()
+                        if (addr.Subnet |> Option.isSome) then
+                            match addr.Subnet with
+                            | Some(Managed subnetId) -> yield subnetId
+                            | _ -> ()
+                        else
+                            match addr.VirtualNetwork with
+                            | Some(Managed vnetId) -> yield vnetId
+                            | _ -> ()
                 }
                 |> Set.ofSeq
 
@@ -186,11 +191,19 @@ type BackendAddressPool = {
                                 name = addr.Name.Value
                                 properties = {|
                                     ipAddress = string addr.IpAddress
-                                    Subnet =
+                                    subnet =
                                         match addr.Subnet with
                                         | Some(Managed subnetId) -> {| id = subnetId.Eval() |}
                                         | Some(Unmanaged subnetId) -> {| id = subnetId.Eval() |}
                                         | None -> Unchecked.defaultof<_>
+                                    vnet =
+                                        match addr.Subnet with
+                                        | None ->
+                                            match addr.VirtualNetwork with
+                                            | Some(Managed vnetId) -> {| id = vnetId.Eval() |}
+                                            | Some(Unmanaged vnetId) -> {| id = vnetId.Eval() |}
+                                            | None -> Unchecked.defaultof<_>
+                                        | Some _ -> Unchecked.defaultof<_>
                                 |}
                             |})
                     |}
