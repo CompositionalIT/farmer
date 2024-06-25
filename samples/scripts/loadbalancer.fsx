@@ -17,7 +17,8 @@ let (lb: LoadBalancer) = {
     FrontendIpConfigs = [
         {|
             Name = ResourceName "LoadBalancerFrontend"
-            PublicIp = Some(publicIPAddresses.resourceId "lb-test-pip")
+            AddressVersion = Network.AddressVersion.IPv4
+            PublicIp = Some (publicIPAddresses.resourceId "lb-test-pip")
             PrivateIpAllocationMethod = PrivateIpAddress.DynamicPrivateIp
             Subnet = None
         |}
@@ -79,7 +80,7 @@ arm {
 
             add_subnets [
                 subnet {
-                    name "my-services"
+                    name "my-subnet"
                     prefix "10.0.1.0/24"
                     add_delegations [ SubnetDelegationService.ContainerGroups ]
                 }

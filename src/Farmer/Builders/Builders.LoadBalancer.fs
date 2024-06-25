@@ -3,6 +3,7 @@ module Farmer.Builders.LoadBalancer
 
 open System
 open Farmer
+open Farmer.Arm
 open Farmer.Arm.LoadBalancer
 open Farmer.Arm.Network
 open Farmer.LoadBalancer
@@ -110,6 +111,7 @@ type BackendAddressPoolConfig = {
     LoadBalancer: ResourceName
     LoadBalancerBackendAddresses: System.Net.IPAddress list
     VirtualNetwork: LinkedResource option
+    Subnet: LinkedResource option
 } with
 
     interface IBuilder with
@@ -128,8 +130,9 @@ type BackendAddressPoolConfig = {
                             this.LoadBalancerBackendAddresses
                             |> List.mapi (fun idx addr -> {|
                                 Name = ResourceName $"addr{idx}"
-                                VirtualNetwork = this.VirtualNetwork
                                 IpAddress = addr
+                                Subnet = this.Subnet
+                                VirtualNetwork = this.VirtualNetwork
                             |})
                     }
                 ]
@@ -140,6 +143,7 @@ type BackendAddressPoolBuilder() =
         LoadBalancer = ResourceName.Empty
         LoadBalancerBackendAddresses = []
         VirtualNetwork = None
+        Subnet = None
     }
 
     /// Sets the name of the backend address pool.
@@ -152,6 +156,7 @@ type BackendAddressPoolBuilder() =
         state with
             LoadBalancer = ResourceName lb
     }
+
 
     /// Links to an existing vnet for addresses for this pool.
     [<CustomOperation "link_to_vnet">]
@@ -185,6 +190,40 @@ type BackendAddressPoolBuilder() =
     member _.VirtualNetwork(state: BackendAddressPoolConfig, vnetConfig: VirtualNetworkConfig) = {
         state with
             VirtualNetwork = Some(Managed(virtualNetworks.resourceId vnetConfig.Name))
+    }
+
+    /// Links to an existing subnet for addresses for this pool.
+    [<CustomOperation "link_to_subnet">]
+    member _.LinkToSubnet(state: BackendAddressPoolConfig, subnet: string) = {
+        state with
+            Subnet = Some(Unmanaged(subnets.resourceId (ResourceName subnet)))
+    }
+
+    member _.LinkToSubnet(state: BackendAddressPoolConfig, subnet: ResourceId) = {
+        state with
+            Subnet = Some(Unmanaged subnet)
+    }
+
+    member _.LinkToSubnet(state: BackendAddressPoolConfig, subnetConfig: SubnetConfig) = {
+        state with
+            Subnet = Some(Unmanaged(subnets.resourceId subnetConfig.Name))
+    }
+
+    /// Links to a subnet that is defined in this same deployment.
+    [<CustomOperation "subnet">]
+    member _.Subnet(state: BackendAddressPoolConfig, subnet: string) = {
+        state with
+            Subnet = Some(Managed(subnets.resourceId (ResourceName subnet)))
+    }
+
+    member _.Subnet(state: BackendAddressPoolConfig, subnet: ResourceId) = {
+        state with
+            Subnet = Some(Managed subnet)
+    }
+
+    member _.Subnet(state: BackendAddressPoolConfig, subnetConfig: SubnetConfig) = {
+        state with
+            Subnet = Some(Managed(subnets.resourceId subnetConfig.Name))
     }
 
     /// Adds IP addresses for this backend pool.

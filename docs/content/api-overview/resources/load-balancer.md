@@ -34,6 +34,8 @@ The Load Balancer builder (`loadBalancer`) creates load balancers that can distr
 | backendAddressPool | load_balancer                | The name of a load balancer these should be added to (used when adding to a pool for an existing load balancer).                                                                          |
 | backendAddressPool | vnet                         | Specifies a virtual network in the same deployment where the backend services are connected.                                                                                              |
 | backendAddressPool | link_to_vnet                 | Specifies an existing virtual network where the backend services are connected.                                                                                                           |
+| backendAddressPool | subnet                      | Specifies a subnet in the same deployment where the backend services are connected.                                                                                              |
+| backendAddressPool | link_to_subnet              | Specifies an existing subnet where the backend services are connected.                                                                                                           |
 | backendAddressPool | add_ip_addresses             | Adds IP addresses to the backend pool.                                                                                                                                                    |
 | loadBalancerProbe | name                         | The name of the load balancer probe.                                                                                                                                                      |
 | loadBalancerProbe | protocol                     | The protocol to use for the probe - default is TCP.                                                                                                                                       |
@@ -67,7 +69,7 @@ arm {
             add_address_spaces [ "10.0.1.0/24" ]
             add_subnets [
                 subnet {
-                    name "my-services"
+                    name "my-subnet"
                     prefix "10.0.1.0/24"
                     add_delegations [
                         SubnetDelegationService.ContainerGroups
@@ -88,6 +90,7 @@ arm {
                 backendAddressPool {
                     name "lb-backend"
                     vnet "my-vnet"
+                    subnet "my-subnet"
                     add_ip_addresses [
                         "10.0.1.4"
                         "10.0.1.5"

@@ -403,11 +403,12 @@ let tests =
         test "LoadBalancer" {
             let myVnet = vnet {
                 name "my-vnet"
+
                 add_address_spaces [ "10.0.1.0/24" ]
 
                 add_subnets [
                     subnet {
-                        name "my-services"
+                        name "my-subnet"
                         prefix "10.0.1.0/24"
                         add_delegations [ SubnetDelegationService.ContainerGroups ]
                     }
@@ -428,8 +429,9 @@ let tests =
                 add_backend_pools [
                     backendAddressPool {
                         name "lb-backend"
-                        vnet "my-vnet"
                         add_ip_addresses [ "10.0.1.4"; "10.0.1.5" ]
+                        vnet "my-vnet"
+                        subnet "my-subnet"
                     }
                 ]
 

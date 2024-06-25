@@ -17,7 +17,7 @@
         },
         "subnets": [
           {
-            "name": "my-services",
+            "name": "my-subnet",
             "properties": {
               "addressPrefix": "10.0.1.0/24",
               "delegations": [
@@ -109,7 +109,7 @@
       "apiVersion": "2020-11-01",
       "dependsOn": [
         "[resourceId('Microsoft.Network/loadBalancers', 'lb')]",
-        "[resourceId('Microsoft.Network/virtualNetworks', 'my-vnet')]"
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'my-subnet')]"
       ],
       "name": "lb/lb-backend",
       "properties": {
@@ -118,8 +118,8 @@
             "name": "addr0",
             "properties": {
               "ipAddress": "10.0.1.4",
-              "virtualNetwork": {
-                "id": "[resourceId('Microsoft.Network/virtualNetworks', 'my-vnet')]"
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'my-subnet')]"
               }
             }
           },
@@ -127,8 +127,8 @@
             "name": "addr1",
             "properties": {
               "ipAddress": "10.0.1.5",
-              "virtualNetwork": {
-                "id": "[resourceId('Microsoft.Network/virtualNetworks', 'my-vnet')]"
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'my-subnet')]"
               }
             }
           }

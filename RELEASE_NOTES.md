@@ -2,6 +2,7 @@ Release Notes
 =============
 ## vNext
 * App Service: Automatic support for App Insights on Linux.
+* LoadBalancer: Linking BackendAddressPool IPs to subnets instead of vnets if configured.
 
 ## 1.8.11
 * Service Bus: Added support for setting max message size.
