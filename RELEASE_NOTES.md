@@ -1,6 +1,7 @@
 Release Notes
 =============
-## vNext
+
+## 1.8.12
 * App Service: Automatic support for App Insights on Linux.
 * LoadBalancer: Linking BackendAddressPool IPs to subnets instead of vnets if configured.
 
