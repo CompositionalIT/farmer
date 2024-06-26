@@ -107,10 +107,13 @@ let tests =
                     add_blob_container "blob"
                     add_private_container "private"
                     add_public_container "public"
+                    add_blob_containers [ "blob1"; "blob2" ]
+                    add_private_containers [ "private1"; "private2" ]
+                    add_public_containers [ "public1"; "public2" ]
                 }
 
                 [
-                    for i in 1..3 do
+                    for i in 1..9 do
                         account |> getResourceAtIndex client.SerializationSettings i
                 ]
 
@@ -120,6 +123,18 @@ let tests =
             Expect.equal resources.[1].PublicAccess.Value PublicAccess.None "private access is wrong"
             Expect.equal resources.[2].Name "storage/default/public" "public name is wrong"
             Expect.equal resources.[2].PublicAccess.Value PublicAccess.Container "container access is wrong"
+            Expect.equal resources.[3].Name "storage/default/blob1" "blob1 name is wrong"
+            Expect.equal resources.[3].PublicAccess.Value PublicAccess.Blob "blob1 access is wrong"
+            Expect.equal resources.[4].Name "storage/default/blob2" "blob2 name is wrong"
+            Expect.equal resources.[4].PublicAccess.Value PublicAccess.Blob "blob2 access is wrong"
+            Expect.equal resources.[5].Name "storage/default/private1" "private1 name is wrong"
+            Expect.equal resources.[5].PublicAccess.Value PublicAccess.None "private1 access is wrong"
+            Expect.equal resources.[6].Name "storage/default/private2" "private2 name is wrong"
+            Expect.equal resources.[6].PublicAccess.Value PublicAccess.None "private2 access is wrong"
+            Expect.equal resources.[7].Name "storage/default/public1" "public1 name is wrong"
+            Expect.equal resources.[7].PublicAccess.Value PublicAccess.Container "public1 access is wrong"
+            Expect.equal resources.[8].Name "storage/default/public2" "public2 name is wrong"
+            Expect.equal resources.[8].PublicAccess.Value PublicAccess.Container "public2 access is wrong"
         }
         test "Creates file shares correctly" {
             let resources: FileShare list =
@@ -127,16 +142,24 @@ let tests =
                     name "storage"
                     add_file_share "share1"
                     add_file_share_with_quota "share2" 1024<Gb>
+                    add_file_shares [ "share3"; "share4" ]
+                    add_file_shares_with_quota [ "share5"; "share6" ] 2048<Gb>
                 }
 
                 [
-                    for i in 1..2 do
+                    for i in 1..6 do
                         account |> getResourceAtIndex client.SerializationSettings i
                 ]
 
             Expect.equal resources.[0].Name "storage/default/share1" "file share name for 'share1' is wrong"
             Expect.equal resources.[1].Name "storage/default/share2" "file share name for 'share2' is wrong"
             Expect.equal resources.[1].ShareQuota (Nullable 1024) "file share quota for 'share2' is wrong"
+            Expect.equal resources.[2].Name "storage/default/share3" "file share name for 'share3' is wrong"
+            Expect.equal resources.[3].Name "storage/default/share4" "file share name for 'share4' is wrong"
+            Expect.equal resources.[4].Name "storage/default/share5" "file share name for 'share5' is wrong"
+            Expect.equal resources.[4].ShareQuota (Nullable 2048) "file share quota for 'share5' is wrong"
+            Expect.equal resources.[5].Name "storage/default/share6" "file share name for 'share6' is wrong"
+            Expect.equal resources.[5].ShareQuota (Nullable 2048) "file share quota for 'share6' is wrong"
         }
         test "Creates tables correctly" {
             let resources: Table list =

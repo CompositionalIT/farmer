@@ -255,15 +255,33 @@ type StorageAccountBuilder() =
 
         state
 
-    static member private AddContainer(state, access, name: string) = {
+    static member private AddContainers(state, access, names: string seq) = {
         state with
-            Containers = state.Containers @ [ ((StorageResourceName.Create name).OkValue, access) ]
+            Containers =
+                let containers =
+                    names
+                    |> List.ofSeq
+                    |> List.map (fun name -> ((StorageResourceName.Create name).OkValue, access))
+
+                state.Containers @ containers
     }
 
-    static member private AddFileShare(state: StorageAccountConfig, name: string, quota) = {
+    static member private AddContainer(state, access, name: string) =
+        StorageAccountBuilder.AddContainers(state, access, [ name ])
+
+    static member private AddFileShares(state: StorageAccountConfig, names: string seq, quota) = {
         state with
-            FileShares = state.FileShares @ [ (StorageResourceName.Create(name).OkValue, quota) ]
+            FileShares =
+                let fileShares =
+                    names
+                    |> List.ofSeq
+                    |> List.map (fun name -> (StorageResourceName.Create(name).OkValue, quota))
+
+                state.FileShares @ fileShares
     }
+
+    static member private AddFileShare(state: StorageAccountConfig, name: string, quota) =
+        StorageAccountBuilder.AddFileShares(state, [ name ], quota)
 
     /// Sets the name of the storage account.
     [<CustomOperation "name">]
@@ -283,50 +301,81 @@ type StorageAccountBuilder() =
     member _.AddPrivateContainer(state: StorageAccountConfig, name) =
         StorageAccountBuilder.AddContainer(state, Private, name)
 
+    /// Adds private containers.
+    [<CustomOperation "add_private_containers">]
+    member _.AddPrivateContainers(state: StorageAccountConfig, names) =
+        StorageAccountBuilder.AddContainers(state, Private, names)
+
     /// Adds container with anonymous read access for blobs and containers.
     [<CustomOperation "add_public_container">]
     member _.AddPublicContainer(state: StorageAccountConfig, name) =
         StorageAccountBuilder.AddContainer(state, Container, name)
+
+    /// Adds containers with anonymous read access for blobs and containers.
+    [<CustomOperation "add_public_containers">]
+    member _.AddPublicContainers(state: StorageAccountConfig, names) =
+        StorageAccountBuilder.AddContainers(state, Container, names)
 
     /// Adds container with anonymous read access for blobs only.
     [<CustomOperation "add_blob_container">]
     member _.AddBlobContainer(state: StorageAccountConfig, name) =
         StorageAccountBuilder.AddContainer(state, Blob, name)
 
+    /// Adds containers with anonymous read access for blobs only.
+    [<CustomOperation "add_blob_containers">]
+    member _.AddBlobContainers(state: StorageAccountConfig, names) =
+        StorageAccountBuilder.AddContainers(state, Blob, names)
+
     /// Adds a file share with no quota.
     [<CustomOperation "add_file_share">]
     member _.AddFileShare(state: StorageAccountConfig, name) =
         StorageAccountBuilder.AddFileShare(state, name, None)
+
+    /// Adds file shares with no quota.
+    [<CustomOperation "add_file_shares">]
+    member _.AddFileShares(state: StorageAccountConfig, names) =
+        StorageAccountBuilder.AddFileShares(state, names, None)
 
     /// Adds a file share with specified quota.
     [<CustomOperation "add_file_share_with_quota">]
     member _.AddFileShareWithQuota(state: StorageAccountConfig, name: string, quota) =
         StorageAccountBuilder.AddFileShare(state, name, Some quota)
 
+    /// Adds file shares with specified quota.
+    [<CustomOperation "add_file_shares_with_quota">]
+    member _.AddFileSharesWithQuota(state: StorageAccountConfig, names: string list, quota) =
+        StorageAccountBuilder.AddFileShares(state, names, Some quota)
+
     /// Adds a single queue to the storage account.
     [<CustomOperation "add_queue">]
-    member _.AddQueue(state: StorageAccountConfig, queue: StorageQueueConfig) = {
-        state with
-            Queues = state.Queues @ [ queue ]
-    }
+    member this.AddQueue(state: StorageAccountConfig, queue: StorageQueueConfig) = this.AddQueues(state, [ queue ])
 
+    /// Adds a single queue to the storage account.
     [<CustomOperation "add_queue">]
-    member _.AddQueue(state: StorageAccountConfig, name: string) = {
+    member this.AddQueue(state: StorageAccountConfig, name: string) = this.AddQueues(state, [ name ])
+
+    /// Adds a set of queues to the storage account.
+    [<CustomOperation "add_queues">]
+    member _.AddQueues(state: StorageAccountConfig, names: string seq) = {
         state with
             Queues =
-                state.Queues
-                @ [
-                    {
+                let queues =
+                    names
+                    |> List.ofSeq
+                    |> List.map (fun name -> {
                         Name = StorageResourceName.Create(name).OkValue
                         Metadata = None
-                    }
-                ]
+                    })
+
+                state.Queues @ queues
     }
 
     /// Adds a set of queues to the storage account.
     [<CustomOperation "add_queues">]
-    member this.AddQueues(state: StorageAccountConfig, queues: StorageQueueConfig seq) =
-        (state, queues) ||> Seq.fold (fun state queue -> this.AddQueue(state, queue))
+    member _.AddQueues(state: StorageAccountConfig, queues: StorageQueueConfig seq) = {
+        state with
+            Queues = state.Queues @ List.ofSeq queues
+    }
 
     /// Adds a set of queues to the storage account with the same metadata.
     [<CustomOperation "add_queues">]
