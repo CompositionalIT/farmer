@@ -348,28 +348,34 @@ type StorageAccountBuilder() =
 
     /// Adds a single queue to the storage account.
     [<CustomOperation "add_queue">]
-    member _.AddQueue(state: StorageAccountConfig, queue: StorageQueueConfig) = {
-        state with
-            Queues = state.Queues @ [ queue ]
-    }
+    member this.AddQueue(state: StorageAccountConfig, queue: StorageQueueConfig) = this.AddQueues(state, [ queue ])
 
+    /// Adds a single queue to the storage account.
     [<CustomOperation "add_queue">]
-    member _.AddQueue(state: StorageAccountConfig, name: string) = {
+    member this.AddQueue(state: StorageAccountConfig, name: string) = this.AddQueues(state, [ name ])
+
+    /// Adds a set of queues to the storage account.
+    [<CustomOperation "add_queues">]
+    member _.AddQueues(state: StorageAccountConfig, names: string seq) = {
         state with
             Queues =
-                state.Queues
-                @ [
-                    {
+                let queues =
+                    names
+                    |> List.ofSeq
+                    |> List.map (fun name -> {
                         Name = StorageResourceName.Create(name).OkValue
                         Metadata = None
-                    }
-                ]
+                    })
+
+                state.Queues @ queues
     }
 
     /// Adds a set of queues to the storage account.
     [<CustomOperation "add_queues">]
-    member this.AddQueues(state: StorageAccountConfig, queues: StorageQueueConfig seq) =
-        (state, queues) ||> Seq.fold (fun state queue -> this.AddQueue(state, queue))
+    member _.AddQueues(state: StorageAccountConfig, queues: StorageQueueConfig seq) = {
+        state with
+            Queues = state.Queues @ List.ofSeq queues
+    }
 
     /// Adds a set of queues to the storage account with the same metadata.
     [<CustomOperation "add_queues">]
