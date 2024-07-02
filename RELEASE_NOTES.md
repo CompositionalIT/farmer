@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.8.13
+* PostgreSQL: Use the correct ResourceId (used in e.g. depends_on calls)
 
 ## 1.8.12
 * App Service: Automatic support for App Insights on Linux.
