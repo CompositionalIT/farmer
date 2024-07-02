@@ -153,7 +153,7 @@ type ContainerEnvironmentConfig = {
                 let uniqueVolumes =
                     app.Volumes
                     |> Seq.choose (ManagedEnvironmentStorage.from (managedEnvironments.resourceId this.Name))
-                    |> Seq.distinctBy (fun v -> v.Name)
+                    |> Seq.distinctBy _.Name
 
                 for volume in uniqueVolumes do
                     volume

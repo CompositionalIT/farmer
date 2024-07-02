@@ -53,7 +53,7 @@ type DiagnosticSettings = {
                             | Some(_, AzureDiagnostics) -> null
                         eventHubName =
                             this.Sinks.EventHub
-                            |> Option.bind (fun hub -> hub.EventHubName |> Option.map (fun r -> r.Value))
+                            |> Option.bind (fun hub -> hub.EventHubName |> Option.map _.Value)
                             |> Option.toObj
                         eventHubAuthorizationRuleId =
                             this.Sinks.EventHub
@@ -67,7 +67,7 @@ type DiagnosticSettings = {
                                     enabled = metric.Enabled
                                     timeGrain =
                                         metric.TimeGrain
-                                        |> Option.map (IsoDateTime.OfTimeSpan >> fun v -> v.Value)
+                                        |> Option.map (IsoDateTime.OfTimeSpan >> _.Value)
                                         |> Option.toObj
                                     retentionPolicy =
                                         metric.RetentionPolicy

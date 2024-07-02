@@ -128,7 +128,7 @@ type DaprComponent = {
                                 value = secret.Value.Value
                             |}
                     |]
-                    secretStoreComponent = this.SecretStoreComponent |> Option.map (fun x -> x.Value) |> Option.toObj
+                    secretStoreComponent = this.SecretStoreComponent |> Option.map _.Value |> Option.toObj
                     version = this.Version
                 |}
         |}

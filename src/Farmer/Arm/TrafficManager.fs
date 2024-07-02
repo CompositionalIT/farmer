@@ -32,7 +32,7 @@ type Endpoint = {
             endpointStatus = this.Status.ArmValue
             weight = this.Weight |> Option.toNullable
             priority = this.Priority |> Option.toNullable
-            endpointLocation = this.Location |> Option.map (fun l -> l.ArmValue) |> Option.toObj
+            endpointLocation = this.Location |> Option.map _.ArmValue |> Option.toObj
             targetResourceId =
                 match this.Target with
                 | External _ -> null
@@ -74,6 +74,6 @@ type Profile = {
                         toleratedNumberOfFailures = this.MonitorConfig.ToleratedNumberOfFailures
                         timeoutInSeconds = int this.MonitorConfig.TimeoutInSeconds
                     |}
-                    endpoints = this.Endpoints |> List.map (fun e -> e.JsonModel)
+                    endpoints = this.Endpoints |> List.map _.JsonModel
                 |}
         |}

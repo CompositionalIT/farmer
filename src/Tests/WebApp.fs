@@ -68,7 +68,7 @@ let tests =
                 ]
 
                 let actualSettings = wa.AppSettings |> Option.defaultValue Map.empty
-                let actualSettingsSeq = actualSettings |> Seq.map (fun x -> x.Key)
+                let actualSettingsSeq = actualSettings |> Seq.map _.Key
                 Expect.containsAll actualSettingsSeq expectedSettings "Missing AI settings"
 
                 Expect.equal
@@ -326,11 +326,7 @@ let tests =
 
             let kv = wa |> getResources |> getResource<Vault> |> List.head
 
-            let secrets =
-                wa
-                |> getResources
-                |> getResource<Vaults.Secret>
-                |> List.sortBy (fun s -> s.Name)
+            let secrets = wa |> getResources |> getResource<Vaults.Secret> |> List.sortBy _.Name
 
             let site = wa |> getResources |> getResource<Web.Site> |> List.head
             let vault = wa |> getResources |> getResource<Vault> |> List.head
@@ -488,7 +484,7 @@ let tests =
                 "Should have system identity"
 
             Expect.sequenceEqual
-                (wa.Identity.UserAssignedIdentities |> Seq.map (fun r -> r.Key))
+                (wa.Identity.UserAssignedIdentities |> Seq.map _.Key)
                 [
                     "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')]"
                     "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test')]"
@@ -1397,7 +1393,7 @@ let tests =
             let siteDependency =
                 deployments[0].Dependencies
                 |> Set.filter (fun x -> x.Type = wa.ResourceType)
-                |> Set.map (fun x -> x.Name)
+                |> Set.map _.Name
                 |> Seq.head
 
             Expect.hasLength deployments 9 "Should have three deploys per custom domain"

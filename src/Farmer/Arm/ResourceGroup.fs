@@ -85,7 +85,7 @@ type ResourceGroupDeployment = {
     interface IParameters with
         /// Secure parameters that are not provided as input on this deployment
         member this.SecureParameters =
-            let inputParameterKeys = this.ParameterValues |> Seq.map (fun p -> p.Key) |> Set
+            let inputParameterKeys = this.ParameterValues |> Seq.map _.Key |> Set
 
             this.Parameters
             |> List.where (fun p -> inputParameterKeys |> Set.contains p.Key |> not)

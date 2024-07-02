@@ -28,9 +28,8 @@ type Workspace = {
                         match this.DailyCap with
                         | None -> null
                         | Some cap -> {| dailyQuotaGb = cap |} |> box
-                    publicNetworkAccessForIngestion =
-                        this.IngestionSupport |> Option.map (fun f -> f.ArmValue) |> Option.toObj
-                    publicNetworkAccessForQuery = this.QuerySupport |> Option.map (fun f -> f.ArmValue) |> Option.toObj
+                    publicNetworkAccessForIngestion = this.IngestionSupport |> Option.map _.ArmValue |> Option.toObj
+                    publicNetworkAccessForQuery = this.QuerySupport |> Option.map _.ArmValue |> Option.toObj
                 |}
         |}
 

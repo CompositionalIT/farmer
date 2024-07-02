@@ -52,7 +52,7 @@ let tests =
             Expect.hasLength builtVnet.Subnets 2 "Incorrect number of subnets"
 
             Expect.containsAll
-                (builtVnet.Subnets |> Seq.map (fun s -> s.Name))
+                (builtVnet.Subnets |> Seq.map _.Name)
                 [ webServerSubnet; databaseSubnet ]
                 "Incorrect set of subnets"
 
@@ -110,7 +110,7 @@ let tests =
             Expect.hasLength builtVnet.Subnets 2 "Incorrect number of subnets"
 
             Expect.containsAll
-                (builtVnet.Subnets |> Seq.map (fun s -> s.Name))
+                (builtVnet.Subnets |> Seq.map _.Name)
                 [ servicesSubnet; containerSubnet ]
                 "Incorrect set of subnets"
 
@@ -163,7 +163,7 @@ let tests =
             let generatedVNet = arm { add_resource myNet } |> getVnetResource
 
             Expect.containsAll
-                (generatedVNet.Subnets |> Seq.map (fun s -> s.Name))
+                (generatedVNet.Subnets |> Seq.map _.Name)
                 [ servicesSubnet; containerSubnet ]
                 "Incorrect set of subnets"
 

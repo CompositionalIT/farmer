@@ -5,8 +5,7 @@ open Farmer
 open Farmer.ServiceBus
 open System
 
-let private tryGetIso (v: IsoDateTime option) =
-    v |> Option.map (fun v -> v.Value) |> Option.toObj
+let private tryGetIso (v: IsoDateTime option) = v |> Option.map _.Value |> Option.toObj
 
 let subscriptions =
     ResourceType("Microsoft.ServiceBus/namespaces/topics/subscriptions", "2022-01-01-preview")
@@ -64,7 +63,7 @@ module Namespaces =
                             duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
                             deadLetteringOnMessageExpiration =
                                 this.DeadLetteringOnMessageExpiration |> Option.toNullable
-                            forwardTo = this.ForwardTo |> Option.map (fun n -> n.Value) |> Option.toObj
+                            forwardTo = this.ForwardTo |> Option.map _.Value |> Option.toObj
                             maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
                             requiresSession = this.Session |> Option.toNullable
                             lockDuration = tryGetIso this.LockDuration
@@ -130,7 +129,7 @@ module Namespaces =
                         defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
                         requiresSession = this.Session |> Option.toNullable
                         deadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration |> Option.toNullable
-                        forwardTo = this.ForwardTo |> Option.map (fun x -> x.Value) |> Option.toObj
+                        forwardTo = this.ForwardTo |> Option.map _.Value |> Option.toObj
                         maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
                         maxSizeInMegabytes = this.MaxSizeInMegabytes |> Option.toNullable
                         enablePartitioning = this.EnablePartitioning |> Option.toNullable
