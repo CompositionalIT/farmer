@@ -382,11 +382,11 @@ type Subnet = {
                     |> List.map (fun policyId -> {| id = policyId.ArmExpression.Eval() |})
             privateEndpointNetworkPolicies =
                 this.PrivateEndpointNetworkPolicies
-                |> Option.map (fun x -> x.ArmValue)
+                |> Option.map _.ArmValue
                 |> Option.defaultValue Unchecked.defaultof<_>
             privateLinkServiceNetworkPolicies =
                 this.PrivateLinkServiceNetworkPolicies
-                |> Option.map (fun x -> x.ArmValue)
+                |> Option.map _.ArmValue
                 |> Option.defaultValue Unchecked.defaultof<_>
         |}
 

@@ -27,7 +27,7 @@ type AlertConfig = {
                 Frequency = this.Frequency
                 Window = this.Window
                 Actions = this.Actions
-                LinkedResources = this.LinkedResources |> List.map (fun r -> r.ResourceId)
+                LinkedResources = this.LinkedResources |> List.map _.ResourceId
                 Criteria = this.Criteria
             }
 

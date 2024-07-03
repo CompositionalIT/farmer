@@ -36,13 +36,13 @@ module Extensions =
             this.DependsOn(state, builder.ResourceId)
 
         member this.DependsOn(state: 'TConfig, builders: IBuilder list) =
-            this.DependsOn(state, builders |> List.map (fun x -> x.ResourceId))
+            this.DependsOn(state, builders |> List.map _.ResourceId)
 
         member this.DependsOn(state: 'TConfig, resource: IArmResource) =
             this.DependsOn(state, resource.ResourceId)
 
         member this.DependsOn(state: 'TConfig, resources: IArmResource list) =
-            this.DependsOn(state, resources |> List.map (fun x -> x.ResourceId))
+            this.DependsOn(state, resources |> List.map _.ResourceId)
 
         member this.DependsOn(state: 'TConfig, resourceId: ResourceId) = this.DependsOn(state, [ resourceId ])
         member this.DependsOn(state: 'TConfig, resourceIds: ResourceId list) = this.Add state (Set resourceIds)

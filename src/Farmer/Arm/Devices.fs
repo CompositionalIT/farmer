@@ -37,8 +37,8 @@ type DeliveryDetails = {|
 |}
 
 let serialize (d: DeliveryDetails) = {|
-    ttlAsIso8601 = d.Ttl |> Option.map (fun f -> f.Value) |> Option.toObj
-    lockDurationAsIso8601 = d.LockDuration |> Option.map (fun f -> f.Value) |> Option.toObj
+    ttlAsIso8601 = d.Ttl |> Option.map _.Value |> Option.toObj
+    lockDurationAsIso8601 = d.LockDuration |> Option.map _.Value |> Option.toObj
     maxDeliveryCount = d.MaxDeliveryCount |> Option.toNullable
 |}
 
@@ -80,7 +80,7 @@ type iotHubs = {
                           } -> null
                         | _ ->
                             box {|
-                                defaultTtlAsIso8601 = this.DefaultTtl |> Option.map (fun v -> v.Value) |> Option.toObj
+                                defaultTtlAsIso8601 = this.DefaultTtl |> Option.map _.Value |> Option.toObj
                                 maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
                                 feedback = this.Feedback |> Option.map (serialize >> box) |> Option.toObj
                             |}

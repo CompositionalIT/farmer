@@ -117,7 +117,7 @@ type HubRouteTable = {
         member this.JsonModel = {|
             hubRouteTables.Create(this.VirtualHub.Name / this.Name, dependsOn = this.Dependencies) with
                 properties = {|
-                    routes = this.Routes |> List.map (fun r -> r.JsonModel)
+                    routes = this.Routes |> List.map _.JsonModel
                     labels = this.Labels
                 |}
         |}

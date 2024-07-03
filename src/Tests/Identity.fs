@@ -52,12 +52,12 @@ let tests =
             Expect.equal json.``type`` "UserAssigned" "Should be user assigned"
 
             Expect.sequenceEqual
-                (json.userAssignedIdentities |> Seq.map (fun s -> s.Key))
+                (json.userAssignedIdentities |> Seq.map _.Key)
                 [ "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test')]" ]
                 "Should be single UAI"
 
             Expect.equal
-                (json.userAssignedIdentities |> Seq.map (fun r -> r.Value.GetType()) |> Seq.head)
+                (json.userAssignedIdentities |> Seq.map (_.Value.GetType()) |> Seq.head)
                 typeof<obj>
                 "Should be an object"
 

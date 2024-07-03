@@ -16,7 +16,6 @@ type PostgreSQLDbConfig = {
     DbCharset: string option
 }
 
-
 type PostgreSQLConfig = {
     Name: ResourceName
     AdministratorCredentials: {|
@@ -46,7 +45,7 @@ type PostgreSQLConfig = {
 } with
 
     interface IBuilder with
-        member this.ResourceId = databases.resourceId this.Name
+        member this.ResourceId = servers.resourceId this.Name
 
         member this.BuildResources location = [
             {

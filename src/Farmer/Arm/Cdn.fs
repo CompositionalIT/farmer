@@ -185,7 +185,7 @@ module CdnRule =
                     "HttpVersion",
                     "#Microsoft.Azure.Cdn.Models.DeliveryRuleHttpVersionConditionParameters",
                     c.Operator,
-                    c.HttpVersions |> List.map (fun v -> v.ArmValue)
+                    c.HttpVersions |> List.map _.ArmValue
                 )
             | RequestCookies c ->
                 this.MapCondition(
@@ -437,8 +437,8 @@ module Profiles =
                                     |> List.map (fun rule -> {|
                                         name = rule.Name.Value
                                         order = rule.Order
-                                        conditions = rule.Conditions |> List.map (fun c -> c.JsonModel)
-                                        actions = rule.Actions |> List.map (fun a -> a.JsonModel)
+                                        conditions = rule.Conditions |> List.map _.JsonModel
+                                        actions = rule.Actions |> List.map _.JsonModel
                                     |})
                             |}
                         |}

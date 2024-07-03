@@ -470,7 +470,7 @@ let tests =
                 "Should have system identity"
 
             Expect.sequenceEqual
-                (machine.Identity.UserAssignedIdentities |> Seq.map (fun r -> r.Key))
+                (machine.Identity.UserAssignedIdentities |> Seq.map _.Key)
                 [
                     "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')]"
                     "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test')]"

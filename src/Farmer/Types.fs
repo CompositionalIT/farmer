@@ -268,7 +268,7 @@ type ResourceType with
             ``type`` = path
             apiVersion = version
             name = name.Value
-            location = location |> Option.map (fun r -> r.ArmValue) |> Option.toObj
+            location = location |> Option.map _.ArmValue |> Option.toObj
             dependsOn =
                 dependsOn
                 |> Option.map (Seq.map (fun r -> r.Eval()) >> Seq.toArray >> box)

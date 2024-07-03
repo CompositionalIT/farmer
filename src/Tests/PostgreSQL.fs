@@ -16,7 +16,6 @@ type PostgresSku = {
     size: string
 }
 
-
 type StorageProfile = {
     backupRetentionDays: int
     geoRedundantBackup: string
@@ -144,8 +143,8 @@ let tests =
                 |> toTemplate Location.NorthEurope
                 |> Writer.toJson
                 |> Serialization.ofJson<TypedArmTemplate<DatabaseResource>>
-                |> fun r -> r.Resources
-                |> Seq.find (fun r -> r.name = "testdb/my_db")
+                |> _.Resources
+                |> Seq.find (_.name >> (=) "testdb/my_db")
 
             let expectedDbRes = {
                 name = "testdb/my_db"
@@ -463,5 +462,43 @@ let tests =
         test "Family name should not include type name" {
             Expect.equal PostgreSQLFamily.Gen5.AsArmValue "Gen5" "Wrong value for Gen5 family"
             Expect.equal (PostgreSQLFamily.Gen5.ToString()) "Gen5" "Wrong value for Gen5 family"
+        }
+
+        test "Correct dependency path is used" {
+            let group =
+                let pgServer = postgreSQL {
+                    name "pgserver"
+                    add_database "db"
+                    admin_username "theadmin"
+                }
+
+                let app = webApp {
+                    name "webapp"
+                    depends_on pgServer
+                }
+
+                arm {
+                    location Location.NorthEurope
+                    add_resources [ pgServer; app ]
+                }
+
+            let actual =
+                group.Template
+                |> Writer.toJson
+                |> Serialization.ofJson<
+                    TypedArmTemplate<
+                        {|
+                            name: string
+                            dependsOn: string array
+                        |}
+                     >
+                    >
+                |> _.Resources
+                |> Seq.find (_.name >> (=) "webapp")
+
+            Expect.contains
+                actual.dependsOn
+                "[resourceId('Microsoft.DBforPostgreSQL/servers', 'pgserver')]"
+                "Depends on is wrong"
         }
     ]
