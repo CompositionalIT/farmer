@@ -1,9 +1,8 @@
 Release Notes
 =============
-## 1.8.13
-* PostgreSQL: Use the correct ResourceId (used in e.g. depends_on calls)
 
 ## 1.8.13
+* PostgreSQL: Use the correct ResourceId (used in e.g. depends_on calls)
 * Storage: add plural `add_blob_containers`, `add_public_containers`, `add_private_containers`, `add_file_shares`, `add_file_shares_with_quota` and `add_queues (string seq)`.
 * Storage: fix quadratic complexity in `add_queues (StorageQueueConfig seq)`.
 
