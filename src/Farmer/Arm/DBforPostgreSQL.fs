@@ -17,7 +17,7 @@ let virtualNetworkRules =
 let servers = ResourceType("Microsoft.DBforPostgreSQL/servers", "2017-12-01")
 
 let flexibleFirewallRules =
-    ResourceType("Microsoft.DBforPostgreSQL/flexibleservers/firewallrules", "2023-06-01-preview")
+    ResourceType("Microsoft.DBforPostgreSQL/flexibleServers/firewallrules", "2023-06-01-preview")
 
 let flexibleDatabases =
     ResourceType("Microsoft.DBforPostgreSQL/flexibleServers/databases", "2023-06-01-preview")
