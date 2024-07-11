@@ -12,8 +12,9 @@ It supports features such as firewall, autogrow and version selection.
 Every PostgreSQL Azure server you create will automatically create a SecureString
 parameter for the admin account password.
 
-> There is support for newer "Flexible" as well as the original "Single Instance" server type.
+> There is support for newer "Flexible" as well as the original "Single Server" server type.
 > Several keywords are overloaded to cater for both server types.
+> By default, the builder uses Flexible Server model.
 
 * PostgreSQL server (`Microsoft.DBforPostgreSQL/servers`)
 * PostgreSQL server (`Microsoft.DBforPostgreSQL/flexibleServers`)
@@ -58,7 +59,7 @@ parameter for the admin account password.
 
 #### Example
 
-* Original "Single Instance" model
+* Original "Single Server" model
 
 ```fsharp
 open Farmer
@@ -70,9 +71,13 @@ let myPostgres = postgreSQL {
     name "aserverformultitudes42"
     capacity 4<VCores>
     storage_size 50<Gb>
-    tier GeneralPurpose
     add_database "my_db"
     enable_azure_firewall
+
+    // overloaded or single-instance-specific keywords
+    tier GeneralPurpose
+    server_version Version.VS_11
+    capacity 1<VCores>
 }
 
 let template = arm {
@@ -93,10 +98,13 @@ let myPostgres = postgreSQL {
     name "aserverformultitudes42"
     admin_username "adminallthethings"
     storage_size 64<Gb>
-    tier FlexibleTier.Burstable_B1ms
-    storage_performance_tier Vm.DiskPerformanceTier.P10
     add_database "my_db"
     enable_azure_firewall
     storage_autogrow true
+
+    // overloaded or model-specific keywords
+    tier FlexibleTier.Burstable_B1ms
+    server_version FlexibleVersion.V_16
+    storage_performance_tier Vm.DiskPerformanceTier.P10
 }
 ```
