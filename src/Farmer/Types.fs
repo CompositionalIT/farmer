@@ -1,7 +1,6 @@
 namespace Farmer
 
 open System
-open Farmer
 
 /// Common generic functions to support internals
 [<AutoOpen>]
@@ -118,7 +117,7 @@ type ResourceType with
         match name.Value.Split('/') with
         | [||]
         | [| _ |] -> ResourceId.create (this, name)
-        | parts -> ResourceId.create (this, (ResourceName parts.[0]), (Array.map ResourceName parts.[1..]))
+        | parts -> ResourceId.create (this, (ResourceName parts[0]), (Array.map ResourceName parts[1..]))
 
     member this.resourceId name = this.resourceId (ResourceName name)
 
@@ -489,9 +488,9 @@ module internal DeterministicGuid =
     open System.Text
 
     let private swapBytes (guid: byte array, left, right) =
-        let temp = guid.[left]
-        guid.[left] <- guid.[right]
-        guid.[right] <- temp
+        let temp = guid[left]
+        guid[left] <- guid[right]
+        guid[right] <- temp
 
     let private swapByteOrder guid =
         swapBytes (guid, 0, 3)
@@ -519,8 +518,8 @@ module internal DeterministicGuid =
         let newGuid = Array.zeroCreate<byte> 16
         Array.Copy(hash, 0, newGuid, 0, 16)
 
-        newGuid.[6] <- ((newGuid.[6] &&& 0x0Fuy) ||| (5uy <<< 4))
-        newGuid.[8] <- ((newGuid.[8] &&& 0x3Fuy) ||| 0x80uy)
+        newGuid[6] <- ((newGuid[6] &&& 0x0Fuy) ||| (5uy <<< 4))
+        newGuid[8] <- ((newGuid[8] &&& 0x3Fuy) ||| 0x80uy)
 
         swapByteOrder newGuid
         Guid newGuid

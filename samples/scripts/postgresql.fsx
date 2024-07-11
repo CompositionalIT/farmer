@@ -1,17 +1,24 @@
-#r "nuget:Farmer"
+#r "nuget: Farmer"
 
 open Farmer
 open Farmer.Builders
 open Farmer.PostgreSQL
 
 let myPostgres = postgreSQL {
-    name "aserverformultitudes42"
+    name "flexibleserver"
     admin_username "adminallthethings"
-    capacity 4<VCores>
-    storage_size 50<Gb>
-    tier GeneralPurpose
-    add_database "my_db"
+    storage_size 64<Gb>
+    storage_performance_tier Vm.DiskPerformanceTier.P10
+    tier FlexibleTier.Burstable_B1ms
     enable_azure_firewall
+    storage_autogrow true
+
+    add_database (
+        postgreSQLDb {
+            name "thedatabase"
+            collation "en_US.utf8"
+        }
+    )
 }
 
 let template = arm {
