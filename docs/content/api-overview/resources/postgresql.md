@@ -12,7 +12,11 @@ It supports features such as firewall, autogrow and version selection.
 Every PostgreSQL Azure server you create will automatically create a SecureString
 parameter for the admin account password.
 
+> There is support for newer "Flexible" as well as the original "Single Instance" server type.
+> Several keywords are overloaded to cater for both server types.
+
 * PostgreSQL server (`Microsoft.DBforPostgreSQL/servers`)
+* PostgreSQL server (`Microsoft.DBforPostgreSQL/flexibleServers`)
 
 #### PostgreSQL Builder keywords
 | Applies To | Keyword | Purpose |
@@ -26,6 +30,7 @@ parameter for the admin account password.
 | Server | enable_storage_autogrow | Enables auto-grow storage |
 | Server | disable_storage_autogrow | Disables auto-grow storage |
 | Server | storage_size (int&lt;Gb>) | Sets the initial size of the storage available |
+| Server | storage_performance_tier (Vm.DiskPerformanceTier) | Sets the storage performance tier of the server. |
 | Server | backup_retention (int&lt;Days>) | Sets the number of days to keep backups |
 | Server | server_version (Version) | Selects the PostgreSQL version of the server  |
 | Server | capacity (int&lt;VCores>) | Sets the number of cores for the server |
@@ -53,6 +58,8 @@ parameter for the admin account password.
 
 #### Example
 
+* Original "Single Instance" model
+
 ```fsharp
 open Farmer
 open Farmer.Builders
@@ -73,11 +80,23 @@ let template = arm {
     add_resource myPostgres
     output "fqdn" myPostgres.FullyQualifiedDomainName
 }
-
-// WARNING:
-// since there is currently no free tier for PostgreSQL, actually deploying this
-// *will* incur spending on your subscription.
-template
-|> Write.quickWrite "postgres-example"
 ```
 
+* "Flexible Server" model
+
+```fsharp
+open Farmer
+open Farmer.Builders
+open Farmer.PostgreSQL
+
+let myPostgres = postgreSQL {
+    name "aserverformultitudes42"
+    admin_username "adminallthethings"
+    storage_size 64<Gb>
+    tier FlexibleTier.Burstable_B1ms
+    storage_performance_tier Vm.DiskPerformanceTier.P10
+    add_database "my_db"
+    enable_azure_firewall
+    storage_autogrow true
+}
+```

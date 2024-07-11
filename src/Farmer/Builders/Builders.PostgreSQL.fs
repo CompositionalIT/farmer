@@ -10,7 +10,12 @@ open Farmer.PostgreSQL
 open Servers
 
 type ServerKind =
-    | SingleInstance of Version * Sku
+    | SingleInstance of
+        {|
+            Version: Version
+            Sku: Sku
+            Capacity: int<VCores>
+        |}
     | Flexible of FlexibleVersion * FlexibleTier
 
 type PostgreSQLDbConfig = {
@@ -30,7 +35,6 @@ type PostgreSQLConfig = {
     StorageAutogrow: bool
     BackupRetention: int<Days>
     StorageSize: int<Gb>
-    Capacity: int<VCores>
     StoragePerformanceTier: Vm.DiskPerformanceTier option
     Databases: PostgreSQLDbConfig list
     FirewallRules:
@@ -57,7 +61,7 @@ type PostgreSQLConfig = {
                 | Flexible _ -> flexibleServers, flexibleFirewallRules, flexibleDatabases
 
             match this.Kind with
-            | SingleInstance(version, sku) ->
+            | SingleInstance config ->
                 {
                     Name = this.Name
                     Location = location
@@ -65,10 +69,10 @@ type PostgreSQLConfig = {
                         Username = this.AdministratorCredentials.UserName
                         Password = this.AdministratorCredentials.Password
                     |}
-                    Version = version
+                    Version = config.Version
                     StorageSize = this.StorageSize * 1024<Mb> / 1<Gb>
-                    Capacity = this.Capacity
-                    Sku = sku
+                    Capacity = config.Capacity
+                    Sku = config.Sku
                     Family = Gen5
                     GeoRedundantBackup = FeatureFlag.ofBool this.GeoRedundantBackup
                     StorageAutoGrow = FeatureFlag.ofBool this.StorageAutogrow
@@ -276,15 +280,25 @@ type PostgreSQLDbBuilder() =
 
 let postgreSQLDb = PostgreSQLDbBuilder()
 
-let private mapInstance f fallback v =
-    match v with
-    | SingleInstance(x, y) -> f (x, y)
-    | Flexible _ -> fallback
+let defaultSingleInstance = {|
+    Version = VS_11
+    Capacity = 1<VCores>
+    Sku = Basic
+|}
 
-let private mapFlexible f fallback v =
+let private mapInstance f v =
     match v with
-    | SingleInstance _ -> fallback
+    | SingleInstance x -> f x
+    | Flexible _ -> f defaultSingleInstance
+    |> SingleInstance
+
+let defaultFlexible = V_16, FlexibleTier.Burstable_B1ms
+
+let private mapFlexible f v =
+    match v with
+    | SingleInstance _ -> f defaultFlexible
     | Flexible(x, y) -> f (x, y)
+    |> Flexible
 
 type PostgreSQLBuilder() =
     member _.Yield _ : PostgreSQLConfig = {
@@ -299,7 +313,6 @@ type PostgreSQLBuilder() =
         StoragePerformanceTier = None
         BackupRetention = Validate.minBackupRetention
         StorageSize = Validate.minStorageSize
-        Capacity = 2<VCores>
         Databases = []
         FirewallRules = []
         VirtualNetworkRules = []
@@ -392,19 +405,20 @@ type PostgreSQLBuilder() =
     [<CustomOperation "server_version">]
     member _.SetServerVersion(state: PostgreSQLConfig, version: Version) = {
         state with
-            Kind = SingleInstance(version, state.Kind |> mapInstance snd Basic)
+            Kind = state.Kind |> mapInstance (fun x -> {| x with Version = version |})
     }
+
 
     /// Sets the PostgreSQl server version
     [<CustomOperation "server_version">]
     member _.SetServerVersion(state: PostgreSQLConfig, version: FlexibleVersion) = {
         state with
-            Kind = Flexible(version, state.Kind |> mapFlexible snd FlexibleTier.Burstable_B1ms)
+            Kind = state.Kind |> mapFlexible (fun (_, tier) -> version, tier)
     }
 
     // Sets the performance tier. See https://learn.microsoft.com/en-us/azure/virtual-machines/disks-change-performance#what-tiers-can-be-changed for limits.
     [<CustomOperation "storage_performance_tier">]
-    member _.SetCapacity(state: PostgreSQLConfig, tier: Vm.DiskPerformanceTier) = {
+    member _.SetPerformanceTier(state: PostgreSQLConfig, tier: Vm.DiskPerformanceTier) = {
         state with
             StoragePerformanceTier = Some tier
     }
@@ -413,20 +427,24 @@ type PostgreSQLBuilder() =
     [<CustomOperation "capacity">]
     member _.SetCapacity(state: PostgreSQLConfig, capacity: int<VCores>) =
         Validate.capacity capacity
-        { state with Capacity = capacity }
+
+        {
+            state with
+                Kind = state.Kind |> mapInstance (fun x -> {| x with Capacity = capacity |})
+        }
 
     /// Sets tier
     [<CustomOperation "tier">]
     member _.SetTier(state, tier) = {
         state with
-            Kind = SingleInstance(state.Kind |> mapInstance fst VS_11, tier)
+            Kind = state.Kind |> mapInstance (fun x -> {| x with Sku = tier |})
     }
 
     /// Sets tier
     [<CustomOperation "tier">]
     member _.SetTier(state: PostgreSQLConfig, tier: FlexibleTier) = {
         state with
-            Kind = Flexible(state.Kind |> mapFlexible fst V_16, tier)
+            Kind = state.Kind |> mapFlexible (fun (version, _) -> version, tier)
     }
 
     /// Adds a new database to the server, either by specifying the name of the database or providing a PostgreSQLDbConfig
