@@ -23,10 +23,15 @@ The Storage Account builder creates storage accounts and their associated contai
 | sku | Sets the SKU of the storage account. A set of predefined SKU values are available as members in `Storage.Sku`, but you can create the full range of combinations of Kind and SKU as needed. |
 | default_blob_access_tier | Sets the default access tier for blob containers |
 | add_public_container | Adds a general-purpose public storage container |
+| add_public_containers | Adds a list of general-purpose public storage containers |
 | add_private_container | Adds a general-purpose private storage container |
+| add_private_containers | Adds a list of general-purpose private storage containers |
 | add_blob_container | Adds a general-purpose private blob container |
+| add_blob_containers | Adds a list of general-purpose private blob containers |
 | add_file_share | Adds a file share to storage account |
+| add_file_shares | Adds a list of file shares to storage account |
 | add_file_share_with_quota | Adds a file share to storage account with a share quota in Gb |
+| add_file_shares_with_quota | Adds a list of file shares to storage account with a share quota in Gb |
 | add_queue | Adds a queue to the storage account |
 | add_queues | Adds a list of queues to the storage account |
 | add_table | Adds a table to the storage account |
