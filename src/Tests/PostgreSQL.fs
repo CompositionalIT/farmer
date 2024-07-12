@@ -1,12 +1,14 @@
 module PostgreSQL
 
+#nowarn "0044" // disable obsolete warning as error - needed
+
 open System
 
 open Expecto
 open Farmer
-open Farmer.PostgreSQL
-open Farmer.Builders
 open Farmer.Arm
+open Farmer.Builders
+open Farmer.PostgreSQL
 
 type PostgresSku = {
     name: string
@@ -29,7 +31,6 @@ type Properties = {
     version: string
     storageProfile: StorageProfile
 }
-
 
 type PostgresTemplate = {
     name: string

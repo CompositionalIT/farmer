@@ -303,7 +303,7 @@ let private mapFlexible f v =
 
 [<Literal>]
 let private SingleServerObsoleteMessage =
-    "Single Server is on the retirement path and is scheduled for retirement by March 28, 2025. Please upgrade to Flexible Server. For more information, see https://learn.microsoft.com/en-us/azure/postgresql/single-server/whats-happening-to-postgresql-single-server."
+    "Single Server is on the retirement path and is scheduled for retirement by March 28, 2025. For more information, see https://learn.microsoft.com/en-us/azure/postgresql/single-server/whats-happening-to-postgresql-single-server."
 
 type PostgreSQLBuilder() =
     member _.Yield _ : PostgreSQLConfig = {
