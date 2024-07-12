@@ -1,196 +1,196 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <!-- General -->
-    <AssemblyName>Farmer</AssemblyName>
-    <Version>1.8.13</Version>
-    <Description>Farmer makes authoring ARM templates easy!</Description>
-    <Copyright>Copyright 2019-2024 Compositional IT Ltd.</Copyright>
-    <Company>Compositional IT</Company>
-    <Authors>Isaac Abraham and contributors</Authors>
+    <PropertyGroup>
+        <!-- General -->
+        <AssemblyName>Farmer</AssemblyName>
+        <Version>1.8.13</Version>
+        <Description>Farmer makes authoring ARM templates easy!</Description>
+        <Copyright>Copyright 2019-2024 Compositional IT Ltd.</Copyright>
+        <Company>Compositional IT</Company>
+        <Authors>Isaac Abraham and contributors</Authors>
 
-    <!-- Build settings -->
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <DebugType>portable</DebugType>
-    <OutputType>Library</OutputType>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <!-- Build settings -->
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <DebugType>portable</DebugType>
+        <OutputType>Library</OutputType>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 
-    <!-- NuGet Pack settings -->
-    <PackageId>Farmer</PackageId>
-    <PackageIcon>Icon.jpg</PackageIcon>
-    <PackageTags>azure;resource-manager;template;dsl;fsharp;infrastructure-as-code</PackageTags>
-    <PackageReleaseNotes>https://raw.githubusercontent.com/CompositionalIT/farmer/master/RELEASE_NOTES.md</PackageReleaseNotes>
-    <PackageProjectUrl>https://compositionalit.github.io/farmer</PackageProjectUrl>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageReadmeFile>readme.md</PackageReadmeFile>
-    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/CompositionalIT/farmer</RepositoryUrl>
+        <!-- NuGet Pack settings -->
+        <PackageId>Farmer</PackageId>
+        <PackageIcon>Icon.jpg</PackageIcon>
+        <PackageTags>azure;resource-manager;template;dsl;fsharp;infrastructure-as-code</PackageTags>
+        <PackageReleaseNotes>https://raw.githubusercontent.com/CompositionalIT/farmer/master/RELEASE_NOTES.md</PackageReleaseNotes>
+        <PackageProjectUrl>https://compositionalit.github.io/farmer</PackageProjectUrl>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <PackageReadmeFile>readme.md</PackageReadmeFile>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <RepositoryType>git</RepositoryType>
+        <RepositoryUrl>https://github.com/CompositionalIT/farmer</RepositoryUrl>
 
-    <!-- SourceLink settings -->
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <EmbedUntrackedSources>true</EmbedUntrackedSources>
-  </PropertyGroup>
+        <!-- SourceLink settings -->
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    </PropertyGroup>
 
-  <!-- Normalize paths to sources in symbols when built in Azure Pipelines -->
-  <PropertyGroup Condition="'$(TF_BUILD)' == 'true'">
-    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-  </PropertyGroup>
+    <!-- Normalize paths to sources in symbols when built in Azure Pipelines -->
+    <PropertyGroup Condition="'$(TF_BUILD)' == 'true'">
+        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="5.0.0" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
-    <PackageReference Include="System.Text.Json" Version="5" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="../../Icon.jpg">
-      <Pack>true</Pack>
-      <PackagePath>$(PackageIconUrl)</PackagePath>
-    </None>
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Update="FSharp.Core" Version="5.0.0" />
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+        <PackageReference Include="System.Text.Json" Version="5" />
+    </ItemGroup>
+    <ItemGroup>
+        <None Include="../../Icon.jpg">
+            <Pack>true</Pack>
+            <PackagePath>$(PackageIconUrl)</PackagePath>
+        </None>
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Include="../../LICENSE" Pack="true" PackagePath="" />
-    <None Include="../../readme.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
+    <ItemGroup>
+        <None Include="../../LICENSE" Pack="true" PackagePath="" />
+        <None Include="../../readme.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="Result.fs" />
-    <Compile Include="Types.fs" />
-    <Compile Include="Common.fs" />
-    <Compile Include="DiagnosticLogCategories.fs" />
+    <ItemGroup>
+        <Compile Include="Result.fs" />
+        <Compile Include="Types.fs" />
+        <Compile Include="Common.fs" />
+        <Compile Include="DiagnosticLogCategories.fs" />
 
-    <Compile Include="Writer.fs" />
-    <Compile Include="Deploy.fs" />
-    <Compile Include="Arm\ActionGroup.fs" />
-    <Compile Include="Arm\AutomationAccount.fs" />
-    <Compile Include="Arm\AutoscaleSettings.fs" />
-    <Compile Include="Arm\ResourceGroup.fs" />
+        <Compile Include="Writer.fs" />
+        <Compile Include="Deploy.fs" />
+        <Compile Include="Arm\ActionGroup.fs" />
+        <Compile Include="Arm\AutomationAccount.fs" />
+        <Compile Include="Arm\AutoscaleSettings.fs" />
+        <Compile Include="Arm\ResourceGroup.fs" />
 
-    <Compile Include="Arm/DiagnosticSetting.fs" />
-    <Compile Include="Arm/ManagedIdentity.fs" />
-    <Compile Include="Arm/LogAnalytics.fs" />
-    <Compile Include="Arm\Alert.fs" />
-    <Compile Include="Arm/Storage.fs" />
-    <Compile Include="Arm/Cache.fs" />
-    <Compile Include="Arm/Cdn.fs" />
-    <Compile Include="Arm/CognitiveServices.fs" />
-    <Compile Include="Arm/CommunicationServices.fs" />
-    <Compile Include="Arm/BingSearch.fs" />
-    <Compile Include="Arm/Dns.fs" />
-    <Compile Include="Arm\AVS.fs" />
-    <Compile Include="Arm\Network.fs" />
-    <Compile Include="Arm/Bastion.fs" />
-    <Compile Include="Arm/Compute.fs" />
-    <Compile Include="Arm/ContainerInstance.fs" />
-    <Compile Include="Arm/ContainerRegistry.fs" />
-    <Compile Include="Arm/ContainerService.fs" />
-    <Compile Include="Arm/DataLakeStore.fs" />
-    <Compile Include="Arm/DBforPostgreSQL.fs" />
-    <Compile Include="Arm/Devices.fs" />
-    <Compile Include="Arm/Disk.fs" />
-    <Compile Include="Arm/DocumentDb.fs" />
-    <Compile Include="Arm/EventHub.fs" />
-    <Compile Include="Arm/Gallery.fs" />
-    <Compile Include="Arm/ImageTemplate.fs" />
-    <Compile Include="Arm/Insights.fs" />
-    <Compile Include="Arm\AvailabilityTest.fs" />
-    <Compile Include="Arm/KeyVault.fs" />
-    <Compile Include="Arm\LoadBalancer.fs" />
-    <Compile Include="Arm\PrivateLinkService.fs" />
-    <Compile Include="Arm/RoleAssignment.fs" />
-    <Compile Include="Arm/Search.fs" />
-    <Compile Include="Arm/ServiceBus.fs" />
-    <Compile Include="Arm/Sql.fs" />
-    <Compile Include="Arm/App.fs" />
-    <Compile Include="Arm/Web.fs" />
-    <Compile Include="Arm/Maps.fs" />
-    <Compile Include="Arm/SignalR.fs" />
-    <Compile Include="Arm/EventGrid.fs" />
-    <Compile Include="Arm/NetworkSecurityGroup.fs" />
-    <Compile Include="Arm/DeploymentScript.fs" />
-    <Compile Include="Arm/Databricks.fs" />
-    <Compile Include="Arm/VirtualWan.fs" />
-    <Compile Include="Arm/TrafficManager.fs" />
-    <Compile Include="Arm/AzureFirewall.fs" />
-    <Compile Include="Arm/ApplicationGateway.fs" />
-    <Compile Include="Arm/VirtualHub.fs" />
-    <Compile Include="Arm\Dashboard.fs" />
-    <Compile Include="Arm/LogicApps.fs" />
-    <Compile Include="Arm/OperationsManagement.fs" />
-    <Compile Include="Arm\Webhook.fs" />
-    <Compile Include="Arm\B2cTenant.fs" />
-    <Compile Include="IdentityExtensions.fs" />
-    <Compile Include="Builders/Extensions.fs" />
-    <Compile Include="Builders\Builders.ActionGroup.fs" />
-    <Compile Include="Builders\Builders.AutoscaleSettings.fs" />
-    <Compile Include="Builders\Builders.B2cTenant.fs" />
-    <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
-    <Compile Include="Builders/Builders.ResourceGroup.fs" />
-    <Compile Include="Builders/Builders.LogAnalytics.fs" />
-    <Compile Include="Builders/Builders.Helpers.fs" />
-    <Compile Include="Builders\Builders.Alert.fs" />
-    <Compile Include="Builders/Builders.PostgreSQL.fs" />
-    <Compile Include="Builders/Builders.Cdn.fs" />
-    <Compile Include="Builders\Builders.Storage.fs" />
-    <Compile Include="Builders/Builders.AppInsights.fs" />
-    <Compile Include="Builders\Builders.ServiceBus.fs" />
-    <Compile Include="Builders\Builders.ContainerApps.fs" />
-    <Compile Include="Builders/Builders.ContainerGroups.fs" />
-    <Compile Include="Builders/Builders.ContainerService.fs" />
-    <Compile Include="Builders/Builders.DataLake.fs" />
-    <Compile Include="Builders/Builders.DeploymentScript.fs" />
-    <Compile Include="Builders/Builders.Disk.fs" />
-    <Compile Include="Builders/Builders.Dns.fs" />
-    <Compile Include="Builders\Builders.DnsResolver.fs" />
-    <Compile Include="Builders/Builders.Gallery.fs" />
-    <Compile Include="Builders/Builders.ImageTemplate.fs" />
-    <Compile Include="Builders/Builders.Redis.fs" />
-    <Compile Include="Builders/Builders.KeyVault.fs" />
-    <Compile Include="Builders/Builders.Bastion.fs" />
-    <Compile Include="Builders\Builders.NatGateway.fs" />
-    <Compile Include="Builders\Builders.NetworkSecurityGroup.fs" />
-    <Compile Include="Builders/Builders.VirtualNetwork.fs" />
-    <Compile Include="Builders\Builders.LoadBalancer.fs" />
-    <Compile Include="Builders/Builders.Vm.fs" />
-    <Compile Include="Builders/Builders.VmScaleSet.fs" />
-    <Compile Include="Builders/Builders.ServicePlan.fs" />
-    <Compile Include="Builders\Builders.AvailabilityTest.fs" />
-    <Compile Include="Builders/Builders.WebApp.fs" />
-    <Compile Include="Builders/Builders.Functions.fs" />
-    <Compile Include="Builders/Builders.Sql.fs" />
-    <Compile Include="Builders/Builders.Search.fs" />
-    <Compile Include="Builders/Builders.Cosmos.fs" />
-    <Compile Include="Builders/Builders.EventHub.fs" />
-    <Compile Include="Builders/Builders.ExpressRoute.fs" />
-    <Compile Include="Builders/Builders.CognitiveServices.fs" />
-    <Compile Include="Builders/Builders.CommunicationServices.fs" />
-    <Compile Include="Builders/Builders.BingSearch.fs" />
-    <Compile Include="Builders/Builders.ContainerRegistry.fs" />
-    <Compile Include="Builders/Builders.IotHub.fs" />
-    <Compile Include="Builders/Builders.Maps.fs" />
-    <Compile Include="Builders/Builders.SignalR.fs" />
-    <Compile Include="Builders/Builders.VirtualNetworkGateway.fs" />
-    <Compile Include="Builders/Builders.EventGrid.fs" />
-    <Compile Include="Builders/Builders.StaticWebApp.fs" />
-    <Compile Include="Builders/Builders.Databricks.fs" />
-    <Compile Include="Builders/Builders.DiagnosticSetting.fs" />
-    <Compile Include="Builders/Builders.VirtualWan.fs" />
-    <Compile Include="Builders/Builders.TrafficManager.fs" />
-    <Compile Include="Builders/Builders.VirtualHub.fs" />
-    <Compile Include="Builders/Builders.AzureFirewall.fs" />
-    <Compile Include="Builders\Builders.Dashboard.fs" />
-    <Compile Include="Builders/Builders.ApplicationGateway.fs" />
-    <Compile Include="Builders/Builders.LogicApps.fs" />
-    <Compile Include="Builders/Builders.OperationsManagement.fs" />
-    <Compile Include="Builders\Builders.PrivateLink.fs" />
-    <Compile Include="Builders\Builders.PrivateEndpoint.fs" />
-    <Compile Include="Builders\Builders.RouteTable.fs" />
-    <Compile Include="Builders\Builders.HostGroup.fs" />
-    <Compile Include="Builders\Builders.NetworkInterface.fs" />
-    <Compile Include="Builders\Builders.RouteServer.fs" />
-    <Compile Include="Aliases.fs" />
-  </ItemGroup>
+        <Compile Include="Arm/DiagnosticSetting.fs" />
+        <Compile Include="Arm/ManagedIdentity.fs" />
+        <Compile Include="Arm/LogAnalytics.fs" />
+        <Compile Include="Arm\Alert.fs" />
+        <Compile Include="Arm/Storage.fs" />
+        <Compile Include="Arm/Cache.fs" />
+        <Compile Include="Arm/Cdn.fs" />
+        <Compile Include="Arm/CognitiveServices.fs" />
+        <Compile Include="Arm/CommunicationServices.fs" />
+        <Compile Include="Arm/BingSearch.fs" />
+        <Compile Include="Arm/Dns.fs" />
+        <Compile Include="Arm\AVS.fs" />
+        <Compile Include="Arm\Network.fs" />
+        <Compile Include="Arm/Bastion.fs" />
+        <Compile Include="Arm/Compute.fs" />
+        <Compile Include="Arm/ContainerInstance.fs" />
+        <Compile Include="Arm/ContainerRegistry.fs" />
+        <Compile Include="Arm/ContainerService.fs" />
+        <Compile Include="Arm/DataLakeStore.fs" />
+        <Compile Include="Arm/DBforPostgreSQL.fs" />
+        <Compile Include="Arm/Devices.fs" />
+        <Compile Include="Arm/Disk.fs" />
+        <Compile Include="Arm/DocumentDb.fs" />
+        <Compile Include="Arm/EventHub.fs" />
+        <Compile Include="Arm/Gallery.fs" />
+        <Compile Include="Arm/ImageTemplate.fs" />
+        <Compile Include="Arm/Insights.fs" />
+        <Compile Include="Arm\AvailabilityTest.fs" />
+        <Compile Include="Arm/KeyVault.fs" />
+        <Compile Include="Arm\LoadBalancer.fs" />
+        <Compile Include="Arm\PrivateLinkService.fs" />
+        <Compile Include="Arm/RoleAssignment.fs" />
+        <Compile Include="Arm/Search.fs" />
+        <Compile Include="Arm/ServiceBus.fs" />
+        <Compile Include="Arm/Sql.fs" />
+        <Compile Include="Arm/App.fs" />
+        <Compile Include="Arm/Web.fs" />
+        <Compile Include="Arm/Maps.fs" />
+        <Compile Include="Arm/SignalR.fs" />
+        <Compile Include="Arm/EventGrid.fs" />
+        <Compile Include="Arm/NetworkSecurityGroup.fs" />
+        <Compile Include="Arm/DeploymentScript.fs" />
+        <Compile Include="Arm/Databricks.fs" />
+        <Compile Include="Arm/VirtualWan.fs" />
+        <Compile Include="Arm/TrafficManager.fs" />
+        <Compile Include="Arm/AzureFirewall.fs" />
+        <Compile Include="Arm/ApplicationGateway.fs" />
+        <Compile Include="Arm/VirtualHub.fs" />
+        <Compile Include="Arm\Dashboard.fs" />
+        <Compile Include="Arm/LogicApps.fs" />
+        <Compile Include="Arm/OperationsManagement.fs" />
+        <Compile Include="Arm\Webhook.fs" />
+        <Compile Include="Arm\B2cTenant.fs" />
+        <Compile Include="IdentityExtensions.fs" />
+        <Compile Include="Builders/Extensions.fs" />
+        <Compile Include="Builders\Builders.ActionGroup.fs" />
+        <Compile Include="Builders\Builders.AutoscaleSettings.fs" />
+        <Compile Include="Builders\Builders.B2cTenant.fs" />
+        <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
+        <Compile Include="Builders/Builders.ResourceGroup.fs" />
+        <Compile Include="Builders/Builders.LogAnalytics.fs" />
+        <Compile Include="Builders/Builders.Helpers.fs" />
+        <Compile Include="Builders\Builders.Alert.fs" />
+        <Compile Include="Builders/Builders.PostgreSQL.fs" />
+        <Compile Include="Builders/Builders.Cdn.fs" />
+        <Compile Include="Builders\Builders.Storage.fs" />
+        <Compile Include="Builders/Builders.AppInsights.fs" />
+        <Compile Include="Builders\Builders.ServiceBus.fs" />
+        <Compile Include="Builders\Builders.ContainerApps.fs" />
+        <Compile Include="Builders/Builders.ContainerGroups.fs" />
+        <Compile Include="Builders/Builders.ContainerService.fs" />
+        <Compile Include="Builders/Builders.DataLake.fs" />
+        <Compile Include="Builders/Builders.DeploymentScript.fs" />
+        <Compile Include="Builders/Builders.Disk.fs" />
+        <Compile Include="Builders/Builders.Dns.fs" />
+        <Compile Include="Builders\Builders.DnsResolver.fs" />
+        <Compile Include="Builders/Builders.Gallery.fs" />
+        <Compile Include="Builders/Builders.ImageTemplate.fs" />
+        <Compile Include="Builders/Builders.Redis.fs" />
+        <Compile Include="Builders/Builders.KeyVault.fs" />
+        <Compile Include="Builders/Builders.Bastion.fs" />
+        <Compile Include="Builders\Builders.NatGateway.fs" />
+        <Compile Include="Builders\Builders.NetworkSecurityGroup.fs" />
+        <Compile Include="Builders/Builders.VirtualNetwork.fs" />
+        <Compile Include="Builders\Builders.LoadBalancer.fs" />
+        <Compile Include="Builders/Builders.Vm.fs" />
+        <Compile Include="Builders/Builders.VmScaleSet.fs" />
+        <Compile Include="Builders/Builders.ServicePlan.fs" />
+        <Compile Include="Builders\Builders.AvailabilityTest.fs" />
+        <Compile Include="Builders/Builders.WebApp.fs" />
+        <Compile Include="Builders/Builders.Functions.fs" />
+        <Compile Include="Builders/Builders.Sql.fs" />
+        <Compile Include="Builders/Builders.Search.fs" />
+        <Compile Include="Builders/Builders.Cosmos.fs" />
+        <Compile Include="Builders/Builders.EventHub.fs" />
+        <Compile Include="Builders/Builders.ExpressRoute.fs" />
+        <Compile Include="Builders/Builders.CognitiveServices.fs" />
+        <Compile Include="Builders/Builders.CommunicationServices.fs" />
+        <Compile Include="Builders/Builders.BingSearch.fs" />
+        <Compile Include="Builders/Builders.ContainerRegistry.fs" />
+        <Compile Include="Builders/Builders.IotHub.fs" />
+        <Compile Include="Builders/Builders.Maps.fs" />
+        <Compile Include="Builders/Builders.SignalR.fs" />
+        <Compile Include="Builders/Builders.VirtualNetworkGateway.fs" />
+        <Compile Include="Builders/Builders.EventGrid.fs" />
+        <Compile Include="Builders/Builders.StaticWebApp.fs" />
+        <Compile Include="Builders/Builders.Databricks.fs" />
+        <Compile Include="Builders/Builders.DiagnosticSetting.fs" />
+        <Compile Include="Builders/Builders.VirtualWan.fs" />
+        <Compile Include="Builders/Builders.TrafficManager.fs" />
+        <Compile Include="Builders/Builders.VirtualHub.fs" />
+        <Compile Include="Builders/Builders.AzureFirewall.fs" />
+        <Compile Include="Builders\Builders.Dashboard.fs" />
+        <Compile Include="Builders/Builders.ApplicationGateway.fs" />
+        <Compile Include="Builders/Builders.LogicApps.fs" />
+        <Compile Include="Builders/Builders.OperationsManagement.fs" />
+        <Compile Include="Builders\Builders.PrivateLink.fs" />
+        <Compile Include="Builders\Builders.PrivateEndpoint.fs" />
+        <Compile Include="Builders\Builders.RouteTable.fs" />
+        <Compile Include="Builders\Builders.HostGroup.fs" />
+        <Compile Include="Builders\Builders.NetworkInterface.fs" />
+        <Compile Include="Builders\Builders.RouteServer.fs" />
+        <Compile Include="Aliases.fs" />
+    </ItemGroup>
 </Project>

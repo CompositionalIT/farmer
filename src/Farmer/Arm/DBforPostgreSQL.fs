@@ -25,8 +25,6 @@ let flexibleDatabases =
 let flexibleServers =
     ResourceType("Microsoft.DBforPostgreSQL/flexibleServers", "2023-06-01-preview")
 
-
-
 type PostgreSQLFamily =
     | Gen5
 

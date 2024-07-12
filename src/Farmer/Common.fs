@@ -2986,6 +2986,8 @@ module CosmosDb =
         | Serverless
 
 module PostgreSQL =
+    open Vm
+
     type Sku =
         | Basic
         | GeneralPurpose
@@ -2998,9 +3000,12 @@ module PostgreSQL =
             | MemoryOptimized -> "MO"
 
     type FlexibleTier =
-        | Burstable of Vm.VMSize
-        | GeneralPurpose of Vm.VMSize
-        | MemoryOptimized of Vm.VMSize
+        /// Workloads that don't need the full CPU continuously.
+        | Burstable of VMSize
+        /// Most business workloads that require balanced compute and memory with scalable I/O throughput. Examples include servers for hosting web and mobile apps and other enterprise applications.
+        | GeneralPurpose of VMSize
+        /// High-performance database workloads that require in-memory performance for faster transaction processing and higher concurrency. Examples include servers for processing real-time data and high-performance transactional or analytical apps.
+        | MemoryOptimized of VMSize
 
         member this.VmSize =
             match this with
@@ -3014,60 +3019,114 @@ module PostgreSQL =
             | GeneralPurpose _ -> "GeneralPurpose"
             | MemoryOptimized _ -> "MemoryOptimized"
 
-        static member Burstable_B1ms = Burstable Vm.VMSize.Standard_B1ms
-        static member Burstable_B2s = Burstable Vm.VMSize.Standard_B2s
-        static member Burstable_B2ms = Burstable Vm.VMSize.Standard_B2ms
-        static member Burstable_B4ms = Burstable Vm.VMSize.Standard_B4ms
-        static member Burstable_B8ms = Burstable Vm.VMSize.Standard_B8ms
-        static member Burstable_B12ms = Burstable Vm.VMSize.Standard_B12ms
-        static member Burstable_B16ms = Burstable Vm.VMSize.Standard_B16ms
-        static member Burstable_B20ms = Burstable Vm.VMSize.Standard_B20ms
-        static member GeneralPurpose_D2s_v3 = GeneralPurpose Vm.VMSize.Standard_D2s_v3
-        static member GeneralPurpose_D4s_v3 = GeneralPurpose Vm.VMSize.Standard_D4s_v3
-        static member GeneralPurpose_D8s_v3 = GeneralPurpose Vm.VMSize.Standard_D8s_v3
-        static member GeneralPurpose_D16s_v3 = GeneralPurpose Vm.VMSize.Standard_D16s_v3
-        static member GeneralPurpose_D32s_v3 = GeneralPurpose Vm.VMSize.Standard_D32s_v3
-        static member GeneralPurpose_D48s_v3 = GeneralPurpose Vm.VMSize.Standard_D48s_v3
-        static member GeneralPurpose_D64s_v3 = GeneralPurpose Vm.VMSize.Standard_D64s_v3
-        static member GeneralPurpose_D2ds_v4 = GeneralPurpose Vm.VMSize.Standard_D2ds_v4
-        static member GeneralPurpose_D4ds_v4 = GeneralPurpose Vm.VMSize.Standard_D4ds_v4
-        static member GeneralPurpose_D8ds_v4 = GeneralPurpose Vm.VMSize.Standard_D8ds_v4
-        static member GeneralPurpose_D16ds_v4 = GeneralPurpose Vm.VMSize.Standard_D16ds_v4
-        static member GeneralPurpose_D32ds_v4 = GeneralPurpose Vm.VMSize.Standard_D32ds_v4
-        static member GeneralPurpose_D48ds_v4 = GeneralPurpose Vm.VMSize.Standard_D48ds_v4
-        static member GeneralPurpose_D64ds_v4 = GeneralPurpose Vm.VMSize.Standard_D64ds_v4
-        static member GeneralPurpose_D2ds_v5 = GeneralPurpose Vm.VMSize.Standard_D2ds_v5
-        static member GeneralPurpose_D4ds_v5 = GeneralPurpose Vm.VMSize.Standard_D4ds_v5
-        static member GeneralPurpose_D8ds_v5 = GeneralPurpose Vm.VMSize.Standard_D8ds_v5
-        static member GeneralPurpose_D16ds_v5 = GeneralPurpose Vm.VMSize.Standard_D16ds_v5
-        static member GeneralPurpose_D32ds_v5 = GeneralPurpose Vm.VMSize.Standard_D32ds_v5
-        static member GeneralPurpose_D48ds_v5 = GeneralPurpose Vm.VMSize.Standard_D48ds_v5
-        static member GeneralPurpose_D64ds_v5 = GeneralPurpose Vm.VMSize.Standard_D64ds_v5
-        static member GeneralPurpose_D96ds_v5 = GeneralPurpose Vm.VMSize.Standard_D96ds_v5
-        static member MemoryOptimized_E2s_v3 = MemoryOptimized Vm.VMSize.Standard_E2s_v3
-        static member MemoryOptimized_E4s_v3 = MemoryOptimized Vm.VMSize.Standard_E4s_v3
-        static member MemoryOptimized_E8s_v3 = MemoryOptimized Vm.VMSize.Standard_E8s_v3
-        static member MemoryOptimized_E16s_v3 = MemoryOptimized Vm.VMSize.Standard_E16s_v3
-        static member MemoryOptimized_E32s_v3 = MemoryOptimized Vm.VMSize.Standard_E32s_v3
-        static member MemoryOptimized_E48s_v3 = MemoryOptimized Vm.VMSize.Standard_E48s_v3
-        static member MemoryOptimized_E64s_v3 = MemoryOptimized Vm.VMSize.Standard_E64s_v3
-        static member MemoryOptimized_E2ds_v4 = MemoryOptimized Vm.VMSize.Standard_E2ds_v4
-        static member MemoryOptimized_E4ds_v4 = MemoryOptimized Vm.VMSize.Standard_E4ds_v4
-        static member MemoryOptimized_E8ds_v4 = MemoryOptimized Vm.VMSize.Standard_E8ds_v4
-        static member MemoryOptimized_E16ds_v4 = MemoryOptimized Vm.VMSize.Standard_E16ds_v4
-        static member MemoryOptimized_E20ds_v4 = MemoryOptimized Vm.VMSize.Standard_E20ds_v4
-        static member MemoryOptimized_E32ds_v4 = MemoryOptimized Vm.VMSize.Standard_E32ds_v4
-        static member MemoryOptimized_E48ds_v4 = MemoryOptimized Vm.VMSize.Standard_E48ds_v4
-        static member MemoryOptimized_E64ds_v4 = MemoryOptimized Vm.VMSize.Standard_E64ds_v4
-        static member MemoryOptimized_E2ds_v5 = MemoryOptimized Vm.VMSize.Standard_E2ds_v5
-        static member MemoryOptimized_E4ds_v5 = MemoryOptimized Vm.VMSize.Standard_E4ds_v5
-        static member MemoryOptimized_E8ds_v5 = MemoryOptimized Vm.VMSize.Standard_E8ds_v5
-        static member MemoryOptimized_E16ds_v5 = MemoryOptimized Vm.VMSize.Standard_E16ds_v5
-        static member MemoryOptimized_E20ds_v5 = MemoryOptimized Vm.VMSize.Standard_E20ds_v5
-        static member MemoryOptimized_E32ds_v5 = MemoryOptimized Vm.VMSize.Standard_E32ds_v5
-        static member MemoryOptimized_E48ds_v5 = MemoryOptimized Vm.VMSize.Standard_E48ds_v5
-        static member MemoryOptimized_E64ds_v5 = MemoryOptimized Vm.VMSize.Standard_E64ds_v5
-        static member MemoryOptimized_E96ds_v5 = MemoryOptimized Vm.VMSize.Standard_E96ds_v5
+        /// 1 cores, max 640 IOPs & 2048 MB per core.
+        static member Burstable_B1ms = Burstable Standard_B1ms
+        /// 2 cores, max 1280 IOPs & 2048 MB per core.
+        static member Burstable_B2s = Burstable Standard_B2s
+        /// 2 cores, max 1920 IOPs & 4096 MB per core.
+        static member Burstable_B2ms = Burstable Standard_B2ms
+        /// 4 cores, max 2880 IOPs & 4096 MB per core.
+        static member Burstable_B4ms = Burstable Standard_B4ms
+        /// 8 cores, max 4320 IOPs & 4096 MB per core.
+        static member Burstable_B8ms = Burstable Standard_B8ms
+        /// 12 cores, max 4320 IOPs & 4096 MB per core.
+        static member Burstable_B12ms = Burstable Standard_B12ms
+        /// 16 cores, max 4320 IOPs & 4096 MB per core.
+        static member Burstable_B16ms = Burstable Standard_B16ms
+        /// 20 cores, max 4320 IOPs & 4096 MB per core.
+        static member Burstable_B20ms = Burstable Standard_B20ms
+        /// 2 cores, max 3200 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D2s_v3 = GeneralPurpose Standard_D2s_v3
+        /// 4 cores, max 6400 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D4s_v3 = GeneralPurpose Standard_D4s_v3
+        /// 8 cores, max 12800 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D8s_v3 = GeneralPurpose Standard_D8s_v3
+        /// 16 cores, max 25600 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D16s_v3 = GeneralPurpose Standard_D16s_v3
+        /// 32 cores, max 51200 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D32s_v3 = GeneralPurpose Standard_D32s_v3
+        /// 48 cores, max 76800 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D48s_v3 = GeneralPurpose Standard_D48s_v3
+        /// 64 cores, max 80000 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D64s_v3 = GeneralPurpose Standard_D64s_v3
+        /// 2 cores, max 3200 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D2ds_v4 = GeneralPurpose Standard_D2ds_v4
+        /// 4 cores, max 6400 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D4ds_v4 = GeneralPurpose Standard_D4ds_v4
+        /// 8 cores, max 12800 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D8ds_v4 = GeneralPurpose Standard_D8ds_v4
+        /// 16 cores, max 25600 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D16ds_v4 = GeneralPurpose Standard_D16ds_v4
+        /// 32 cores, max 51200 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D32ds_v4 = GeneralPurpose Standard_D32ds_v4
+        /// 48 cores, max 76800 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D48ds_v4 = GeneralPurpose Standard_D48ds_v4
+        /// 64 cores, max 80000 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D64ds_v4 = GeneralPurpose Standard_D64ds_v4
+        /// 2 cores, max 3750 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D2ds_v5 = GeneralPurpose Standard_D2ds_v5
+        /// 4 cores, max 6400 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D4ds_v5 = GeneralPurpose Standard_D4ds_v5
+        /// 8 cores, max 12800 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D8ds_v5 = GeneralPurpose Standard_D8ds_v5
+        /// 16 cores, max 25600 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D16ds_v5 = GeneralPurpose Standard_D16ds_v5
+        /// 32 cores, max 51200 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D32ds_v5 = GeneralPurpose Standard_D32ds_v5
+        /// 48 cores, max 76800 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D48ds_v5 = GeneralPurpose Standard_D48ds_v5
+        /// 64 cores, max 80000 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D64ds_v5 = GeneralPurpose Standard_D64ds_v5
+        /// 96 cores, max 80000 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D96ds_v5 = GeneralPurpose Standard_D96ds_v5
+        /// 2 cores, max 3200 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E2s_v3 = MemoryOptimized Standard_E2s_v3
+        /// 4 cores, max 6400 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E4s_v3 = MemoryOptimized Standard_E4s_v3
+        /// 8 cores, max 12800 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E8s_v3 = MemoryOptimized Standard_E8s_v3
+        /// 16 cores, max 25600 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E16s_v3 = MemoryOptimized Standard_E16s_v3
+        /// 32 cores, max 32000 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E32s_v3 = MemoryOptimized Standard_E32s_v3
+        /// 48 cores, max 51200 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E48s_v3 = MemoryOptimized Standard_E48s_v3
+        /// 64 cores, max 76800 IOPs & 6912 MB per core.
+        static member MemoryOptimized_E64s_v3 = MemoryOptimized Standard_E64s_v3
+        /// 2 cores, max 3200 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E2ds_v4 = MemoryOptimized Standard_E2ds_v4
+        /// 4 cores, max 6400 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E4ds_v4 = MemoryOptimized Standard_E4ds_v4
+        /// 8 cores, max 12800 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E8ds_v4 = MemoryOptimized Standard_E8ds_v4
+        /// 16 cores, max 25600 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E16ds_v4 = MemoryOptimized Standard_E16ds_v4
+        /// 20 cores, max 32000 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E20ds_v4 = MemoryOptimized Standard_E20ds_v4
+        /// 32 cores, max 51200 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E32ds_v4 = MemoryOptimized Standard_E32ds_v4
+        /// 48 cores, max 76800 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E48ds_v4 = MemoryOptimized Standard_E48ds_v4
+        /// 64 cores, max 80000 IOPs & 6912 MB per core.
+        static member MemoryOptimized_E64ds_v4 = MemoryOptimized Standard_E64ds_v4
+        /// 2 cores, max 3750 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E2ds_v5 = MemoryOptimized Standard_E2ds_v5
+        /// 4 cores, max 6400 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E4ds_v5 = MemoryOptimized Standard_E4ds_v5
+        /// 8 cores, max 12800 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E8ds_v5 = MemoryOptimized Standard_E8ds_v5
+        /// 16 cores, max 25600 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E16ds_v5 = MemoryOptimized Standard_E16ds_v5
+        /// 20 cores, max 32000 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E20ds_v5 = MemoryOptimized Standard_E20ds_v5
+        /// 32 cores, max 51200 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E32ds_v5 = MemoryOptimized Standard_E32ds_v5
+        /// 48 cores, max 76800 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E48ds_v5 = MemoryOptimized Standard_E48ds_v5
+        /// 64 cores, max 80000 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E64ds_v5 = MemoryOptimized Standard_E64ds_v5
+        /// 96 cores, max 80000 IOPs & 7168 MB per core.
+        static member MemoryOptimized_E96ds_v5 = MemoryOptimized Standard_E96ds_v5
 
     type Version =
         | VS_9_5

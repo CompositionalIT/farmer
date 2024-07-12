@@ -10,11 +10,16 @@ open Farmer.PostgreSQL
 open Servers
 
 type ServerKind =
-    | SingleInstance of
+    | SingleServer of
         {|
             Version: Version
             Sku: Sku
             Capacity: int<VCores>
+            VirtualNetworkRules:
+                {|
+                    Name: ResourceName
+                    VirtualNetworkSubnetId: ResourceId
+                |} list
         |}
     | Flexible of FlexibleVersion * FlexibleTier
 
@@ -43,11 +48,6 @@ type PostgreSQLConfig = {
             Start: IPAddress
             End: IPAddress
         |} list
-    VirtualNetworkRules:
-        {|
-            Name: ResourceName
-            VirtualNetworkSubnetId: ResourceId
-        |} list
     Tags: Map<string, string>
 } with
 
@@ -57,11 +57,11 @@ type PostgreSQLConfig = {
         member this.BuildResources location = [
             let serverType, firewallRulesType, databasesType =
                 match this.Kind with
-                | SingleInstance _ -> servers, firewallRules, databases
+                | SingleServer _ -> servers, firewallRules, databases
                 | Flexible _ -> flexibleServers, flexibleFirewallRules, flexibleDatabases
 
             match this.Kind with
-            | SingleInstance config ->
+            | SingleServer config ->
                 {
                     Name = this.Name
                     Location = location
@@ -80,7 +80,7 @@ type PostgreSQLConfig = {
                     Tags = this.Tags
                 }
 
-                for rule in this.VirtualNetworkRules do
+                for rule in config.VirtualNetworkRules do
                     {
                         Name = rule.Name
                         VirtualNetworkSubnetId = rule.VirtualNetworkSubnetId
@@ -116,7 +116,7 @@ type PostgreSQLConfig = {
                     Collation =
                         match database.DbCollation, this.Kind with
                         | Some collation, _ -> collation
-                        | None, SingleInstance _ -> "English_United States.1252"
+                        | None, SingleServer _ -> "English_United States.1252"
                         | None, Flexible _ -> "en_US.utf8"
                     Charset = database.DbCharset |> Option.defaultValue "UTF8"
                     ResourceType = databasesType
@@ -284,21 +284,26 @@ let defaultSingleInstance = {|
     Version = VS_11
     Capacity = 1<VCores>
     Sku = Basic
+    VirtualNetworkRules = []
 |}
 
 let private mapInstance f v =
     match v with
-    | SingleInstance x -> f x
+    | SingleServer x -> f x
     | Flexible _ -> f defaultSingleInstance
-    |> SingleInstance
+    |> SingleServer
 
 let defaultFlexible = V_16, FlexibleTier.Burstable_B1ms
 
 let private mapFlexible f v =
     match v with
-    | SingleInstance _ -> f defaultFlexible
+    | SingleServer _ -> f defaultFlexible
     | Flexible(x, y) -> f (x, y)
     |> Flexible
+
+[<Literal>]
+let private SingleServerObsoleteMessage =
+    "Single Server is on the retirement path and is scheduled for retirement by March 28, 2025. Please upgrade to Flexible Server. For more information, see https://learn.microsoft.com/en-us/azure/postgresql/single-server/whats-happening-to-postgresql-single-server."
 
 type PostgreSQLBuilder() =
     member _.Yield _ : PostgreSQLConfig = {
@@ -315,7 +320,6 @@ type PostgreSQLBuilder() =
         StorageSize = Validate.minStorageSize
         Databases = []
         FirewallRules = []
-        VirtualNetworkRules = []
         Tags = Map.empty
     }
 
@@ -402,10 +406,11 @@ type PostgreSQLBuilder() =
         }
 
     /// Sets the PostgreSQl server version
+    [<Obsolete("Use a FlexibleVersion instead. " + SingleServerObsoleteMessage)>]
     [<CustomOperation "server_version">]
     member _.SetServerVersion(state: PostgreSQLConfig, version: Version) = {
         state with
-            Kind = state.Kind |> mapInstance (fun x -> {| x with Version = version |})
+            Kind = state.Kind |> mapInstance (fun config -> {| config with Version = version |})
     }
 
 
@@ -416,7 +421,7 @@ type PostgreSQLBuilder() =
             Kind = state.Kind |> mapFlexible (fun (_, tier) -> version, tier)
     }
 
-    // Sets the performance tier. See https://learn.microsoft.com/en-us/azure/virtual-machines/disks-change-performance#what-tiers-can-be-changed for limits.
+    /// Sets the performance tier. See https://learn.microsoft.com/en-us/azure/virtual-machines/disks-change-performance#what-tiers-can-be-changed for limits.
     [<CustomOperation "storage_performance_tier">]
     member _.SetPerformanceTier(state: PostgreSQLConfig, tier: Vm.DiskPerformanceTier) = {
         state with
@@ -424,20 +429,22 @@ type PostgreSQLBuilder() =
     }
 
     /// Sets capacity
+    [<Obsolete("Use the tier keyword instead. " + SingleServerObsoleteMessage)>]
     [<CustomOperation "capacity">]
     member _.SetCapacity(state: PostgreSQLConfig, capacity: int<VCores>) =
         Validate.capacity capacity
 
         {
             state with
-                Kind = state.Kind |> mapInstance (fun x -> {| x with Capacity = capacity |})
+                Kind = state.Kind |> mapInstance (fun config -> {| config with Capacity = capacity |})
         }
 
     /// Sets tier
+    [<Obsolete("Use a FlexibleTier instead. " + SingleServerObsoleteMessage)>]
     [<CustomOperation "tier">]
     member _.SetTier(state, tier) = {
         state with
-            Kind = state.Kind |> mapInstance (fun x -> {| x with Sku = tier |})
+            Kind = state.Kind |> mapInstance (fun config -> {| config with Sku = tier |})
     }
 
     /// Sets tier
@@ -499,18 +506,25 @@ type PostgreSQLBuilder() =
         }
 
     /// Adds a custom vnet rule given a name and a virtualNetworkSubnetId.
+    [<Obsolete(SingleServerObsoleteMessage)>]
     [<CustomOperation "add_vnet_rule">]
     member _.AddVnetRule(state: PostgreSQLConfig, name, virtualNetworkSubnetId: ResourceId) = {
         state with
-            VirtualNetworkRules =
-                {|
-                    Name = ResourceName name
-                    VirtualNetworkSubnetId = virtualNetworkSubnetId
-                |}
-                :: state.VirtualNetworkRules
+            Kind =
+                state.Kind
+                |> mapInstance (fun config -> {|
+                    config with
+                        VirtualNetworkRules =
+                            {|
+                                Name = ResourceName name
+                                VirtualNetworkSubnetId = virtualNetworkSubnetId
+                            |}
+                            :: config.VirtualNetworkRules
+                |})
     }
 
     /// Adds a custom firewall rules given a name and a virtualNetworkSubnetId.
+    [<Obsolete(SingleServerObsoleteMessage)>]
     [<CustomOperation "add_vnet_rules">]
     member _.AddVnetRules(state: PostgreSQLConfig, listOfRules: (string * ResourceId) list) =
         let newRules =
@@ -522,7 +536,12 @@ type PostgreSQLBuilder() =
 
         {
             state with
-                VirtualNetworkRules = newRules @ state.VirtualNetworkRules
+                Kind =
+                    state.Kind
+                    |> mapInstance (fun config -> {|
+                        config with
+                            VirtualNetworkRules = newRules @ config.VirtualNetworkRules
+                    |})
         }
 
 let postgreSQL = PostgreSQLBuilder()
