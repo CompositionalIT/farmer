@@ -36,7 +36,7 @@ module Result =
             | Error result -> failures.Add result
 
         if failures.Count > 0 then
-            Error failures.[0]
+            Error failures[0]
         else
             Ok(successes.ToArray())
 

@@ -5,10 +5,23 @@ open System
 open System.Net
 
 open Farmer
+open Farmer.Arm.DBforPostgreSQL
 open Farmer.PostgreSQL
-open Arm.DBforPostgreSQL
 open Servers
 
+type ServerKind =
+    | SingleServer of
+        {|
+            Version: Version
+            Sku: Sku
+            Capacity: int<VCores>
+            VirtualNetworkRules:
+                {|
+                    Name: ResourceName
+                    VirtualNetworkSubnetId: ResourceId
+                |} list
+        |}
+    | Flexible of FlexibleVersion * FlexibleTier
 
 type PostgreSQLDbConfig = {
     Name: ResourceName
@@ -22,24 +35,18 @@ type PostgreSQLConfig = {
         UserName: string
         Password: SecureParameter
     |}
-    Version: Version
+    Kind: ServerKind
     GeoRedundantBackup: bool
     StorageAutogrow: bool
     BackupRetention: int<Days>
     StorageSize: int<Gb>
-    Capacity: int<VCores>
-    Tier: Sku
+    StoragePerformanceTier: Vm.DiskPerformanceTier option
     Databases: PostgreSQLDbConfig list
     FirewallRules:
         {|
             Name: ResourceName
             Start: IPAddress
             End: IPAddress
-        |} list
-    VirtualNetworkRules:
-        {|
-            Name: ResourceName
-            VirtualNetworkSubnetId: ResourceId
         |} list
     Tags: Map<string, string>
 } with
@@ -48,30 +55,72 @@ type PostgreSQLConfig = {
         member this.ResourceId = servers.resourceId this.Name
 
         member this.BuildResources location = [
-            {
+            let serverType, firewallRulesType, databasesType =
+                match this.Kind with
+                | SingleServer _ -> servers, firewallRules, databases
+                | Flexible _ -> flexibleServers, flexibleFirewallRules, flexibleDatabases
+
+            match this.Kind with
+            | SingleServer config ->
+                {
+                    Name = this.Name
+                    Location = location
+                    Credentials = {|
+                        Username = this.AdministratorCredentials.UserName
+                        Password = this.AdministratorCredentials.Password
+                    |}
+                    Version = config.Version
+                    StorageSize = this.StorageSize * 1024<Mb> / 1<Gb>
+                    Capacity = config.Capacity
+                    Sku = config.Sku
+                    Family = Gen5
+                    GeoRedundantBackup = FeatureFlag.ofBool this.GeoRedundantBackup
+                    StorageAutoGrow = FeatureFlag.ofBool this.StorageAutogrow
+                    BackupRetention = this.BackupRetention
+                    Tags = this.Tags
+                }
+
+                for rule in config.VirtualNetworkRules do
+                    {
+                        Name = rule.Name
+                        VirtualNetworkSubnetId = rule.VirtualNetworkSubnetId
+                        Server = this.Name
+                        Location = location
+                    }
+
+            | Flexible(version, tier) -> {
                 Name = this.Name
                 Location = location
                 Credentials = {|
                     Username = this.AdministratorCredentials.UserName
                     Password = this.AdministratorCredentials.Password
                 |}
-                Version = this.Version
-                StorageSize = this.StorageSize * 1024<Mb> / 1<Gb>
-                Capacity = this.Capacity
-                Tier = this.Tier
-                Family = PostgreSQLFamily.Gen5
-                GeoRedundantBackup = FeatureFlag.ofBool this.GeoRedundantBackup
-                StorageAutoGrow = FeatureFlag.ofBool this.StorageAutogrow
-                BackupRetention = this.BackupRetention
+                Version = version
+                Tier = tier
+                Storage = {|
+                    Size = this.StorageSize
+                    AutoGrow = FeatureFlag.ofBool this.StorageAutogrow
+                    PerformanceTier = this.StoragePerformanceTier
+                |}
+                Backup = {|
+                    GeoRedundancy = FeatureFlag.ofBool this.GeoRedundantBackup
+                    Retention = this.BackupRetention
+                |}
                 Tags = this.Tags
-            }
+              }
 
             for database in this.Databases do
                 {
                     Name = database.Name
                     Server = this.Name
-                    Collation = database.DbCollation |> Option.defaultValue "English_United States.1252"
+                    Collation =
+                        match database.DbCollation, this.Kind with
+                        | Some collation, _ -> collation
+                        | None, SingleServer _ -> "English_United States.1252"
+                        | None, Flexible _ -> "en_US.utf8"
                     Charset = database.DbCharset |> Option.defaultValue "UTF8"
+                    ResourceType = databasesType
+                    ServerType = serverType
                 }
 
             for rule in this.FirewallRules do
@@ -81,14 +130,8 @@ type PostgreSQLConfig = {
                     End = rule.End
                     Server = this.Name
                     Location = location
-                }
-
-            for rule in this.VirtualNetworkRules do
-                {
-                    Name = rule.Name
-                    VirtualNetworkSubnetId = rule.VirtualNetworkSubnetId
-                    Server = this.Name
-                    Location = location
+                    ResourceType = firewallRulesType
+                    ServerType = serverType
                 }
         ]
 
@@ -133,7 +176,7 @@ module Validate =
         if candidate.Length > 63 then
             raiseFarmer $"{paramName} must have a length between 1 and 63, was {candidate.Length}"
 
-        if isAsciiDigit candidate.[0] then
+        if isAsciiDigit candidate[0] then
             raiseFarmer $"{paramName} can not begin with a digit"
 
         if not (Seq.forall isAsciiLetterOrDigit candidate) then
@@ -152,10 +195,10 @@ module Validate =
         if name.Length > 63 || name.Length < 3 then
             raiseFarmer $"Server name must have a length between 3 and 63, was {name.Length}"
 
-        if name.[0] = '-' || name.[name.Length - 1] = '-' then
+        if name[0] = '-' || name[name.Length - 1] = '-' then
             raiseFarmer "Server name must not start or end with a hyphen ('-')"
 
-        if isAsciiDigit name.[0] then
+        if isAsciiDigit name[0] then
             raiseFarmer "Server name must not start with a digit"
 
         if not (Seq.forall isLegalServernameChar name) then
@@ -168,7 +211,7 @@ module Validate =
         if name.Length > 63 then
             raiseFarmer $"Database name must have a length between 1 and 63, was {name.Length}"
 
-        if isAsciiDigit name.[0] then
+        if isAsciiDigit name[0] then
             raiseFarmer "Server name must not start with a digit"
 
     let minBackupRetention = 7<Days>
@@ -237,6 +280,31 @@ type PostgreSQLDbBuilder() =
 
 let postgreSQLDb = PostgreSQLDbBuilder()
 
+let defaultSingleInstance = {|
+    Version = VS_11
+    Capacity = 1<VCores>
+    Sku = Basic
+    VirtualNetworkRules = []
+|}
+
+let private mapInstance f v =
+    match v with
+    | SingleServer x -> f x
+    | Flexible _ -> f defaultSingleInstance
+    |> SingleServer
+
+let defaultFlexible = V_16, FlexibleTier.Burstable_B1ms
+
+let private mapFlexible f v =
+    match v with
+    | SingleServer _ -> f defaultFlexible
+    | Flexible(x, y) -> f (x, y)
+    |> Flexible
+
+[<Literal>]
+let private SingleServerObsoleteMessage =
+    "Single Server is on the retirement path and is scheduled for retirement by March 28, 2025. For more information, see https://learn.microsoft.com/en-us/azure/postgresql/single-server/whats-happening-to-postgresql-single-server."
+
 type PostgreSQLBuilder() =
     member _.Yield _ : PostgreSQLConfig = {
         Name = ResourceName ""
@@ -244,16 +312,14 @@ type PostgreSQLBuilder() =
             UserName = ""
             Password = SecureParameter ""
         |}
-        Version = VS_11
+        Kind = Flexible(V_16, FlexibleTier.Burstable_B1ms)
         GeoRedundantBackup = false
         StorageAutogrow = true
+        StoragePerformanceTier = None
         BackupRetention = Validate.minBackupRetention
         StorageSize = Validate.minStorageSize
-        Capacity = 2<VCores>
-        Tier = Basic
         Databases = []
         FirewallRules = []
-        VirtualNetworkRules = []
         Tags = Map.empty
     }
 
@@ -340,18 +406,53 @@ type PostgreSQLBuilder() =
         }
 
     /// Sets the PostgreSQl server version
+    [<Obsolete("Use a FlexibleVersion instead. " + SingleServerObsoleteMessage)>]
     [<CustomOperation "server_version">]
-    member _.SetServerVersion(state: PostgreSQLConfig, version: Version) = { state with Version = version }
+    member _.SetServerVersion(state: PostgreSQLConfig, version: Version) = {
+        state with
+            Kind = state.Kind |> mapInstance (fun config -> {| config with Version = version |})
+    }
+
+
+    /// Sets the PostgreSQl server version
+    [<CustomOperation "server_version">]
+    member _.SetServerVersion(state: PostgreSQLConfig, version: FlexibleVersion) = {
+        state with
+            Kind = state.Kind |> mapFlexible (fun (_, tier) -> version, tier)
+    }
+
+    /// Sets the performance tier. See https://learn.microsoft.com/en-us/azure/virtual-machines/disks-change-performance#what-tiers-can-be-changed for limits.
+    [<CustomOperation "storage_performance_tier">]
+    member _.SetPerformanceTier(state: PostgreSQLConfig, tier: Vm.DiskPerformanceTier) = {
+        state with
+            StoragePerformanceTier = Some tier
+    }
 
     /// Sets capacity
+    [<Obsolete("Use the tier keyword instead. " + SingleServerObsoleteMessage)>]
     [<CustomOperation "capacity">]
     member _.SetCapacity(state: PostgreSQLConfig, capacity: int<VCores>) =
         Validate.capacity capacity
-        { state with Capacity = capacity }
+
+        {
+            state with
+                Kind = state.Kind |> mapInstance (fun config -> {| config with Capacity = capacity |})
+        }
+
+    /// Sets tier
+    [<Obsolete("Use a FlexibleTier instead. " + SingleServerObsoleteMessage)>]
+    [<CustomOperation "tier">]
+    member _.SetTier(state, tier) = {
+        state with
+            Kind = state.Kind |> mapInstance (fun config -> {| config with Sku = tier |})
+    }
 
     /// Sets tier
     [<CustomOperation "tier">]
-    member _.SetTier(state: PostgreSQLConfig, tier: Sku) = { state with Tier = tier }
+    member _.SetTier(state: PostgreSQLConfig, tier: FlexibleTier) = {
+        state with
+            Kind = state.Kind |> mapFlexible (fun (version, _) -> version, tier)
+    }
 
     /// Adds a new database to the server, either by specifying the name of the database or providing a PostgreSQLDbConfig
     [<CustomOperation "add_database">]
@@ -366,7 +467,7 @@ type PostgreSQLBuilder() =
 
     /// Adds a custom firewall rule given a name, start and end IP address range.
     [<CustomOperation "add_firewall_rule">]
-    member _.AddFirewallWall(state: PostgreSQLConfig, name, startRange: string, endRange: string) = {
+    member _.AddFirewallRule(state: PostgreSQLConfig, name, startRange: string, endRange: string) = {
         state with
             FirewallRules =
                 {|
@@ -396,7 +497,7 @@ type PostgreSQLBuilder() =
     /// Adds a firewall rule that enables access to other Azure services.
     [<CustomOperation "enable_azure_firewall">]
     member this.EnableAzureFirewall(state: PostgreSQLConfig) =
-        this.AddFirewallWall(state, "allow-azure-services", "0.0.0.0", "0.0.0.0")
+        this.AddFirewallRule(state, "allow-azure-services", "0.0.0.0", "0.0.0.0")
 
     interface ITaggable<PostgreSQLConfig> with
         member _.Add state tags = {
@@ -405,18 +506,25 @@ type PostgreSQLBuilder() =
         }
 
     /// Adds a custom vnet rule given a name and a virtualNetworkSubnetId.
+    [<Obsolete(SingleServerObsoleteMessage)>]
     [<CustomOperation "add_vnet_rule">]
     member _.AddVnetRule(state: PostgreSQLConfig, name, virtualNetworkSubnetId: ResourceId) = {
         state with
-            VirtualNetworkRules =
-                {|
-                    Name = ResourceName name
-                    VirtualNetworkSubnetId = virtualNetworkSubnetId
-                |}
-                :: state.VirtualNetworkRules
+            Kind =
+                state.Kind
+                |> mapInstance (fun config -> {|
+                    config with
+                        VirtualNetworkRules =
+                            {|
+                                Name = ResourceName name
+                                VirtualNetworkSubnetId = virtualNetworkSubnetId
+                            |}
+                            :: config.VirtualNetworkRules
+                |})
     }
 
     /// Adds a custom firewall rules given a name and a virtualNetworkSubnetId.
+    [<Obsolete(SingleServerObsoleteMessage)>]
     [<CustomOperation "add_vnet_rules">]
     member _.AddVnetRules(state: PostgreSQLConfig, listOfRules: (string * ResourceId) list) =
         let newRules =
@@ -428,7 +536,12 @@ type PostgreSQLBuilder() =
 
         {
             state with
-                VirtualNetworkRules = newRules @ state.VirtualNetworkRules
+                Kind =
+                    state.Kind
+                    |> mapInstance (fun config -> {|
+                        config with
+                            VirtualNetworkRules = newRules @ config.VirtualNetworkRules
+                    |})
         }
 
 let postgreSQL = PostgreSQLBuilder()

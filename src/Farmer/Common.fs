@@ -151,6 +151,7 @@ type EnvVar =
 
 module Mb =
     let toBytes (mb: int<Mb>) = int64 mb * 1024L * 1024L
+    let toGb (mb: int<Mb>) = (mb / 1024<Mb>) * 1<Gb>
 
 module Route =
     type HopType =
@@ -895,6 +896,26 @@ module Vm =
             match this with
             | x -> x.ToString()
 
+    type DiskPerformanceTier =
+        | P1
+        | P2
+        | P3
+        | P4
+        | P6
+        | P10
+        | P15
+        | P20
+        | P30
+        | P40
+        | P50
+        | P60
+        | P70
+        | P80
+
+        member this.ArmValue =
+            match this with
+            | x -> x.ToString()
+
     /// Represents a disk in a VM.
     type DiskInfo = {
         Size: int
@@ -1055,25 +1076,25 @@ module internal Validation =
             Ok()
 
     let startsWith (message, predicate) entity (s: string) =
-        if not (predicate s.[0]) then
+        if not (predicate s[0]) then
             Error $"%s{entity} must start with %s{message}"
         else
             Ok()
 
     let endsWith (message, predicate) entity (s: string) =
-        if not (predicate s.[s.Length - 1]) then
+        if not (predicate s[s.Length - 1]) then
             Error $"%s{entity} must end with %s{message}"
         else
             Ok()
 
     let cannotStartWith (message, predicate) entity (s: string) =
-        if predicate s.[0] then
+        if predicate s[0] then
             Error $"%s{entity} cannot start with %s{message}"
         else
             Ok()
 
     let cannotEndWith (message, predicate) entity (s: string) =
-        if predicate s.[s.Length - 1] then
+        if predicate s[s.Length - 1] then
             Error $"%s{entity} cannot end with %s{message}"
         else
             Ok()
@@ -2090,7 +2111,7 @@ module Sql =
         /// Suffix name for server and database name
         NameSuffix: string
         /// Replication location, different from the original one
-        Location: Farmer.Location
+        Location: Location
         /// Override database Skus
         DbSku: DtuSku option
     }
@@ -2965,6 +2986,8 @@ module CosmosDb =
         | Serverless
 
 module PostgreSQL =
+    open Vm
+
     type Sku =
         | Basic
         | GeneralPurpose
@@ -2976,11 +2999,159 @@ module PostgreSQL =
             | GeneralPurpose -> "GP"
             | MemoryOptimized -> "MO"
 
+    type FlexibleTier =
+        /// Workloads that don't need the full CPU continuously.
+        | Burstable of VMSize
+        /// Most business workloads that require balanced compute and memory with scalable I/O throughput. Examples include servers for hosting web and mobile apps and other enterprise applications.
+        | GeneralPurpose of VMSize
+        /// High-performance database workloads that require in-memory performance for faster transaction processing and higher concurrency. Examples include servers for processing real-time data and high-performance transactional or analytical apps.
+        | MemoryOptimized of VMSize
+
+        member this.VmSize =
+            match this with
+            | Burstable vmSize
+            | GeneralPurpose vmSize
+            | MemoryOptimized vmSize -> vmSize
+
+        member this.ArmValue =
+            match this with
+            | Burstable _ -> "Burstable"
+            | GeneralPurpose _ -> "GeneralPurpose"
+            | MemoryOptimized _ -> "MemoryOptimized"
+
+        /// 1 cores, max 640 IOPs & 2048 MB per core.
+        static member Burstable_B1ms = Burstable Standard_B1ms
+        /// 2 cores, max 1280 IOPs & 2048 MB per core.
+        static member Burstable_B2s = Burstable Standard_B2s
+        /// 2 cores, max 1920 IOPs & 4096 MB per core.
+        static member Burstable_B2ms = Burstable Standard_B2ms
+        /// 4 cores, max 2880 IOPs & 4096 MB per core.
+        static member Burstable_B4ms = Burstable Standard_B4ms
+        /// 8 cores, max 4320 IOPs & 4096 MB per core.
+        static member Burstable_B8ms = Burstable Standard_B8ms
+        /// 12 cores, max 4320 IOPs & 4096 MB per core.
+        static member Burstable_B12ms = Burstable Standard_B12ms
+        /// 16 cores, max 4320 IOPs & 4096 MB per core.
+        static member Burstable_B16ms = Burstable Standard_B16ms
+        /// 20 cores, max 4320 IOPs & 4096 MB per core.
+        static member Burstable_B20ms = Burstable Standard_B20ms
+        /// 2 cores, max 3200 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D2s_v3 = GeneralPurpose Standard_D2s_v3
+        /// 4 cores, max 6400 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D4s_v3 = GeneralPurpose Standard_D4s_v3
+        /// 8 cores, max 12800 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D8s_v3 = GeneralPurpose Standard_D8s_v3
+        /// 16 cores, max 25600 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D16s_v3 = GeneralPurpose Standard_D16s_v3
+        /// 32 cores, max 51200 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D32s_v3 = GeneralPurpose Standard_D32s_v3
+        /// 48 cores, max 76800 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D48s_v3 = GeneralPurpose Standard_D48s_v3
+        /// 64 cores, max 80000 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D64s_v3 = GeneralPurpose Standard_D64s_v3
+        /// 2 cores, max 3200 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D2ds_v4 = GeneralPurpose Standard_D2ds_v4
+        /// 4 cores, max 6400 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D4ds_v4 = GeneralPurpose Standard_D4ds_v4
+        /// 8 cores, max 12800 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D8ds_v4 = GeneralPurpose Standard_D8ds_v4
+        /// 16 cores, max 25600 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D16ds_v4 = GeneralPurpose Standard_D16ds_v4
+        /// 32 cores, max 51200 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D32ds_v4 = GeneralPurpose Standard_D32ds_v4
+        /// 48 cores, max 76800 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D48ds_v4 = GeneralPurpose Standard_D48ds_v4
+        /// 64 cores, max 80000 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D64ds_v4 = GeneralPurpose Standard_D64ds_v4
+        /// 2 cores, max 3750 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D2ds_v5 = GeneralPurpose Standard_D2ds_v5
+        /// 4 cores, max 6400 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D4ds_v5 = GeneralPurpose Standard_D4ds_v5
+        /// 8 cores, max 12800 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D8ds_v5 = GeneralPurpose Standard_D8ds_v5
+        /// 16 cores, max 25600 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D16ds_v5 = GeneralPurpose Standard_D16ds_v5
+        /// 32 cores, max 51200 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D32ds_v5 = GeneralPurpose Standard_D32ds_v5
+        /// 48 cores, max 76800 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D48ds_v5 = GeneralPurpose Standard_D48ds_v5
+        /// 64 cores, max 80000 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D64ds_v5 = GeneralPurpose Standard_D64ds_v5
+        /// 96 cores, max 80000 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D96ds_v5 = GeneralPurpose Standard_D96ds_v5
+        /// 2 cores, max 3200 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E2s_v3 = MemoryOptimized Standard_E2s_v3
+        /// 4 cores, max 6400 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E4s_v3 = MemoryOptimized Standard_E4s_v3
+        /// 8 cores, max 12800 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E8s_v3 = MemoryOptimized Standard_E8s_v3
+        /// 16 cores, max 25600 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E16s_v3 = MemoryOptimized Standard_E16s_v3
+        /// 32 cores, max 32000 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E32s_v3 = MemoryOptimized Standard_E32s_v3
+        /// 48 cores, max 51200 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E48s_v3 = MemoryOptimized Standard_E48s_v3
+        /// 64 cores, max 76800 IOPs & 6912 MB per core.
+        static member MemoryOptimized_E64s_v3 = MemoryOptimized Standard_E64s_v3
+        /// 2 cores, max 3200 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E2ds_v4 = MemoryOptimized Standard_E2ds_v4
+        /// 4 cores, max 6400 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E4ds_v4 = MemoryOptimized Standard_E4ds_v4
+        /// 8 cores, max 12800 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E8ds_v4 = MemoryOptimized Standard_E8ds_v4
+        /// 16 cores, max 25600 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E16ds_v4 = MemoryOptimized Standard_E16ds_v4
+        /// 20 cores, max 32000 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E20ds_v4 = MemoryOptimized Standard_E20ds_v4
+        /// 32 cores, max 51200 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E32ds_v4 = MemoryOptimized Standard_E32ds_v4
+        /// 48 cores, max 76800 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E48ds_v4 = MemoryOptimized Standard_E48ds_v4
+        /// 64 cores, max 80000 IOPs & 6912 MB per core.
+        static member MemoryOptimized_E64ds_v4 = MemoryOptimized Standard_E64ds_v4
+        /// 2 cores, max 3750 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E2ds_v5 = MemoryOptimized Standard_E2ds_v5
+        /// 4 cores, max 6400 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E4ds_v5 = MemoryOptimized Standard_E4ds_v5
+        /// 8 cores, max 12800 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E8ds_v5 = MemoryOptimized Standard_E8ds_v5
+        /// 16 cores, max 25600 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E16ds_v5 = MemoryOptimized Standard_E16ds_v5
+        /// 20 cores, max 32000 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E20ds_v5 = MemoryOptimized Standard_E20ds_v5
+        /// 32 cores, max 51200 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E32ds_v5 = MemoryOptimized Standard_E32ds_v5
+        /// 48 cores, max 76800 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E48ds_v5 = MemoryOptimized Standard_E48ds_v5
+        /// 64 cores, max 80000 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E64ds_v5 = MemoryOptimized Standard_E64ds_v5
+        /// 96 cores, max 80000 IOPs & 7168 MB per core.
+        static member MemoryOptimized_E96ds_v5 = MemoryOptimized Standard_E96ds_v5
+
     type Version =
         | VS_9_5
         | VS_9_6
         | VS_10
         | VS_11
+
+    type FlexibleVersion =
+        | V_11
+        | V_12
+        | V_13
+        | V_14
+        | V_15
+        | V_16
+        | Custom of string
+
+        member this.ArmValue =
+            match this with
+            | V_11 -> "11"
+            | V_12 -> "12"
+            | V_13 -> "13"
+            | V_14 -> "14"
+            | V_15 -> "15"
+            | V_16 -> "16"
+            | Custom v -> v
 
 module IotHub =
     type Sku =
@@ -3702,28 +3873,28 @@ module AvailabilityTest =
         /// Raw Visual Stuido WebTest XML
         | CustomWebtestXml of string
         /// URL of website that the test will ping
-        | WebsiteUrl of System.Uri
+        | WebsiteUrl of Uri
 
     /// Availability test sites, from where the webtest is run
     type TestSiteLocation =
-        | AvailabilityTestSite of Farmer.Location
+        | AvailabilityTestSite of Location
 
-        static member NorthCentralUS = Farmer.Location "us-il-ch1-azr" |> AvailabilityTestSite
-        static member WestEurope = Farmer.Location "emea-nl-ams-azr" |> AvailabilityTestSite
-        static member SoutheastAsia = Farmer.Location "apac-sg-sin-azr" |> AvailabilityTestSite
-        static member WestUS = Farmer.Location "us-ca-sjc-azr" |> AvailabilityTestSite
-        static member SouthCentralUS = Farmer.Location "us-tx-sn1-azr" |> AvailabilityTestSite
-        static member EastUS = Farmer.Location "us-va-ash-azr" |> AvailabilityTestSite
-        static member EastAsia = Farmer.Location "apac-hk-hkn-azr" |> AvailabilityTestSite
-        static member NorthEurope = Farmer.Location "emea-gb-db3-azr" |> AvailabilityTestSite
-        static member JapanEast = Farmer.Location "apac-jp-kaw-edge" |> AvailabilityTestSite
-        static member AustraliaEast = Farmer.Location "emea-au-syd-edge" |> AvailabilityTestSite
-        static member FranceCentralSouth = Farmer.Location "emea-ch-zrh-edge" |> AvailabilityTestSite
-        static member FranceCentral = Farmer.Location "emea-fr-pra-edge" |> AvailabilityTestSite
-        static member UKSouth = Farmer.Location "emea-ru-msa-edge" |> AvailabilityTestSite
-        static member UKWest = Farmer.Location "emea-se-sto-edge" |> AvailabilityTestSite
-        static member BrazilSouth = Farmer.Location "latam-br-gru-edge" |> AvailabilityTestSite
-        static member CentralUS = Farmer.Location "us-fl-mia-edge" |> AvailabilityTestSite
+        static member NorthCentralUS = Location "us-il-ch1-azr" |> AvailabilityTestSite
+        static member WestEurope = Location "emea-nl-ams-azr" |> AvailabilityTestSite
+        static member SoutheastAsia = Location "apac-sg-sin-azr" |> AvailabilityTestSite
+        static member WestUS = Location "us-ca-sjc-azr" |> AvailabilityTestSite
+        static member SouthCentralUS = Location "us-tx-sn1-azr" |> AvailabilityTestSite
+        static member EastUS = Location "us-va-ash-azr" |> AvailabilityTestSite
+        static member EastAsia = Location "apac-hk-hkn-azr" |> AvailabilityTestSite
+        static member NorthEurope = Location "emea-gb-db3-azr" |> AvailabilityTestSite
+        static member JapanEast = Location "apac-jp-kaw-edge" |> AvailabilityTestSite
+        static member AustraliaEast = Location "emea-au-syd-edge" |> AvailabilityTestSite
+        static member FranceCentralSouth = Location "emea-ch-zrh-edge" |> AvailabilityTestSite
+        static member FranceCentral = Location "emea-fr-pra-edge" |> AvailabilityTestSite
+        static member UKSouth = Location "emea-ru-msa-edge" |> AvailabilityTestSite
+        static member UKWest = Location "emea-se-sto-edge" |> AvailabilityTestSite
+        static member BrazilSouth = Location "latam-br-gru-edge" |> AvailabilityTestSite
+        static member CentralUS = Location "us-fl-mia-edge" |> AvailabilityTestSite
 
 module ContainerApp =
     //type SecretRef = SecretRef of string

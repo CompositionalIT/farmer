@@ -1,12 +1,14 @@
 module PostgreSQL
 
+#nowarn "0044" // disable obsolete warning as error - needed
+
 open System
 
 open Expecto
 open Farmer
-open Farmer.PostgreSQL
-open Farmer.Builders
 open Farmer.Arm
+open Farmer.Builders
+open Farmer.PostgreSQL
 
 type PostgresSku = {
     name: string
@@ -29,7 +31,6 @@ type Properties = {
     version: string
     storageProfile: StorageProfile
 }
-
 
 type PostgresTemplate = {
     name: string
@@ -148,13 +149,13 @@ let tests =
 
             let expectedDbRes = {
                 name = "testdb/my_db"
-                apiVersion = "2017-12-01"
-                ``type`` = "Microsoft.DBforPostgreSQL/servers/databases"
+                apiVersion = "2023-06-01-preview"
+                ``type`` = "Microsoft.DBforPostgreSQL/flexibleServers/databases"
                 properties = {|
                     collation = "de_DE"
                     charset = "ASCII"
                 |}
-                dependsOn = [| "[resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb')]" |]
+                dependsOn = [| "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', 'testdb')]" |]
             }
 
             Expect.equal actual expectedDbRes "database resource"
@@ -177,9 +178,9 @@ let tests =
 
             let expectedFwRuleRes: FirewallResource = {
                 name = "testdb/allow-azure-services"
-                ``type`` = "Microsoft.DBforPostgreSQL/servers/firewallrules"
-                apiVersion = "2017-12-01"
-                dependsOn = [| "[resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb')]" |]
+                ``type`` = "Microsoft.DBforPostgreSQL/flexibleServers/firewallrules"
+                apiVersion = "2023-06-01-preview"
+                dependsOn = [| "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', 'testdb')]" |]
                 location = "northeurope"
                 properties = {|
                     startIpAddress = "0.0.0.0"
@@ -190,18 +191,13 @@ let tests =
             Expect.equal actual expectedFwRuleRes "Firewall is incorrect"
         }
 
-        test "Vnet rule are correctly set" {
-            let subscriptionId = "sid-subid"
-            let resourceGroup = "rg-abc"
-            let vnetName = "vnetid"
-            let subnetName = "default"
-
+        test "Vnet rule is correctly set" {
             let networkResourceId = {
                 Type = subnets
-                ResourceGroup = Some resourceGroup
-                Subscription = Some subscriptionId
-                Name = ResourceName vnetName
-                Segments = [ ResourceName subnetName ]
+                ResourceGroup = Some "rg-abc"
+                Subscription = Some "sid-subid"
+                Name = ResourceName "vnetid"
+                Segments = [ ResourceName "default" ]
             }
 
             let networkResourceIdString = networkResourceId.Eval()
@@ -210,6 +206,7 @@ let tests =
             let actual = postgreSQL {
                 name "testdb"
                 admin_username "myadminuser"
+                tier Basic
                 add_vnet_rule vnetRuleName networkResourceId
             }
 
@@ -218,11 +215,11 @@ let tests =
                 |> toTemplate Location.NorthEurope
                 |> Writer.toJson
                 |> Serialization.ofJson<TypedArmTemplate<VnetResource>>
-                |> fun r -> r.Resources
-                |> Seq.find (fun r -> r.name = $"testdb/%s{vnetRuleName}")
+                |> _.Resources
+                |> Seq.find (fun r -> r.name = $"testdb/{vnetRuleName}")
 
             let expectedVnetRuleResult: VnetResource = {
-                name = $"testdb/%s{vnetRuleName}"
+                name = $"testdb/{vnetRuleName}"
                 ``type`` = "Microsoft.DBforPostgreSQL/servers/virtualNetworkRules"
                 apiVersion = "2017-12-01"
                 dependsOn = [| "[resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb')]" |]
@@ -270,6 +267,7 @@ let tests =
             let actual = postgreSQL {
                 name "testdb"
                 admin_username "myadminuser"
+                tier Basic
                 add_vnet_rules [ vnetRuleName1, networkResourceId1; vnetRuleName2, networkResourceId2 ]
             }
 
@@ -278,7 +276,7 @@ let tests =
                 |> toTemplate Location.NorthEurope
                 |> Writer.toJson
                 |> Serialization.ofJson<TypedArmTemplate<VnetResource>>
-                |> fun r -> r.Resources
+                |> _.Resources
 
             let actual1 = actual |> Seq.find (fun r -> r.name = $"testdb/%s{vnetRuleName1}")
             let actual2 = actual |> Seq.find (fun r -> r.name = $"testdb/%s{vnetRuleName2}")
@@ -500,5 +498,48 @@ let tests =
                 actual.dependsOn
                 "[resourceId('Microsoft.DBforPostgreSQL/servers', 'pgserver')]"
                 "Depends on is wrong"
+        }
+
+        test "Flexible Server properties are set correctly" {
+            let actual = postgreSQL {
+                name "pgserver"
+                add_database "db"
+                admin_username "theadmin"
+                tier FlexibleTier.Burstable_B4ms
+                storage_size 64<Gb>
+                storage_performance_tier Vm.DiskPerformanceTier.P6
+                server_version V_16
+            }
+
+            let actual =
+                actual
+                |> toTemplate Location.NorthEurope
+                |> Writer.toJson
+                |> Serialization.ofJson<
+                    TypedArmTemplate<
+                        {|
+                            sku: {| name: string; tier: string |}
+                            properties:
+                                {|
+                                    version: string
+                                    Storage:
+                                        {|
+                                            StorageSizeGb: int
+                                            tier: string
+                                            AutoGrow: string
+                                        |}
+                                |}
+                        |}
+                     >
+                    >
+                |> _.Resources
+                |> Seq.head
+
+            Expect.equal actual.sku.name "Standard_B4ms" "Incorrect SKU name"
+            Expect.equal actual.sku.tier "Burstable" "Incorrect SKU tier"
+            Expect.equal actual.properties.Storage.StorageSizeGb 64 "Incorrect storage size"
+            Expect.equal actual.properties.Storage.tier "P6" "Incorrect storage performance tier"
+            Expect.equal actual.properties.Storage.AutoGrow "Enabled" "Incorrect storage autogrow"
+            Expect.equal actual.properties.version "16" "Incorrect server version"
         }
     ]

@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* PostgreSQL: Support for Flexible Servers.
 
 ## 1.8.13
 * PostgreSQL: Use the correct ResourceId (used in e.g. depends_on calls)
