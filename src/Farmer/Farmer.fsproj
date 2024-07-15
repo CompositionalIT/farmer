@@ -40,7 +40,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Update="FSharp.Core" Version="5.0.0" />
+        <PackageReference Update="FSharp.Core" Version="8.0.200" />
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
         <PackageReference Include="System.Text.Json" Version="8.0.4" />
     </ItemGroup>

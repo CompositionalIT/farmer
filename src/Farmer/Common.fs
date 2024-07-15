@@ -3780,7 +3780,7 @@ module Serialization =
     let jsonSerializerOptions =
         JsonSerializerOptions(
             WriteIndented = true,
-            IgnoreNullValues = true,
+            DefaultIgnoreCondition = Serialization.JsonIgnoreCondition.WhenWritingNull,
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
             PropertyNameCaseInsensitive = true
         )
