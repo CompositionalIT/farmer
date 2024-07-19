@@ -854,6 +854,11 @@ module Vm =
     let UbuntuServer_2310Arm =
         makeLinuxVm "0001-com-ubuntu-server-mantic" "canonical" "23_10-arm64"
 
+    let UbuntuServer_2404LTS = makeLinuxVm "ubuntu-24_04-lts" "canonical" "server"
+
+    let UbuntuServer_2404LTSArm =
+        makeLinuxVm "ubuntu-24_04-lts" "canonical" "server-arm64"
+
     let Mariner_2 = makeLinuxVm "cbl-mariner" "MicrosoftCBLMariner" "cbl-mariner-2-gen2"
 
     let Mariner_2Arm =

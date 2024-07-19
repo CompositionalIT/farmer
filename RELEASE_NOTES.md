@@ -2,6 +2,7 @@ Release Notes
 =============
 ## vNext
 * PostgreSQL: Support for Flexible Servers.
+* Virtual Machines: Includes Ubuntu 24.04 LTS images.
 
 ## 1.8.13
 * PostgreSQL: Use the correct ResourceId (used in e.g. depends_on calls)
