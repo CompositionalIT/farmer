@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-## 9.0.0
+## 1.9.0
 * PostgreSQL: Support for Flexible Servers.
 * Virtual Machines: Includes Ubuntu 24.04 LTS images.
 
