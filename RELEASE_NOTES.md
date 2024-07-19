@@ -1,6 +1,7 @@
 Release Notes
 =============
-## vNext
+
+## 9.0.0
 * PostgreSQL: Support for Flexible Servers.
 
 ## 1.8.13
