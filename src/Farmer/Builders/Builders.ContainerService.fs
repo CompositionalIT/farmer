@@ -388,7 +388,7 @@ type AksBuilder() =
         NetworkProfile = None
         OidcIssuerProfile = None
         SecurityProfile = None
-        ServicePrincipalClientID = ""
+        ServicePrincipalClientID = "msi"
         WindowsProfileAdminUserName = None
     }
 

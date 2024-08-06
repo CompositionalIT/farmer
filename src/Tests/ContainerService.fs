@@ -69,13 +69,15 @@ let tests =
 
             Expect.equal identity "None" "Basic cluster with client ID should have no identity assigned."
         }
-        test "Basic AKS cluster needs SP" {
-            Expect.throws
-                (fun _ ->
-                    let myAks = aks { name "aks-cluster" }
-                    let template = arm { add_resource myAks }
-                    template |> Writer.quickWrite "aks-cluster-should-fail")
-                "Error should be raised if there are no service principal settings."
+        test "Basic AKS cluster uses MSI" {
+            let myAks = aks { name "aks-cluster" }
+            let deployment = arm { add_resource myAks }
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+
+            Expect.equal
+                (jobj.SelectToken "resources[?(@.name=='aks-cluster')].properties.servicePrincipalProfile.clientId")
+                (JValue "msi")
+                "Defaults to MSI when no service principal is set."
         }
         test "Simple AKS cluster" {
             let myAks = aks {
