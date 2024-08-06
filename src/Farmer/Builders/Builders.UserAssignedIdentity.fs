@@ -107,6 +107,7 @@ let federatedIdentityCredential = FederatedIdentityCredentialBuilder()
 
 type UserAssignedIdentityConfig = {
     Name: ResourceName
+    Dependencies: ResourceId Set
     FederatedIdentityCredentials: FederatedIdentityCredentialConfig list
     Tags: Map<string, string>
 } with
@@ -117,6 +118,7 @@ type UserAssignedIdentityConfig = {
         member this.BuildResources location = [
             {
                 UserAssignedIdentity.Name = this.Name
+                Dependencies = this.Dependencies
                 Location = location
                 Tags = this.Tags
             }
@@ -147,6 +149,7 @@ type UserAssignedIdentityConfig = {
 type UserAssignedIdentityBuilder() =
     member _.Yield _ = {
         Name = ResourceName.Empty
+        Dependencies = Set.empty
         FederatedIdentityCredentials = []
         Tags = Map.empty
     }
@@ -164,7 +167,13 @@ type UserAssignedIdentityBuilder() =
             state with
                 FederatedIdentityCredentials = state.FederatedIdentityCredentials @ creds
         }
-    /// Adds tags to the user assigned identity.
+
+    interface IDependable<UserAssignedIdentityConfig> with
+        member _.Add state newDeps = {
+            state with
+                Dependencies = state.Dependencies + newDeps
+        }
+
     interface ITaggable<UserAssignedIdentityConfig> with
         member _.Add state tags = {
             state with

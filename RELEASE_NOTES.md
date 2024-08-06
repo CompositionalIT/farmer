@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+## 1.9.1
+* Managed Clusters (AKS): Support for workload identity, OIDC issuer, image cleaner, and Defender.
+* User Assigned Identities: Support for `depends_on`.
+
 ## 1.9.0
 * PostgreSQL: Support for Flexible Servers.
 * Virtual Machines: Includes Ubuntu 24.04 LTS images.

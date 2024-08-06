@@ -12,6 +12,7 @@ open Farmer.Vm
 type AgentPoolConfig = {
     Name: ResourceName
     Count: int
+    EnableFIPS: FeatureFlag option
     MaxPods: int option
     Mode: AgentPoolMode
     OsDiskSize: int<Gb>
@@ -24,6 +25,7 @@ type AgentPoolConfig = {
     static member Default = {
         Name = ResourceName.Empty
         Count = 1
+        EnableFIPS = None
         // Default for CNI is 30, Kubenet default is 110
         // https://docs.microsoft.com/en-us/azure/aks/configure-azure-cni#maximum-pods-per-node
         MaxPods = None
@@ -120,6 +122,8 @@ type AksConfig = {
     ApiServerAccessProfile: ApiServerAccessProfileConfig option
     LinuxProfile: (string * string list) option
     NetworkProfile: NetworkProfileConfig option
+    OidcIssuerProfile: OidcIssuerProfile option
+    SecurityProfile: SecurityProfileSettings option
     ServicePrincipalClientID: string
     WindowsProfileAdminUserName: string option
 } with
@@ -160,6 +164,7 @@ type AksConfig = {
                     |> List.map (fun agentPool -> {|
                         Name = agentPool.Name
                         Count = agentPool.Count
+                        EnableFIPS = agentPool.EnableFIPS
                         MaxPods = agentPool.MaxPods
                         Mode = agentPool.Mode
                         OsDiskSize = agentPool.OsDiskSize
@@ -201,6 +206,8 @@ type AksConfig = {
                         | "msi" -> None
                         | _ -> Some(SecureParameter $"client-secret-for-{this.Name.Value}")
                 |}
+                OidcIssuerProfile = this.OidcIssuerProfile
+                SecurityProfile = this.SecurityProfile
                 WindowsProfile =
                     this.WindowsProfileAdminUserName
                     |> Option.map (fun username -> {|
@@ -209,6 +216,13 @@ type AksConfig = {
                     |})
             }
         ]
+
+    /// Returns the OIDC Issuer URL when configured..
+    member this.OidcIssuerUrl =
+        let aksId = ResourceId.create (managedClusters, this.Name)
+
+        $"reference({aksId.ArmExpression.Value}).oidcIssuerProfile.issuerURL"
+        |> ArmExpression.create
 
 type AgentPoolBuilder() =
     member _.Yield _ = AgentPoolConfig.Default
@@ -221,6 +235,16 @@ type AgentPoolBuilder() =
     [<CustomOperation "count">]
     member _.Count(state: AgentPoolConfig, count) = { state with Count = count }
 
+    /// Enables FIPS compliant nodes in the VM scale set for this agent pool.
+    [<CustomOperation "enable_fips">]
+    member _.EnableFIPS(state: AgentPoolConfig) = { state with EnableFIPS = Some Enabled }
+
+    [<CustomOperation "enable_fips">]
+    member _.EnableFIPS(state: AgentPoolConfig, featureFlag) = {
+        state with
+            EnableFIPS = Some featureFlag
+    }
+
     /// Sets the agent pool to user mode.
     [<CustomOperation "user_mode">]
     member _.UserMode(state: AgentPoolConfig) = { state with Mode = AgentPoolMode.User }
@@ -228,6 +252,10 @@ type AgentPoolBuilder() =
     /// Sets the disk size for the VM's in the agent pool.
     [<CustomOperation "disk_size">]
     member _.DiskSizeGB(state: AgentPoolConfig, size) = { state with OsDiskSize = size }
+
+    /// Enables the use of a FIPS-compliant image for VMs in the agent pool.
+    [<CustomOperation "fips_image">]
+    member _.EnableFipsImage(state: AgentPoolConfig, featureFlag) = { state with EnableFIPS = featureFlag }
 
     [<CustomOperation "max_pods">]
     member _.MaxPods(state: AgentPoolConfig, maxPods) = { state with MaxPods = maxPods }
@@ -358,6 +386,8 @@ type AksBuilder() =
         ApiServerAccessProfile = None
         LinuxProfile = None
         NetworkProfile = None
+        OidcIssuerProfile = None
+        SecurityProfile = None
         ServicePrincipalClientID = ""
         WindowsProfileAdminUserName = None
     }
@@ -385,13 +415,13 @@ type AksBuilder() =
     /// Enable Kubernetes Role-Based Access Control.
     [<CustomOperation "enable_rbac">]
     member _.EnableRBAC(state: AksConfig) = { state with EnableRBAC = true }
-    /// Sets the managed identity on this cluster.
+
     interface IIdentity<AksConfig> with
         member _.Add state updater = {
             state with
                 Identity = updater state.Identity
         }
-    /// Support for "depends_on"
+
     interface IDependable<AksConfig> with
         member _.Add state newDeps = {
             state with
@@ -418,9 +448,7 @@ type AksBuilder() =
             AgentPools = state.AgentPools @ [ pool ]
     }
 
-    /// Enables a private cluster so it is not publicly accessible - only accessed from a virtual network.
-    [<CustomOperation "enable_private_cluster">]
-    member _.EnablePrivateCluster(state: AksConfig, enabled: bool) =
+    member private _.enablePrivateCluster(state: AksConfig, enabled: bool) =
         let accessProfile =
             match state.ApiServerAccessProfile with
             | None -> {
@@ -436,6 +464,14 @@ type AksBuilder() =
             state with
                 ApiServerAccessProfile = Some accessProfile
         }
+
+    /// Enables a private cluster so it is not publicly accessible - only accessed from a virtual network.
+    [<CustomOperation "enable_private_cluster">]
+    member this.EnablePrivateCluster(state: AksConfig, enabled: bool) =
+        this.enablePrivateCluster (state, enabled)
+
+    [<CustomOperation "enable_private_cluster">]
+    member this.EnablePrivateCluster(state: AksConfig) = this.enablePrivateCluster (state, true)
 
     /// Sets the range of Authorized IP addresses that can access the cluster's API server.
     [<CustomOperation "add_api_server_authorized_ip_ranges">]
@@ -510,6 +546,114 @@ type AksBuilder() =
         state with
             ServicePrincipalClientID = "msi"
     }
+
+    /// Enables the AKS cluster to have an OIDC identity.
+    [<CustomOperation "oidc_issuer">]
+    member _.OidcIssuer(state: AksConfig, featureFlag) = {
+        state with
+            OidcIssuerProfile = Some { Enabled = featureFlag }
+    }
+
+    /// Enables Workload Identity for the AKS cluster.
+    [<CustomOperation "enable_workload_identity">]
+    member _.EnableWorkloadIdentity(state: AksConfig) = {
+        state with
+            // Workload identity uses the OIDC tokens issues by this cluster
+            OidcIssuerProfile = Some { Enabled = Enabled }
+            SecurityProfile =
+                state.SecurityProfile
+                |> Option.map (fun security -> {
+                    security with
+                        WorkloadIdentity = Some Enabled
+                })
+                |> Option.defaultValue {
+                    SecurityProfileSettings.Default with
+                        WorkloadIdentity = Some Enabled
+                }
+                |> Some
+    }
+
+    /// Enables Defender for the AKS cluster.
+    member private _.enableDefender(state: AksConfig, defenderSettings) = {
+        state with
+            SecurityProfile =
+                state.SecurityProfile
+                |> Option.map (fun security -> {
+                    security with
+                        Defender = defenderSettings
+                })
+                |> Option.defaultValue {
+                    SecurityProfileSettings.Default with
+                        Defender = defenderSettings
+                }
+                |> Some
+    }
+
+    [<CustomOperation "enable_defender">]
+    member this.EnableDefender(state: AksConfig, logAnalyticsResourceId: ResourceId) =
+        let defenderSettings =
+            Some {|
+                SecurityMonitoring = Enabled
+                LogAnalyticsResourceId = Some logAnalyticsResourceId
+            |}
+
+        this.enableDefender (state, defenderSettings)
+
+    [<CustomOperation "enable_defender">]
+    member this.EnableDefender(state: AksConfig) =
+        let defenderSettings =
+            Some {|
+                SecurityMonitoring = Enabled
+                LogAnalyticsResourceId = None
+            |}
+
+        this.enableDefender (state, defenderSettings)
+
+    /// Enables image cleaner to remove unused images.
+    member private _.enableImageCleaner(state: AksConfig, imageCleaner) = {
+        state with
+            SecurityProfile =
+                state.SecurityProfile
+                |> Option.map (fun security -> {
+                    security with
+                        ImageCleanerSettings = imageCleaner
+                })
+                |> Option.defaultValue {
+                    SecurityProfileSettings.Default with
+                        ImageCleanerSettings = imageCleaner
+                }
+                |> Some
+    }
+
+    /// Enables image cleaner to remove unused container images in the AKS cluster on a weekly interval.
+    [<CustomOperation "enable_image_cleaner">]
+    member this.EnableImageCleaner(state: AksConfig) =
+        let imageCleaner =
+            Some {|
+                Enabled = Enabled
+                Interval = TimeSpan.FromDays 7
+            |}
+
+        this.enableImageCleaner (state, imageCleaner)
+
+    /// Enables image cleaner to remove unused container images in the AKS cluster on a custom interval (minimum 24 hours, max 90 days).
+    [<CustomOperation "enable_image_cleaner">]
+    member this.EnableImageCleaner(state: AksConfig, interval) =
+        let interval =
+            if interval < TimeSpan.FromHours 24 then
+                TimeSpan.FromHours 24
+            elif interval > TimeSpan.FromDays 90 then
+                TimeSpan.FromDays 90
+            else
+                interval
+
+        let imageCleaner =
+            Some {|
+                Enabled = Enabled
+                Interval = interval
+            |}
+
+        this.enableImageCleaner (state, imageCleaner)
 
     /// Sets the windows admin username for the AKS cluster.
     [<CustomOperation "windows_username">]
