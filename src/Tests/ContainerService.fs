@@ -9,6 +9,7 @@ open Microsoft.Azure.Management.Compute.Models
 open Microsoft.Azure.Management.ContainerService
 open Microsoft.Rest
 open System
+open Newtonsoft.Json.Linq
 
 let dummyClient =
     new ContainerServiceClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
@@ -68,13 +69,15 @@ let tests =
 
             Expect.equal identity "None" "Basic cluster with client ID should have no identity assigned."
         }
-        test "Basic AKS cluster needs SP" {
-            Expect.throws
-                (fun _ ->
-                    let myAks = aks { name "aks-cluster" }
-                    let template = arm { add_resource myAks }
-                    template |> Writer.quickWrite "aks-cluster-should-fail")
-                "Error should be raised if there are no service principal settings."
+        test "Basic AKS cluster uses MSI" {
+            let myAks = aks { name "aks-cluster" }
+            let deployment = arm { add_resource myAks }
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+
+            Expect.equal
+                (jobj.SelectToken "resources[?(@.name=='aks-cluster')].properties.servicePrincipalProfile.clientId")
+                (JValue "msi")
+                "Defaults to MSI when no service principal is set."
         }
         test "Simple AKS cluster" {
             let myAks = aks {
@@ -129,6 +132,66 @@ let tests =
                 |> Seq.head
 
             Expect.equal aks.ServicePrincipalProfile.ClientId "msi" "ClientId should be 'msi' for service principal."
+        }
+        test "AKS cluster using Workload Identity, Image Cleaner, FIPS images" {
+            let myAks = aks {
+                name "k8s-cluster"
+                dns_prefix "testaks"
+
+                add_agent_pools [
+                    agentPool {
+                        name "linuxPool"
+                        count 3
+                        enable_fips
+                    }
+                ]
+
+                service_principal_use_msi
+                enable_workload_identity
+                enable_image_cleaner
+                enable_defender
+            }
+
+            let template = arm {
+                location Location.EastUS
+                add_resource myAks
+                output "oidcUrl" myAks.OidcIssuerUrl
+            }
+
+            let json = template.Template |> Writer.toJson
+            let jobj = JObject.Parse(json)
+
+            Expect.equal
+                (jobj.SelectToken
+                    "resources[?(@.name=='k8s-cluster')].properties.securityProfile.defender.securityMonitoring.enabled")
+                (JValue true)
+                "Defender not enabled on cluster"
+
+            Expect.equal
+                (jobj.SelectToken "resources[?(@.name=='k8s-cluster')].properties.securityProfile.imageCleaner.enabled")
+                (JValue true)
+                "Image cleaner not enabled on cluster"
+
+            Expect.equal
+                (jobj.SelectToken "resources[?(@.name=='k8s-cluster')].properties.oidcIssuerProfile.enabled")
+                (JValue true)
+                "OIDC issuer not enabled on cluster"
+
+            Expect.equal
+                (jobj.SelectToken
+                    "resources[?(@.name=='k8s-cluster')].properties.securityProfile.workloadIdentity.enabled")
+                (JValue true)
+                "Workload identity not enabled on cluster"
+
+            Expect.equal
+                (jobj.SelectToken "resources[?(@.name=='k8s-cluster')].properties.agentPoolProfiles[0].enableFIPS")
+                (JValue true)
+                "FIPS not enabled on agent pool"
+
+            Expect.equal
+                (myAks.OidcIssuerUrl.Eval())
+                "[reference(resourceId('Microsoft.ContainerService/managedClusters', 'k8s-cluster')).oidcIssuerProfile.issuerURL]"
+                "Incorrect value for OidcIssuerUrl."
         }
         test "Calculates network profile DNS server" {
             let netProfile = azureCniNetworkProfile { service_cidr "10.250.0.0/16" }

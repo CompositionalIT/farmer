@@ -12,6 +12,7 @@ let federatedIdentityCredentials =
 
 type UserAssignedIdentity = {
     Name: ResourceName
+    Dependencies: ResourceId Set
     Location: Location
     Tags: Map<string, string>
 } with
@@ -20,7 +21,7 @@ type UserAssignedIdentity = {
         member this.ResourceId = userAssignedIdentities.resourceId this.Name
 
         member this.JsonModel =
-            userAssignedIdentities.Create(this.Name, this.Location, [], this.Tags)
+            userAssignedIdentities.Create(this.Name, this.Location, this.Dependencies, this.Tags)
 
 /// A federated identity credential from an OpenId Connect issuer.
 type FederatedIdentityCredential = {
