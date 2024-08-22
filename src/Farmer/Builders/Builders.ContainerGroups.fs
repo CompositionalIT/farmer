@@ -155,7 +155,11 @@ type ContainerGroupConfig = {
                 ]
                 Diagnostics = this.Diagnostics
                 DnsConfig =
-                    if this.DnsConfig.IsSome && this.NetworkProfile.IsNone then
+                    if
+                        this.DnsConfig.IsSome
+                        && this.NetworkProfile.IsNone
+                        && this.VirtualNetwork.IsNone
+                    then
                         raiseFarmer "DNS configuration can only be set when attached to a virtual network."
                     else
                         this.DnsConfig
