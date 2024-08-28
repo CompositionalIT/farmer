@@ -91,6 +91,7 @@ The Container builder (`container`) is used to define one or more containers for
 
 #### Dapr Component Builder
 The Dapr Component builder (`daprComponent`) is used to define one or more dapr components for a container environment.
+
 | Keyword | Purpose |
 |-|-|
 | name | Sets the name of the dapr component. |
