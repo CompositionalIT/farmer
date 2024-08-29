@@ -215,13 +215,7 @@ type ContainerApp = {
                                                 )
                                                 .Eval()
                                       |}
-                                    | ImageRegistryAuthentication.ManagedIdentityCredential cred -> {|
-                                        name = cred.Server
-                                        value =
-                                            match cred.Identity.Dependencies with
-                                            | [] -> String.Empty
-                                            | primaryDependency :: _ -> primaryDependency.ArmExpression.Eval()
-                                      |}
+                                    | ImageRegistryAuthentication.ManagedIdentityCredential cred -> ()
                                 for setting in this.Secrets do
                                     {|
                                         name = setting.Key.Value
