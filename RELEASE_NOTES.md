@@ -2,7 +2,7 @@ Release Notes
 =============
 
 ## 1.9.2
-* Fix Container Apps with MSI registry authentication template
+* Container Apps: Fix to container registry credential to not emit a secret for a managed identity.
 
 ## 1.9.1
 * Managed Clusters (AKS): Support for workload identity, OIDC issuer, image cleaner, and Defender.
