@@ -160,6 +160,7 @@ type ContainerApp = {
                 | KeyValue(name, Volume.AzureFileShare(_)) ->
                     storages.resourceId (this.Environment.Name, ResourceName name) |> Some
                 | _ -> None)
+        yield! this.Identity.Dependencies
     ]
 
     member private this.ResourceId = containerApps.resourceId this.Name
