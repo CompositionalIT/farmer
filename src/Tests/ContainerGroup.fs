@@ -1214,6 +1214,50 @@ async {
             Expect.equal searchDomains (JValue "example.com example.local") "Incorrect search domains."
         }
 
+        test "Specify DNS nameservers and search domains w/o profile" {
+            let deployment = arm {
+                add_resources [
+                    vnet {
+                        name "mynetwork"
+                        add_address_spaces [ "10.30.32.0/20" ]
+
+                        add_subnets [
+                            subnet {
+                                name "containers"
+                                prefix "10.30.41.0/24"
+                                add_delegations [ SubnetDelegationService.ContainerGroups ]
+                            }
+                        ]
+                    }
+                    containerGroup {
+                        name "container-group-with-custom-dns"
+                        dns_nameservers [ "8.8.8.8"; "1.1.1.1" ]
+                        dns_search_domains [ "example.com"; "example.local" ]
+
+                        add_instances [
+                            containerInstance {
+                                name "httpserver"
+                                image "nginx:1.17.6-alpine"
+                            }
+                        ]
+
+                        vnet "mynetwork"
+                        subnet "containers"
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+
+            let dnsConfig =
+                jobj.SelectToken "resources[?(@.name=='container-group-with-custom-dns')].properties.dnsConfig"
+
+            let nameservers = dnsConfig.SelectToken "nameServers"
+            let searchDomains = dnsConfig.SelectToken "searchDomains"
+            Expect.sequenceEqual nameservers [ JValue "8.8.8.8"; JValue "1.1.1.1" ] "Incorrect nameservers."
+            Expect.equal searchDomains (JValue "example.com example.local") "Incorrect search domains."
+        }
+
         test "Create container group created with a link_to_identity" {
             let resourceId =
                 ResourceId.create (ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup")
