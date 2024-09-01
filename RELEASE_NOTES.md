@@ -3,7 +3,7 @@ Release Notes
 
 ## 1.9.2
 * Container Apps: Fix to container registry credential to not emit a secret for a managed identity.
-* ContainerGroup followup to #ff78f202dc - expand DNS config validation for profile-less vnet.
+* Container Groups: followup to #ff78f202dc - expand DNS config validation for profile-less vnet.
 
 ## 1.9.1
 * Managed Clusters (AKS): Support for workload identity, OIDC issuer, image cleaner, and Defender.
