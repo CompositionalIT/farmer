@@ -2,8 +2,9 @@
 module Farmer.Builders.SqlAzure
 
 open Farmer
+open Farmer.Arm
+open Farmer.Builders
 open Farmer.Sql
-open Farmer.Arm.Sql
 open System.Net
 open Servers
 open Databases
@@ -17,7 +18,9 @@ type SqlAzureDbConfig =
         Encryption: FeatureFlag
         Server: LinkedResource option
         Pool: ResourceName option
+        Tags: Map<string, string>
     }
+
     interface IBuilder with
       member this.ResourceId = 
         match this.Server with
@@ -40,6 +43,7 @@ type SqlAzureDbConfig =
                   | Some dbSku -> Standalone dbSku
                   | None -> Pool (this.Pool |> Option.defaultWith (fun () -> raiseFarmer $"Non-standalone database %s{this.Name.Value} must have a pool."))
               Collation = this.Collation
+              Tags = this.Tags
           }
 
           match this.Encryption with
@@ -225,6 +229,13 @@ type SqlDbBuilder() =
             Encryption = Disabled
             Server = None
             Pool = None
+            Tags = Map.empty
+        }
+
+    interface ITaggable<SqlAzureDbConfig> with
+      member _.Add state tags =
+        { state with
+            Tags = state.Tags |> Map.merge tags
         }
 
     /// Sets the name of the database.
