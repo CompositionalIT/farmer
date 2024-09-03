@@ -134,6 +134,7 @@ module Servers =
             MaxSizeBytes: int64 option
             Sku: DbKind
             Collation: string
+            Tags: Map<string, string>
         }
 
         interface IArmResource with
@@ -160,7 +161,7 @@ module Servers =
                        serverName.ResourceName / this.Name,
                        this.Location,
                        dependsOn,
-                       tags = Map [ "displayName", this.Name.Value ]
+                       tags = this.Tags.Add("displayName", this.Name.Value)
                    ) with
                     sku =
                         match this.Sku with

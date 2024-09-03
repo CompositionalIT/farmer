@@ -343,4 +343,17 @@ let tests =
                 Expect.equal model.ElasticPoolId expectedPoolId "Incorrect pool name"
                 Expect.equal model.Name "server/db" "Incorrect database name"
             }
+
+            test "Can set tags on a DB" {
+                let sql =
+                    sqlDb {
+                        name "db"
+                        link_to_unmanaged_server (Arm.Sql.servers.resourceId("server")) (ResourceName "server-pool")
+                        add_tags [ "key", "value" ]
+                    }
+
+                let model: Models.Database = sql |> getResourceAtIndex client.SerializationSettings 0
+                let expectedTags = dict[ "key", "value" ]
+                Expect.containsAll model.Tags expectedTags "Tags missing"
+            }
         ]
