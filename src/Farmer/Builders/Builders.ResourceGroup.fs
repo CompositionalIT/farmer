@@ -139,7 +139,7 @@ type DeploymentBuilder() =
         Resources = List.empty
         ParameterValues = List.empty
         SubscriptionId = None
-        Location = Location.WestEurope
+        Location = Location.ResourceGroup
         Mode = Incremental
         Tags = Map.empty
     }

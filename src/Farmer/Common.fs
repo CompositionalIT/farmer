@@ -71,6 +71,9 @@ module LocationExtensions =
         static member NorwayEast = Location "NorwayEast"
         static member Global = Location "global"
 
+        static member ResourceGroup =
+            LocationExpression(ArmExpression.create "resourceGroup().location")
+
 [<AutoOpen>]
 module DataLocationExtensions =
     type DataLocation with

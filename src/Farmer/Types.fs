@@ -55,20 +55,6 @@ module ResourceName =
         | true, _ -> None
         | false, _ -> Some Unparsed
 
-type Location =
-    | Location of string
-
-    member this.ArmValue =
-        match this with
-        | Location location -> location.ToLower()
-
-type DataLocation =
-    | DataLocation of string
-
-    member this.ArmValue =
-        match this with
-        | DataLocation dataLocation -> dataLocation
-
 type ResourceType =
     | ResourceType of path: string * version: string
 
@@ -134,20 +120,6 @@ module internal Patterns =
         | t when t = expected -> Some(HasResourceType())
         | _ -> None
 
-/// An Azure ARM resource value which can be mapped into an ARM template.
-type IArmResource =
-    /// The name of the resource, to uniquely identify against other resources in the template.
-    abstract member ResourceId: ResourceId
-    /// A raw object that is ready for serialization directly to JSON.
-    abstract member JsonModel: obj
-
-/// Represents a high-level configuration that can create a set of ARM Resources.
-type IBuilder =
-    /// Given a location and the currently-built resources, returns a set of resource actions.
-    abstract member BuildResources: Location -> IArmResource list
-    /// Provides the ResourceId that other resources should use when depending upon this builder.
-    abstract member ResourceId: ResourceId
-
 /// Represents an expression used within an ARM template
 type ArmExpression =
     private
@@ -211,6 +183,39 @@ type ArmExpression =
 
     static member string(value: ArmExpression) =
         value.Value |> sprintf "string(%s)" |> ArmExpression.create
+
+type Location =
+    | Location of string
+    | LocationExpression of ArmExpression
+
+    member this.ArmValue =
+        let v =
+            match this with
+            | Location location -> location.ToLower()
+            | LocationExpression expr -> expr.Eval()
+
+        v
+
+type DataLocation =
+    | DataLocation of string
+
+    member this.ArmValue =
+        match this with
+        | DataLocation dataLocation -> dataLocation
+
+/// An Azure ARM resource value which can be mapped into an ARM template.
+type IArmResource =
+    /// The name of the resource, to uniquely identify against other resources in the template.
+    abstract member ResourceId: ResourceId
+    /// A raw object that is ready for serialization directly to JSON.
+    abstract member JsonModel: obj
+
+/// Represents a high-level configuration that can create a set of ARM Resources.
+type IBuilder =
+    /// Given a location and the currently-built resources, returns a set of resource actions.
+    abstract member BuildResources: Location -> IArmResource list
+    /// Provides the ResourceId that other resources should use when depending upon this builder.
+    abstract member ResourceId: ResourceId
 
 type ResourceId with
 
