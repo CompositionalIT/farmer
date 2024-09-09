@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.3
+* Deployments: Default to resource group location rather than West Europe.
+
 ## 1.9.2
 * Container Apps: Fix to container registry credential to not emit a secret for a managed identity.
 * Container Groups: followup to #ff78f202dc - expand DNS config validation for profile-less vnet.
