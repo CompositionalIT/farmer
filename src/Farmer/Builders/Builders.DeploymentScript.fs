@@ -44,6 +44,7 @@ type DeploymentScriptConfig = {
             if this.CustomIdentity.IsNone then
                 {
                     Name = generatedIdentityId.Name
+                    Dependencies = Set.empty
                     Location = location
                     Tags = Map.empty
                 }

@@ -8,4 +8,4 @@ Want to edit the docs? Check out the [docs folder](https://github.com/Compositio
 
 [![Build Status](https://compositional-it.visualstudio.com/Farmer/_apis/build/status/CompositionalIT.farmer?branchName=master)](https://compositional-it.visualstudio.com/Farmer/_build/latest?definitionId=14&branchName=master)
 
-[![Farmer on Nuget](https://buildstats.info/nuget/farmer)](https://www.nuget.org/packages/farmer/)
+[![Farmer on Nuget](https://img.shields.io/nuget/dt/Farmer?label=NuGet%20Downloads)](https://www.nuget.org/packages/farmer/)

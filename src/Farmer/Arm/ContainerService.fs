@@ -6,7 +6,7 @@ open Farmer.Identity
 open Farmer.Vm
 
 let managedClusters =
-    ResourceType("Microsoft.ContainerService/managedClusters", "2021-03-01")
+    ResourceType("Microsoft.ContainerService/managedClusters", "2024-02-01")
 
 module AddonProfiles =
     type AciConnectorLinux = {
@@ -137,6 +137,29 @@ type ManagedClusterIdentityProfile = {
 
     member internal this.Dependencies = [ this.KubeletIdentity ] |> List.choose id
 
+type OidcIssuerProfile = { Enabled: FeatureFlag }
+
+type SecurityProfileSettings = {
+    Defender:
+        {|
+            SecurityMonitoring: FeatureFlag
+            LogAnalyticsResourceId: ResourceId option
+        |} option
+    // intervalHours: minimum 24 hours, default one week, maximum 3 months
+    ImageCleanerSettings:
+        {|
+            Enabled: FeatureFlag
+            Interval: System.TimeSpan
+        |} option
+    WorkloadIdentity: FeatureFlag option
+} with
+
+    static member Default = {
+        Defender = None
+        ImageCleanerSettings = None
+        WorkloadIdentity = None
+    }
+
 type ManagedCluster = {
     Name: ResourceName
     Location: Location
@@ -148,6 +171,7 @@ type ManagedCluster = {
         {|
             Name: ResourceName
             Count: int
+            EnableFIPS: FeatureFlag option
             MaxPods: int option
             Mode: AgentPoolMode
             OsDiskSize: int<Gb>
@@ -178,6 +202,8 @@ type ManagedCluster = {
             LoadBalancerSku: LoadBalancer.Sku option
             ServiceCidr: IPAddressCidr option
         |} option
+    OidcIssuerProfile: OidcIssuerProfile option
+    SecurityProfile: SecurityProfileSettings option
     WindowsProfile:
         {|
             AdminUserName: string
@@ -248,6 +274,7 @@ type ManagedCluster = {
                                     else
                                         agent.Name.Value.ToLowerInvariant()
                                 count = agent.Count
+                                enableFIPS = agent.EnableFIPS |> Option.mapBoxed _.AsBoolean
                                 maxPods = agent.MaxPods |> Option.toNullable
                                 mode = agent.Mode |> string
                                 osDiskSizeGB = agent.OsDiskSize
@@ -301,6 +328,40 @@ type ManagedCluster = {
                                     networkProfile.ServiceCidr |> Option.map IPAddressCidr.format |> Option.toObj
                               |}
                             | None -> Unchecked.defaultof<_>
+                        oidcIssuerProfile =
+                            match this.OidcIssuerProfile with
+                            | None -> Unchecked.defaultof<_>
+                            | Some oidc -> {| enabled = oidc.Enabled.AsBoolean |}
+                        securityProfile =
+                            match this.SecurityProfile with
+                            | None -> Unchecked.defaultof<_>
+                            | Some profile -> {|
+                                defender =
+                                    profile.Defender
+                                    |> Option.map (fun defender -> {|
+                                        logAnalyticsWorkspaceResourceId =
+                                            defender.LogAnalyticsResourceId
+                                            |> Option.map (_.ArmExpression.Eval())
+                                            |> Option.toObj
+                                        securityMonitoring = {|
+                                            enabled = defender.SecurityMonitoring.AsBoolean
+                                        |}
+                                    |})
+                                    |> Option.defaultValue Unchecked.defaultof<_>
+                                imageCleaner =
+                                    profile.ImageCleanerSettings
+                                    |> Option.map (fun imageCleaner -> {|
+                                        enabled = imageCleaner.Enabled.AsBoolean
+                                        intervalHours = imageCleaner.Interval.TotalHours
+                                    |})
+                                    |> Option.defaultValue Unchecked.defaultof<_>
+                                workloadIdentity =
+                                    profile.WorkloadIdentity
+                                    |> Option.map (fun workloadIdentity -> {|
+                                        enabled = workloadIdentity.AsBoolean
+                                    |})
+                                    |> Option.defaultValue Unchecked.defaultof<_>
+                              |}
                         servicePrincipalProfile = {|
                             clientId = this.ServicePrincipalProfile.ClientId
                             secret =

@@ -2,7 +2,7 @@
     <PropertyGroup>
         <!-- General -->
         <AssemblyName>Farmer</AssemblyName>
-        <Version>1.8.13</Version>
+        <Version>1.9.2</Version>
         <Description>Farmer makes authoring ARM templates easy!</Description>
         <Copyright>Copyright 2019-2024 Compositional IT Ltd.</Copyright>
         <Company>Compositional IT</Company>
@@ -40,7 +40,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Update="FSharp.Core" Version="8.0.200" />
+        <PackageReference Update="FSharp.Core" Version="5.0.0" />
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
         <PackageReference Include="System.Text.Json" Version="8.0.5" />
     </ItemGroup>

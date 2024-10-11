@@ -1,7 +1,18 @@
 Release Notes
 =============
-## vNext
+
+## 1.9.2
+* Container Apps: Fix to container registry credential to not emit a secret for a managed identity.
+* Container Groups: followup to #ff78f202dc - expand DNS config validation for profile-less vnet.
+
+## 1.9.1
+* Managed Clusters (AKS): Support for workload identity, OIDC issuer, image cleaner, and Defender.
+* Managed Clusters (AKS): Default to use MSI for the service principal profile to align with CLI and Portal.
+* User Assigned Identities: Support for `depends_on`.
+
+## 1.9.0
 * PostgreSQL: Support for Flexible Servers.
+* Virtual Machines: Includes Ubuntu 24.04 LTS images.
 
 ## 1.8.13
 * PostgreSQL: Use the correct ResourceId (used in e.g. depends_on calls)
