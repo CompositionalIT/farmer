@@ -202,9 +202,9 @@ type ArmExpression =
     static member literal = sprintf "'%s'" >> ArmExpression.create
 
     /// Generates an ARM expression for concatination.
-    static member concat values =
+    static member concat(values: ArmExpression seq) =
         values
-        |> Seq.map (fun (r: ArmExpression) -> r.Value)
+        |> Seq.map _.Value
         |> String.concat ", "
         |> sprintf "concat(%s)"
         |> ArmExpression.create

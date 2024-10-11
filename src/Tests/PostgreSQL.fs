@@ -332,7 +332,7 @@ let tests =
 
             Expect.equal
                 (string fqdnExpression)
-                "[reference(resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb'), '2017-12-01').fullyQualifiedDomainName]"
+                "[reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', 'testdb'), '2023-06-01-preview').fullyQualifiedDomainName]"
                 "Incorrect fqdn output"
         }
 
@@ -496,7 +496,7 @@ let tests =
 
             Expect.contains
                 actual.dependsOn
-                "[resourceId('Microsoft.DBforPostgreSQL/servers', 'pgserver')]"
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', 'pgserver')]"
                 "Depends on is wrong"
         }
 
@@ -541,5 +541,28 @@ let tests =
             Expect.equal actual.properties.Storage.tier "P6" "Incorrect storage performance tier"
             Expect.equal actual.properties.Storage.AutoGrow "Enabled" "Incorrect storage autogrow"
             Expect.equal actual.properties.version "16" "Incorrect server version"
+        }
+
+        test "Correctly distinguishes between server and flexible servers" {
+            let check (cfg: PostgreSQLConfig) expected =
+                let errorMessage = $"Should have resource type '{expected}'"
+                Expect.equal cfg.ResourceType expected errorMessage
+                Expect.equal (cfg :> IBuilder).ResourceId.Type expected errorMessage
+                Expect.equal cfg.FullyQualifiedDomainName.Owner.Value.Type expected errorMessage
+
+            let flexible = postgreSQL {
+                name "testdb"
+                admin_username "isaacadmin"
+            }
+
+            check flexible flexibleServers
+
+            let inflexible = postgreSQL {
+                name "testdb"
+                admin_username "isaacadmin"
+                tier Basic
+            }
+
+            check inflexible servers
         }
     ]
