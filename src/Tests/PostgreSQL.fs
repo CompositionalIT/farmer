@@ -332,7 +332,7 @@ let tests =
 
             Expect.equal
                 (string fqdnExpression)
-                "[reference(resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb')).fullyQualifiedDomainName]"
+                "[reference(resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb'), '2017-12-01').fullyQualifiedDomainName]"
                 "Incorrect fqdn output"
         }
 
