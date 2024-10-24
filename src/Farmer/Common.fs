@@ -1556,6 +1556,12 @@ module Storage =
         | Container
         | Blob
 
+        member this.ArmValue =
+            match this with
+            | Private -> "None"
+            | Container -> "Container"
+            | Blob -> "Blob"
+
     /// The type of action to take when defining a lifecycle policy.
     type LifecyclePolicyAction =
         | CoolAfter of int<Days>

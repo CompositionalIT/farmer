@@ -124,7 +124,7 @@ type StorageAccount = {
             Enable: bool option
             ImmutabilityPolicy: {|
                 AllowProtectedAppendWrites: bool option
-                ImmutabilityPeriodSinceCreationInDays: int option
+                ImmutabilityPeriodSinceCreation: int<Days> option
                 State: ImmutabilityPolicyState option
             |} option
         |} option
@@ -200,9 +200,9 @@ type StorageAccount = {
                             defaultAction = networkRuleSet.DefaultAction.ArmValue
                         |})
                         |> Option.defaultValue Unchecked.defaultof<_>
-                    allowBlobPublicAccess = this.DisableBlobPublicAccess.BooleanValue
-                    allowSharedKeyAccess = this.DisableSharedKeyAccess.BooleanValue
-                    defaultToOAuthAuthentication = this.DefaultToOAuthAuthentication.BooleanValue
+                    allowBlobPublicAccess = this.DisableBlobPublicAccess.BooleanValue ()
+                    allowSharedKeyAccess = this.DisableSharedKeyAccess.BooleanValue ()
+                    defaultToOAuthAuthentication = this.DefaultToOAuthAuthentication.BooleanValue ()
                     dnsEndpointType = this.DnsZoneType |> Option.toObj
                     encryption = {|
                         requireInfrastructureEncryption = this.RequireInfrastructureEncryption |> Option.toNullable
@@ -216,14 +216,14 @@ type StorageAccount = {
                                 |> Option.map (fun immutableStorage ->
                                     {|
                                         allowProtectedAppendWrites = immutableStorage.AllowProtectedAppendWrites |> Option.toNullable
-                                        immutabilityPeriodSinceCreationInDays = immutableStorage.ImmutabilityPeriodSinceCreationInDays |> Option.toNullable
+                                        immutabilityPeriodSinceCreationInDays = immutableStorage.ImmutabilityPeriodSinceCreation |> Option.toNullable
                                         state = immutableStorage.State |> Option.map _.ArmValue |> Option.toObj
                                     |})
                         |})
                     isHnsEnabled = this.EnableHierarchicalNamespace |> Option.toNullable
                     minimumTlsVersion = this.MinTlsVersion.ArmValue ()
                     publicNetworkAccess = this.DisablePublicNetworkAccess.ArmValue ()
-                    supportsHttpsTrafficOnly = this.SupportsHttpsTrafficOnly.BooleanValue
+                    supportsHttpsTrafficOnly = this.SupportsHttpsTrafficOnly.BooleanValue ()
                 |}
         |}
 
@@ -359,21 +359,18 @@ module BlobServices =
         Accessibility: StorageContainerAccess
     } with
 
+        member this.ResourceName = this.StorageAccount / "default" / this.Name.ResourceName
+
         interface IArmResource with
-            member this.ResourceId =
-                containers.resourceId (this.StorageAccount / "default" / this.Name.ResourceName)
+            member this.ResourceId = containers.resourceId this.ResourceName
 
             member this.JsonModel = {|
                 containers.Create(
-                    this.StorageAccount / "default" / this.Name.ResourceName,
+                    this.ResourceName,
                     dependsOn = [ storageAccounts.resourceId this.StorageAccount ]
                 ) with
                     properties = {|
-                        publicAccess =
-                            match this.Accessibility with
-                            | Private -> "None"
-                            | Container -> "Container"
-                            | Blob -> "Blob"
+                        publicAccess = this.Accessibility.ArmValue
                     |}
             |}
 
