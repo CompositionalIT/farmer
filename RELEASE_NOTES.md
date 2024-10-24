@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* Az: Update `ad` commands to work with latest (breaking) structure.
 
 ## 1.9.2
 * Container Apps: Fix to container registry credential to not emit a secret for a managed identity.
