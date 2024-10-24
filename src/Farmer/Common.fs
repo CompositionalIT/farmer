@@ -71,6 +71,21 @@ module LocationExtensions =
         static member NorwayWest = Location "NorwayWest"
         static member NorwayEast = Location "NorwayEast"
         static member Global = Location "global"
+        static member SpainCentral = Location "SpainCentral"
+        static member ItalyNorth = Location "ItalyNorth"
+        static member PolandCentral = Location "PolandCentral"
+        static member MexicoCentral = Location "MexicoCentral"
+        static member IsraelCentral = Location "IsraelCentral"
+        static member QatarCentral = Location "QatarCentral"
+        static member ChileCentral = Location "ChileCentral"
+        static member NewZealandNorth = Location "NewZealandNorth"
+        static member MalaysiaCentral = Location "MalaysiaCentral"
+        static member IndonesiaCentral = Location "IndonesiaCentral"
+        static member TaiwanNorth = Location "TaiwanNorth"
+        static member AustriaCentral = Location "AustriaCentral"
+        static member GreeceCentral = Location "GreeceCentral"
+        static member DenmarkCentral = Location "DenmarkCentral"
+        static member SwedenCentral = Location "SwedenCentral"
 
         static member ResourceGroup =
             LocationExpression(ArmExpression.create "resourceGroup().location")
