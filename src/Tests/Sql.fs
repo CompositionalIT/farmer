@@ -304,77 +304,70 @@ let tests =
                 "Incorrect autoPauseDelay"
         }
 
-        test "Must set a SQL Server account name" {
-            Expect.throws
-                (fun () -> sqlServer { admin_username "test" } |> ignore)
-                "Must set a name on a sql server account"
+        test "Must set either SQL Server or AD authentication" {
+            Expect.throws (fun () -> sqlServer { name "test" } |> ignore) "Should throw if no auth set"
         }
 
-        for (adOnlyAuth, principalType, adminUserName) in
-            [
-                true, ActiveDirectoryPrincipalType.User, null
-                false, ActiveDirectoryPrincipalType.User, "sqladmin"
-                true, ActiveDirectoryPrincipalType.Group, null
-                false, ActiveDirectoryPrincipalType.Group, "sqladmin"
-            ] do
-            test $"AD Auth - ADOnly: {adOnlyAuth}, Principal: {principalType}, Username: {adminUserName}" {
-                let sql =
-                    let activeDirectoryUserAdmin: ActiveDirectoryAdminSettings = {
-                        Login = "adadmin"
-                        Sid = "F9D49C34-01BA-4897-B7E2-3694BF3DE2CF"
-                        PrincipalType = principalType
-                        AdOnlyAuth = adOnlyAuth
-                    }
+        test "Can use Entra ID auth" {
+            let server = sqlServer {
+                name "my-sql-server"
 
-                    sqlServer {
-                        name "adtestserver"
-                        active_directory_admin (Some(activeDirectoryUserAdmin))
-                        admin_username adminUserName
-                    }
-
-                let template = arm {
-                    location Location.AustraliaEast
-                    add_resources [ sql ]
+                active_directory_admin {
+                    Login = "entra-user"
+                    Sid = ObjectId(Guid.Parse "f9d49c34-01ba-4897-b7e2-3694bf3de2cf")
+                    PrincipalType = PrincipalType.User
                 }
-
-                let jsn = template.Template |> Writer.toJson
-                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
-
-                Expect.equal
-                    (jobj
-                        .SelectToken("resources[?(@.name=='adtestserver')].properties.administrators.administratorType")
-                        .ToString())
-                    "ActiveDirectory"
-                    "Incorrect administrator type"
-
-                Expect.equal
-                    (jobj
-                        .SelectToken(
-                            "resources[?(@.name=='adtestserver')].properties.administrators.azureADOnlyAuthentication"
-                        )
-                        .ToString())
-                    (adOnlyAuth.ToString())
-                    $"AD only auth should be {adOnlyAuth.ToString()}"
-
-                Expect.equal
-                    (jobj
-                        .SelectToken("resources[?(@.name=='adtestserver')].properties.administrators.login")
-                        .ToString())
-                    "adadmin"
-                    "Incorrect AD login name"
-
-                Expect.equal
-                    (jobj
-                        .SelectToken("resources[?(@.name=='adtestserver')].properties.administrators.principalType")
-                        .ToString())
-                    $"{principalType.ToString()}"
-                    "Incorrect principal type"
-
-                Expect.equal
-                    (jobj
-                        .SelectToken("resources[?(@.name=='adtestserver')].properties.administrators.sid")
-                        .ToString())
-                    "F9D49C34-01BA-4897-B7E2-3694BF3DE2CF"
-                    "Incorrect SID"
             }
+
+            let template = arm { add_resource server }
+            let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+            let selectProp prop =
+                jobj
+                    .SelectToken($"resources[?(@.name=='my-sql-server')].properties.administrators.{prop}")
+                    .ToString()
+
+            Expect.equal (selectProp "administratorType") "ActiveDirectory" "Incorrect administrator type"
+            Expect.equal (selectProp "login") "entra-user" "Incorrect AD login name"
+            Expect.equal (selectProp "principalType") $"User" "Incorrect principal type"
+            Expect.equal (selectProp "sid") "f9d49c34-01ba-4897-b7e2-3694bf3de2cf" "Incorrect SID"
+            Expect.equal (selectProp "azureADOnlyAuthentication") "True" $"Should only have AD auth."
+        }
+
+        test "No Entra ARM when just using SQL" {
+            let theServer = sqlServer {
+                name "my-sql-server"
+                admin_username "test"
+            }
+
+            let template = arm { add_resource theServer }
+            let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+            let administratorsJson =
+                jobj.SelectToken "resources[?(@.name=='my-sql-server')].properties.administrators"
+
+            Expect.isNull administratorsJson "Should not have an AD admin"
+        }
+
+        test "Can set both SQL and Entra ID auth" {
+            let theServer = sqlServer {
+                name "my-sql-server"
+                admin_username "test"
+
+                active_directory_admin {
+                    Login = ""
+                    Sid = ObjectId Guid.Empty
+                    PrincipalType = PrincipalType.User
+                }
+            }
+
+            let template = arm { add_resource theServer }
+            let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+            let azureAdOnlyAuth =
+                jobj.SelectToken
+                    "resources[?(@.name=='my-sql-server')].properties.administrators.azureADOnlyAuthentication"
+
+            Expect.equal (azureAdOnlyAuth.ToString()) "False" "Should not only have AD auth."
+        }
     ]
