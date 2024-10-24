@@ -24,6 +24,9 @@ module Result =
         | Ok s -> Some s
         | Error _ -> None
 
+    let defaultValue defaultValue =
+        toOption >> Option.defaultValue defaultValue
+
     let ignore result = Result.map ignore result
 
     let sequence results =
