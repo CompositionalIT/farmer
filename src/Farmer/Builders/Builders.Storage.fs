@@ -155,15 +155,15 @@ type StorageAccountConfig = {
                     StorageAccount = this.Name.ResourceName
                     Accessibility = access
                 }
+
                 match immutabilityPolicies with
                 | None -> ()
-                | Some immutabilityPolicies ->
-                    {
-                        StorageAccount = this.Name.ResourceName
-                        Container = name
-                        AllowProtectedAppendWrites = immutabilityPolicies.AllowProtectedAppendWrites
-                        ImmutabilityPeriodSinceCreation = immutabilityPolicies.ImmutabilityPeriodSinceCreation
-                    }
+                | Some immutabilityPolicies -> {
+                    StorageAccount = this.Name.ResourceName
+                    Container = name
+                    AllowProtectedAppendWrites = immutabilityPolicies.AllowProtectedAppendWrites
+                    ImmutabilityPeriodSinceCreation = immutabilityPolicies.ImmutabilityPeriodSinceCreation
+                  }
             for (name, shareQuota) in this.FileShares do
                 {
                     Name = name
@@ -278,18 +278,24 @@ type StorageAccountBuilder() =
 
         state
 
-    static member private AddContainers(state, access, names: string seq, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig) = {
-        state with
-            Containers =
-                let containers =
-                    names
-                    |> List.ofSeq
-                    |> List.map (fun name -> ((StorageResourceName.Create name).OkValue, access, immutabilityPolicies))
+    static member private AddContainers
+        (state, access, names: string seq, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig)
+        =
+        {
+            state with
+                Containers =
+                    let containers =
+                        names
+                        |> List.ofSeq
+                        |> List.map (fun name ->
+                            ((StorageResourceName.Create name).OkValue, access, immutabilityPolicies))
 
-                state.Containers @ containers
-    }
+                    state.Containers @ containers
+        }
 
-    static member private AddContainer(state, access, name: string, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig) =
+    static member private AddContainer
+        (state, access, name: string, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig)
+        =
         StorageAccountBuilder.AddContainers(state, access, [ name ], ?immutabilityPolicies = immutabilityPolicies)
 
     static member private AddFileShares(state: StorageAccountConfig, names: string seq, quota) = {
@@ -321,32 +327,44 @@ type StorageAccountBuilder() =
 
     /// Adds private container.
     [<CustomOperation "add_private_container">]
-    member _.AddPrivateContainer(state: StorageAccountConfig, name, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig) =
+    member _.AddPrivateContainer
+        (state: StorageAccountConfig, name, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig)
+        =
         StorageAccountBuilder.AddContainer(state, Private, name, ?immutabilityPolicies = immutabilityPolicies)
 
     /// Adds private containers.
     [<CustomOperation "add_private_containers">]
-    member _.AddPrivateContainers(state: StorageAccountConfig, names, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig) =
+    member _.AddPrivateContainers
+        (state: StorageAccountConfig, names, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig)
+        =
         StorageAccountBuilder.AddContainers(state, Private, names, ?immutabilityPolicies = immutabilityPolicies)
 
     /// Adds container with anonymous read access for blobs and containers.
     [<CustomOperation "add_public_container">]
-    member _.AddPublicContainer(state: StorageAccountConfig, name, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig) =
+    member _.AddPublicContainer
+        (state: StorageAccountConfig, name, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig)
+        =
         StorageAccountBuilder.AddContainer(state, Container, name, ?immutabilityPolicies = immutabilityPolicies)
 
     /// Adds containers with anonymous read access for blobs and containers.
     [<CustomOperation "add_public_containers">]
-    member _.AddPublicContainers(state: StorageAccountConfig, names, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig) =
+    member _.AddPublicContainers
+        (state: StorageAccountConfig, names, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig)
+        =
         StorageAccountBuilder.AddContainers(state, Container, names, ?immutabilityPolicies = immutabilityPolicies)
 
     /// Adds container with anonymous read access for blobs only.
     [<CustomOperation "add_blob_container">]
-    member _.AddBlobContainer(state: StorageAccountConfig, name, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig) =
+    member _.AddBlobContainer
+        (state: StorageAccountConfig, name, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig)
+        =
         StorageAccountBuilder.AddContainer(state, Blob, name, ?immutabilityPolicies = immutabilityPolicies)
 
     /// Adds containers with anonymous read access for blobs only.
     [<CustomOperation "add_blob_containers">]
-    member _.AddBlobContainers(state: StorageAccountConfig, names, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig) =
+    member _.AddBlobContainers
+        (state: StorageAccountConfig, names, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig)
+        =
         StorageAccountBuilder.AddContainers(state, Blob, names, ?immutabilityPolicies = immutabilityPolicies)
 
     /// Adds a file share with no quota.
@@ -806,6 +824,7 @@ type StorageQueueBuilder() =
     member _.Run(state: StorageQueueConfig) : StorageQueueConfig =
         if state.Name.ResourceName = ResourceName.Empty then
             raiseFarmer "No Storage Account name has been set."
+
         state
 
     /// Sets the name of the storage queue.
