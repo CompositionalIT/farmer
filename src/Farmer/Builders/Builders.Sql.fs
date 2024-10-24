@@ -6,6 +6,7 @@ open Farmer.Arm
 open Farmer.Arm.Sql.Servers
 open Farmer.Arm.Sql.Servers.Databases
 open Farmer.Sql
+open System
 open System.Net
 
 type SqlAzureDbConfig = {
@@ -413,50 +414,41 @@ type SqlServerBuilder() =
             GeoReplicaServer = Some replicaSettings
     }
 
-    /// Activates Entra ID authentication using the supplied credentials for the administrator account. Farmer determines the Object ID / SID using `ad user list`.
-    /// If you have already set the SQL admin credentials, they will be preserved as a hybrid setup.
-    [<CustomOperation "entra_id_admin">]
+    /// Activates Entra ID authentication using the supplied Entra username (i.e. email address) for the administrator account. Farmer determines the Object ID / SID using `ad user list`.
+    /// If you have set the SQL admin credentials, they will be preserved as a hybrid setup.
+    [<CustomOperation "entra_id_admin_user">]
     member this.SetEntraIdAuthenticationUser(state: SqlAzureConfig, login) =
         match AccessPolicy.findUsers [ login ] |> Array.toList with
         | [] -> raiseFarmer $"Login {login} not found in the directory."
-        | user :: _ ->
-            this.SetEntraIdAuthentication(
-                state,
-                SqlServerBuilder.CreateCredentials(login, user.Id.Value, PrincipalType.User)
-            )
+        | user :: _ -> this.SetEntraIdAuthentication(state, login, user.Id.Value.ToString(), PrincipalType.User)
 
-    /// Activates Entra ID authentication using the supplied credentials for the administrator account. Farmer determines the Object ID / SID using `ad user list`.
-    /// If you have already set the SQL admin credentials, they will be preserved as a hybrid setup.
+    /// Activates Entra ID authentication using the supplied Entra groupname for the administrator account. Farmer determines the Object ID / SID using `ad user list`.
+    /// If you have set the SQL admin credentials, they will be preserved as a hybrid setup.
     [<CustomOperation "entra_id_admin_group">]
     member this.SetEntraIdAuthenticationGroup(state: SqlAzureConfig, login) =
         match AccessPolicy.findGroups [ login ] |> Array.toList with
         | [] -> raiseFarmer $"Login {login} not found in the directory."
-        | user :: _ ->
-            this.SetEntraIdAuthentication(
-                state,
-                SqlServerBuilder.CreateCredentials(login, user.Id.Value, PrincipalType.Group)
-            )
-
-    /// Activates Entra ID authentication using the supplied credentials for the administrator account, with the object id / sid and principal type manually supplied by you.
-    /// If you have already set the SQL admin credentials, they will be preserved as a hybrid setup.
-    static member private CreateCredentials(login, objectId, principalType) = {
-        Login = login
-        Sid = ObjectId objectId
-        PrincipalType = principalType
-    }
+        | group :: _ -> this.SetEntraIdAuthentication(state, login, group.Id.Value.ToString(), PrincipalType.Group)
 
     /// Activates Entra ID authentication using the supplied credentials for the administrator account.
-    /// If you have already set the SQL admin credentials, they will be preserved as a hybrid setup.
-    [<CustomOperation "active_directory_admin">]
-    member _.SetEntraIdAuthentication(state: SqlAzureConfig, entraCredentials) = {
-        state with
-            Credentials =
-                match state.Credentials with
-                | None
-                | Some(EntraOnly _) -> Some(EntraOnly entraCredentials)
-                | Some(SqlAndEntra(sqlCredentials, _))
-                | Some(SqlOnly sqlCredentials) -> Some(SqlAndEntra(sqlCredentials, entraCredentials))
-    }
+    /// If you have set the SQL admin credentials, they will be preserved as a hybrid setup.
+    [<CustomOperation "entra_id_admin">]
+    member _.SetEntraIdAuthentication(state: SqlAzureConfig, login, objectId: string, principalType) =
+        let entraCredentials = {
+            Login = login
+            Sid = objectId |> Guid.Parse |> ObjectId
+            PrincipalType = principalType
+        }
+
+        {
+            state with
+                Credentials =
+                    match state.Credentials with
+                    | None
+                    | Some(EntraOnly _) -> Some(EntraOnly entraCredentials)
+                    | Some(SqlAndEntra(sqlCredentials, _))
+                    | Some(SqlOnly sqlCredentials) -> Some(SqlAndEntra(sqlCredentials, entraCredentials))
+        }
 
     interface ITaggable<SqlAzureConfig> with
         member _.Add state tags = {

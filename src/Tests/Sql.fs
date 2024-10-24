@@ -311,12 +311,7 @@ let tests =
         test "Can use Entra ID auth" {
             let server = sqlServer {
                 name "my-sql-server"
-
-                active_directory_admin {
-                    Login = "entra-user"
-                    Sid = ObjectId(Guid.Parse "f9d49c34-01ba-4897-b7e2-3694bf3de2cf")
-                    PrincipalType = PrincipalType.User
-                }
+                entra_id_admin "entra-user" "f9d49c34-01ba-4897-b7e2-3694bf3de2cf" PrincipalType.User
             }
 
             let template = arm { add_resource server }
@@ -353,12 +348,7 @@ let tests =
             let theServer = sqlServer {
                 name "my-sql-server"
                 admin_username "test"
-
-                active_directory_admin {
-                    Login = ""
-                    Sid = ObjectId Guid.Empty
-                    PrincipalType = PrincipalType.User
-                }
+                entra_id_admin "" (string Guid.Empty) PrincipalType.User
             }
 
             let template = arm { add_resource theServer }

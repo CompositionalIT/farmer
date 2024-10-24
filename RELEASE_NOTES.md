@@ -1,6 +1,7 @@
 Release Notes
 =============
 ## vNext
+* SQL Azure: Clean up Entra ID authentication support.
 * Az: Update `ad` commands to work with latest (breaking) structure.
 
 ## 1.9.2
