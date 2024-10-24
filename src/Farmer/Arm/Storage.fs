@@ -5,7 +5,7 @@ open Farmer
 open Farmer.Storage
 
 let storageAccounts =
-    ResourceType("Microsoft.Storage/storageAccounts", "2022-05-01")
+    ResourceType("Microsoft.Storage/storageAccounts", "2023-05-01")
 
 let blobServices =
     ResourceType("Microsoft.Storage/storageAccounts/blobServices", "2019-06-01")
@@ -38,6 +38,15 @@ let roleAssignments =
     ResourceType("Microsoft.Storage/storageAccounts/providers/roleAssignments", "2018-09-01-preview")
 
 type Metadata = Map<string, string>
+
+type ImmutabilityPolicyState =
+    | Unlocked
+    | Locked
+
+    member this.ArmValue =
+        match this with
+        | Unlocked -> "Unlocked"
+        | Locked -> "Locked"
 
 [<RequireQualifiedAccess>]
 type NetworkRuleSetBypass =
@@ -98,21 +107,32 @@ type StorageAccount = {
     Location: Location
     Sku: Sku
     Dependencies: ResourceId list
-    EnableHierarchicalNamespace: bool option
-    NetworkAcls: NetworkRuleSet option
     StaticWebsite:
         {|
             IndexPage: string
             ErrorPage: string option
             ContentPath: string
         |} option
-    MinTlsVersion: TlsVersion option
-    SupportsHttpsTrafficOnly: FeatureFlag option
-    DnsZoneType: string option
+    EnableHierarchicalNamespace: bool option
+    DefaultToOAuthAuthentication: FeatureFlag option
     DisablePublicNetworkAccess: FeatureFlag option
     DisableBlobPublicAccess: FeatureFlag option
     DisableSharedKeyAccess: FeatureFlag option
-    DefaultToOAuthAuthentication: FeatureFlag option
+    DnsZoneType: string option
+    ImmutableStorageWithVersioning:
+        {|
+            Enable: bool option
+            ImmutabilityPolicy: {|
+                AllowProtectedAppendWrites: bool option
+                ImmutabilityPeriodSinceCreationInDays: int option
+                State: ImmutabilityPolicyState option
+            |} option
+        |} option
+    MinTlsVersion: TlsVersion option
+    NetworkAcls: NetworkRuleSet option
+    /// <remarks>Azure default is false</remarks>
+    RequireInfrastructureEncryption: bool option
+    SupportsHttpsTrafficOnly: FeatureFlag option
     Tags: Map<string, string>
 } with
 
@@ -149,15 +169,13 @@ type StorageAccount = {
                     | Blobs _ -> "BlobStorage"
                     | Files _ -> "FileStorage"
                     | BlockBlobs _ -> "BlockBlobStorage"
+                extendedLocation = "" // TODO:
+                identity = "" // TODO: user assigned identityt
                 properties = {|
-                    isHnsEnabled = this.EnableHierarchicalNamespace |> Option.toNullable
                     accessTier =
                         match this.Sku with
                         | Blobs(_, Some tier)
-                        | GeneralPurpose(V2(_, Some tier)) ->
-                            match tier with
-                            | Hot -> "Hot"
-                            | Cool -> "Cool"
+                        | GeneralPurpose(V2(_, Some tier)) -> tier.ArmValue
                         | _ -> null
                     networkAcls =
                         this.NetworkAcls
@@ -182,41 +200,30 @@ type StorageAccount = {
                             defaultAction = networkRuleSet.DefaultAction.ArmValue
                         |})
                         |> Option.defaultValue Unchecked.defaultof<_>
-                    minimumTlsVersion =
-                        match this.MinTlsVersion with
-                        | Some Tls10 -> "TLS1_0"
-                        | Some Tls11 -> "TLS1_1"
-                        | Some Tls12 -> "TLS1_2"
-                        | None -> null
-                    supportsHttpsTrafficOnly =
-                        match this.SupportsHttpsTrafficOnly with
-                        | Some FeatureFlag.Disabled -> "false"
-                        | Some FeatureFlag.Enabled -> "true"
-                        | None -> null
-                    dnsEndpointType =
-                        match this.DnsZoneType with
-                        | Some s -> s
-                        | None -> null
-                    publicNetworkAccess =
-                        match this.DisablePublicNetworkAccess with
-                        | Some FeatureFlag.Disabled -> "Enabled"
-                        | Some FeatureFlag.Enabled -> "Disabled"
-                        | None -> null
-                    allowBlobPublicAccess =
-                        match this.DisableBlobPublicAccess with
-                        | Some FeatureFlag.Disabled -> "true"
-                        | Some FeatureFlag.Enabled -> "false"
-                        | None -> null
-                    allowSharedKeyAccess =
-                        match this.DisableSharedKeyAccess with
-                        | Some FeatureFlag.Disabled -> "true"
-                        | Some FeatureFlag.Enabled -> "false"
-                        | None -> null
-                    defaultToOAuthAuthentication =
-                        match this.DefaultToOAuthAuthentication with
-                        | Some FeatureFlag.Disabled -> "false"
-                        | Some FeatureFlag.Enabled -> "true"
-                        | None -> null
+                    allowBlobPublicAccess = this.DisableBlobPublicAccess.BooleanValue
+                    allowSharedKeyAccess = this.DisableSharedKeyAccess.BooleanValue
+                    defaultToOAuthAuthentication = this.DefaultToOAuthAuthentication.BooleanValue
+                    dnsEndpointType = this.DnsZoneType |> Option.toObj
+                    encryption = {|
+                        requireInfrastructureEncryption = this.RequireInfrastructureEncryption |> Option.toNullable
+                    |}
+                    immutableStorageWithVersioning =
+                        this.ImmutableStorageWithVersioning
+                        |> Option.map (fun immutableStorage -> {|
+                            enable = immutableStorage.Enable |> Option.toNullable
+                            policy =
+                                immutableStorage.ImmutabilityPolicy
+                                |> Option.map (fun immutableStorage ->
+                                    {|
+                                        allowProtectedAppendWrites = immutableStorage.AllowProtectedAppendWrites |> Option.toNullable
+                                        immutabilityPeriodSinceCreationInDays = immutableStorage.ImmutabilityPeriodSinceCreationInDays |> Option.toNullable
+                                        state = immutableStorage.State |> Option.map _.ArmValue |> Option.toObj
+                                    |})
+                        |})
+                    isHnsEnabled = this.EnableHierarchicalNamespace |> Option.toNullable
+                    minimumTlsVersion = this.MinTlsVersion.ArmValue ()
+                    publicNetworkAccess = this.DisablePublicNetworkAccess.ArmValue ()
+                    supportsHttpsTrafficOnly = this.SupportsHttpsTrafficOnly.BooleanValue
                 |}
         |}
 
