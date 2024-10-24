@@ -435,22 +435,16 @@ type FeatureFlag =
 type FeatureFlagExtensions =
 
     [<Extension>]
-    static member AsBoolean (featureFlag : FeatureFlag option) =
-        featureFlag
-        |> Option.map (fun f -> f.AsBoolean)
-        |> Option.toNullable
+    static member AsBoolean(featureFlag: FeatureFlag option) =
+        featureFlag |> Option.map (fun f -> f.AsBoolean) |> Option.toNullable
 
     [<Extension>]
-    static member BooleanValue (featureFlag : FeatureFlag option) =
-        featureFlag
-        |> Option.map (fun f -> f.BooleanValue)
-        |> Option.toObj
+    static member BooleanValue(featureFlag: FeatureFlag option) =
+        featureFlag |> Option.map (fun f -> f.BooleanValue) |> Option.toObj
 
     [<Extension>]
-    static member ArmValue (featureFlag : FeatureFlag option) =
-        featureFlag
-        |> Option.map (fun f -> f.ArmValue)
-        |> Option.toObj
+    static member ArmValue(featureFlag: FeatureFlag option) =
+        featureFlag |> Option.map (fun f -> f.ArmValue) |> Option.toObj
 
 module FeatureFlag =
     let ofBool enabled = if enabled then Enabled else Disabled
