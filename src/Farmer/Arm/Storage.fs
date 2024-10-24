@@ -127,11 +127,12 @@ type StorageAccount = {
     ImmutableStorageWithVersioning:
         {|
             Enable: bool option
-            ImmutabilityPolicy: {|
-                AllowProtectedAppendWrites: bool option
-                ImmutabilityPeriodSinceCreation: int<Days> option
-                State: ImmutabilityPolicyState option
-            |} option
+            ImmutabilityPolicy:
+                {|
+                    AllowProtectedAppendWrites: bool option
+                    ImmutabilityPeriodSinceCreation: int<Days> option
+                    State: ImmutabilityPolicyState option
+                |} option
         |} option
     MinTlsVersion: TlsVersion option
     NetworkAcls: NetworkRuleSet option
@@ -205,9 +206,9 @@ type StorageAccount = {
                             defaultAction = networkRuleSet.DefaultAction.ArmValue
                         |})
                         |> Option.defaultValue Unchecked.defaultof<_>
-                    allowBlobPublicAccess = this.DisableBlobPublicAccess.BooleanValue ()
-                    allowSharedKeyAccess = this.DisableSharedKeyAccess.BooleanValue ()
-                    defaultToOAuthAuthentication = this.DefaultToOAuthAuthentication.BooleanValue ()
+                    allowBlobPublicAccess = this.DisableBlobPublicAccess.BooleanValue()
+                    allowSharedKeyAccess = this.DisableSharedKeyAccess.BooleanValue()
+                    defaultToOAuthAuthentication = this.DefaultToOAuthAuthentication.BooleanValue()
                     dnsEndpointType = this.DnsZoneType |> Option.toObj
                     encryption = {|
                         requireInfrastructureEncryption = this.RequireInfrastructureEncryption |> Option.toNullable
@@ -218,17 +219,18 @@ type StorageAccount = {
                             enable = immutableStorage.Enable |> Option.toNullable
                             policy =
                                 immutableStorage.ImmutabilityPolicy
-                                |> Option.map (fun immutableStorage ->
-                                    {|
-                                        allowProtectedAppendWrites = immutableStorage.AllowProtectedAppendWrites |> Option.toNullable
-                                        immutabilityPeriodSinceCreationInDays = immutableStorage.ImmutabilityPeriodSinceCreation |> Option.toNullable
-                                        state = immutableStorage.State |> Option.map _.ArmValue |> Option.toObj
-                                    |})
+                                |> Option.map (fun immutableStorage -> {|
+                                    allowProtectedAppendWrites =
+                                        immutableStorage.AllowProtectedAppendWrites |> Option.toNullable
+                                    immutabilityPeriodSinceCreationInDays =
+                                        immutableStorage.ImmutabilityPeriodSinceCreation |> Option.toNullable
+                                    state = immutableStorage.State |> Option.map _.ArmValue |> Option.toObj
+                                |})
                         |})
                     isHnsEnabled = this.EnableHierarchicalNamespace |> Option.toNullable
-                    minimumTlsVersion = this.MinTlsVersion.ArmValue ()
-                    publicNetworkAccess = this.DisablePublicNetworkAccess.ArmValue ()
-                    supportsHttpsTrafficOnly = this.SupportsHttpsTrafficOnly.BooleanValue ()
+                    minimumTlsVersion = this.MinTlsVersion.ArmValue()
+                    publicNetworkAccess = this.DisablePublicNetworkAccess.ArmValue()
+                    supportsHttpsTrafficOnly = this.SupportsHttpsTrafficOnly.BooleanValue()
                 |}
         |}
 
@@ -370,10 +372,7 @@ module BlobServices =
             member this.ResourceId = containers.resourceId this.ResourceName
 
             member this.JsonModel = {|
-                containers.Create(
-                    this.ResourceName,
-                    dependsOn = [ storageAccounts.resourceId this.StorageAccount ]
-                ) with
+                containers.Create(this.ResourceName, dependsOn = [ storageAccounts.resourceId this.StorageAccount ]) with
                     properties = {|
                         publicAccess = this.Accessibility.ArmValue
                     |}
@@ -402,13 +401,13 @@ type AllowProtectedAppendWrites =
 type AllowProtectedAppendWritesExtensions =
 
     [<Extension>]
-    static member AllowProtectedAppendWrites (this: AllowProtectedAppendWrites option) =
+    static member AllowProtectedAppendWrites(this: AllowProtectedAppendWrites option) =
         match this with
         | Some value -> value.AllowProtectedAppendWrites
         | None -> Nullable()
 
     [<Extension>]
-    static member AllowProtectedAppendWritesAll (this: AllowProtectedAppendWrites option) =
+    static member AllowProtectedAppendWritesAll(this: AllowProtectedAppendWrites option) =
         match this with
         | Some value -> value.AllowProtectedAppendWritesAll
         | None -> Nullable()
@@ -425,20 +424,25 @@ module BlobContainers =
 
         member _.Name = ResourceName "default"
 
-        member this.ResourceName = this.StorageAccount / "default" / this.Container.ResourceName / this.Name
+        member this.ResourceName =
+            this.StorageAccount / "default" / this.Container.ResourceName / this.Name
 
         interface IArmResource with
             member this.ResourceId = immutabilityPolicies.resourceId this.ResourceName
+
             member this.JsonModel = {|
                 immutabilityPolicies.Create(
                     this.ResourceName,
-                    dependsOn = [ containers.resourceId (this.StorageAccount / "default" / this.Container.ResourceName) ]
+                    dependsOn = [
+                        containers.resourceId (this.StorageAccount / "default" / this.Container.ResourceName)
+                    ]
                 ) with
                     properties = {|
-                        immutabilityPeriodSinceCreationInDays = this.ImmutabilityPeriodSinceCreation |> Option.toNullable
+                        immutabilityPeriodSinceCreationInDays =
+                            this.ImmutabilityPeriodSinceCreation |> Option.toNullable
                         // The 'allowProtectedAppendWrites' and 'allowProtectedAppendWritesAll' properties are mutually exclusive
-                        allowProtectedAppendWrites = this.AllowProtectedAppendWrites.AllowProtectedAppendWrites ()
-                        allowProtectedAppendWritesAll = this.AllowProtectedAppendWrites.AllowProtectedAppendWritesAll ()
+                        allowProtectedAppendWrites = this.AllowProtectedAppendWrites.AllowProtectedAppendWrites()
+                        allowProtectedAppendWritesAll = this.AllowProtectedAppendWrites.AllowProtectedAppendWritesAll()
                     |}
             |}
 

@@ -161,10 +161,8 @@ type TlsVersion =
 type TlsVersionExtensions =
 
     [<Extension>]
-    static member ArmValue (version: TlsVersion option) =
-        version
-        |> Option.map (fun v -> v.ArmValue)
-        |> Option.toObj
+    static member ArmValue(version: TlsVersion option) =
+        version |> Option.map (fun v -> v.ArmValue) |> Option.toObj
 
 
 /// Represents an environment variable that can be set, typically on Docker container services.
