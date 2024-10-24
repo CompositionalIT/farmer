@@ -51,14 +51,19 @@ type PostgreSQLConfig = {
     Tags: Map<string, string>
 } with
 
+    member this.ResourceType =
+        match this.Kind with
+        | SingleServer _ -> servers
+        | Flexible _ -> flexibleServers
+
     interface IBuilder with
-        member this.ResourceId = servers.resourceId this.Name
+        member this.ResourceId = this.ResourceType.resourceId this.Name
 
         member this.BuildResources location = [
-            let serverType, firewallRulesType, databasesType =
+            let firewallRulesType, databasesType =
                 match this.Kind with
-                | SingleServer _ -> servers, firewallRules, databases
-                | Flexible _ -> flexibleServers, flexibleFirewallRules, flexibleDatabases
+                | SingleServer _ -> firewallRules, databases
+                | Flexible _ -> flexibleFirewallRules, flexibleDatabases
 
             match this.Kind with
             | SingleServer config ->
@@ -120,7 +125,7 @@ type PostgreSQLConfig = {
                         | None, Flexible _ -> "en_US.utf8"
                     Charset = database.DbCharset |> Option.defaultValue "UTF8"
                     ResourceType = databasesType
-                    ServerType = serverType
+                    ServerType = this.ResourceType
                 }
 
             for rule in this.FirewallRules do
@@ -131,17 +136,15 @@ type PostgreSQLConfig = {
                     Server = this.Name
                     Location = location
                     ResourceType = firewallRulesType
-                    ServerType = serverType
+                    ServerType = this.ResourceType
                 }
         ]
 
     /// Generates an expression for the fully qualified domain name for reaching the postgres server.
     member this.FullyQualifiedDomainName =
-        let serverId = Farmer.Arm.DBforPostgreSQL.servers.resourceId (this.Name)
-
         ArmExpression
-            .create($"reference({serverId.ArmExpression.Value}).fullyQualifiedDomainName")
-            .Eval()
+            .reference(this.ResourceType.resourceId this.Name)
+            .Map(sprintf "%s.fullyQualifiedDomainName")
 
 [<AutoOpen>]
 module private Helpers =
@@ -162,7 +165,6 @@ module Validate =
     let reservedUsernames = [
         "azure_pg_admin"
         "admin"
-        "root"
         "azure_superuser"
         "administrator"
         "root"

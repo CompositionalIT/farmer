@@ -9,7 +9,7 @@ type AppInsights =
     static member getInstrumentationKey(resourceId: ResourceId) =
         ArmExpression
             .reference(resourceId)
-            .Map(fun r -> r + ".InstrumentationKey")
+            .Map(sprintf "%s.InstrumentationKey")
             .WithOwner(resourceId)
 
     static member getInstrumentationKey(name: ResourceName, ?resourceGroup, ?resourceType) =
@@ -19,7 +19,7 @@ type AppInsights =
     static member getConnectionString(resourceId: ResourceId) =
         ArmExpression
             .reference(resourceId)
-            .Map(fun r -> r + ".ConnectionString")
+            .Map(sprintf "%s.ConnectionString")
             .WithOwner(resourceId)
 
     static member getConnectionString(name: ResourceName, ?resourceGroup, ?resourceType) =
