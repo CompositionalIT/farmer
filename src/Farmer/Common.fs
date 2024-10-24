@@ -1,6 +1,7 @@
-﻿namespace Farmer
+namespace Farmer
 
 open System
+open System.Runtime.CompilerServices
 
 type NonEmptyList<'T> =
     private
@@ -140,6 +141,16 @@ type TlsVersion =
         | Tls10 -> "1.0"
         | Tls11 -> "1.1"
         | Tls12 -> "1.2"
+
+[<AbstractClass; Sealed; Extension>]
+type TlsVersionExtensions =
+
+    [<Extension>]
+    static member ArmValue (version: TlsVersion option) =
+        version
+        |> Option.map (fun v -> v.ArmValue)
+        |> Option.toObj
+
 
 /// Represents an environment variable that can be set, typically on Docker container services.
 type EnvVar =
@@ -1437,6 +1448,11 @@ module Storage =
     type DefaultAccessTier =
         | Hot
         | Cool
+
+        member this.ArmValue =
+            match this with
+            | Hot -> "Hot"
+            | Cool -> "Cool"
 
     type StoragePerformance =
         | Standard
