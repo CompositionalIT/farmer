@@ -2,6 +2,9 @@ Release Notes
 =============
 ## vNext
 * PostgreSQL: Fix a number of issues around the introduction of Flexible Servers.
+* Storage: Add BLOB `immutableStorageWithVersioning`
+* Storage: Add BLOB `encryption.requireInfrastructureEncryption`
+* Storage: Add BLOB container immutability policies support
 
 ## 1.9.2
 * Container Apps: Fix to container registry credential to not emit a secret for a managed identity.

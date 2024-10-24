@@ -83,6 +83,12 @@ let storage = storageAccount {
     add_public_container "mypubliccontainer"
     add_private_container "myprivatecontainer"
     add_blob_container "myblobcontainer"
+    add_blob_container
+        "myblobcontainerwithimmutabilitypolicies"
+        (blobContainerImmutabilityPolicies {
+            allow_protected_append_writes AllAppendAllowed
+            immutability_period_since_creation (365<Days> * 5)
+        })
     add_file_share "share1"
     add_file_share_with_quota "share2" 1024<Gb>
     add_queue "myqueue"

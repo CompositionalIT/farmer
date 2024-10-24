@@ -18,7 +18,7 @@ let (lb: LoadBalancer) = {
         {|
             Name = ResourceName "LoadBalancerFrontend"
             AddressVersion = Network.AddressVersion.IPv4
-            PublicIp = Some (publicIPAddresses.resourceId "lb-test-pip")
+            PublicIp = Some(publicIPAddresses.resourceId "lb-test-pip")
             PrivateIpAllocationMethod = PrivateIpAddress.DynamicPrivateIp
             Subnet = None
         |}

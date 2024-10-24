@@ -1,6 +1,7 @@
-﻿namespace Farmer
+namespace Farmer
 
 open System
+open System.Runtime.CompilerServices
 
 type NonEmptyList<'T> =
     private
@@ -70,6 +71,21 @@ module LocationExtensions =
         static member NorwayWest = Location "NorwayWest"
         static member NorwayEast = Location "NorwayEast"
         static member Global = Location "global"
+        static member SpainCentral = Location "SpainCentral"
+        static member ItalyNorth = Location "ItalyNorth"
+        static member PolandCentral = Location "PolandCentral"
+        static member MexicoCentral = Location "MexicoCentral"
+        static member IsraelCentral = Location "IsraelCentral"
+        static member QatarCentral = Location "QatarCentral"
+        static member ChileCentral = Location "ChileCentral"
+        static member NewZealandNorth = Location "NewZealandNorth"
+        static member MalaysiaCentral = Location "MalaysiaCentral"
+        static member IndonesiaCentral = Location "IndonesiaCentral"
+        static member TaiwanNorth = Location "TaiwanNorth"
+        static member AustriaCentral = Location "AustriaCentral"
+        static member GreeceCentral = Location "GreeceCentral"
+        static member DenmarkCentral = Location "DenmarkCentral"
+        static member SwedenCentral = Location "SwedenCentral"
 
 [<AutoOpen>]
 module DataLocationExtensions =
@@ -131,6 +147,20 @@ type TlsVersion =
     | Tls10
     | Tls11
     | Tls12
+
+    member this.ArmValue =
+        match this with
+        | Tls10 -> "TLS1_0"
+        | Tls11 -> "TLS1_1"
+        | Tls12 -> "TLS1_2"
+
+[<AbstractClass; Sealed; Extension>]
+type TlsVersionExtensions =
+
+    [<Extension>]
+    static member ArmValue(version: TlsVersion option) =
+        version |> Option.map (fun v -> v.ArmValue) |> Option.toObj
+
 
 /// Represents an environment variable that can be set, typically on Docker container services.
 type EnvVar =
@@ -1380,6 +1410,11 @@ module Storage =
         | Hot
         | Cool
 
+        member this.ArmValue =
+            match this with
+            | Hot -> "Hot"
+            | Cool -> "Cool"
+
     type StoragePerformance =
         | Standard
         | Premium
@@ -1466,6 +1501,12 @@ module Storage =
         | Private
         | Container
         | Blob
+
+        member this.ArmValue =
+            match this with
+            | Private -> "None"
+            | Container -> "Container"
+            | Blob -> "Blob"
 
     /// The type of action to take when defining a lifecycle policy.
     type LifecyclePolicyAction =

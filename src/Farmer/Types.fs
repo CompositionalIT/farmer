@@ -1,6 +1,7 @@
 namespace Farmer
 
 open System
+open System.Runtime.CompilerServices
 
 /// Common generic functions to support internals
 [<AutoOpen>]
@@ -416,10 +417,36 @@ type FeatureFlag =
         | Enabled -> true
         | Disabled -> false
 
+    member this.BooleanValue =
+        match this with
+        | Enabled -> "true"
+        | Disabled -> "false"
+
     member this.ArmValue =
         match this with
         | Enabled -> "Enabled"
         | Disabled -> "Disabled"
+
+[<AbstractClass; Sealed; Extension>]
+type FeatureFlagExtensions =
+
+    [<Extension>]
+    static member AsBoolean (featureFlag : FeatureFlag option) =
+        featureFlag
+        |> Option.map (fun f -> f.AsBoolean)
+        |> Option.toNullable
+
+    [<Extension>]
+    static member BooleanValue (featureFlag : FeatureFlag option) =
+        featureFlag
+        |> Option.map (fun f -> f.BooleanValue)
+        |> Option.toObj
+
+    [<Extension>]
+    static member ArmValue (featureFlag : FeatureFlag option) =
+        featureFlag
+        |> Option.map (fun f -> f.ArmValue)
+        |> Option.toObj
 
 module FeatureFlag =
     let ofBool enabled = if enabled then Enabled else Disabled
