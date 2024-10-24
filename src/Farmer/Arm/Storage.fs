@@ -1,6 +1,8 @@
 [<AutoOpen>]
 module Farmer.Arm.Storage
 
+open System
+open System.Runtime.CompilerServices
 open Farmer
 open Farmer.Storage
 
@@ -8,10 +10,13 @@ let storageAccounts =
     ResourceType("Microsoft.Storage/storageAccounts", "2023-05-01")
 
 let blobServices =
-    ResourceType("Microsoft.Storage/storageAccounts/blobServices", "2019-06-01")
+    ResourceType("Microsoft.Storage/storageAccounts/blobServices", "2023-05-01")
 
 let containers =
-    ResourceType("Microsoft.Storage/storageAccounts/blobServices/containers", "2018-03-01-preview")
+    ResourceType("Microsoft.Storage/storageAccounts/blobServices/containers", "2023-05-01")
+
+let immutabilityPolicies =
+    ResourceType("Microsoft.Storage/storageAccounts/blobServices/containers/immutabilityPolicies", "2023-05-01")
 
 let fileServices =
     ResourceType("Microsoft.Storage/storageAccounts/fileServices", "2019-06-01")
@@ -373,6 +378,71 @@ module BlobServices =
                         publicAccess = this.Accessibility.ArmValue
                     |}
             |}
+
+type AllowProtectedAppendWrites =
+    | NoAppendAllowed
+    /// When enabled, new blocks can be written to both 'Append and Bock Blobs' while maintaining immutability protection and compliance. Only new blocks can be added and any existing blocks cannot be modified or deleted.
+    | AllAppendAllowed
+    /// When enabled, new blocks can be written to an append blob while maintaining immutability protection and compliance. Only new blocks can be added and any existing blocks cannot be modified or deleted.
+    | AppendBlobOnlyAppendAllowed
+
+    member internal this.AllowProtectedAppendWrites =
+        match this with
+        | NoAppendAllowed -> Nullable()
+        | AllAppendAllowed -> Nullable()
+        | AppendBlobOnlyAppendAllowed -> Nullable(true)
+
+    member internal this.AllowProtectedAppendWritesAll =
+        match this with
+        | NoAppendAllowed -> Nullable()
+        | AllAppendAllowed -> Nullable(true)
+        | AppendBlobOnlyAppendAllowed -> Nullable()
+
+[<AbstractClass; Sealed; Extension>]
+type AllowProtectedAppendWritesExtensions =
+
+    [<Extension>]
+    static member AllowProtectedAppendWrites (this: AllowProtectedAppendWrites option) =
+        match this with
+        | Some value -> value.AllowProtectedAppendWrites
+        | None -> Nullable()
+
+    [<Extension>]
+    static member AllowProtectedAppendWritesAll (this: AllowProtectedAppendWrites option) =
+        match this with
+        | Some value -> value.AllowProtectedAppendWritesAll
+        | None -> Nullable()
+
+module BlobContainers =
+    type ImmutabilityPolicies = {
+        StorageAccount: ResourceName
+        Container: StorageResourceName
+        /// This property can only be changed for unlocked time-based retention policies. This property cannot be changed with ExtendImmutabilityPolicy API.
+        AllowProtectedAppendWrites: AllowProtectedAppendWrites option
+        /// The immutability period for the blobs in the container since the policy creation, in days.
+        ImmutabilityPeriodSinceCreation: int<Days> option
+    } with
+
+        member _.Name = ResourceName "default"
+
+        member this.ResourceName = this.StorageAccount / "default" / this.Container.ResourceName / this.Name
+
+        interface IArmResource with
+            member this.ResourceId = immutabilityPolicies.resourceId this.ResourceName
+            member this.JsonModel = {|
+                immutabilityPolicies.Create(
+                    this.ResourceName,
+                    dependsOn = [ containers.resourceId (this.StorageAccount / "default" / this.Container.ResourceName) ]
+                ) with
+                    properties = {|
+                        immutabilityPeriodSinceCreationInDays = this.ImmutabilityPeriodSinceCreation |> Option.toNullable
+                        // The 'allowProtectedAppendWrites' and 'allowProtectedAppendWritesAll' properties are mutually exclusive
+                        allowProtectedAppendWrites = this.AllowProtectedAppendWrites.AllowProtectedAppendWrites ()
+                        allowProtectedAppendWritesAll = this.AllowProtectedAppendWrites.AllowProtectedAppendWritesAll ()
+                    |}
+            |}
+
+
 
 module FileShares =
     type FileShare = {
