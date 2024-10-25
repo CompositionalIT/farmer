@@ -175,8 +175,8 @@ type StorageAccount = {
                     | Blobs _ -> "BlobStorage"
                     | Files _ -> "FileStorage"
                     | BlockBlobs _ -> "BlockBlobStorage"
-                extendedLocation = "" // TODO:
-                identity = "" // TODO: user assigned identityt
+                extendedLocation = None // TODO:
+                identity = None // TODO: user assigned identity
                 properties = {|
                     accessTier =
                         match this.Sku with
@@ -206,13 +206,15 @@ type StorageAccount = {
                             defaultAction = networkRuleSet.DefaultAction.ArmValue
                         |})
                         |> Option.defaultValue Unchecked.defaultof<_>
-                    allowBlobPublicAccess = this.DisableBlobPublicAccess.BooleanValue()
-                    allowSharedKeyAccess = this.DisableSharedKeyAccess.BooleanValue()
-                    defaultToOAuthAuthentication = this.DefaultToOAuthAuthentication.BooleanValue()
+                    allowBlobPublicAccess = this.DisableBlobPublicAccess.AsInvertedBoolean()
+                    allowSharedKeyAccess = this.DisableSharedKeyAccess.AsInvertedBoolean()
+                    defaultToOAuthAuthentication = this.DefaultToOAuthAuthentication.AsBoolean()
                     dnsEndpointType = this.DnsZoneType |> Option.toObj
-                    encryption = {|
-                        requireInfrastructureEncryption = this.RequireInfrastructureEncryption |> Option.toNullable
-                    |}
+                    encryption =
+                        this.RequireInfrastructureEncryption
+                        |> Option.map (fun _ -> {|
+                            requireInfrastructureEncryption = this.RequireInfrastructureEncryption
+                        |})
                     immutableStorageWithVersioning =
                         this.ImmutableStorageWithVersioning
                         |> Option.map (fun immutableStorage -> {|
@@ -229,8 +231,8 @@ type StorageAccount = {
                         |})
                     isHnsEnabled = this.EnableHierarchicalNamespace |> Option.toNullable
                     minimumTlsVersion = this.MinTlsVersion.ArmValue()
-                    publicNetworkAccess = this.DisablePublicNetworkAccess.ArmValue()
-                    supportsHttpsTrafficOnly = this.SupportsHttpsTrafficOnly.BooleanValue()
+                    publicNetworkAccess = this.DisablePublicNetworkAccess.ArmInvertedValue()
+                    supportsHttpsTrafficOnly = this.SupportsHttpsTrafficOnly.AsBoolean()
                 |}
         |}
 
