@@ -11,28 +11,26 @@ The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azu
 * SQL Azure server (`Microsoft.Sql/servers`)
 
 #### SQL Server Builder Keywords
-| Keyword | Purpose                                                                                                                         |
+| Keyword | Purpose |
 |-|---------------------------------------------------------------------------------------------------------------------------------|
-| name | Sets the name of the SQL server.                                                                                                |
-| active_directory_admin | Sets Active Directory admin of the server                                                                               |
-| add_firewall_rule | Adds a custom firewall rule given a name, start and end IP address range.                                                       |
-| add_firewall_rules | As add_firewall_rule but a list of rules                                                                                        |
-| enable_azure_firewall | Adds a firewall rule that enables access to other Azure services.                                                               |
-| admin_username | Sets the admin username of the server.                                                                                          |
-| elastic_pool_name | Sets the name of the elastic pool, if required. If not set, Farmer will generate a name for you.                                |
-| elastic_pool_sku | Sets the sku of the elastic pool, if required. If not set, Farmer will default to Basic 50.                                     |
-| elastic_pool_database_min_max | Sets the optional minimum and maximum DTUs for the elastic pool for each database.                                              |
-| elastic_pool_capacity | Sets the optional disk size in MB for the elastic pool for each database.                                                       |
-| min_tls_version | Sets the minium TLS version for the SQL server                                                                                  |
+| name | Sets the name of the SQL server. |
+| active_directory_admin | Sets Active Directory admin of the server |
+| add_firewall_rule | Adds a custom firewall rule given a name, start and end IP address range. |
+| add_firewall_rules | As add_firewall_rule but a list of rules |
+| enable_azure_firewall | Adds a firewall rule that enables access to other Azure services. |
+| admin_username | Sets the admin username of the server. The password is supplied as a secret parameter at runtime. |
+| entra_id_admin | Activates Entra ID authentication using the supplied login named, associated objectId and principal type of the administrator account. |
+| entra_id_admin_user | Activates Entra ID authentication for the User Principal Type using the supplied user's login name. The ObjectId will be retrieved automatically from Azure at runtime. |
+| entra_id_admin_group | Activates Entra ID authentication for the Group Principal Type using the supplied group's login name. The ObjectId will be retrieved automatically from Azure at runtime. |
+| elastic_pool_name | Sets the name of the elastic pool, if required. If not set, Farmer will generate a name for you. |
+| elastic_pool_sku | Sets the sku of the elastic pool, if required. If not set, Farmer will default to Basic 50. |
+| elastic_pool_database_min_max | Sets the optional minimum and maximum DTUs for the elastic pool for each database. |
+| elastic_pool_capacity | Sets the optional disk size in MB for the elastic pool for each database. |
+| min_tls_version | Sets the minium TLS version for the SQL server |
 | geo_replicate | Geo-replicate all the databases in this server to another location, having NameSuffix after original server and database names. |
 
-#### ActiveDirectoryAdminSettings Members
-| Member | Purpose                                                                    |
-|-|----------------------------------------------------------------------------|
-| Login | Display name of AD admin                                                   |
-| Sid | AD object id of AD admin (user or group)                                   |
-| PrincipalType | ActiveDirectoryPrincipalType User or Group                                 |
-| AdOnlyAuth | Disables SQL authentication. False value required admin_username to be set |
+> You can set at least one of SQL user / pass (using `admin_username`) or Entra ID login (using one of the `entra_id_admin` variants).
+> Setting both will leave both activated; setting only Entra ID will automatically explicitly deactivate user / pass authentication.
 
 #### SQL Server Configuration Members
 | Member | Purpose |
@@ -111,7 +109,7 @@ let activeDirectoryAdmin: ActiveDirectoryAdminSettings =
         AdOnlyAuth = false  // when false, admin_username is required
                             // when true admin_username is ignored
     }
-                        
+
 let myDatabases = sqlServer {
     name "my_server"
     active_directory_admin (Some(activeDirectoryAdmin))

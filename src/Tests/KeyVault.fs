@@ -48,6 +48,7 @@ let tests =
             let p = AccessPolicy.create (ObjectId Guid.Empty)
             Expect.equal (set [ Secret.Get; Secret.List ]) p.Permissions.Secrets "Incorrect default secrets"
         }
+
         test "Creates key vault secrets correctly" {
             let parameterSecret = SecretConfig.create "test"
             Expect.equal parameterSecret.SecretName "test" "Invalid name of simple secret"
