@@ -456,7 +456,7 @@ let tests =
 
             Expect.equal
                 builder.WebsitePrimaryEndpoint.Value
-                "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2022-05-01').primaryEndpoints.web"
+                "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2023-05-01').primaryEndpoints.web"
                 "Zone names are not fixed and should be related to a storage account name"
         }
         test "Creates different SKU kinds correctly" {
@@ -736,8 +736,10 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj.SelectToken("resources[0].properties.supportsHttpsTrafficOnly").ToString())
-                "false"
+                (jobj
+                    .SelectToken("resources[0].properties.supportsHttpsTrafficOnly")
+                    .ToObject<bool>())
+                false
                 "https traffic only should be disabled"
         }
 
@@ -754,8 +756,10 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj.SelectToken("resources[0].properties.supportsHttpsTrafficOnly").ToString())
-                "true"
+                (jobj
+                    .SelectToken("resources[0].properties.supportsHttpsTrafficOnly")
+                    .ToObject<bool>())
+                true
                 "https traffic only should be enabled"
         }
 
@@ -863,8 +867,10 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj.SelectToken("resources[0].properties.allowBlobPublicAccess").ToString())
-                "false"
+                (jobj
+                    .SelectToken("resources[0].properties.allowBlobPublicAccess")
+                    .ToObject<bool>())
+                false
                 "blob public access should be disabled"
         }
 
@@ -882,8 +888,10 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj.SelectToken("resources[0].properties.allowBlobPublicAccess").ToString())
-                "true"
+                (jobj
+                    .SelectToken("resources[0].properties.allowBlobPublicAccess")
+                    .ToObject<bool>())
+                true
                 "blob public access should be enabled"
         }
 
@@ -900,8 +908,10 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj.SelectToken("resources[0].properties.allowSharedKeyAccess").ToString())
-                "false"
+                (jobj
+                    .SelectToken("resources[0].properties.allowSharedKeyAccess")
+                    .ToObject<bool>())
+                false
                 "shared key access should be disabled"
         }
 
@@ -919,8 +929,10 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj.SelectToken("resources[0].properties.allowSharedKeyAccess").ToString())
-                "true"
+                (jobj
+                    .SelectToken("resources[0].properties.allowSharedKeyAccess")
+                    .ToObject<bool>())
+                true
                 "shared key access should be enabled"
         }
 
@@ -939,8 +951,8 @@ let tests =
             Expect.equal
                 (jobj
                     .SelectToken("resources[0].properties.defaultToOAuthAuthentication")
-                    .ToString())
-                "true"
+                    .ToObject<bool>())
+                true
                 "default to OAuth should be enabled"
         }
 
@@ -960,8 +972,8 @@ let tests =
             Expect.equal
                 (jobj
                     .SelectToken("resources[0].properties.defaultToOAuthAuthentication")
-                    .ToString())
-                "false"
+                    .ToObject<bool>())
+                false
                 "default to OAuth should be disabled"
         }
     ]

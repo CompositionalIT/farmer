@@ -83,7 +83,7 @@
       "type": "Microsoft.Sql/servers/elasticPools"
     },
     {
-      "apiVersion": "2022-05-01",
+      "apiVersion": "2023-05-01",
       "dependsOn": [],
       "kind": "StorageV2",
       "location": "northeurope",
@@ -223,7 +223,7 @@
       "type": "Microsoft.Web/serverfarms"
     },
     {
-      "apiVersion": "2022-05-01",
+      "apiVersion": "2023-05-01",
       "dependsOn": [],
       "kind": "StorageV2",
       "location": "northeurope",
@@ -410,12 +410,12 @@
         "isHttpAllowed": true,
         "isHttpsAllowed": true,
         "optimizationType": "GeneralWebDelivery",
-        "originHostHeader": "[replace(replace(reference(resourceId('Microsoft.Storage/storageAccounts', 'farmerstorage1979'), '2022-05-01').primaryEndpoints.web, 'https://', ''), '/', '')]",
+        "originHostHeader": "[replace(replace(reference(resourceId('Microsoft.Storage/storageAccounts', 'farmerstorage1979'), '2023-05-01').primaryEndpoints.web, 'https://', ''), '/', '')]",
         "origins": [
           {
             "name": "origin",
             "properties": {
-              "hostName": "[replace(replace(reference(resourceId('Microsoft.Storage/storageAccounts', 'farmerstorage1979'), '2022-05-01').primaryEndpoints.web, 'https://', ''), '/', '')]"
+              "hostName": "[replace(replace(reference(resourceId('Microsoft.Storage/storageAccounts', 'farmerstorage1979'), '2023-05-01').primaryEndpoints.web, 'https://', ''), '/', '')]"
             }
           }
         ],
@@ -781,7 +781,7 @@
       "type": "Microsoft.Web/serverfarms"
     },
     {
-      "apiVersion": "2022-05-01",
+      "apiVersion": "2023-05-01",
       "dependsOn": [],
       "kind": "StorageV2",
       "location": "northeurope",
