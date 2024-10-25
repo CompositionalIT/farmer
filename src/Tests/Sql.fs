@@ -8,8 +8,8 @@ open Farmer.Builders
 open Microsoft.Azure.Management.Sql
 open System
 open Microsoft.Rest
-
-let sql = sqlServer
+open System.Text.Json
+open System.Text.Json.Nodes
 
 let client =
     new SqlManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
@@ -311,22 +311,23 @@ let tests =
         test "Can use Entra ID auth" {
             let server = sqlServer {
                 name "my-sql-server"
-                entra_id_admin "entra-user" "f9d49c34-01ba-4897-b7e2-3694bf3de2cf" PrincipalType.User
+
+                entra_id_admin
+                    "entra-user"
+                    (ObjectId(Guid.Parse "f9d49c34-01ba-4897-b7e2-3694bf3de2cf"))
+                    PrincipalType.User
             }
 
             let template = arm { add_resource server }
-            let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
 
-            let selectProp prop =
-                jobj
-                    .SelectToken($"resources[?(@.name=='my-sql-server')].properties.administrators.{prop}")
-                    .ToString()
+            let json = template.Template |> Writer.toJson |> JsonObject.Parse
+            let adminToken = json.["resources"].[0].["properties"].["administrators"]
 
-            Expect.equal (selectProp "administratorType") "ActiveDirectory" "Incorrect administrator type"
-            Expect.equal (selectProp "login") "entra-user" "Incorrect AD login name"
-            Expect.equal (selectProp "principalType") $"User" "Incorrect principal type"
-            Expect.equal (selectProp "sid") "f9d49c34-01ba-4897-b7e2-3694bf3de2cf" "Incorrect SID"
-            Expect.equal (selectProp "azureADOnlyAuthentication") "True" $"Should only have AD auth."
+            Expect.equal (adminToken["administratorType"].GetValue()) "ActiveDirectory" "Incorrect administrator type"
+            Expect.equal (adminToken["login"].GetValue()) "entra-user" "Incorrect AD login name"
+            Expect.equal (adminToken["principalType"].GetValue()) "User" "Incorrect principal type"
+            Expect.equal (adminToken["sid"].GetValue()) "f9d49c34-01ba-4897-b7e2-3694bf3de2cf" "Incorrect SID"
+            Expect.isTrue (adminToken["azureADOnlyAuthentication"].GetValue()) "Should only have AD auth."
         }
 
         test "No Entra ARM when just using SQL" {
@@ -336,28 +337,24 @@ let tests =
             }
 
             let template = arm { add_resource theServer }
-            let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
-
-            let administratorsJson =
-                jobj.SelectToken "resources[?(@.name=='my-sql-server')].properties.administrators"
-
-            Expect.isNull administratorsJson "Should not have an AD admin"
+            let json = template.Template |> Writer.toJson |> JsonObject.Parse
+            let properties = json.["resources"].[0].["properties"].AsObject()
+            Expect.isFalse (properties.ContainsKey "administrators") "Should not have an AD admin"
         }
 
         test "Can set both SQL and Entra ID auth" {
             let theServer = sqlServer {
                 name "my-sql-server"
                 admin_username "test"
-                entra_id_admin "" (string Guid.Empty) PrincipalType.User
+                entra_id_admin "" (ObjectId Guid.Empty) PrincipalType.User
             }
 
             let template = arm { add_resource theServer }
-            let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+            let json = template.Template |> Writer.toJson |> JsonObject.Parse
 
             let azureAdOnlyAuth =
-                jobj.SelectToken
-                    "resources[?(@.name=='my-sql-server')].properties.administrators.azureADOnlyAuthentication"
+                json.["resources"].[0].["properties"].["administrators"].["azureADOnlyAuthentication"]
 
-            Expect.equal (azureAdOnlyAuth.ToString()) "False" "Should not only have AD auth."
+            Expect.isFalse (azureAdOnlyAuth.GetValue()) "Should not only have AD auth."
         }
     ]
