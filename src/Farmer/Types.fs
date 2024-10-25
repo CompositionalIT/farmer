@@ -421,15 +421,20 @@ type FeatureFlag =
         | Enabled -> true
         | Disabled -> false
 
-    member this.BooleanValue =
+    member this.AsInvertedBoolean =
         match this with
-        | Enabled -> "true"
-        | Disabled -> "false"
+        | Enabled -> false
+        | Disabled -> true
 
     member this.ArmValue =
         match this with
         | Enabled -> "Enabled"
         | Disabled -> "Disabled"
+
+    member this.ArmInvertedValue =
+        match this with
+        | Enabled -> "Disabled"
+        | Disabled -> "Enabled"
 
 [<AbstractClass; Sealed; Extension>]
 type FeatureFlagExtensions =
@@ -439,12 +444,16 @@ type FeatureFlagExtensions =
         featureFlag |> Option.map (fun f -> f.AsBoolean) |> Option.toNullable
 
     [<Extension>]
-    static member BooleanValue(featureFlag: FeatureFlag option) =
-        featureFlag |> Option.map (fun f -> f.BooleanValue) |> Option.toObj
+    static member AsInvertedBoolean(featureFlag: FeatureFlag option) =
+        featureFlag |> Option.map (fun f -> f.AsInvertedBoolean) |> Option.toNullable
 
     [<Extension>]
     static member ArmValue(featureFlag: FeatureFlag option) =
         featureFlag |> Option.map (fun f -> f.ArmValue) |> Option.toObj
+
+    [<Extension>]
+    static member ArmInvertedValue(featureFlag: FeatureFlag option) =
+        featureFlag |> Option.map (fun f -> f.ArmInvertedValue) |> Option.toObj
 
 module FeatureFlag =
     let ofBool enabled = if enabled then Enabled else Disabled
