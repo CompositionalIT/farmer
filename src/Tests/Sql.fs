@@ -330,7 +330,7 @@ let tests =
             Expect.isTrue (adminToken["azureADOnlyAuthentication"].GetValue()) "Should only have AD auth."
         }
 
-        test "No Entra ARM when just using SQL" {
+        test "No Entra ARM when just using SQL auth" {
             let theServer = sqlServer {
                 name "my-sql-server"
                 admin_username "test"
@@ -354,7 +354,8 @@ let tests =
 
             let azureAdOnlyAuth =
                 json.["resources"].[0].["properties"].["administrators"].["azureADOnlyAuthentication"]
+                    .GetValue()
 
-            Expect.isFalse (azureAdOnlyAuth.GetValue()) "Should not only have AD auth."
+            Expect.isFalse azureAdOnlyAuth "Should be mixed authetication."
         }
     ]

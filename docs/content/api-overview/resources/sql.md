@@ -14,14 +14,13 @@ The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azu
 | Keyword | Purpose |
 |-|---------------------------------------------------------------------------------------------------------------------------------|
 | name | Sets the name of the SQL server. |
-| active_directory_admin | Sets Active Directory admin of the server |
 | add_firewall_rule | Adds a custom firewall rule given a name, start and end IP address range. |
 | add_firewall_rules | As add_firewall_rule but a list of rules |
 | enable_azure_firewall | Adds a firewall rule that enables access to other Azure services. |
-| admin_username | Sets the admin username of the server. The password is supplied as a secret parameter at runtime. |
-| entra_id_admin | Activates Entra ID authentication using the supplied login named, associated objectId and principal type of the administrator account. |
-| entra_id_admin_user | Activates Entra ID authentication for the User Principal Type using the supplied user's login name. The ObjectId will be retrieved automatically from Azure at runtime. |
-| entra_id_admin_group | Activates Entra ID authentication for the Group Principal Type using the supplied group's login name. The ObjectId will be retrieved automatically from Azure at runtime. |
+| admin_username | Sets the admin username of the server. The password is supplied as a secret parameter at runtime. Optional if you use any of the `entra_id_admin` keywords. |
+| entra_id_admin | Activates Entra ID authentication using the supplied login named, associated objectId and principal type of the administrator account. Optional if you use `admin_username`. |
+| entra_id_admin_user | Activates Entra ID authentication for the User Principal Type using the supplied user's login name. The ObjectId will be retrieved automatically from Azure at runtime. Optional if you use `admin_username`. |
+| entra_id_admin_group | Activates Entra ID authentication for the Group Principal Type using the supplied group's login name. The ObjectId will be retrieved automatically from Azure at runtime. Optional if you use `admin_username`. |
 | elastic_pool_name | Sets the name of the elastic pool, if required. If not set, Farmer will generate a name for you. |
 | elastic_pool_sku | Sets the sku of the elastic pool, if required. If not set, Farmer will default to Basic 50. |
 | elastic_pool_database_min_max | Sets the optional minimum and maximum DTUs for the elastic pool for each database. |
