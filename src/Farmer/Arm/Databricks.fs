@@ -3,7 +3,6 @@ module Farmer.Arm.Databricks
 
 open Farmer
 open Farmer.Databricks
-open Farmer.Arm.Network
 open System
 
 let workspaces = ResourceType("Microsoft.Databricks/workspaces", "2018-04-01")
