@@ -16,9 +16,9 @@
       "location": "northeurope",
       "name": "farmersql1979",
       "properties": {
-        "version": "12.0",
         "administratorLogin": "farmersqladmin",
-        "administratorLoginPassword": "[parameters('password-for-farmersql1979')]"
+        "administratorLoginPassword": "[parameters('password-for-farmersql1979')]",
+        "version": "12.0"
       },
       "tags": {
         "displayName": "farmersql1979"

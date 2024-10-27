@@ -2,6 +2,7 @@
 module Farmer.Arm.Sql
 
 open Farmer
+open Farmer.Arm
 open Farmer.Sql
 open System.Net
 
@@ -23,109 +24,36 @@ type DbKind =
     | Standalone of DbPurchaseModel
     | Pool of ResourceName
 
-type ActiveDirectoryPrincipalType =
-    | User
-    | Group
-
-type ActiveDirectoryAdminSettings = {
-    /// Ideally same as AD name
+type EntraAuthentication = {
     Login: string
-    /// Active Directory object id of user or group
-    Sid: string
-    PrincipalType: ActiveDirectoryPrincipalType
-    AdOnlyAuth: bool
+    Sid: ObjectId
+    PrincipalType: PrincipalType
 }
 
-let (|MixedModeAuth|AdOnlyAuth|SqlOnlyAuth|) activeDirAdmin =
-    match activeDirAdmin with
-    | Some x when x.AdOnlyAuth -> AdOnlyAuth(x)
-    | Some x when not x.AdOnlyAuth -> MixedModeAuth(x)
-    | _ -> SqlOnlyAuth
-
-type SqlServerADAdminJsonProperties = {
-    administratorType: string
-    principalType: string
-    login: string
-    sid: string
-    azureADOnlyAuthentication: bool
+type SqlAuthentication = {
+    Username: string
+    Password: SecureParameter
 }
 
-type SqlServerJsonProperties = {
-    version: string
-    minimalTlsVersion: string
-    administratorLogin: string
-    administratorLoginPassword: string
-    administrators: SqlServerADAdminJsonProperties
-}
+type SqlCredentials =
+    | SqlOnly of SqlAuthentication
+    | EntraOnly of EntraAuthentication
+    | SqlAndEntra of SqlAuthentication * EntraAuthentication
 
 type Server = {
     ServerName: SqlAccountName
     Location: Location
-    Credentials: {|
-        Username: string
-        Password: SecureParameter
-    |}
-    ActiveDirectoryAdmin: ActiveDirectoryAdminSettings option
+    Credentials: SqlCredentials
     MinTlsVersion: TlsVersion option
     Tags: Map<string, string>
 } with
 
-    member private this.BuildSqlSeverPropertiesBase() : SqlServerJsonProperties = {
-        version = "12.0"
-        minimalTlsVersion =
-            match this.MinTlsVersion with
-            | Some Tls10 -> "1.0"
-            | Some Tls11 -> "1.1"
-            | Some Tls12 -> "1.2"
-            | None -> null
-        administratorLogin = null
-        administratorLoginPassword = null
-        administrators = Unchecked.defaultof<SqlServerADAdminJsonProperties>
-    }
-
-    member private this.BuildSqlServerADOnlyAdmin(x: ActiveDirectoryAdminSettings) : SqlServerADAdminJsonProperties = {
-        administratorType = "ActiveDirectory"
-        principalType =
-            match x.PrincipalType with
-            | Group -> "Group"
-            | User -> "User"
-        login = x.Login
-        sid = x.Sid
-        azureADOnlyAuthentication = true
-    }
-
-    member private this.BuildSqlServerPropertiesWithMixedModeAdministrator
-        (x: ActiveDirectoryAdminSettings)
-        : SqlServerJsonProperties =
-        {
-            this.BuildSqlSeverPropertiesBase() with
-                administratorLogin = this.Credentials.Username
-                administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
-                administrators = {
-                    this.BuildSqlServerADOnlyAdmin(x) with
-                        azureADOnlyAuthentication = false
-                }
-        }
-
-    member private this.BuildSqlServerPropertiesWithADOnlyAdministrator
-        (x: ActiveDirectoryAdminSettings)
-        : SqlServerJsonProperties =
-        {
-            this.BuildSqlSeverPropertiesBase() with
-                administrators = this.BuildSqlServerADOnlyAdmin(x)
-        }
-
-    member private this.BuildSqlServerPropertiesWithSqlOnlyAdministrator() : SqlServerJsonProperties = {
-        this.BuildSqlSeverPropertiesBase() with
-            administratorLogin = this.Credentials.Username
-            administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
-    }
-
     interface IParameters with
         member this.SecureParameters =
-            match this.ActiveDirectoryAdmin with
-            | Some(x) when x.AdOnlyAuth -> []
-            | _ -> [ this.Credentials.Password ]
+            match this.Credentials with
+            | EntraOnly _ -> []
+            | SqlOnly creds
+            | SqlAndEntra(creds, _) -> [ creds.Password ]
 
     interface IArmResource with
         member this.ResourceId = servers.resourceId this.ServerName.ResourceName
@@ -137,10 +65,38 @@ type Server = {
                 tags = (this.Tags |> Map.add "displayName" this.ServerName.ResourceName.Value)
             ) with
                 properties =
-                    match this.ActiveDirectoryAdmin with
-                    | MixedModeAuth x -> this.BuildSqlServerPropertiesWithMixedModeAdministrator(x)
-                    | AdOnlyAuth x -> this.BuildSqlServerPropertiesWithADOnlyAdministrator(x)
-                    | SqlOnlyAuth -> this.BuildSqlServerPropertiesWithSqlOnlyAdministrator()
+                    Map [
+                        "version", box "12.0"
+                        match this.MinTlsVersion with
+                        | Some tlsVersion -> "minimalTlsVersion", tlsVersion.ArmValue
+                        | None -> ()
+                        yield!
+                            match this.Credentials with
+                            | EntraOnly _ -> []
+                            | SqlOnly sqlCredentials
+                            | SqlAndEntra(sqlCredentials, _) -> [
+                                "administratorLogin", box sqlCredentials.Username
+                                "administratorLoginPassword", sqlCredentials.Password.ArmExpression.Eval()
+                              ]
+                        yield!
+                            match this.Credentials with
+                            | SqlOnly _ -> []
+                            | SqlAndEntra(_, entraCredentials)
+                            | EntraOnly entraCredentials -> [
+                                "administrators",
+                                box {|
+                                    administratorType = "ActiveDirectory"
+                                    principalType = entraCredentials.PrincipalType.ArmValue
+                                    login = entraCredentials.Login
+                                    sid = entraCredentials.Sid.Value
+                                    azureADOnlyAuthentication =
+                                        match this.Credentials with
+                                        | EntraOnly _ -> true
+                                        | SqlAndEntra _
+                                        | SqlOnly _ -> false
+                                |}
+                              ]
+                    ]
         |}
 
 module Servers =
