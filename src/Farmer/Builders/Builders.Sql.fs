@@ -417,18 +417,14 @@ type SqlServerBuilder() =
     /// Activates Entra ID authentication using the supplied Entra username (i.e. email address) for the administrator account. Farmer determines the Object ID / SID using `ad user list`.
     /// If you have set the SQL admin credentials, they will be preserved as a hybrid setup.
     [<CustomOperation "entra_id_admin_user">]
-    member this.SetEntraIdAuthenticationUser(state: SqlAzureConfig, login) =
-        match AccessPolicy.findUsers [ login ] |> Array.toList with
-        | [] -> raiseFarmer $"Login {login} not found in the directory."
-        | user :: _ -> this.SetEntraIdAuthentication(state, login, user.Id, PrincipalType.User)
+    member this.SetEntraIdAuthenticationUser(state: SqlAzureConfig, login, sid) =
+        this.SetEntraIdAuthentication(state, login, sid, PrincipalType.User)
 
     /// Activates Entra ID authentication using the supplied Entra groupname for the administrator account. Farmer determines the Object ID / SID using `ad user list`.
     /// If you have set the SQL admin credentials, they will be preserved as a hybrid setup.
     [<CustomOperation "entra_id_admin_group">]
-    member this.SetEntraIdAuthenticationGroup(state: SqlAzureConfig, login) =
-        match AccessPolicy.findGroups [ login ] |> Array.toList with
-        | [] -> raiseFarmer $"Login {login} not found in the directory."
-        | group :: _ -> this.SetEntraIdAuthentication(state, login, group.Id, PrincipalType.Group)
+    member this.SetEntraIdAuthenticationGroup(state: SqlAzureConfig, login, sid) =
+        this.SetEntraIdAuthentication(state, login, sid, PrincipalType.Group)
 
     /// Activates Entra ID authentication using the supplied login named, associated objectId and principal type of the administrator account.
     /// If you have set the SQL admin credentials, they will be preserved as a hybrid setup.

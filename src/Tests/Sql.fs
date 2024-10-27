@@ -319,7 +319,6 @@ let tests =
             }
 
             let template = arm { add_resource server }
-
             let json = template.Template |> Writer.toJson |> JsonObject.Parse
             let adminToken = json.["resources"].[0].["properties"].["administrators"]
 
@@ -357,5 +356,37 @@ let tests =
                     .GetValue()
 
             Expect.isFalse azureAdOnlyAuth "Should be mixed authetication."
+        }
+
+        test "Can set Entra Auth for users" {
+            let server = sqlServer {
+                name "my-sql-server"
+                entra_id_admin_user "entra-user" (ObjectId Guid.Empty)
+            }
+
+            let template = arm { add_resource server }
+            let json = template.Template |> Writer.toJson |> JsonObject.Parse
+
+            let principalType =
+                json.["resources"].[0].["properties"].["administrators"].["principalType"]
+                    .GetValue()
+
+            Expect.equal principalType "User" "Principal type should be User"
+        }
+
+        test "Can set Entra Auth for groups" {
+            let server = sqlServer {
+                name "my-sql-server"
+                entra_id_admin_group "entra-group" (ObjectId Guid.Empty)
+            }
+
+            let template = arm { add_resource server }
+            let json = template.Template |> Writer.toJson |> JsonObject.Parse
+
+            let principalType =
+                json.["resources"].[0].["properties"].["administrators"].["principalType"]
+                    .GetValue()
+
+            Expect.equal principalType "Group" "Principal type should be Group"
         }
     ]
