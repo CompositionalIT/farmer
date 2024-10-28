@@ -441,19 +441,19 @@ type FeatureFlagExtensions =
 
     [<Extension>]
     static member AsBoolean(featureFlag: FeatureFlag option) =
-        featureFlag |> Option.map (fun f -> f.AsBoolean) |> Option.toNullable
+        featureFlag |> Option.map _.AsBoolean |> Option.toNullable
 
     [<Extension>]
     static member AsInvertedBoolean(featureFlag: FeatureFlag option) =
-        featureFlag |> Option.map (fun f -> f.AsInvertedBoolean) |> Option.toNullable
+        featureFlag |> Option.map _.AsInvertedBoolean |> Option.toNullable
 
     [<Extension>]
     static member ArmValue(featureFlag: FeatureFlag option) =
-        featureFlag |> Option.map (fun f -> f.ArmValue) |> Option.toObj
+        featureFlag |> Option.map _.ArmValue |> Option.toObj
 
     [<Extension>]
     static member ArmInvertedValue(featureFlag: FeatureFlag option) =
-        featureFlag |> Option.map (fun f -> f.ArmInvertedValue) |> Option.toObj
+        featureFlag |> Option.map _.ArmInvertedValue |> Option.toObj
 
 module FeatureFlag =
     let ofBool enabled = if enabled then Enabled else Disabled
