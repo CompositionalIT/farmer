@@ -9,6 +9,7 @@ open Microsoft.Azure.Management.Storage
 open Microsoft.Azure.Management.Storage.Models
 open Microsoft.Rest
 open System
+open System.Linq
 
 /// Client instance needed to get the serializer settings.
 let client =
@@ -136,6 +137,40 @@ let tests =
             Expect.equal resources.[8].Name "storage/default/public2" "public2 name is wrong"
             Expect.equal resources.[8].PublicAccess.Value PublicAccess.Container "public2 access is wrong"
         }
+        test "Creates containers with immutability policies" {
+            let policy = blobContainerImmutabilityPolicies {
+                allow_protected_append_writes Arm.Storage.AllowProtectedAppendWrites.AllAppendAllowed
+                immutability_period_since_creation 5<Days>
+            }
+            let resource =
+                let account = storageAccount {
+                    name "storage"
+                    add_blob_container "blob" policy
+                    add_private_container "private" policy
+                    add_public_container "public" policy
+                    add_blob_containers [ "blob1"; "blob2" ] policy
+                    add_private_containers [ "private1"; "private2" ] policy
+                    add_public_containers [ "public1"; "public2" ] policy
+                }
+
+                arm { add_resource account }
+
+            let jsn = resource.Template |> Writer.toJson
+            let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+            let check i (container: Newtonsoft.Json.Linq.JObject, policy: Newtonsoft.Json.Linq.JObject) =
+                Expect.equal (policy.SelectToken("name").ToObject<string>()) (container.SelectToken("name").ToObject<string>() + "/default") $"policy %d{i} name is wrong"
+                let properties = policy.SelectToken("properties")
+                Expect.equal (properties.SelectToken("immutabilityPeriodSinceCreationInDays").ToObject<int>()) 5 $"policy %d{i} immutability period is wrong"
+                Expect.equal (properties.SelectToken("allowProtectedAppendWritesAll").ToObject<bool>()) true $"policy %d{i} allowProtectedAppendWrites is wrong"
+
+            jobj.SelectTokens("resources[*]")
+            |> Seq.skip 1
+            |> Seq.cast<Newtonsoft.Json.Linq.JObject>
+            |> Seq.chunkBySize 2
+            |> Seq.map (fun items -> (items[0], items[1]))
+            |> Seq.iteri check
+        }
         test "Creates file shares correctly" {
             let resources: FileShare list =
                 let account = storageAccount {
@@ -178,6 +213,48 @@ let tests =
             Expect.equal resources.[1].Name "storage/default/table2" "table name for 'table2' is wrong"
             Expect.equal resources.[2].Name "storage/default/table3" "table name for 'table3' is wrong"
         }
+        testList "Blob Immutability Policies Tests" [
+            let getPolicy (policyConfig: Builders.Storage.BlobContainerImmutabilityPoliciesConfig) =
+                let account = storageAccount {
+                    name "storage"
+                    add_blob_container "blob" policyConfig
+                }
+                let resource = arm { add_resource account }
+                resource.Template.Resources.OfType<Arm.Storage.BlobContainers.ImmutabilityPolicies>() |> Seq.last
+
+            test "Sets NoAppendAllowed correctly" {
+                let policy = blobContainerImmutabilityPolicies {
+                    allow_protected_append_writes Arm.Storage.AllowProtectedAppendWrites.NoAppendAllowed
+                }
+                let policy = getPolicy policy
+                Expect.equal policy.ImmutabilityPeriodSinceCreation None "ImmutabilityPeriodSinceCreation not set correctly"
+                Expect.equal policy.AllowProtectedAppendWrites (Some Arm.Storage.AllowProtectedAppendWrites.NoAppendAllowed) "NoAppendAllowed not set correctly"
+            }
+            test "Sets AppendBlobOnlyAppendAllowed correctly" {
+                let policy = blobContainerImmutabilityPolicies {
+                    allow_protected_append_writes Arm.Storage.AllowProtectedAppendWrites.AppendBlobOnlyAppendAllowed
+                }
+                let policy = getPolicy policy
+                Expect.equal policy.ImmutabilityPeriodSinceCreation None "ImmutabilityPeriodSinceCreation not set correctly"
+                Expect.equal policy.AllowProtectedAppendWrites (Some Arm.Storage.AllowProtectedAppendWrites.AppendBlobOnlyAppendAllowed) "AppendBlobOnlyAppendAllowed not set correctly"
+            }
+            test "Sets AllAppendAllowed correctly" {
+                let policy = blobContainerImmutabilityPolicies {
+                    allow_protected_append_writes Arm.Storage.AllowProtectedAppendWrites.AllAppendAllowed
+                }
+                let policy = getPolicy policy
+                Expect.equal policy.ImmutabilityPeriodSinceCreation None "ImmutabilityPeriodSinceCreation not set correctly"
+                Expect.equal policy.AllowProtectedAppendWrites (Some Arm.Storage.AllowProtectedAppendWrites.AllAppendAllowed) "AllAppendAllowed not set correctly"
+            }
+            test "Sets creation period correctly" {
+                let policy = blobContainerImmutabilityPolicies {
+                    immutability_period_since_creation 5<Days>
+                }
+                let policy = getPolicy policy
+                Expect.equal policy.ImmutabilityPeriodSinceCreation (Some 5<Days>) "ImmutabilityPeriodSinceCreation not set correctly"
+                Expect.equal policy.AllowProtectedAppendWrites None "AllowProtectedAppendWrites not set correctly"
+            }
+        ]
         testList "Storage Queue Tests" [
             test "Creates queues correctly" {
                 let resources: StorageQueue list =
