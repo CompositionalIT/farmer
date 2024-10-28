@@ -286,9 +286,9 @@ type StorageAccountBuilder() =
                 Containers =
                     let containers =
                         names
-                        |> List.ofSeq
-                        |> List.map (fun name ->
+                        |> Seq.map (fun name ->
                             ((StorageResourceName.Create name).OkValue, access, immutabilityPolicies))
+                        |> Seq.toList
 
                     state.Containers @ containers
         }
