@@ -27,21 +27,35 @@ let getResourceAtIndex o =
 let getResources (v: IBuilder) = v.BuildResources Location.WestEurope
 
 let tests =
+    let expectContains a n kind dependencies =
+        Expect.contains dependencies (ResourceId.create (a, ResourceName n)) $"Missing {kind}"
+
     testList "Web App Tests" [
         test "Basic Web App has service plan and AI dependencies set" {
             let resources = webApp { name "test" } |> getResources
             let wa = resources |> getResource<Web.Site> |> List.head
 
-            Expect.containsAll
-                wa.Dependencies
-                [
-                    ResourceId.create (components, ResourceName "test-ai")
-                    ResourceId.create (serverFarms, ResourceName "test-farm")
-                ]
-                "Missing dependencies"
-
+            wa.Dependencies |> expectContains components "test-ai" "app insights"
+            wa.Dependencies |> expectContains serverFarms "test-farm" "server farm"
             Expect.hasLength (resources |> getResource<Insights.Components>) 1 "Should be one AI component"
             Expect.hasLength (resources |> getResource<Web.ServerFarm>) 1 "Should be one server farm"
+        }
+
+        test "Web App using Modern AI has AI and Log Analytics dependencies set" {
+            let resources =
+                webApp {
+                    name "test"
+                    use_modern_app_insights
+                }
+                |> getResources
+
+            let wa = resources |> getResource<Web.Site> |> List.head
+            wa.Dependencies |> expectContains components "test-ai" "app insights"
+
+            let ai = resources |> getResource<Insights.Components> |> List.head
+            ai.Dependencies |> expectContains workspaces "test-logstore" "log analytics"
+
+            Expect.hasLength (resources |> getResource<LogAnalytics.Workspace>) 1 "Should be one log workspace"
         }
 
         for os, version in [ Windows, 2; Linux, 3 ] do
@@ -88,14 +102,8 @@ let tests =
 
             let wa = resources |> getResource<Web.Site> |> List.head
 
-            Expect.containsAll
-                wa.Dependencies
-                [
-                    ResourceId.create (serverFarms, ResourceName "supersp")
-                    ResourceId.create (components, ResourceName "superai")
-                ]
-                "Missing dependencies"
-
+            wa.Dependencies |> expectContains serverFarms "supersp" "server farm"
+            wa.Dependencies |> expectContains components "superai" "app insights"
             Expect.hasLength (resources |> getResource<Insights.Components>) 1 "Should be one AI component"
             Expect.hasLength (resources |> getResource<Web.ServerFarm>) 1 "Should be one server farm"
         }
@@ -113,14 +121,8 @@ let tests =
 
             let wa = resources |> getResource<Web.Site> |> List.head
 
-            Expect.containsAll
-                wa.Dependencies
-                [
-                    ResourceId.create (serverFarms, ResourceName "plan")
-                    ResourceId.create (components, ResourceName "ai")
-                ]
-                "Missing dependencies"
-
+            wa.Dependencies |> expectContains serverFarms "plan" "server farm"
+            wa.Dependencies |> expectContains components "ai" "app insights"
             Expect.isEmpty (resources |> getResource<Insights.Components>) "Should be no AI component"
             Expect.isEmpty (resources |> getResource<Web.ServerFarm>) "Should be no server farm"
         }
@@ -139,11 +141,7 @@ let tests =
 
             let wa = second |> getResource<Web.Site> |> List.head
 
-            Expect.containsAll
-                wa.Dependencies
-                [ ResourceId.create (serverFarms, ResourceName "firstSp") ]
-                "Missing dependencies"
-
+            wa.Dependencies |> expectContains serverFarms "firstSp" "server farm"
             Expect.isEmpty (second |> getResource<Web.ServerFarm>) "Should be no server farm"
         }
         test "Web App does not create dependencies for unmanaged linked resources" {
@@ -284,10 +282,8 @@ let tests =
 
             let wa = wa |> getResources |> getResource<Web.Site> |> List.head
 
-            Expect.contains
-                wa.Dependencies
-                (ResourceId.create (storageAccounts, sa.Name.ResourceName))
-                "Storage Account is missing"
+            wa.Dependencies
+            |> expectContains storageAccounts sa.Name.ResourceName.Value "Storage Account"
 
             Expect.contains
                 wa.Dependencies
