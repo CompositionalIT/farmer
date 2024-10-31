@@ -18,7 +18,7 @@ let tests =
                 "[resourceGroup().location]"
                 "Incorrect expression emitted for Location.ResourceGroup"
         }
-        ftest "Default location for 'arm' builder uses resourceGroup location" {
+        test "Default location for 'arm' builder uses resourceGroup location" {
             let deployment =
                 let dummyResource = storageAccount { name "mystorageaccount74785" }
                 arm { add_resource dummyResource }
