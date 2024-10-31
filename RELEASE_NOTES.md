@@ -1,6 +1,8 @@
 Release Notes
 =============
 ## vNext
+* Web App: Support automatic creation of "modern" App Insights & Log Analytics.
+* Functions: Support automatic creation of "modern" App Insights & Log Analytics.
 * Az: Update `ad` commands to work with latest (breaking) structure.
 * PostgreSQL: Fix a number of issues around the introduction of Flexible Servers.
 
