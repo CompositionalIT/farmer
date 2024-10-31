@@ -135,6 +135,12 @@ type TlsVersion =
     | Tls11
     | Tls12
 
+    member this.ArmValue =
+        match this with
+        | Tls10 -> "1.0"
+        | Tls11 -> "1.1"
+        | Tls12 -> "1.2"
+
 /// Represents an environment variable that can be set, typically on Docker container services.
 type EnvVar =
     /// Use for non-secret environment variables. These will be stored in cleartext in the ARM template.

@@ -440,7 +440,12 @@ type PrincipalId =
         match this with
         | PrincipalId e -> e
 
-type ObjectId = ObjectId of Guid
+type ObjectId =
+    | ObjectId of Guid
+
+    member this.Value =
+        match this with
+        | ObjectId id -> id
 
 /// Represents a secret to be captured either via an ARM expression or a secure parameter.
 type SecretValue =

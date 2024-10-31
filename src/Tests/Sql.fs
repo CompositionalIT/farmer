@@ -8,8 +8,8 @@ open Farmer.Builders
 open Microsoft.Azure.Management.Sql
 open System
 open Microsoft.Rest
-
-let sql = sqlServer
+open System.Text.Json
+open System.Text.Json.Nodes
 
 let client =
     new SqlManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
@@ -304,77 +304,89 @@ let tests =
                 "Incorrect autoPauseDelay"
         }
 
-        test "Must set a SQL Server account name" {
-            Expect.throws
-                (fun () -> sqlServer { admin_username "test" } |> ignore)
-                "Must set a name on a sql server account"
+        test "Must set either SQL Server or AD authentication" {
+            Expect.throws (fun () -> sqlServer { name "test" } |> ignore) "Should throw if no auth set"
         }
 
-        for (adOnlyAuth, principalType, adminUserName) in
-            [
-                true, ActiveDirectoryPrincipalType.User, null
-                false, ActiveDirectoryPrincipalType.User, "sqladmin"
-                true, ActiveDirectoryPrincipalType.Group, null
-                false, ActiveDirectoryPrincipalType.Group, "sqladmin"
-            ] do
-            test $"AD Auth - ADOnly: {adOnlyAuth}, Principal: {principalType}, Username: {adminUserName}" {
-                let sql =
-                    let activeDirectoryUserAdmin: ActiveDirectoryAdminSettings = {
-                        Login = "adadmin"
-                        Sid = "F9D49C34-01BA-4897-B7E2-3694BF3DE2CF"
-                        PrincipalType = principalType
-                        AdOnlyAuth = adOnlyAuth
-                    }
+        test "Can use Entra ID auth" {
+            let server = sqlServer {
+                name "my-sql-server"
 
-                    sqlServer {
-                        name "adtestserver"
-                        active_directory_admin (Some(activeDirectoryUserAdmin))
-                        admin_username adminUserName
-                    }
-
-                let template = arm {
-                    location Location.AustraliaEast
-                    add_resources [ sql ]
-                }
-
-                let jsn = template.Template |> Writer.toJson
-                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
-
-                Expect.equal
-                    (jobj
-                        .SelectToken("resources[?(@.name=='adtestserver')].properties.administrators.administratorType")
-                        .ToString())
-                    "ActiveDirectory"
-                    "Incorrect administrator type"
-
-                Expect.equal
-                    (jobj
-                        .SelectToken(
-                            "resources[?(@.name=='adtestserver')].properties.administrators.azureADOnlyAuthentication"
-                        )
-                        .ToString())
-                    (adOnlyAuth.ToString())
-                    $"AD only auth should be {adOnlyAuth.ToString()}"
-
-                Expect.equal
-                    (jobj
-                        .SelectToken("resources[?(@.name=='adtestserver')].properties.administrators.login")
-                        .ToString())
-                    "adadmin"
-                    "Incorrect AD login name"
-
-                Expect.equal
-                    (jobj
-                        .SelectToken("resources[?(@.name=='adtestserver')].properties.administrators.principalType")
-                        .ToString())
-                    $"{principalType.ToString()}"
-                    "Incorrect principal type"
-
-                Expect.equal
-                    (jobj
-                        .SelectToken("resources[?(@.name=='adtestserver')].properties.administrators.sid")
-                        .ToString())
-                    "F9D49C34-01BA-4897-B7E2-3694BF3DE2CF"
-                    "Incorrect SID"
+                entra_id_admin
+                    "entra-user"
+                    (ObjectId(Guid.Parse "f9d49c34-01ba-4897-b7e2-3694bf3de2cf"))
+                    PrincipalType.User
             }
+
+            let template = arm { add_resource server }
+            let json = template.Template |> Writer.toJson |> JsonObject.Parse
+            let adminToken = json.["resources"].[0].["properties"].["administrators"]
+
+            Expect.equal (adminToken["administratorType"].GetValue()) "ActiveDirectory" "Incorrect administrator type"
+            Expect.equal (adminToken["login"].GetValue()) "entra-user" "Incorrect AD login name"
+            Expect.equal (adminToken["principalType"].GetValue()) "User" "Incorrect principal type"
+            Expect.equal (adminToken["sid"].GetValue()) "f9d49c34-01ba-4897-b7e2-3694bf3de2cf" "Incorrect SID"
+            Expect.isTrue (adminToken["azureADOnlyAuthentication"].GetValue()) "Should only have AD auth."
+        }
+
+        test "No Entra ARM when just using SQL auth" {
+            let theServer = sqlServer {
+                name "my-sql-server"
+                admin_username "test"
+            }
+
+            let template = arm { add_resource theServer }
+            let json = template.Template |> Writer.toJson |> JsonObject.Parse
+            let properties = json.["resources"].[0].["properties"].AsObject()
+            Expect.isFalse (properties.ContainsKey "administrators") "Should not have an AD admin"
+        }
+
+        test "Can set both SQL and Entra ID auth" {
+            let theServer = sqlServer {
+                name "my-sql-server"
+                admin_username "test"
+                entra_id_admin "" (ObjectId Guid.Empty) PrincipalType.User
+            }
+
+            let template = arm { add_resource theServer }
+            let json = template.Template |> Writer.toJson |> JsonObject.Parse
+
+            let azureAdOnlyAuth =
+                json.["resources"].[0].["properties"].["administrators"].["azureADOnlyAuthentication"]
+                    .GetValue()
+
+            Expect.isFalse azureAdOnlyAuth "Should be mixed authetication."
+        }
+
+        test "Can set Entra Auth for users" {
+            let server = sqlServer {
+                name "my-sql-server"
+                entra_id_admin_user "entra-user" (ObjectId Guid.Empty)
+            }
+
+            let template = arm { add_resource server }
+            let json = template.Template |> Writer.toJson |> JsonObject.Parse
+
+            let principalType =
+                json.["resources"].[0].["properties"].["administrators"].["principalType"]
+                    .GetValue()
+
+            Expect.equal principalType "User" "Principal type should be User"
+        }
+
+        test "Can set Entra Auth for groups" {
+            let server = sqlServer {
+                name "my-sql-server"
+                entra_id_admin_group "entra-group" (ObjectId Guid.Empty)
+            }
+
+            let template = arm { add_resource server }
+            let json = template.Template |> Writer.toJson |> JsonObject.Parse
+
+            let principalType =
+                json.["resources"].[0].["properties"].["administrators"].["principalType"]
+                    .GetValue()
+
+            Expect.equal principalType "Group" "Principal type should be Group"
+        }
     ]

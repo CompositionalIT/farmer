@@ -2,11 +2,12 @@
 module Farmer.Builders.SqlAzure
 
 open Farmer
+open Farmer.Arm
+open Farmer.Arm.Sql.Servers
+open Farmer.Arm.Sql.Servers.Databases
 open Farmer.Sql
-open Farmer.Arm.Sql
+open System
 open System.Net
-open Servers
-open Databases
 
 type SqlAzureDbConfig = {
     Name: ResourceName
@@ -18,11 +19,7 @@ type SqlAzureDbConfig = {
 
 type SqlAzureConfig = {
     Name: SqlAccountName
-    AdministratorCredentials: {|
-        UserName: string
-        Password: SecureParameter
-    |}
-    ActiveDirectoryAdmin: ActiveDirectoryAdminSettings option
+    Credentials: SqlCredentials option
     MinTlsVersion: TlsVersion option
     FirewallRules:
         {|
@@ -43,16 +40,23 @@ type SqlAzureConfig = {
 
     /// Gets a basic .NET connection string using the administrator username / password.
     member this.ConnectionString(database: SqlAzureDbConfig) =
-        let expr =
-            ArmExpression.concat [
-                ArmExpression.literal
-                    $"Server=tcp:{this.Name.ResourceName.Value}.database.windows.net,1433;Initial Catalog={database.Name.Value};Persist Security Info=False;User ID={this.AdministratorCredentials.UserName};Password="
-                this.AdministratorCredentials.Password.ArmExpression
-                ArmExpression.literal
-                    ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
-            ]
+        match this.Credentials with
+        | Some(SqlOnly sqlCredentials)
+        | Some(SqlAndEntra(sqlCredentials, _)) ->
+            let expr =
+                ArmExpression.concat [
+                    ArmExpression.literal
+                        $"Server=tcp:{this.Name.ResourceName.Value}.database.windows.net,1433;Initial Catalog={database.Name.Value};Persist Security Info=False;User ID={sqlCredentials.Username};Password="
+                    sqlCredentials.Password.ArmExpression
+                    ArmExpression.literal
+                        ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+                ]
 
-        expr.WithOwner(databases.resourceId (this.Name.ResourceName, database.Name))
+            expr.WithOwner(databases.resourceId (this.Name.ResourceName, database.Name))
+        | Some(EntraOnly _) ->
+            raiseFarmer
+                "Cannot create a connection string for a database that is using Azure Active Directory authentication."
+        | None -> raiseFarmer "Cannot create a connection string for a database that does not have any credentials set."
 
     member this.ConnectionString databaseName =
         this.Databases
@@ -78,13 +82,9 @@ type SqlAzureConfig = {
                 ServerName = this.Name
                 Location = location
                 Credentials =
-                    match this.ActiveDirectoryAdmin with
-                    | AdOnlyAuth _ -> Unchecked.defaultof<_>
-                    | _ -> {|
-                        Username = this.AdministratorCredentials.UserName
-                        Password = this.AdministratorCredentials.Password
-                      |}
-                ActiveDirectoryAdmin = this.ActiveDirectoryAdmin
+                    match this.Credentials with
+                    | Some credentials -> credentials
+                    | None -> raiseFarmer "No credentials have been set for the SQL Server instance."
                 MinTlsVersion = this.MinTlsVersion
                 Tags = this.Tags
             }
@@ -145,11 +145,10 @@ type SqlAzureConfig = {
                     {
                         ServerName = replicaServerName
                         Location = replica.Location
-                        Credentials = {|
-                            Username = this.AdministratorCredentials.UserName
-                            Password = this.AdministratorCredentials.Password
-                        |}
-                        ActiveDirectoryAdmin = this.ActiveDirectoryAdmin
+                        Credentials =
+                            match this.Credentials with
+                            | Some credentials -> credentials
+                            | None -> raiseFarmer "No credentials have been set for the SQL Server instance."
                         MinTlsVersion = this.MinTlsVersion
                         Tags = this.Tags
                     }
@@ -172,13 +171,11 @@ type SqlAzureConfig = {
                             apiVersion = "2021-02-01-preview"
                             location = replica.Location.ArmValue
                             dependsOn = [
-                                Farmer.ResourceId
-                                    .create(Farmer.Arm.Sql.servers, replicaServerName.ResourceName)
-                                    .Eval()
+                                Farmer.ResourceId.create(servers, replicaServerName.ResourceName).Eval()
                                 primaryDatabaseFullId
                             ]
                             name = $"{replicaServerName.ResourceName.Value}/{database.Name.Value + replica.NameSuffix}"
-                            ``type`` = Farmer.Arm.Sql.databases.Type
+                            ``type`` = databases.Type
                             sku = {|
                                 name = fst geoSku
                                 tier = snd geoSku
@@ -271,11 +268,7 @@ type SqlServerBuilder() =
 
     member _.Yield _ = {
         Name = SqlAccountName.Empty
-        AdministratorCredentials = {|
-            UserName = ""
-            Password = SecureParameter ""
-        |}
-        ActiveDirectoryAdmin = None
+        Credentials = None
         ElasticPoolSettings = {|
             Name = None
             Sku = PoolSku.Basic50
@@ -293,26 +286,10 @@ type SqlServerBuilder() =
         if state.Name.ResourceName = ResourceName.Empty then
             raiseFarmer "No SQL Server account name has been set."
 
-        let getStateWithAdminCredentials () =
-            if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then
-                raiseFarmer
-                    $"You must specify the admin_username for SQL Server instance {state.Name.ResourceName.Value}"
+        if state.Credentials.IsNone then
+            raiseFarmer "No credentials have been set for the SQL Server instance."
 
-            {
-                state with
-                    AdministratorCredentials = {|
-                        state.AdministratorCredentials with
-                            Password = SecureParameter state.PasswordParameter
-                    |}
-            }
-
-        match state.ActiveDirectoryAdmin with
-        | AdOnlyAuth _ -> {
-            state with
-                AdministratorCredentials = Unchecked.defaultof<_>
-          }
-        | MixedModeAuth _ -> getStateWithAdminCredentials ()
-        | SqlOnlyAuth -> getStateWithAdminCredentials ()
+        state
 
     /// Sets the name of the SQL server.
     [<CustomOperation "name">]
@@ -404,15 +381,24 @@ type SqlServerBuilder() =
     member this.UseAzureFirewall(state: SqlAzureConfig) =
         this.AddFirewallRule(state, "allow-azure-services", "0.0.0.0", "0.0.0.0")
 
-    /// Sets the admin username of the server (note: the password is supplied as a securestring parameter to the generated ARM template).
+    /// Sets the admin username of the server (note: the password is supplied as a securestring parameter to the generated ARM template) using SQL authentication.
+    /// If you have already set the Entra ID credentials, they will be preserved as a hybrid setup.
     [<CustomOperation "admin_username">]
-    member _.AdminUsername(state: SqlAzureConfig, username) = {
-        state with
-            AdministratorCredentials = {|
-                state.AdministratorCredentials with
-                    UserName = username
-            |}
-    }
+    member _.AdminUsername(state: SqlAzureConfig, username) =
+        let sqlCredentials = {
+            Username = username
+            Password = SecureParameter state.PasswordParameter
+        }
+
+        {
+            state with
+                Credentials =
+                    match state.Credentials with
+                    | None
+                    | Some(SqlOnly _) -> Some(SqlOnly sqlCredentials)
+                    | Some(SqlAndEntra(_, entraCredentials))
+                    | Some(EntraOnly entraCredentials) -> Some(SqlAndEntra(sqlCredentials, entraCredentials))
+        }
 
     /// Set minimum TLS version
     [<CustomOperation "min_tls_version">]
@@ -423,17 +409,42 @@ type SqlServerBuilder() =
 
     /// Geo-replicate all the databases in this server to another location, having NameSuffix after original server and database names.
     [<CustomOperation "geo_replicate">]
-    member _.SetGeoReplication(state: SqlAzureConfig, replicaSettings) = {
+    member _.SetGeoReplication(state, replicaSettings) = {
         state with
             GeoReplicaServer = Some replicaSettings
     }
 
-    /// Sets the active directory admin and optionally turns on AD only auth.
-    [<CustomOperation "active_directory_admin">]
-    member _.SetActiveDirectoryAdmin(state: SqlAzureConfig, activeDirectoryAdminSettings) = {
-        state with
-            ActiveDirectoryAdmin = activeDirectoryAdminSettings
-    }
+    /// Activates Entra ID authentication using the supplied Entra username (i.e. email address) for the administrator account. Farmer determines the Object ID / SID using `ad user list`.
+    /// If you have set the SQL admin credentials, they will be preserved as a hybrid setup.
+    [<CustomOperation "entra_id_admin_user">]
+    member this.SetEntraIdAuthenticationUser(state: SqlAzureConfig, login, sid) =
+        this.SetEntraIdAuthentication(state, login, sid, PrincipalType.User)
+
+    /// Activates Entra ID authentication using the supplied Entra groupname for the administrator account. Farmer determines the Object ID / SID using `ad user list`.
+    /// If you have set the SQL admin credentials, they will be preserved as a hybrid setup.
+    [<CustomOperation "entra_id_admin_group">]
+    member this.SetEntraIdAuthenticationGroup(state: SqlAzureConfig, login, sid) =
+        this.SetEntraIdAuthentication(state, login, sid, PrincipalType.Group)
+
+    /// Activates Entra ID authentication using the supplied login named, associated objectId and principal type of the administrator account.
+    /// If you have set the SQL admin credentials, they will be preserved as a hybrid setup.
+    [<CustomOperation "entra_id_admin">]
+    member _.SetEntraIdAuthentication(state: SqlAzureConfig, login, objectId: ObjectId, principalType) =
+        let entraCredentials = {
+            Login = login
+            Sid = objectId
+            PrincipalType = principalType
+        }
+
+        {
+            state with
+                Credentials =
+                    match state.Credentials with
+                    | None
+                    | Some(EntraOnly _) -> Some(EntraOnly entraCredentials)
+                    | Some(SqlAndEntra(sqlCredentials, _))
+                    | Some(SqlOnly sqlCredentials) -> Some(SqlAndEntra(sqlCredentials, entraCredentials))
+        }
 
     interface ITaggable<SqlAzureConfig> with
         member _.Add state tags = {

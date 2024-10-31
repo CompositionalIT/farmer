@@ -1,6 +1,7 @@
 Release Notes
 =============
 ## vNext
+* SQL Azure: Clean up Entra ID authentication support.
 * Web App: Support automatic creation of "modern" App Insights & Log Analytics.
 * Functions: Support automatic creation of "modern" App Insights & Log Analytics.
 * Az: Update `ad` commands to work with latest (breaking) structure.
