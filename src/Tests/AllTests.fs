@@ -4,11 +4,17 @@ open Expecto
 open System
 open Farmer
 
-let hasEnv a b =
-    Environment.GetEnvironmentVariable a = b
+module Build =
+    let hasEnv a b =
+        Environment.GetEnvironmentVariable a = b
 
-let notEnv a b =
-    Environment.GetEnvironmentVariable a <> b
+    let notEnv a b =
+        Environment.GetEnvironmentVariable a <> b
+
+    let isPullRequest = hasEnv "BUILD_REASON" "PullRequest"
+    let isCIBuild = hasEnv "TF_BUILD" "True"
+    let isFarmerEndToEnd = hasEnv "FARMER_E2E" "True"
+    let isCiMaster = not isPullRequest && isCIBuild
 
 [<Tests>]
 let allTests =
@@ -18,7 +24,7 @@ let allTests =
             AppGateway.tests
             AppInsights.tests
             AppInsightsAvailability.tests
-            if notEnv "BUILD_REASON" "PullRequest" then
+            if Build.isCiMaster then
                 AzCli.tests
             AutoscaleSettings.tests
             AzureFirewall.tests
@@ -79,10 +85,7 @@ let allTests =
             ActionGroup.tests
         ]
         testList "Control" [
-            if
-                (hasEnv "TF_BUILD" "True" && notEnv "BUILD_REASON" "PullRequest")
-                || hasEnv "FARMER_E2E" "True"
-            then
+            if Build.isCiMaster || Build.isFarmerEndToEnd then
                 AzCli.endToEndTests
             Common.tests
             Identity.tests
@@ -94,4 +97,11 @@ let allTests =
 let main _ =
     printfn "Running tests!"
 
-    runTestsWithCLIArgs [ Verbosity Logging.LogLevel.Info ] [||] allTests
+    runTestsWithCLIArgs
+        [
+            Verbosity Logging.LogLevel.Info
+            if Build.isCIBuild then
+                Fail_On_Focused_Tests
+        ]
+        [||]
+        allTests
