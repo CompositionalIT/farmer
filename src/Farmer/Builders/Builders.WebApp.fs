@@ -320,9 +320,9 @@ type VirtualApplicationBuilder() =
 
 let virtualApplication = VirtualApplicationBuilder()
 
-type LoggingKind =
-    | ClassicAppInsights of ResourceRef<ResourceName>
-    | AppInsightsWithLogAnalytics of
+type AppInsightsKind =
+    | ClassicAi of ResourceRef<ResourceName>
+    | WorkspaceAi of
         {|
             AppInsights: ResourceRef<ResourceName>
             LogAnalytics: ResourceRef<ResourceName>
@@ -330,14 +330,15 @@ type LoggingKind =
 
     member this.AppInsights =
         match this with
-        | ClassicAppInsights appInsights -> appInsights
-        | AppInsightsWithLogAnalytics cfg -> cfg.AppInsights
+        | ClassicAi appInsights -> appInsights
+        | WorkspaceAi cfg -> cfg.AppInsights
 
-    member this.MapAi mapper =
+    /// Maps over the AI instance of this kind.
+    member internal this.MapAppInsights mapper =
         match this with
-        | ClassicAppInsights appInsights -> ClassicAppInsights(mapper appInsights)
-        | AppInsightsWithLogAnalytics cfg ->
-            AppInsightsWithLogAnalytics {|
+        | ClassicAi appInsights -> ClassicAi(mapper appInsights)
+        | WorkspaceAi cfg ->
+            WorkspaceAi {|
                 cfg with
                     AppInsights = mapper cfg.AppInsights
             |}
@@ -346,7 +347,7 @@ type LoggingKind =
 type CommonWebConfig = {
     Name: WebAppName
     AlwaysOn: bool
-    Logging: LoggingKind option
+    AppInsights: AppInsightsKind option
     ConnectionStrings: Map<string, (Setting * ConnectionStringKind)>
     Cors: Cors option
     FTPState: FTPState option
@@ -440,14 +441,14 @@ type WebAppConfig = {
 
     /// Gets the App Insights name for this web app, if it exists.
     member this.AppInsightsName =
-        this.CommonWebConfig.Logging
+        this.CommonWebConfig.AppInsights
         |> Option.map (fun cfg -> cfg.AppInsights.resourceId(this.Name.ResourceName).Name)
 
     /// Gets the LogAnalytics name for this web app, if it exists.
     member this.LogAnalytics =
-        this.CommonWebConfig.Logging
+        this.CommonWebConfig.AppInsights
         |> Option.map (function
-            | AppInsightsWithLogAnalytics cfg -> Some(cfg.LogAnalytics.resourceId(this.Name.ResourceName).Name)
+            | WorkspaceAi cfg -> Some(cfg.LogAnalytics.resourceId(this.Name.ResourceName).Name)
             | _ -> None)
 
     /// Gets the ARM expression path to the publishing password of this web app.
@@ -523,14 +524,14 @@ type WebAppConfig = {
                         this.WebsiteNodeDefaultVersion
                         |> Option.mapList AppSettings.WebsiteNodeDefaultVersion
                     yield!
-                        this.CommonWebConfig.Logging
+                        this.CommonWebConfig.AppInsights
                         |> Option.mapList (fun cfg ->
                             "APPINSIGHTS_INSTRUMENTATIONKEY",
                             AppInsights
                                 .getInstrumentationKey(cfg.AppInsights.resourceId this.Name.ResourceName)
                                 .Eval())
 
-                    if this.CommonWebConfig.Logging.IsSome then
+                    if this.CommonWebConfig.AppInsights.IsSome then
                         "ApplicationInsightsAgent_EXTENSION_VERSION",
                         match this.CommonWebConfig.OperatingSystem with
                         | Windows -> "~2"
@@ -631,7 +632,7 @@ type WebAppConfig = {
                                 | LiteralSetting _ -> ()
                         | KeyVault _ -> ()
 
-                        match this.CommonWebConfig.Logging |> Option.map _.AppInsights with
+                        match this.CommonWebConfig.AppInsights |> Option.map _.AppInsights with
                         | Some(DependableResource this.Name.ResourceName resourceId) -> resourceId
                         | Some _
                         | None -> ()
@@ -722,31 +723,30 @@ type WebAppConfig = {
               }
             | None -> ()
 
-            match this.CommonWebConfig.Logging with
-            | Some logging ->
-                match logging.AppInsights with
+            match this.CommonWebConfig.AppInsights with
+            | Some appInsights ->
+                match appInsights.AppInsights with
                 | DeployableResource this.Name.ResourceName resourceId -> {
                     Name = resourceId.Name
                     Location = location
                     DisableIpMasking = false
                     SamplingPercentage = 100
                     InstanceKind =
-                        match logging with
-                        | ClassicAppInsights _ -> Classic
-                        | AppInsightsWithLogAnalytics cfg ->
-                            Workspace(cfg.LogAnalytics.resourceId this.Name.ResourceName)
+                        match appInsights with
+                        | ClassicAi _ -> Classic
+                        | WorkspaceAi cfg -> Workspace(cfg.LogAnalytics.resourceId this.Name.ResourceName)
                     Dependencies =
-                        match logging with
-                        | ClassicAppInsights _ -> Set.empty
-                        | AppInsightsWithLogAnalytics cfg -> Set [ cfg.LogAnalytics.resourceId this.Name.ResourceName ]
+                        match appInsights with
+                        | ClassicAi _ -> Set.empty
+                        | WorkspaceAi cfg -> Set [ cfg.LogAnalytics.resourceId this.Name.ResourceName ]
                     LinkedWebsite = Some this.Name.ResourceName
                     Tags = this.Tags
                   }
                 | _ -> ()
 
-                match logging with
-                | ClassicAppInsights _ -> ()
-                | AppInsightsWithLogAnalytics cfg ->
+                match appInsights with
+                | ClassicAi _ -> ()
+                | WorkspaceAi cfg ->
                     match cfg.LogAnalytics with
                     | DeployableResource this.Name.ResourceName resourceId -> {
                         Name = resourceId.Name
@@ -896,7 +896,7 @@ type WebAppBuilder() =
         CommonWebConfig = {
             Name = WebAppName.Empty
             AlwaysOn = false
-            Logging = Some(ClassicAppInsights CommonWebConfig.defaultAiResourceRef)
+            AppInsights = Some(ClassicAi CommonWebConfig.defaultAiResourceRef)
             ConnectionStrings = Map.empty
             Cors = None
             HTTPSOnly = false
@@ -1267,10 +1267,10 @@ module Extensions =
 
             {
                 configState with
-                    Logging =
-                        match configState.Logging with
-                        | None -> Some(ClassicAppInsights(named components name))
-                        | Some cfg -> Some(cfg.MapAi(fun _ -> named components name))
+                    AppInsights =
+                        match configState.AppInsights with
+                        | None -> Some(ClassicAi(named components name))
+                        | Some cfg -> Some(cfg.MapAppInsights(fun _ -> named components name))
             }
             |> this.Wrap state
 
@@ -1280,22 +1280,26 @@ module Extensions =
         /// Removes any automatic app insights creation, configuration and settings for this webapp.
         [<CustomOperation "app_insights_off">]
         member this.DeactivateAppInsights(state: 'T) =
-            { this.Get state with Logging = None } |> this.Wrap state
+            {
+                this.Get state with
+                    AppInsights = None
+            }
+            |> this.Wrap state
 
         // Turns on "modern App Insights" with automatic Log Analytics. If you have configured the AI instance, those settings will be preserved.
-        [<CustomOperation "use_modern_app_insights">]
+        [<CustomOperation "use_workspace_based_app_insights">]
         member this.ModernAi(state: 'T) =
             let commonState = this.Get state
 
             {
                 commonState with
-                    Logging =
+                    AppInsights =
                         Some(
-                            AppInsightsWithLogAnalytics {|
+                            WorkspaceAi {|
                                 AppInsights =
-                                    match commonState.Logging with
-                                    | Some(ClassicAppInsights ai) -> ai
-                                    | Some(AppInsightsWithLogAnalytics cfg) -> cfg.AppInsights
+                                    match commonState.AppInsights with
+                                    | Some(ClassicAi ai) -> ai
+                                    | Some(WorkspaceAi cfg) -> cfg.AppInsights
                                     | None -> derived (fun name -> components.resourceId (name - "ai"))
                                 LogAnalytics =
                                     derived (fun name -> LogAnalytics.workspaces.resourceId (name - "logstore"))
@@ -1311,7 +1315,7 @@ module Extensions =
         member this.LinkToAi(state: 'T, name) =
             {
                 this.Get state with
-                    Logging = Some(ClassicAppInsights(managed components name))
+                    AppInsights = Some(ClassicAi(managed components name))
             }
             |> this.Wrap state
 
@@ -1330,7 +1334,7 @@ module Extensions =
         member this.LinkUnmanagedAppInsights(state: 'T, resourceId) =
             {
                 this.Get state with
-                    Logging = Some(ClassicAppInsights(unmanaged resourceId))
+                    AppInsights = Some(ClassicAi(unmanaged resourceId))
             }
             |> this.Wrap state
 

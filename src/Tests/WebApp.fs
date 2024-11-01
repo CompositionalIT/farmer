@@ -45,7 +45,7 @@ let tests =
             let resources =
                 webApp {
                     name "test"
-                    use_modern_app_insights
+                    use_workspace_based_app_insights
                 }
                 |> getResources
 

@@ -115,7 +115,7 @@ type FunctionsConfig = {
     /// Gets the App Insights name for this functions app, if it exists.
     [<Obsolete("Prefer AppInsightsId instead as this property ignores resource groups")>]
     member this.AppInsightsName: ResourceName option =
-        this.CommonWebConfig.Logging
+        this.CommonWebConfig.AppInsights
         |> Option.map (fun cfg -> cfg.AppInsights.resourceId(this.Name.ResourceName).Name)
 
     /// Gets the Storage Account name for this functions app.
@@ -127,7 +127,7 @@ type FunctionsConfig = {
 
     /// Gets the App Insights resourceId for this functions app, if it exists.
     member this.AppInsightsId: ResourceId option =
-        this.CommonWebConfig.Logging
+        this.CommonWebConfig.AppInsights
         |> Option.map (fun cfg -> cfg.AppInsights.resourceId (this.Name.ResourceName))
 
     /// Gets the Storage Account resourceId for this functions app.
@@ -279,7 +279,7 @@ type FunctionsConfig = {
                     Set [
                         yield! this.Dependencies
 
-                        match this.CommonWebConfig.Logging |> Option.map _.AppInsights with
+                        match this.CommonWebConfig.AppInsights |> Option.map _.AppInsights with
                         | Some(DependableResource this.Name.ResourceName resourceId) -> resourceId
                         | Some _
                         | None -> ()
@@ -388,31 +388,30 @@ type FunctionsConfig = {
               }
             | _ -> ()
 
-            match this.CommonWebConfig.Logging with
-            | Some logging ->
-                match logging.AppInsights with
+            match this.CommonWebConfig.AppInsights with
+            | Some appInsights ->
+                match appInsights.AppInsights with
                 | DeployableResource this.Name.ResourceName resourceId -> {
                     Name = resourceId.Name
                     Location = location
                     DisableIpMasking = false
                     SamplingPercentage = 100
                     InstanceKind =
-                        match logging with
-                        | ClassicAppInsights _ -> Classic
-                        | AppInsightsWithLogAnalytics cfg ->
-                            Workspace(cfg.LogAnalytics.resourceId this.Name.ResourceName)
+                        match appInsights with
+                        | ClassicAi _ -> Classic
+                        | WorkspaceAi cfg -> Workspace(cfg.LogAnalytics.resourceId this.Name.ResourceName)
                     Dependencies =
-                        match logging with
-                        | ClassicAppInsights _ -> Set.empty
-                        | AppInsightsWithLogAnalytics cfg -> Set [ cfg.LogAnalytics.resourceId this.Name.ResourceName ]
+                        match appInsights with
+                        | ClassicAi _ -> Set.empty
+                        | WorkspaceAi cfg -> Set [ cfg.LogAnalytics.resourceId this.Name.ResourceName ]
                     LinkedWebsite = Some this.Name.ResourceName
                     Tags = this.Tags
                   }
                 | _ -> ()
 
-                match logging with
-                | ClassicAppInsights _ -> ()
-                | AppInsightsWithLogAnalytics cfg ->
+                match appInsights with
+                | ClassicAi _ -> ()
+                | WorkspaceAi cfg ->
                     match cfg.LogAnalytics with
                     | DeployableResource this.Name.ResourceName resourceId -> {
                         Name = resourceId.Name
@@ -455,7 +454,7 @@ type FunctionsBuilder() =
         FunctionsConfig.CommonWebConfig = {
             Name = WebAppName.Empty
             AlwaysOn = false
-            Logging = Some(ClassicAppInsights(derived (fun name -> components.resourceId (name - "ai"))))
+            AppInsights = Some(ClassicAi(derived (fun name -> components.resourceId (name - "ai"))))
             ConnectionStrings = Map.empty
             Cors = None
             FTPState = None
