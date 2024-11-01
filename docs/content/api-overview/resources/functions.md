@@ -25,7 +25,7 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | link_to_unmanaged_storage_account | Do not create an automatic storage account; instead, link to an existing storage account that was created external to Farmer. |
 | https_only | Disables http for this functions app so that only HTTPS is used. |
 | ftp_state | Allows to enable or disable FTP and FTPS. |
-| use_modern_app_insights | Instructs Farmer to use "modern" App Insights, which automatically comes with a Log Analytics instance. Both resources will be automatically created. |
+| Web App | use_workspace_based_app_insights | Instructs Farmer to use Workspace Based App Insights, which automatically comes with a Log Analytics instance. Both resources will be automatically created. |
 | app_insights_name | Sets the name of the automatically-created app insights instance. |
 | app_insights_off | Removes any automatic app insights creation, configuration and settings for this webapp. |
 | link_to_app_insights | Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing yourself. |
