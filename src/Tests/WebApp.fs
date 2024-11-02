@@ -30,7 +30,7 @@ let tests =
     let expectContains a n kind dependencies =
         Expect.contains dependencies (ResourceId.create (a, ResourceName n)) $"Missing {kind}"
 
-    ftestList "Web App Tests" [
+    testList "Web App Tests" [
         test "Basic Web App has service plan and AI dependencies set" {
             let resources = webApp { name "test" } |> getResources
             let wa = resources |> getResource<Web.Site> |> List.head
