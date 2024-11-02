@@ -113,7 +113,7 @@ type SlotConfig = {
 
     member this.ToSite(owner: Arm.Web.Site) = {
         owner with
-            SiteType = SiteType.Slot(owner.Name / this.Name)
+            SiteType = Slot(owner.Name / this.Name)
             Dependencies = owner.Dependencies |> Set.add (owner.ResourceType.resourceId owner.Name)
             AutoSwapSlotName = this.AutoSwapSlotName
             AppSettings = owner.AppSettings |> Option.map (Map.merge (this.AppSettings |> Map.toList))
@@ -333,16 +333,6 @@ type AppInsightsKind =
         | ClassicAi appInsights -> appInsights
         | WorkspaceAi cfg -> cfg.AppInsights
 
-    /// Maps over the AI instance of this kind.
-    member internal this.MapAppInsights mapper =
-        match this with
-        | ClassicAi appInsights -> ClassicAi(mapper appInsights)
-        | WorkspaceAi cfg ->
-            WorkspaceAi {|
-                cfg with
-                    AppInsights = mapper cfg.AppInsights
-            |}
-
 /// Common fields between WebApp and Functions
 type CommonWebConfig = {
     Name: WebAppName
@@ -368,8 +358,8 @@ type CommonWebConfig = {
     PrivateEndpoints: (SubnetReference * string option) Set
 } with
 
-    static member internal defaultAiResourceRef =
-        derived (fun (name: ResourceName) -> components.resourceId (name - "ai"))
+    static member internal defaultAiResourceRef(resourceType: ResourceType) =
+        derived (fun (name: ResourceName) -> resourceType.resourceId (name - "ai"))
 
     member this.Validate() =
         match this with
@@ -524,12 +514,23 @@ type WebAppConfig = {
                         this.WebsiteNodeDefaultVersion
                         |> Option.mapList AppSettings.WebsiteNodeDefaultVersion
                     yield!
-                        this.CommonWebConfig.AppInsights
-                        |> Option.mapList (fun cfg ->
+                        match this.CommonWebConfig.AppInsights with
+                        | Some cfg -> [
                             "APPINSIGHTS_INSTRUMENTATIONKEY",
                             AppInsights
                                 .getInstrumentationKey(cfg.AppInsights.resourceId this.Name.ResourceName)
-                                .Eval())
+                                .Eval()
+
+                            // AppInsights Connection String is only valid for "newer" app insights configurations.
+                            match cfg with
+                            | WorkspaceAi cfg ->
+                                "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                                AppInsights
+                                    .getConnectionString(cfg.AppInsights.resourceId this.Name.ResourceName)
+                                    .Eval()
+                            | ClassicAi _ -> ()
+                          ]
+                        | None -> []
 
                     if this.CommonWebConfig.AppInsights.IsSome then
                         "ApplicationInsightsAgent_EXTENSION_VERSION",
@@ -896,7 +897,7 @@ type WebAppBuilder() =
         CommonWebConfig = {
             Name = WebAppName.Empty
             AlwaysOn = false
-            AppInsights = Some(ClassicAi CommonWebConfig.defaultAiResourceRef)
+            AppInsights = Some(ClassicAi(CommonWebConfig.defaultAiResourceRef components))
             ConnectionStrings = Map.empty
             Cors = None
             HTTPSOnly = false
@@ -1270,7 +1271,14 @@ module Extensions =
                     AppInsights =
                         match configState.AppInsights with
                         | None -> Some(ClassicAi(named components name))
-                        | Some cfg -> Some(cfg.MapAppInsights(fun _ -> named components name))
+                        | Some(ClassicAi _) -> Some(ClassicAi(named components name))
+                        | Some(WorkspaceAi cfg) ->
+                            Some(
+                                WorkspaceAi {|
+                                    cfg with
+                                        AppInsights = named componentsWorkspace name
+                                |}
+                            )
             }
             |> this.Wrap state
 
@@ -1298,9 +1306,9 @@ module Extensions =
                             WorkspaceAi {|
                                 AppInsights =
                                     match commonState.AppInsights with
-                                    | Some(ClassicAi ai) -> ai
                                     | Some(WorkspaceAi cfg) -> cfg.AppInsights
-                                    | None -> derived (fun name -> components.resourceId (name - "ai"))
+                                    | Some(ClassicAi _)
+                                    | None -> CommonWebConfig.defaultAiResourceRef componentsWorkspace
                                 LogAnalytics =
                                     derived (fun name -> LogAnalytics.workspaces.resourceId (name - "logstore"))
                             |}

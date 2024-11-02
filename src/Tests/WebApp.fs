@@ -30,7 +30,7 @@ let tests =
     let expectContains a n kind dependencies =
         Expect.contains dependencies (ResourceId.create (a, ResourceName n)) $"Missing {kind}"
 
-    testList "Web App Tests" [
+    ftestList "Web App Tests" [
         test "Basic Web App has service plan and AI dependencies set" {
             let resources = webApp { name "test" } |> getResources
             let wa = resources |> getResource<Web.Site> |> List.head
@@ -41,7 +41,7 @@ let tests =
             Expect.hasLength (resources |> getResource<Web.ServerFarm>) 1 "Should be one server farm"
         }
 
-        test "Web App using Modern AI has AI and Log Analytics dependencies set" {
+        test "Web App using Workspace Based AI has AI and Log Analytics dependencies set" {
             let resources =
                 webApp {
                     name "test"
@@ -50,12 +50,29 @@ let tests =
                 |> getResources
 
             let wa = resources |> getResource<Web.Site> |> List.head
-            wa.Dependencies |> expectContains components "test-ai" "app insights"
+            wa.Dependencies |> expectContains componentsWorkspace "test-ai" "app insights"
 
             let ai = resources |> getResource<Insights.Components> |> List.head
+            Expect.equal ai.InstanceKind.ResourceType componentsWorkspace "Wrong AI kind"
             ai.Dependencies |> expectContains workspaces "test-logstore" "log analytics"
 
             Expect.hasLength (resources |> getResource<LogAnalytics.Workspace>) 1 "Should be one log workspace"
+        }
+
+        test "Using Workspace based AI uses a manually chosen name if set after turning on workspace-based AI" {
+            let resources =
+                webApp {
+                    name "test"
+                    use_workspace_based_app_insights
+                    app_insights_name "foo"
+                }
+                |> getResources
+
+            let wa = resources |> getResource<Web.Site> |> List.head
+            wa.Dependencies |> expectContains componentsWorkspace "foo" "app insights"
+
+            let ai = resources |> getResource<Insights.Components> |> List.head
+            Expect.equal ai.InstanceKind.ResourceType componentsWorkspace "Wrong AI kind"
         }
 
         for os, version in [ Windows, 2; Linux, 3 ] do
