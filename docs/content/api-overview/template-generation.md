@@ -42,13 +42,13 @@ match response with
 | Error error -> printfn "Failed! %s" error
 ```
 
-As you can see, the response of calling `tryExecute` is a `Result` object which is either `Ok`, in which case any outputs returned from the template are made available as a `Map<string, string>`, or an `Error`, which is the error returned by the Azure CLI. Alternatively, you can call `execute` which will throw an exception rather than return a Result.
+As you can see, the response of calling `tryExecute` is a `Result` object, which is either `Ok`, in which case any outputs returned from the template are made available as a `Map<string, string>`, or an `Error`, which is the error returned by the Azure CLI. Alternatively, you can call `execute` which will throw an exception rather than return a Result.
 
 > You must have the Azure CLI installed on your machine in order for Farmer to perform deployments for you.
 
 #### Authenticating to Azure
 Azure CLI stores a login token on your machine, and Farmer will check for this. If you aren't logged in, Farmer will automatically start the interactive Azure CLI login process for you.
 
-For automated deployments e.g. continuous deployment or through scripts etc., you'll want to use an unattended deployment mode. Some CI systems such as Azure Devops come with an pre-authenticated Azure CLI terminal from which you can run an application that uses Farmer. Alternatively, you can create a [service principal](../../deployment-guidance#how-do-i-create-a-service-principal), and supply them to the `Deploy.authenticate` function before calling `Deploy.execute`.
+For automated deployments e.g. continuous deployment or through scripts etc., you'll want to use an unattended deployment mode. Some CI systems, such as Azure Devops come with an pre-authenticated Azure CLI terminal from which you can run an application that uses Farmer. Alternatively, you can create a [service principal](../../deployment-guidance#how-do-i-create-a-service-principal), and supply them to the `Deploy.authenticate` function before calling `Deploy.execute`.
 
 You should use a secure mechanism for storing and supplying the credentials to Farmer. **Do not commit them into source control!**

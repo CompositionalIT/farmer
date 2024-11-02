@@ -7,7 +7,7 @@ chapter: false
 
 #### Overview
 The App Insights - Availability Tests builder is used to create Application Insights Availability Tests. You will need an Application Insights instance to run the tests.
-The tests can be just pinging the website and expecting response code of 200, or they can be recored Visual Studio WebTests as custom XML strings.
+The tests can be just pinging the website and expecting a response code of 200, or they can be recorded Visual Studio WebTests as custom XML strings.
 
 * Application Insights (`Microsoft.Insights/webtests`)
 

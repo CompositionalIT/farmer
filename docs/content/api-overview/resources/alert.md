@@ -20,13 +20,13 @@ Azure Application Insights allows you to monitor your application and send you a
 | frequency | How often the metric alert is evaluated |
 | window | The period of time that is used to monitor alert activity based on the threshold. |
 | severity | Alert severity |
-| add_linked_resource | Add target resource on which the alert is created/updated.  |
+| add_linked_resource | Add the target resource on which the alert is created/updated.  |
 | add_linked_resources | Add the target resources on which the alert is created/updated. |
 | single_resource_multiple_metric_criteria | The rule criteria that defines the conditions of the alert rule. |
-| single_resource_multiple_custom_metric_criteria | The rule criteria that defines the conditions of the alert rule based on Application Insights custom metric or metric with custom namespace. Metric validation is disabled for such criteria, so it is possible to create an alert that watches metrics not yet emitted. More details are available [here](https://docs.microsoft.com/azure/azure-monitor/platform/alerts-troubleshoot-metric#define-an-alert-rule-on-a-custom-metric-that-isnt-emitted-yet). |
+| single_resource_multiple_custom_metric_criteria | The rule criteria that defines the conditions of the alert rule based on Application Insights custom metric or metric with a custom namespace. Metric validation is disabled for such criteria, so it is possible to create an alert that watches metrics not yet emitted. More details are available [here](https://docs.microsoft.com/azure/azure-monitor/platform/alerts-troubleshoot-metric#define-an-alert-rule-on-a-custom-metric-that-isnt-emitted-yet). |
 | multiple_resource_multiple_metric_criteria | The rule criterias that defines the conditions of the alert rule. |
 | webtest_location_availability_criteria | The rule criteria that defines the conditions of the alert rule. AppInsightsId * WebTestId * FailedLocationCount |
-| add_action | Add an action that are performed when the alert rule becomes active. |
+| add_action | Add an action that is performed when the alert rule becomes active. |
 
 More detailed documentation: https://docs.microsoft.com/en-us/azure/templates/microsoft.insights/metricalerts?tabs=json#metricalertproperties
 

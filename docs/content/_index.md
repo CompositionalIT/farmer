@@ -20,7 +20,7 @@ Farmer is an easy-to-learn library for rapidly authoring and deploying entire Az
 Farmer has you covered.
 
 * **Farmer is completely backwards compatible with ARM templates**. Farmer generates standard ARM templates so you can continue to use existing deployment processes.
-* **Safely create dependencies between resources**. Uses static typing to give confidence that your templates will work first time.
+* **Safely create dependencies between resources**. Uses static typing to give confidence that your templates will work the first time.
 * **Easily access common properties of resources**. No more fighting to concatenate cryptic strings!
 * **Extensible API**. Add new helpers and members as needed.
 * **Open source and free**. Farmer is free to use and modify. We welcome contributions to the project!

@@ -25,7 +25,7 @@ The Virtual Network Gateway builder creates virtual network gateways for Express
 | Gateway | disable_bgp | BGP is enabled by default, but this can disable it |
 | Gateway | vpn_client | Specifies the VPN client configuration using the vpnclient builder (optional) |
 | VPNClient | add_address_pool | The reference of the address space resource which represents Address space for P2S VpnClient |
-| VPNClient | add_root_certificate | Adds the name and the public data of a root certificate to validate client certificates used for VPN Client connexion. This can be either just the data of the base64 content of the certificate or a multiline string starting with -----BEGIN CERTIFICATE----- and ending with -----END CERTIFICATE----- |
+| VPNClient | add_root_certificate | Adds the name and the public data of a root certificate to validate client certificates used for VPN Client connection. This can be either just the data of the base64 content of the certificate or a multiline string starting with -----BEGIN CERTIFICATE----- and ending with -----END CERTIFICATE----- |
 | VPNClient | add_revoked_certificate | Adds the name and the thumbprint of a revoked client certificate |
 | VPNClient | protocols | Sets the protocols for the VPN client. SSTP (default), IkeV2 or OpenVPN |
 | Connection | name | Specifies the name of the connection |

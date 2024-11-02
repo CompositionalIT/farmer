@@ -11,7 +11,7 @@ Farmer understands how to use ARM expressions and provides functionality to corr
 > For manipulation of literal values that are known in your Farmer applications, you will not need to use ARM expressions. To manipulate such values, you can use standard F# and .NET capabilities.
 
 #### How do I use ARM expressions?
-Many Farmer builders contain pre-defined ARM expression that can be used for common tasks, such as passing a connection string from a storage account as a KeyVault secret, or a web application setting.
+Many Farmer builders contain pre-defined ARM expressions that can be used for common tasks, such as passing a connection string from a storage account as a KeyVault secret, or a web application setting.
 
 As an example, a Storage Account config contains a `Key` member that you can supply to a web app as a setting:
 
@@ -36,7 +36,7 @@ This will be written to the ARM template file as follows:
             }
 ```
 
-Using ARM expressions means that you can deploy an application which is automatically configured at deployment time. This means that you never need to store an application secret such as a storage account key in source control, or even e.g. as a secret variable in your build / deployment process.
+Using ARM expressions means that you can deploy an application which is automatically configured at deployment time. This means that you never need to store an application secret, such as a storage account key in source control, or even e.g. as a secret variable in your build / deployment process.
 
 #### Returning the value of ARM Expressions as outputs.
 ARM Expressions can also be passed back as *outputs* and used further downstream once your deployment is complete:

@@ -30,7 +30,7 @@ The Virtual Machine Scale Set builder (`vmss`) creates a virtual machine scale s
 | applicationHealthExtension | protocol                       | Protocol (TCP, HTTP, or HTTPS) to probe, and if specifying HTTP or HTTPS, include the path.                                                                                                               |
 | applicationHealthExtension | port                           | TCP port to probe.                                                                                                                                                                                        |
 | applicationHealthExtension | interval                       | Interval to probe for health.                                                                                                                                                                             |
-| applicationHealthExtension | number_of_probes               | Sets the number times the probe must fail to consider this instance a failure.                                                                                                                            |
+| applicationHealthExtension | number_of_probes               | Sets the number of times the probe must fail to consider this instance a failure.                                                                                                                            |
 
 #### Example
 

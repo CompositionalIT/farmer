@@ -9,7 +9,7 @@ This tutorial walks you through creating multiple web applications that will sha
 
 1. Creating a web app.
 1. Creating multiple web apps and "sharing" the first web app's service plan and Application Insights instances.
-1. How to use F#'s list comprehensions to rapidly creating multiple websites.
+1. How to use F#'s list comprehensions to rapidly create multiple websites.
 
 {{< figure src="../../images/tutorials/multiple-web-apps.png" caption="[Full code available here](https://github.com/CompositionalIT/farmer/blob/master/samples/scripts/tutorials/multiple-web-apps.fsx)">}}
 
@@ -46,7 +46,7 @@ let template = arm {
 ```
 
 #### Creating dedicated Service Plan and App Insights instances
-Rather than "piggy back" on a "primary" web app, you can also opt to create dedicated service plan and app insights instances and configure all web apps to use them. This is a slightly more verbose option, but you may find it clearer, and as we'll see shortly, it can sometimes be useful to declare these instances outside of the web app:
+Rather than "piggy back" on a "primary" web app, you can also opt to create a dedicated service plan and app insights instances and configure all web apps to use them. This is a slightly more verbose option, but you may find it clearer, and as we'll see shortly, it can sometimes be useful to declare these instances outside of the web app:
 
 ```fsharp
 let plan = servicePlan {
@@ -91,7 +91,7 @@ The key parts to note are:
 
 1. Use of `[ ]`, which in F# signify a *list* of some data.
 2. Use of `for .. in .. do` syntax to iterate over numbers 1 to 4, assigning each value to `i`.
-3. Creating unique names for each web app using simple string concatentation.
+3. Creating unique names for each web app using simple string concatenation.
 4. An explicit *type annotation* (: IBuilder list). Without getting into too much detail, this is needed because F# is somewhat stricter about implicit type conversions than other languages, particularly around list contra/covariance.
 
 List comprehensions in F# are very powerful. You can use this approach with a specific set of names that are themselves a list as well e.g.
