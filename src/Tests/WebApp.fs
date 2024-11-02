@@ -57,6 +57,15 @@ let tests =
             ai.Dependencies |> expectContains workspaces "test-logstore" "log analytics"
 
             Expect.hasLength (resources |> getResource<LogAnalytics.Workspace>) 1 "Should be one log workspace"
+
+            Expect.contains
+                (wa.AppSettings
+                 |> Option.defaultValue Map.empty
+                 |> Seq.toArray
+                 |> Array.map (fun x -> x.Key, x.Value.Value))
+                ("APPLICATIONINSIGHTS_CONNECTION_STRING",
+                 "[reference(resourceId('Microsoft.Insights/components', 'test-ai'), '2020-02-02').ConnectionString]")
+                "Missing AI connection string"
         }
 
         test "Using Workspace based AI uses a manually chosen name if set after turning on workspace-based AI" {

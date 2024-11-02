@@ -1299,9 +1299,9 @@ module Extensions =
             }
             |> this.Wrap state
 
-        // Turns on "modern App Insights" with automatic Log Analytics. If you have configured the AI instance, those settings will be preserved.
+        // Turns on "modern App Insights" with automatic Log Analytics. If you have already set the name of the AI instance before calling this, it will be overwritten with a default name.
         [<CustomOperation "use_workspace_based_app_insights">]
-        member this.ModernAi(state: 'T) =
+        member this.WorkspaceBasedAi(state: 'T) =
             let commonState = this.Get state
 
             {
@@ -1341,7 +1341,7 @@ module Extensions =
 
         member this.LinkToAi(state: 'T, config: AppInsightsConfig) = this.LinkToAi(state, config.Name)
 
-        /// Instead of creating a new AI instance, configure this webapp to point to an unmanaged AI instance (can be classic or modern AI)
+        /// Instead of creating a new AI instance, configure this webapp to point to an unmanaged AI instance (can be classic or workspace-based AI)
         /// A dependency will not be set for this instance.
         [<CustomOperation "link_to_unmanaged_app_insights">]
         member this.LinkUnmanagedAppInsights(state: 'T, resourceId) =
