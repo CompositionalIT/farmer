@@ -28,7 +28,7 @@ The Operations Management builder is used to create [Solutions](https://docs.mic
 
 #### Example
 
-This example creates an Azure Sentinel solution on an Log Analytics Workspace.
+This example creates an Azure Sentinel solution on a Log Analytics Workspace.
 
 ```fsharp
 open Farmer

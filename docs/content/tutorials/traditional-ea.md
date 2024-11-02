@@ -6,20 +6,20 @@ weight: 5
 ---
 
 #### Introduction
-This tutorial shows how to create the basic infrastructure of an enterprise application (for example, migrating old on-premises application to cloud) and then how to build the supporting services for that.
+This tutorial shows how to create the basic infrastructure of an enterprise application (for example, migrating old on-premises applications to the cloud) and then how to build the supporting services for that.
 
-A traditional enterprise application has database and a server. Farmer supportrs both Microsoft SQL Server and PostgreSQL. This tutorial uses Microsoft version.
-For the server, we use a Virtual Machine (VM) which is basically your server in the cloud.
+A traditional enterprise application has a database and a server. Farmer supports both Microsoft SQL Server and PostgreSQL. This tutorial uses the Microsoft version.
+For the server, we use a Virtual Machine (VM), which is basically your server in the cloud.
 
 {{< figure src="../../images/tutorials/enterprise1.png" caption="Virtual Machine and SQL Server">}}
 
 #### Creating the deployment template
-First we need a template project and a script for the deployment code.
+First, we need a template project and a script for the deployment code.
 Create a new deployment application:
 
 1. Create a directory for your new application and enter it.
 2. Using the dotnet SDK, create a new console application: `dotnet new console -lang F#`.
-3. Install FAKE (which will be using to deploy the database) and Farmer:
+3. Install FAKE (which will be used to deploy the database) and Farmer:
 
 ```console
 dotnet add package Farmer
@@ -54,14 +54,14 @@ let runOrDefault args =
 
 let mutable dbConnectionString = "" // to transfer over Fake-tasks.
 
-/// Create Remote desktop file for VM
+/// Create a Remote desktop file for the VM
 let createRemoteDesktopFile machineName (ip:string) loginName =
     if ip.Contains "/" then Console.WriteLine $"Invalid ip: {ip}"
     else
     let content = $"full address:s:{ip}:3389\r\nusername:s:{machineName}\{loginName}\r\nprompt for credentials:i:1\r\nadministrative session:i:1"
     System.IO.File.WriteAllText(machineName + ".rdp", content)
 
-/// Here we will instert the Farmer code to deploy infrastructure
+/// Here we will insert the Farmer code to deploy infrastructure
 Target.create "Infrastructure" (fun _ ->
     
     let deployEnvironment = "Test" // "Prod"
@@ -87,7 +87,7 @@ Target.create "Infrastructure" (fun _ ->
     ()
 )
 
-/// Here we will inster the FAKE task to deploy the database to SQL Server
+/// Here we will install the FAKE task to deploy the database to SQL Server
 Target.create "DeployDatabase" (fun _ ->
     
     // Todo: Deploy database code
@@ -108,7 +108,7 @@ let dependencies = [
 let main args = runOrDefault args
 ```
 
-Now, if you run `dotnet build` and `dotnet run`, you should see that the both targets, Infrastructure and DeployDatabase, are being called.
+Now, if you run `dotnet build` and `dotnet run`, you should see that both targets, Infrastructure and DeployDatabase, are being called.
 
 
 #### Creating the database server with an empty database
@@ -145,7 +145,7 @@ Replace `// Todo: Insert DB Server code` with:
 Youc could add 
 ```fsharp
             geo_replicate({ DbSku = Some Sql.DtuSku.S1
-                            // Some different than the primary location:
+                            // Some different from the primary location:
                             Location = Location.NorthEurope 
                             NameSuffix = "-geo"})
 ```
@@ -157,7 +157,7 @@ Relevant Farmer API documentation:
 
 #### Creating virtual machine(s)
 
-[Virtual Machine](https://azure.microsoft.com/en-us/services/virtual-machines/) will be created as a list with shared Network Security Group (NSG). This allows you to configure the firewall rules once and apply them to all your machines.
+[Virtual Machine](https://azure.microsoft.com/en-us/services/virtual-machines/) will be created as a list with a shared Network Security Group (NSG). This allows you to configure the firewall rules once and apply them to all your machines.
 
 Next, replace the `// Todo: Insert VM code` with:
 
@@ -268,7 +268,7 @@ Next, replace the `// Todo: Insert Farmer deployment` with:
     Console.ResetColor()
 ```
 
-Before you can run this script, you have to set the environment varialbles of passwords for VM and DB.
+Before you can run this script, you have to set the environment variables of passwords for VM and DB.
 
 The complexity rules for VM-password: Supplied password must be between 8-123 characters long and must satisfy at least 3 of password complexity requirements from the following:
    1) Contains an uppercase character
@@ -284,7 +284,7 @@ set vm-password-test=...
 set db-password-test=...
 ```
 
-Because the deployments are repeateable, you can already `dotnet build` and `dotnet run` the script.
+Because the deployments are repeatable, you can already `dotnet build` and `dotnet run` the script.
 
 #### Deploying the Database Schema
 
@@ -294,7 +294,7 @@ The .sql-files will be in a ".sqlproj" project that is compiled into a .dacpac-f
 
 You can get SSDT for [Visual Studio 2019](https://docs.microsoft.com/en-us/sql/ssdt/download-sql-server-data-tools-ssdt?view=sql-server-ver15) or Azure Data Studio via the SQL Database Projects Extension.
 
-For non-Windows machine you can build a dacpac file by creating a normal .fsproj class library, and changing it to use Sdk `<Project Sdk="MSBuild.Sdk.SqlProj/1.16.2">` as described in [here](https://erikej.github.io/efcore/2020/05/11/ssdt-dacpac-netcore.html) with [more details](https://github.com/rr-wfm/MSBuild.Sdk.SqlProj).
+For non-Windows machines, you can build a dacpac file by creating a normal .fsproj class library, and changing it to use Sdk `<Project Sdk="MSBuild.Sdk.SqlProj/1.16.2">` as described in [here](https://erikej.github.io/efcore/2020/05/11/ssdt-dacpac-netcore.html) with [more details](https://github.com/rr-wfm/MSBuild.Sdk.SqlProj).
 
 Farmer has deployed an empty database for you (or updated the existing settings), but now you would want to insert/update the database schema, tables, procedures, etc.
 
@@ -510,7 +510,7 @@ but you need to have [Azure Cli](https://docs.microsoft.com/en-us/cli/azure/inst
 
 You have the `installStuff.ps1` locally, and then `Invoke-AzVMRunCommand` will transfer it to the VM automatically and execute the commands.
 The path it transfers the script will be something like `C:\Packages\Plugins\Microsoft.CPlat.Core.RunCommandWindows\(version)\Downloads\script0.ps1`.
-Example of the file content what you could have in your `installStuff.ps1`:
+Example of the file content that you could have in your `installStuff.ps1`:
 
 ```powershell
 # Do whatever installations here...

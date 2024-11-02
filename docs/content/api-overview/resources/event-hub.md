@@ -25,7 +25,7 @@ The Event Hub builder creates event hub namespaces, event hubs, consumer groups 
 | Namespace | enable_auto_inflate | Enables auto inflate throughput; you must supply the maximum throughput level. |
 | Namespace | disable_auto_inflate | Disables auto inflate throughput. |
 | Event Hub | name | Sets the name of the event hub. |
-| Event Hub | message_retention_days | Sets the number of days to retain messages for on the event hub. |
+| Event Hub | message_retention_days | Sets the number of days to retain messages on the event hub. |
 | Event Hub | partitions | Sets the number of partitions on the event hub. |
 | Event Hub | add_consumer_group | Creates a consumer group for the event hub. The default consumer group `$Default` gets created automatically. |
 | Event Hub | add_authorization_rule | Adds a named authorization rule on the event hub. |

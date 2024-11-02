@@ -17,7 +17,7 @@ Before you deploy your container app, you need to turn on the Container Apps res
 Get sure you have the following providers registered: `Microsoft.Kubernetes` and `Microsoft.ContainerService`.
 
 #### Container Environment Builder
-The Container Environment builder (`containerEnvironment`) defines settings for the Kubernetes envirionment that hosts the container apps.
+The Container Environment builder (`containerEnvironment`) defines settings for the Kubernetes environment that hosts the container apps.
 
 | Keyword | Purpose |
 |-|-|
@@ -28,7 +28,7 @@ The Container Environment builder (`containerEnvironment`) defines settings for 
 | add_container | Adds a single container app to the environment. |
 | add_containers | Adds one or more container apps to the environment. |
 | add_dapr_component | Adds a dapr component to the environment. |
-| add_dapr_components | Adds one or more dapr component to the environment. |
+| add_dapr_components | Adds one or more dapr components to the environment. |
 | app_insights_instance | Links an App Insights instance to this environment. All containers will be configured to use this AI instance, as well as DAPR. |
 
 > Also supports Tagging and Dependencies.
@@ -47,7 +47,7 @@ The Container Apps builder (`containerApp`) is used to define one or more contai
 | dapr_app_id | Sets the dapr app id for the app. |
 | dapr_app_port | Sets the dapr app port for the app. |
 | replicas | Sets the minimum and maximum replicas to scale the container app. |
-| active_revision_mode | Indicates whether multiple version of a container app can be active at once.|
+| active_revision_mode | Indicates whether multiple versions of a container app can be active at once.|
 | add_registry_credentials | Adds container image registry credentials for images in this container app, which are a list of server and usernames. Passwords are supplied as secure parameters. |
 | reference_registry_credentials | Adds container image registry credentials for images in this container app in the form of a list of Azure resource ids. |
 | add_managed_identity_registry_credentials | Adds container app registry managed identity credentials for images in this container app, which are a list of server and identities. |
@@ -56,7 +56,7 @@ The Container Apps builder (`containerApp`) is used to define one or more contai
 | add_secret_parameter | Adds an application secret to the entire container app. This is passed as a secure parameter to the template, and an environment variable is automatically created which references the secret. |
 | add_secret_parameters | Adds application secrets to the entire container app. This is passed as secure parameters to the template, and environment variables are automatically created which reference the secret. |
 | add_secret_expression | As per `add_secret_parameter`, but the value is sourced from an ARM expression instead of as a parameter. Useful for e.g. storage keys etc. |
-| add_secret_expressions | As per `add_secret_parameters`, but the values are sourced from an ARM expressions instead of as parameters. Useful for e.g. storage keys etc. |
+| add_secret_expressions | As per `add_secret_parameters`, but the values are sourced from ARM expressions instead of as parameters. Useful for e.g. storage keys etc. |
 | add_env_variable | Adds a static, plain text environment variable. |
 | add_env_variables | Adds static, plain text environment variables. |
 | add_volumes | Adds volumes to a container app so they are accessible to containers. |
@@ -101,7 +101,7 @@ The Dapr Component builder (`daprComponent`) is used to define one or more dapr 
 | add_metadata | Adds a piece of metadata to the dapr component. |
 | add_secret_metadata | Adds a piece of metadata that references a secret to the dapr component. |
 | add_scope | Adds a scope, can either be a string or a reference to a container app. |
-| add_scopes | Adds one or more scopes, can either be strings or references to container apps. |
+| add_scopes | Adds one or more scopes, which can either be strings or references to container apps. |
 | version | Sets the dapr component version. |
 | cron_binding | Helper for setting fields required for a cron binding |
 | azure_storage_queue_binding | Helper for setting fields required for an Azure Storage Queue binding |

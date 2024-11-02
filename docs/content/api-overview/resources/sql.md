@@ -18,15 +18,15 @@ The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azu
 | add_firewall_rules | As add_firewall_rule but a list of rules |
 | enable_azure_firewall | Adds a firewall rule that enables access to other Azure services. |
 | admin_username | Sets the admin username of the server. The password is supplied as a secret parameter at runtime. |
-| entra_id_admin | Activates Entra ID authentication using the supplied login named, associated objectId and principal type of the administrator account. |
+| entra_id_admin | Activates Entra ID authentication using the supplied login name, associated objectId and principal type of the administrator account. |
 | entra_id_admin_user | Activates Entra ID authentication for the User Principal Type using the supplied user's login name. You can determine the ObjectId using `Farmer.Builders.AccessPolicy.findUsers`. |
 | entra_id_admin_group | Activates Entra ID authentication for the Group Principal Type using the supplied group's login name. You can determine the ObjectId using `Farmer.Builders.AccessPolicy.findGroups`. |
 | elastic_pool_name | Sets the name of the elastic pool, if required. If not set, Farmer will generate a name for you. |
 | elastic_pool_sku | Sets the sku of the elastic pool, if required. If not set, Farmer will default to Basic 50. |
 | elastic_pool_database_min_max | Sets the optional minimum and maximum DTUs for the elastic pool for each database. |
 | elastic_pool_capacity | Sets the optional disk size in MB for the elastic pool for each database. |
-| min_tls_version | Sets the minium TLS version for the SQL server |
-| geo_replicate | Geo-replicate all the databases in this server to another location, having NameSuffix after original server and database names. |
+| min_tls_version | Sets the minimum TLS version for the SQL server |
+| geo_replicate | Geo-replicate all the databases in this server to another location, having NameSuffix after the original server and database names. |
 
 > You must set at least one of SQL user / pass (using `admin_username`) or Entra ID login (using one of the `entra_id_admin` variants).
 > Setting both will leave both activated; setting only Entra ID will automatically explicitly deactivate user / pass authentication.
@@ -42,7 +42,7 @@ The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azu
 | Keyword | Purpose |
 |-|-|
 | name | Sets the name of the database. |
-| sku | Sets the sku of the database. If not set, the database is assumed to be part of an elastic pool which will be automatically created. |
+| sku | Sets the sku of the database. If not set, the database is assumed to be part of an elastic pool, which will be automatically created. |
 | hybrid_benefit | If a VCore-style SKU is selected, this allows you to use Azure Hybrid Benefit licensing. |
 | db_size | Sets the maximum database size. |
 | collation | Sets the collation of the database. |

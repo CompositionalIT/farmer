@@ -65,7 +65,7 @@ let myApp = webApp {
 }
 ```
 
-Notice the extra type hint, `: IBuilder list`. This is required because F# does not, by default, allow you to implicitly treat a list of values as a supertype. In this case, a `StorageAccountConfig list` is not considered implicitly convertable to `: IBuilder list` (which is an interface that `StorageAccountConfig` implements). Therefore, we have to do it ourselves using the extra type declaration.
+Notice the extra type hint, `: IBuilder list`. This is required because F# does not, by default, allow you to implicitly treat a list of values as a supertype. In this case, a `StorageAccountConfig list` is not considered implicitly convertible to `: IBuilder list` (which is an interface that `StorageAccountConfig` implements). Therefore, we have to do it ourselves using the extra type declaration.
 
 You can also use the `:>` (safe upcast) operator when declaring the StorageAccount:
 

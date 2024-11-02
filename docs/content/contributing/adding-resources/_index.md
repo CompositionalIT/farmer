@@ -6,9 +6,9 @@ chapter: false
 weight: 10
 ---
 
-This set of guided exercises shows the different steps required to design new ARM resources that can be consumed in Farmer. This tutorial will show you the steps to take create a resource that can hook into the Farmer pipeline, by adding support to Farmer for the `ContainerRegistry` Azure resource. This will involve:
+This set of guided exercises shows the different steps required to design new ARM resources that can be consumed in Farmer. This tutorial will show you the steps to take to create a resource that can hook into the Farmer pipeline, by adding support to Farmer for the `ContainerRegistry` Azure resource. This will involve:
 
-* Defining an type that implements `IArmResource` that maps directly to the ARM template output.
+* Defining a type that implements `IArmResource` that maps directly to the ARM template output.
 * Defining any domain types required to capture details on the resource.
 * Defining a type that implements `IBuilder` and an associated *computation expression* that will be easier for users to consume than an F# record.
 

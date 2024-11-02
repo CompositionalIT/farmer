@@ -27,7 +27,7 @@ There are three builders available:
 | Keyword | Purpose |
 |-|-|
 | name | Sets the name of the endpoint instance. If you do not set this, a name is generated based on the origin. |
-| origin | Sets the address of the origin and is used to auto-generate the endpoint name if none if supplied. |
+| origin | Sets the address of the origin and is used to auto-generate the endpoint name if none is supplied. |
 | depends_on | [Sets dependencies on this endpoint](../../dependencies/). |
 | add_compressed_content | Adds a set of content types to compress. |
 | query_string_caching_behaviour | Specifies the Query String Caching Behaviour. |
