@@ -25,6 +25,7 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | link_to_unmanaged_storage_account | Do not create an automatic storage account; instead, link to an existing storage account that was created external to Farmer. |
 | https_only | Disables http for this functions app so that only HTTPS is used. |
 | ftp_state | Allows to enable or disable FTP and FTPS. |
+| Web App | use_workspace_based_app_insights | Instructs Farmer to use Workspace Based App Insights, which automatically comes with a Log Analytics instance. Both resources will be automatically created. |
 | app_insights_name | Sets the name of the automatically-created app insights instance. |
 | app_insights_off | Removes any automatic app insights creation, configuration and settings for this webapp. |
 | link_to_app_insights | Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing yourself. |
@@ -52,7 +53,7 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | add_denied_ip_restriction | Adds an 'deny' rule for an ip |
 | link_to_vnet | Enable the VNET integration feature in azure where all outbound traffic from the function with be sent via the specified subnet. Use this operator when the given VNET is in the same deployment |
 | link_to_unmanaged_vnet | Enable the VNET integration feature in azure where all outbound traffic from the function with be sent via the specified subnet. Use this operator when the given VNET is *not* in the same deployment |
-| max_scale_out_limit | Maximum number of workers that a site can scale out to. This setting only applies to the Consumption and Elastic Premium Plans | 
+| max_scale_out_limit | Maximum number of workers that a site can scale out to. This setting only applies to the Consumption and Elastic Premium Plans |
 #### Post-deployment Builder Keywords
 The Functions builder contains special commands that are executed *after* the ARM deployment is completed.
 
