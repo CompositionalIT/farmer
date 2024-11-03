@@ -1,14 +1,13 @@
 Release Notes
 =============
-## vNext
+
+## 1.9.3
+* Deployments: Default to resource group location rather than West Europe.
 * SQL Azure: Clean up Entra ID authentication support.
 * Web App: Support automatic creation of Workspace Based App Insights & Log Analytics.
 * Functions: Support automatic creation of Workspace Based App Insights & Log Analytics.
 * Az: Update `ad` commands to work with latest (breaking) structure.
 * PostgreSQL: Fix a number of issues around the introduction of Flexible Servers.
-
-## 1.9.3
-* Deployments: Default to resource group location rather than West Europe.
 
 ## 1.9.2
 * Container Apps: Fix to container registry credential to not emit a secret for a managed identity.
