@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.3
+* Network Security Groups: Use a common protocol in security rules with multiple sources. Defaults to Any if sources use different protocols.
+
 ## 1.9.2
 * Container Apps: Fix to container registry credential to not emit a secret for a managed identity.
 * Container Groups: followup to #ff78f202dc - expand DNS config validation for profile-less vnet.

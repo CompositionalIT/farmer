@@ -453,6 +453,47 @@ let tests =
 
             Expect.isNull vnet.Subnets.[2].NetworkSecurityGroup "Third subnet should not have NSG"
         }
+        test "Security Rules with Multiple Sources" {
+            let sameProtocols = securityRule {
+                name "same-protocols"
+                description "Security Rule with multiple sources of same protocol"
+                services [ "http", 80 ]
+                add_source_network NetworkSecurity.TCP "10.28.0.0/24"
+                add_source_network NetworkSecurity.TCP "10.30.0.0/24"
+                add_destination_network "10.28.0.0/24"
+            }
+
+            let differentProtocols = securityRule {
+                name "multiple-protocols"
+                description "Security Rule with multiple sources of different protocols"
+                services [ "http", 80 ]
+                add_source_network NetworkSecurity.TCP "10.28.0.0/24"
+                add_source_network NetworkSecurity.UDP "10.30.0.0/24"
+                add_destination_network "10.28.1.0/24"
+            }
+
+            let myNsg = nsg {
+                name "my-nsg"
+                add_rules [ sameProtocols; differentProtocols ]
+            }
+
+            let template = arm { add_resources [ myNsg ] }
+            let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+            let securityRules =
+                jobj.SelectToken "resources[?(@.name=='my-nsg')].properties.securityRules"
+                :?> Newtonsoft.Json.Linq.JArray
+
+            Expect.equal
+                (securityRules.[0].["properties"].["protocol"].ToString())
+                "Tcp"
+                "Multiple sources with same protocol should use the common protocol"
+
+            Expect.equal
+                (securityRules.[1].["properties"].["protocol"].ToString())
+                "*"
+                "Multiple sources with different protocol should use Any protocol"
+        }
         test "Vnet with linked network security group doesn't add dependsOn" {
             let vnetName = "my-vnet"
             let webSubnet = "web"
