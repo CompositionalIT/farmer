@@ -152,7 +152,7 @@ deploymentScript {
 
 #### Creating the Web Application
 
-Our web application will be a simple "hello world" service, as the interesting part is that it listens on HTTPS. Doing this requires the key pair be loaded by the service when it creates the binding to an HTTPS port. Here is the script content. Notice we need to add the certificate to the `X509Store`. This avoids some SSL warnings within the service itself due to using a self-signed certificate. If you are using a trusted third party CA, this may not be necessary.
+Our web application will be a simple "hello world" service, as the interesting part is that it listens on HTTPS. Doing this requires the key pair to be loaded by the service when it creates the binding to an HTTPS port. Here is the script content. Notice we need to add the certificate to the `X509Store`. This avoids some SSL warnings within the service itself due to using a self-signed certificate. If you are using a trusted third party CA, this may not be necessary.
 
 ```fsharp
 #r "nuget: Suave, Version=2.6.0"

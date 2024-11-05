@@ -12,7 +12,7 @@ In this tutorial, you will deploy an ExpressRoute circuit, create a reference to
 
 #### Define the ExpressRoute circuit to deploy
 
-An ExpressRoute circuit provides direct connectivity into Azure over a telecommunication provider's network rather than traversing the Internet or a VPN. Once the circuit is created, the typical flow is to take the circuit's service key to the telecommunications provider so they can enable it for your business connecivity.
+An ExpressRoute circuit provides direct connectivity into Azure over a telecommunication provider's network rather than traversing the Internet or a VPN. Once the circuit is created, the typical flow is to take the circuit's service key to the telecommunications provider so they can enable it for your business connectivity.
 
 ```fsharp
 open Farmer
@@ -41,7 +41,7 @@ let serviceKeyRef = ArmExpression.create ($"reference({erId.ArmExpression.Value}
 
 #### Adding the Deployment Output
 
-One or more outputs can be added to an `arm` computation expression to generate outputs from the deployment. An output is created using the name for the output an an `ArmExpression`, such as `serviceKeyRef` created above.
+One or more outputs can be added to an `arm` computation expression to generate outputs from the deployment. An output is created using the name for the output an `ArmExpression`, such as `serviceKeyRef` created above.
 
 ```fsharp
 arm {

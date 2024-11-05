@@ -14,7 +14,7 @@ let componentsWorkspace = createComponents "2020-02-02"
 /// The type of AI instance to create.
 type InstanceKind =
     | Classic
-    | Workspace of ResourceId
+    | Workspace of workspace: ResourceId
 
     member this.ResourceType =
         match this with

@@ -8,14 +8,14 @@ draft: false
 This tutorial shows how to create the infrastructure required to host a web app which can retrieve secrets from a secure store (Keyvault) using Azure *identity*. In this tutorial, we'll store the key for a storage account in Keyvault, but it could be anything. We'll cover the following steps:
 
 1. Creating a Web App, Storage Account and a KeyVault instance.
-1. Safely adding the Storage Account key into KeyVault.
+1. Safely add the Storage Account key into KeyVault.
 1. Granting a read-only trust between KeyVault and the Web App.
 1. Referencing the KeyVault setting from the Web App.
 
 {{< figure src="../../images/tutorials/webapp-keyvault.png" caption="[Full code available here](https://github.com/CompositionalIT/farmer/blob/master/samples/scripts/tutorials/webapp-keyvault.fsx)">}}
 
 #### Create basic resources
-Start by creating the three main resources we need: a web app, storage account and key vault in the following ordwer:
+Start by creating the three main resources we need: a web app, storage account and key vault in the following order:
 
 ```fsharp
 open Farmer
@@ -61,7 +61,7 @@ let secretsvault = keyVault {
 
 The `AccessPolicy.create` builder method has several overloads; this one grants basic GET and LIST permissions to the web application's built-in system identity, which we have just activated above. You can also supply other permissions as a secondary argument to the `create` method.
 
-#### Connect secret to the web app
+#### Connect the secret to the web app
 Now, we use Farmer's Web App / Keyvault integration to seamlessly provide access to key vault secrets:
 
 ```fsharp
@@ -90,7 +90,7 @@ The first keyword "links" the vault with the web app, and tells Farmer that all 
 
 The second keyword actually adds the secret to the web app. If you hadn't added the `link_to_keyvault` keyword, this would be rendered into ARM as a secret parameter, but in this case because we've linked the vault in, it gets redirected to point there instead.
 
-#### Adding extra type safety for sharing resources
+#### Adding an extra type of safety for sharing resources
 To prevent accidentally mistyping the secret or vault names, you should bind the magic strings into symbols at the top of the template and replace usages in the template.
 
 ```fsharp

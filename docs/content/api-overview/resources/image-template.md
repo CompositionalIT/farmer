@@ -15,8 +15,8 @@ The Image Template builder is used to create Image Templates for generating VM i
 | Applies To | Keyword | Purpose |
 |-|-|-|
 | imageTemplate | name | Sets the name of the App Insights instance. |
-| imageTemplate | add_identity | Adds a managed identity to the the imageTemplate that it uses to access resources when building the image and to publish images to a gallery. |
-| imageTemplate | build_timeout | Timeout for the image builder, after which it will fail. Default is 4 hours. |
+| imageTemplate | add_identity | Adds a managed identity to the imageTemplate that it uses to access resources when building the image and to publish images to a gallery. |
+| imageTemplate | build_timeout | Timeout for the image builder, after which it will fail. The default is 4 hours. |
 | imageTemplate | source_platform_image | Specify the source image to be customized from the Azure Gallery. | 
 | imageTemplate | source_managed_image | Specify the source as an existing managed image. |
 | imageTemplate | source_shared_image_version | Specify the source image to be customized from a shared image gallery. |
@@ -54,14 +54,14 @@ The Image Template builder is used to create Image Templates for generating VM i
 | managedImageDistributor | image_name | Target image name of the image to build in the same resource group. Either 'image_id' or 'image_name' must be set. |
 | managedImageDistributor | location | Azure region where the managed image should be created (required). |
 | managedImageDistributor | run_output_name | A label for the run, shown in logs and in the portal. |
-| managedImageDistributor | add_tags | An optional list of tags that will be added on the image. |
+| managedImageDistributor | add_tags | An optional list of tags that will be added to the image. |
 | sharedImageDistributor | gallery_image_id | Target ID for the gallery image to create. It can reference the image itself or a specific version to create. |
-| sharedImageDistributor | add_replication_regions | Azure regions where the managed image should be replicated. First in the list should be the location of the image gallery. |
+| sharedImageDistributor | add_replication_regions | Azure regions where the managed image should be replicated. First on the list should be the location of the image gallery. |
 | sharedImageDistributor | exclude_from_latest | Option to ensure the image will not be the "latest" version so it will always be pulled by version number. |
 | sharedImageDistributor | run_output_name | A label for the run, shown in logs and in the portal. |
-| sharedImageDistributor | add_tags | An optional list of tags that will be added on the gallery image. |
+| sharedImageDistributor | add_tags | An optional list of tags that will be added to the gallery image. |
 | vhdDistributor | run_output_name | A label for the run, shown in logs and in the portal. |
-| vhdDistributor | add_tags | An optional list of tags that will be added on the virtual hard disk. |
+| vhdDistributor | add_tags | An optional list of tags that will be added to the virtual hard disk. |
 
 #### Example
 

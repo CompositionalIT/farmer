@@ -14,7 +14,7 @@ parameter for the admin account password.
 
 > There is support for newer "Flexible" as well as the original "Single Server" server type.
 > Several keywords are overloaded to cater for both server types.
-> By default, the builder uses Flexible Server model.
+> By default, the builder uses the Flexible Server model.
 
 * PostgreSQL server (`Microsoft.DBforPostgreSQL/servers`)
 * PostgreSQL server (`Microsoft.DBforPostgreSQL/flexibleServers`)

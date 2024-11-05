@@ -17,7 +17,7 @@ The Virtual Network module contains four builders
 - The `vnet` builder is used to create Azure Virtual Network instances.
 - The `subnet` builder is used within the `vnet` builder to define subnets.
 - The `addressSpace` builder can be used to automatically generate subnets based on the sizes of networks needed within the address space.
-- The `subnetSpec` builder is used to define the automatically generated subnets, with the primary different from the `subnet` builder being that you define the `size` for the prefix, and not the address.
+- The `subnetSpec` builder is used to define the automatically generated subnets, with the primary difference from the `subnet` builder being that you define the `size` for the prefix, and not the address.
 
 #### Builder Keywords
 
@@ -52,7 +52,7 @@ The Virtual Network module contains four builders
 | associate_service_endpoint_policies  | Associates a subnet with an existing service policy.                                      |
 | allow_private_endpoints              | Enable or disable support for private endpoints, default is `Disabled`                    |
 | private_link_service_network_policies | Enable or disable support for private link service network polices, default is `Disabled` |
-| depends_on                           | Add depdendencies on the deployment of another resource.                                  |
+| depends_on                           | Add dependencies on the deployment of another resource.                                  |
 
 ##### Automatically build out an address space: `addressSpace`
 

@@ -47,7 +47,7 @@ First we build a list of users that we will allow on our server. We'll use this 
 
 ```fsharp
 let operator = true
-/// Our list of minecraft users - their username, uuid, and whether or not they are an operator.
+/// Our list of Minecraft users - their username, uuid, and whether or not they are an operator.
 let minecrafters = [
         "McUser1", "a6a66bfb-6ff7-46e3-981e-518e6a3f0e71", operator
         "McUser2", "d3f2e456-d6a4-47ac-a7f0-41a4dc8ed156", not operator
@@ -81,7 +81,7 @@ let eula = Eula.format true
 
 Now we need a few properties that are used both for the server.properties and for the resulting infrastructure. The `worldName` tells Minecraft where to store the world data. Since this will be mounted to an Azure Storage File share, we create a binding for it to make sure the name we use in the server.properties file matches what we use in the storage account.
 
-Same for the `serverPort`, which is both used in the server.properties file and must be exposed publicly on the Azure Container Group.
+The same is true for the `serverPort`, which is both used in the server.properties file and must be exposed publicly on the Azure Container Group.
 
 The name of the storage account is used in three places: the storage account itself, in the deployment script that will upload files to the storage account, and in the container group that will mount a volume from it. The `storageAccountName` can be referenced in all three uses.
 
@@ -114,7 +114,7 @@ let serverProperties =
 
 #### Creating the Storage Account
 
-A Minecraft server stores some data for the world that is generated and people play in. That data, along with the configuration files, is stored in a directory that must be accessible to the server. Azure Container Groups are able to attach an Azure Storage Account File share as a volume, so we will create a storage account with a file share.
+A Minecraft server stores some data for the world that is generated, and people play in. That data, along with the configuration files, is stored in a directory that must be accessible to the server. Azure Container Groups are able to attach an Azure Storage Account File share as a volume, so we will create a storage account with a file share.
 
 ```fsharp
 /// A storage account, with a file share for the server config and world data.
@@ -139,7 +139,7 @@ We need this deployment script to do three things:
 
 ##### Embedding Configuration Files
 
-First we will tackle the configuration files. We are going use F# to generate the CLI script, so we can actually embed these in the deployment script itself. To avoid any trouble with escaping characters for our script, we will encode all of the configuration files as base64 strings when we build the script and then the script will decode the base64 data and write files out to the container file system where the Azure CLI can upload them.
+First, we will tackle the configuration files. We are going to use F# to generate the CLI script, so we can actually embed these in the deployment script itself. To avoid any trouble with escaping characters for our script, we will encode all of the configuration files as base64 strings when we build the script, and then the script will decode the base64 data and write files out to the container file system where the Azure CLI can upload them.
 
 1. Convert each configuration file to base64.
 1. Embed in shell script run by deployment.
@@ -171,9 +171,9 @@ let deployConfig =
 
 ```
 
-That seemed a bit complicated, but using the best of both F# and the Azure CLI, the actual code to do this is minimal. The `b64` function converts any string you give it to bytes and then base64 encodes those bytes into a string we can embed in the script.
+That seemed a bit complicated, but using the best of both F# and the Azure CLI, the actual code to do this is minimal. The `b64` function converts any string you give it to bytes, and then base64 encodes those bytes into a string we can embed in the script.
 
-Next we have a list that contains the contents of each configuration file paired with the filename we need to write. We map each of those items to an interpolated string, which is where F# can execute little bits of code when building the string. Within the interpolated string, we call the `b64` function to encode the contents of each file, which is what `$"echo {b64 content}"` does. When the script executes, it will pass that string into `base64 -d` which decides the base64 back into bytes that are written to a file. After each file is written, it's uploaded with `az storage file upload` which again uses interpolated string values to get the `storageAccountName`, `worldName`, and `filename` values.
+Next, we have a list that contains the contents of each configuration file paired with the filename we need to write. We map each of those items to an interpolated string, which is where F# can execute little bits of code when building the string. Within the interpolated string, we call the `b64` function to encode the contents of each file, which is what `$"echo {b64 content}"` does. When the script executes, it will pass that string into `base64 -d` which decides the base64 back into bytes that are written to a file. After each file is written, it's uploaded with `az storage file upload` which again uses interpolated string values to get the `storageAccountName`, `worldName`, and `filename` values.
 
 ##### Deploying the Server Software
 
@@ -181,7 +181,7 @@ Having embedded the configuration files, now we need to add a line to the script
 
 Without F#, we would probably stop here and just use the link for whatever version is out today. But F# has nice toys for reading and exploring data, like FSharp.Data which can parse HTML files, so we're only a few lines away from scraping the download page for the link to the current version.
 
-When this F# code is executed to build the ARM template, it will load the Download page, find the link starting with `minecraft_server`, and copy the URL from the `href` on that link. We will embed that URL into our deployment script as a parameter to a `curl` call which will download the file before calling `az storage file upload` to copy the file to the storage account.
+When this F# code is executed to build the ARM template, it will load the Download page, find the link starting with `minecraft_server`, and copy the URL from the `href` on that link. We will embed that URL into our deployment script as a parameter to a `curl` call, which will download the file before calling `az storage file upload` to copy the file to the storage account.
 
 ```fsharp
     /// The script will also need to download the server.jar and upload it.
@@ -278,4 +278,4 @@ deployment |> Writer.quickWrite "minecraft-server"
 
 After running this deployment, view the container group in the Azure Portal or with `az container logs` to watch the server start up and generate a world. Once the world is generated, it's ready to connect from your Minecraft Java Edition client by entering the DNS name for the container group!
 
-If you need to change the configuration you could connect to the terminal of the container instance. But in the spirit of mature configuration management and immutable infrastructure, you should rebuild the config, stop the container group, and redeploy. The existing state - the minecraft world data - is left intact in the storage account and the configuration is replaced with your updates. Once the update is deployed, you can restart the container group.
+If you need to change the configuration you could connect to the terminal of the container instance. But in the spirit of mature configuration management and immutable infrastructure, you should rebuild the config, stop the container group, and redeploy. The existing state - the Minecraft world data - is left intact in the storage account and the configuration is replaced with your updates. Once the update is deployed, you can restart the container group.

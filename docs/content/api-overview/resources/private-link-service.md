@@ -17,7 +17,7 @@ The Private Link Service builder (`privateLink`) creates a private link service 
 | privateLink | name | Specifies the name of the private link service |
 | privateLink | depends_on | Specify any dependencies that must be deployed before this. |
 | privateLink | add_auto_approved_subscriptions | To auto-approve private endpoints, the subscription for those must be added here. |
-| privateLink | add_visible_to_subscriptions | To allow subscription to request access for their private endpoints, they must be added here. |
+| privateLink | add_visible_to_subscriptions | To allow subscriptions to request access to their private endpoints, they must be added here. |
 | privateLink | add_load_balancer_frontend_ids | Adds the resource ID for the load balancer frontend IP configurations that are accessible through this private link service. |
 | privateLink | add_ip_configs | Adds the subnet where the private endpoints will connect to this service. |
 | privateLinkIpConfig | name | Optionally name the IP config |

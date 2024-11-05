@@ -16,7 +16,7 @@ The CosmosDb package containers two builders, used to create *databases* and *co
 > There is currently only support for document databases (the so-called "SQL API"), with support for Gremlin, Table and Cassandra data models planned.
 
 #### Cosmos DB Builder
-The CosmosDB builder abstracts the idea of account and database into one. If you wish to "re-use" an already-created Cosmos DB account, use `link_to_account` keyword - no account will be created and the database will be attached to the existing one.
+The CosmosDB builder abstracts the idea of an account and database into one. If you wish to "re-use" an already-created Cosmos DB account, use the `link_to_account` keyword - no account will be created and the database will be attached to the existing one.
 
 | Applies To | Keyword | Purpose |
 |-|-|-|

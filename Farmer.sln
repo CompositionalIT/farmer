@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29201.188
@@ -67,6 +67,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tutorials", "tutorials", "{
 		samples\scripts\tutorials\webapp-keyvault.fsx = samples\scripts\tutorials\webapp-keyvault.fsx
 	EndProjectSection
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SampleApp", "samples\SampleApp\SampleApp.fsproj", "{4FA93ACF-25E8-4469-A2AC-4B339675EAF7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -81,6 +83,10 @@ Global
 		{D68F5B81-6F18-4FC7-B9FD-2113EE7614CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D68F5B81-6F18-4FC7-B9FD-2113EE7614CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D68F5B81-6F18-4FC7-B9FD-2113EE7614CE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4FA93ACF-25E8-4469-A2AC-4B339675EAF7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4FA93ACF-25E8-4469-A2AC-4B339675EAF7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4FA93ACF-25E8-4469-A2AC-4B339675EAF7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4FA93ACF-25E8-4469-A2AC-4B339675EAF7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -88,6 +94,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{C3991DD2-B728-4EDD-ACD1-2C1470309481} = {47438D72-1C5F-49EB-B7E5-B597F565B14B}
 		{0053093F-A18C-4FAC-A138-9F5D60CFA24F} = {C3991DD2-B728-4EDD-ACD1-2C1470309481}
+		{4FA93ACF-25E8-4469-A2AC-4B339675EAF7} = {47438D72-1C5F-49EB-B7E5-B597F565B14B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {63B0361D-FC8A-40CF-B988-5BE797ADD2CE}
