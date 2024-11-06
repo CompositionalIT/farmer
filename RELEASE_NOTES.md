@@ -1,8 +1,10 @@
 Release Notes
 =============
 
-## 1.9.3
+## 1.9.4
 * Network Security Groups: Use a common protocol in security rules with multiple sources. Defaults to Any if sources use different protocols.
+
+## 1.9.3
 * Deployments: Default to resource group location rather than West Europe.
 * SQL Azure: Clean up Entra ID authentication support.
 * Web App: Support automatic creation of Workspace Based App Insights & Log Analytics.
