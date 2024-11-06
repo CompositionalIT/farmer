@@ -79,7 +79,8 @@ type SecurityRuleConfig = {
             Description = None
             SecurityGroup = nsg
             Protocol =
-                let protocols = this.Sources |> List.map (fun (protocol, _, _) -> protocol)
+                let protocols =
+                    this.Sources |> List.map (fun (protocol, _, _) -> protocol) |> List.distinct
 
                 match protocols with
                 | [] -> raiseFarmer $"You must set a source for security rule {this.Name.Value}"
