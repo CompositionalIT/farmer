@@ -17,7 +17,7 @@ The Virtual WAN builder (`vhub`) is used to create Azure Virtual Hub instances.
 | vhub           | name | Sets the name of the virtual hub |
 | vhub           | sku | Sets the sku of the virtual hub |
 | vhub           | address_prefix | Sets the address prefix of the virtual hub |
-| vhub           | link_to_vwan | Sets the virtual wan deployed by farmer to which the virtual hub belongs |
+| vhub           | link_to_vwan | Sets the virtual wan deployed by Farmer to which the virtual hub belongs |
 | vhub           | link_to_unmanaged_vwan | Sets the existing virtual wan to which the virtual hub belongs |
 
 ### Example

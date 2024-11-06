@@ -16,12 +16,12 @@ The Bastion Host builder creates a bastion host to access resources inside a vir
 |------------|-----------------------|----------------------------------------------------------------------------------------------------------------------|
 | `bastion`  | vnet                  | Name of the virtual network the bastion host can access.                                                             |
 | `bastion`  | link_to_vnet          | Link to an existing virtual network (no dependsOn emitted.                                                           |
-| `bastion`  | scale_units           | Number of scale units when more connections are needed. Default is 2 and more scale units will use the Standard SKU. |
-| `bastion`  | disable_copy_paste    | Disables copy and paste to and from the bastion - enabling this upgrades to the Standard SKU.                        |
+| `bastion`  | scale_units           | Number of scale units when more connections are needed. The default is 2 and more scale units will use the Standard SKU. |
+| `bastion`  | disable_copy_paste    | Disables copy and paste to and from the bastion - enabling this upgrade to the Standard SKU.                        |
 | `bastion`  | dns_name              | Set the DNS name for accessing the bastion host.                                                                     |
 | `bastion`  | enable_file_copy      | Upload and download files to the target VM.                                                                          |
 | `bastion`  | enable_ip_connect     | Connect to virtual machines by IP address instead of using their target resource Id.                                 |
-| `bastion`  | enable_kerberos       | Enable kerberos authentication support for supporting scenarios such as Windows Single Sign On.                      |
+| `bastion`  | enable_kerberos       | Enable Kerberos authentication support for supporting scenarios such as Windows Single Sign On.                      |
 | `bastion`  | enable_shareable_link | lets users connect to a target resource using Azure Bastion without accessing the Azure portal.                      |
 | `bastion`  | enable_tunneling      | Set up tunnels through the bastion host so native client tools can be used.                                          |
 

@@ -92,7 +92,7 @@ let webAccess = securityRule {
     add_destination_network webNet
 }
 
-// Create another rule for app servers - accessible only from network with the web servers
+// Create another rule for app servers - accessible only from the network with the web servers
 let appAccess= securityRule {
     name "app-servers"
     description "Internal app server access"
@@ -101,7 +101,7 @@ let appAccess= securityRule {
     add_destination_network appNet
 }
 
-// Create another rule for DB servers - accessible only from network with the app servers
+// Create another rule for DB servers - accessible only from the network with the app servers
 let dbAccess = securityRule {
     name "db-servers"
     description "Internal database server access"

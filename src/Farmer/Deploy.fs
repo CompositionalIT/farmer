@@ -309,36 +309,43 @@ let private prepareForDeployment parameters resourceGroupName (deployment: IDepl
     do! deployment |> validateParameters parameters
 
     let! version = Az.checkVersion Az.MinimumVersion
-    printfn "Compatible version of Azure CLI %O detected" version
+    stdout.WriteLine $"Compatible version of Azure CLI {version} detected"
 
     prepareDeploymentFolder ()
 
     let! subscriptionDetails =
-        printf "Checking Azure CLI logged in status... "
+        stdout.Write "Checking Azure CLI logged in status... "
 
         match Az.showAccount () with
         | Ok response ->
-            printfn "you are already logged in, nothing to do."
+            stdout.WriteLine "you are already logged in, nothing to do."
             Ok response
         | Error _ ->
-            printfn "logging you in."
+            stdout.WriteLine "logging you in."
             Az.login () |> Result.bind (fun _ -> Az.showAccount ())
 
     let subscriptionDetails =
         subscriptionDetails |> Serialization.ofJson<{| id: Guid; name: string |}>
 
-    printfn "Using subscription '%s' (%O)." subscriptionDetails.name subscriptionDetails.id
+    stdout.WriteLine $"Using subscription '%s{subscriptionDetails.name}' ({subscriptionDetails.id})."
 
-    let resourceGroups =
-        (resourceGroupName :: deployment.Deployment.RequiredResourceGroups)
-        |> List.distinct
-        // Filter out any resource groups that are an ARM expression calculated at deploy-time
-        |> List.filter (fun resGroupName -> not (resGroupName.StartsWith("[")))
-        |> List.mapi (fun i x -> i, x)
+    match deployment.Deployment.Location with
+    | Location _ ->
+        let resourceGroups =
+            (resourceGroupName :: deployment.Deployment.RequiredResourceGroups)
+            |> List.distinct
+            // Filter out any resource groups that are an ARM expression calculated at deploy-time
+            |> List.filter (fun resGroupName -> not (resGroupName.StartsWith("[")))
+            |> List.mapi (fun i x -> i, x)
 
-    for (i, rg) in resourceGroups do
-        printfn $"Creating resource group {rg} ({i + 1}/{resourceGroups.Length})..."
-        do! Az.createResourceGroup deployment.Deployment.Location.ArmValue deployment.Deployment.Tags rg
+        for (i, rg) in resourceGroups do
+            stdout.WriteLine $"Creating resource group {rg} ({i + 1}/{resourceGroups.Length})..."
+            do! Az.createResourceGroup deployment.Deployment.Location.ArmValue deployment.Deployment.Tags rg
+    | LocationExpression _ ->
+        stdout.WriteLine
+            "Deployment location is an ARM expression that cannot be evaluated by the CLI. Skipping resource group creation."
+
+        return () // Cannot evaluate an ARM expression in Az CLI.
 
     return {|
         DeploymentName = $"farmer-deploy-{generateDeployNumber ()}"
@@ -374,7 +381,7 @@ let tryWhatIf resourceGroupName parameters (deployment: IDeploymentSource) = res
 let tryExecute resourceGroupName parameters (deployment: IDeploymentSource) = result {
     let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
 
-    printfn "Deploying ARM template (please be patient, this can take a while)..."
+    stdout.WriteLine "Deploying ARM template (please be patient, this can take a while)..."
 
     let! response =
         Az.deploy resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
@@ -388,7 +395,7 @@ let tryExecute resourceGroupName parameters (deployment: IDeploymentSource) = re
         |> Result.sequence
         |> Result.ignore
 
-    printfn "All done, now parsing ARM response to get any outputs..."
+    stdout.WriteLine "All done, now parsing ARM response to get any outputs..."
 
     let! response =
         response

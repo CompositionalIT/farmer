@@ -67,4 +67,4 @@ let template = arm {
 }
 ```
 
-You can now deploy the template and you'll have a web application which has all required secrets to communicate with the Cosmos DB instance.
+You can now deploy the template and you'll have a web application which has all the required secrets to communicate with the Cosmos DB instance.

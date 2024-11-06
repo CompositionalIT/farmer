@@ -33,7 +33,7 @@ let tests =
 
             let workspace = asAzureResource config
 
-            Expect.equal workspace.Location "westeurope" "Incorrect Location"
+            Expect.equal workspace.Location "[resourceGroup().location]" "Incorrect Location"
             Expect.equal workspace.Name "myFarmer" "Incorrect Name"
             Expect.equal workspace.PublicNetworkAccessForIngestion "Enabled" "Incorrect IngestionSupport"
             Expect.equal workspace.PublicNetworkAccessForQuery "Enabled" "QuerySupport"

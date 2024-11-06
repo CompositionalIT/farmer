@@ -21,9 +21,9 @@ The Container Registry builder is used to create Azure Container Registry (ACR) 
 
 | Member | Purpose |
 |-|-|
-| Password | Gets the ARM expression path to the first admin password of this container registry if admin user was enabled. |
-| Password2 | Gets the ARM expression path to the second admin password of this container registry if admin user was enabled. |
-| Username | Gets the ARM expression path to the admin username of this container registry if admin user was enabled. |
+| Password | Gets the ARM expression path to the first admin password of this container registry if the admin user was enabled. |
+| Password2 | Gets the ARM expression path to the second admin password of this container registry if the admin user was enabled. |
+| Username | Gets the ARM expression path to the admin username of this container registry if the admin user was enabled. |
 
 #### Example
 ```fsharp

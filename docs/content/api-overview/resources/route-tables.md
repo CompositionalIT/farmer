@@ -22,7 +22,7 @@ The `routeTable` builder creates a route table to efficiently change default rou
 | route | addressPrefix | The destination CIDR to which the route applies |
 | route | nextHopType | The type of Azure hop the packet should be sent to |
 | route | nextHopIpAddress | The IP address packets should be forwarded to. Only allowed in routes where the next hop type is VirtualAppliance |
-| route | hasBgpOverride | Whether the route overrides overalpping BGP routes regardless of LPM |
+| route | hasBgpOverride | Whether the route overrides overlapping BGP routes regardless of LPM |
 
 #### Example
 

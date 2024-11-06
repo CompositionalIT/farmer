@@ -23,7 +23,7 @@ resources in the virtual network to resolve DNS using external DNS servers, such
 | Applies To | Keyword | Purpose |
 |-|-|-|
 | dnsResolver | name | Sets the name of the DNS resolver. |
-| dnsResolver | vnet | Sets the virtual network where the of the DNS resolver is attached. |
+| dnsResolver | vnet | Sets the virtual network where the DNS resolver is attached. |
 | dnsResolver | link_to_vnet | Links the resolver to an existing virtual network. |
 | dnsResolver | inbound_subnet | If set, an inbound endpoint will be generated for this subnet with dynamic IP allocation. The subnet can only contain DNS resolver resources. |
 | dnsResolver | add_inbound_endpoints | Add inbound endpoints to subnets and specify static or dynamic IP allocation. |

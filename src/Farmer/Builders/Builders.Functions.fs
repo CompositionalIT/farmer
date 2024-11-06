@@ -116,7 +116,7 @@ type FunctionsConfig = {
     [<Obsolete("Prefer AppInsightsId instead as this property ignores resource groups")>]
     member this.AppInsightsName: ResourceName option =
         this.CommonWebConfig.AppInsights
-        |> Option.map (fun ai -> ai.resourceId(this.Name.ResourceName).Name)
+        |> Option.map (fun cfg -> cfg.AppInsights.resourceId(this.Name.ResourceName).Name)
 
     /// Gets the Storage Account name for this functions app.
     [<Obsolete("Prefer StorageAccountId instead as this property ignores resource groups")>]
@@ -128,7 +128,7 @@ type FunctionsConfig = {
     /// Gets the App Insights resourceId for this functions app, if it exists.
     member this.AppInsightsId: ResourceId option =
         this.CommonWebConfig.AppInsights
-        |> Option.map (fun ai -> ai.resourceId (this.Name.ResourceName))
+        |> Option.map (fun cfg -> cfg.AppInsights.resourceId (this.Name.ResourceName))
 
     /// Gets the Storage Account resourceId for this functions app.
     member this.StorageAccountId: ResourceId = this.StorageAccount.resourceId (this)
@@ -279,9 +279,10 @@ type FunctionsConfig = {
                     Set [
                         yield! this.Dependencies
 
-                        match this.CommonWebConfig.AppInsights with
+                        match this.CommonWebConfig.AppInsights |> Option.map _.AppInsights with
                         | Some(DependableResource this.Name.ResourceName resourceId) -> resourceId
-                        | _ -> ()
+                        | Some _
+                        | None -> ()
 
                         for setting in this.CommonWebConfig.Settings do
                             match setting.Value with
@@ -388,21 +389,42 @@ type FunctionsConfig = {
             | _ -> ()
 
             match this.CommonWebConfig.AppInsights with
-            | Some(DeployableResource this.Name.ResourceName resourceId) -> {
-                Name = resourceId.Name
-                Location = location
-                DisableIpMasking = false
-                SamplingPercentage = 100
-                Dependencies = Set.empty
-                InstanceKind = Classic
-                LinkedWebsite =
-                    match this.CommonWebConfig.OperatingSystem with
-                    | Windows -> Some this.Name.ResourceName
-                    | Linux -> None
-                Tags = this.Tags
-              }
-            | Some _
+            | Some appInsights ->
+                match appInsights.AppInsights with
+                | DeployableResource this.Name.ResourceName resourceId -> {
+                    Name = resourceId.Name
+                    Location = location
+                    DisableIpMasking = false
+                    SamplingPercentage = 100
+                    InstanceKind =
+                        match appInsights with
+                        | ClassicAi _ -> Classic
+                        | WorkspaceAi cfg -> Workspace(cfg.LogAnalytics.resourceId this.Name.ResourceName)
+                    Dependencies =
+                        match appInsights with
+                        | ClassicAi _ -> Set.empty
+                        | WorkspaceAi cfg -> Set [ cfg.LogAnalytics.resourceId this.Name.ResourceName ]
+                    LinkedWebsite = Some this.Name.ResourceName
+                    Tags = this.Tags
+                  }
+                | _ -> ()
+
+                match appInsights with
+                | ClassicAi _ -> ()
+                | WorkspaceAi cfg ->
+                    match cfg.LogAnalytics with
+                    | DeployableResource this.Name.ResourceName resourceId -> {
+                        Name = resourceId.Name
+                        Location = location
+                        RetentionPeriod = None
+                        IngestionSupport = None
+                        QuerySupport = None
+                        DailyCap = None
+                        Tags = this.Tags
+                      }
+                    | _ -> ()
             | None -> ()
+
 
             match this.CommonWebConfig.IntegratedSubnet with
             | None -> ()
@@ -432,7 +454,7 @@ type FunctionsBuilder() =
         FunctionsConfig.CommonWebConfig = {
             Name = WebAppName.Empty
             AlwaysOn = false
-            AppInsights = Some(derived (fun name -> components.resourceId (name - "ai")))
+            AppInsights = Some(ClassicAi(derived (fun name -> components.resourceId (name - "ai"))))
             ConnectionStrings = Map.empty
             Cors = None
             FTPState = None

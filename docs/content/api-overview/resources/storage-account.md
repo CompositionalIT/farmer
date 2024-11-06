@@ -30,8 +30,8 @@ The Storage Account builder creates storage accounts and their associated contai
 | add_blob_containers | Adds a list of general-purpose private blob containers |
 | add_file_share | Adds a file share to storage account |
 | add_file_shares | Adds a list of file shares to storage account |
-| add_file_share_with_quota | Adds a file share to storage account with a share quota in Gb |
-| add_file_shares_with_quota | Adds a list of file shares to storage account with a share quota in Gb |
+| add_file_share_with_quota | Adds a file share to the storage account with a share quota in Gb |
+| add_file_shares_with_quota | Adds a list of file shares to the storage account with a share quota in Gb |
 | add_queue | Adds a queue to the storage account |
 | add_queues | Adds a list of queues to the storage account |
 | add_table | Adds a table to the storage account |
@@ -42,7 +42,7 @@ The Storage Account builder creates storage accounts and their associated contai
 | restrict_to_ip | Restrict access to a given ip address |
 | restrict_to_ips | Restrict access to a given ip address list |
 | restrict_to_subnet | Restrict access to a given virtual network subnet |
-| restrict_to_azure_services | Restrict access to a given set of Azure Services. (Used when access to the storage account already controlled by private endpoint) |
+| restrict_to_azure_services | Restrict access to a given set of Azure Services. (Used when access to the storage account is already controlled by a private endpoint) |
 | disable_public_network_access | Disables public network access to the storage account |
 | use_static_website | Activates static website host, and uploads the provided local content as a post-deployment task to the storage with the specified index page |
 | static_website_error_page | Specifies the 404 page to display for static website hosting |
@@ -61,8 +61,8 @@ The Storage Account builder creates storage accounts and their associated contai
 | Member | Purpose |
 |-|-|
 | Key | Returns an ARM expression to retrieve the storage account's primary connection string. Useful for e.g. supplying the connection string to another resource e.g. KeyVault or an app setting in the App Service. |
-| WebsitePrimaryEndpoint | Returns an ARM Expression for the Primary endpoint for static website (if enabled). |
-| WebsitePrimaryEndpointHost | Returns an ARM Expression for the Host of the Primary endpoint for static website (if enabled). Use this for e.g. Azure CDN integration. |
+| WebsitePrimaryEndpoint | Returns an ARM Expression for the Primary endpoint for a static website (if enabled). |
+| WebsitePrimaryEndpointHost | Returns an ARM Expression for the Host of the Primary endpoint for a static website (if enabled). Use this for e.g. Azure CDN integration. |
 
 #### Helpers
 The `StorageAccount` type contains helper methods to quickly create ARM expressions for Storage Account connection strings.

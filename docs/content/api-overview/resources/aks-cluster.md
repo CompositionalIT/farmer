@@ -109,7 +109,7 @@ let myAks = aks {
     )
 }
 ```
-#### Using user asssigned identities and connecting to container registry
+#### Using user assigned identities and connecting to the container registry
 ```fsharp
 // Create an identity for kubelet (used to connect to container registry)
 let kubeletMsi = createUserAssignedIdentity "kubeletIdentity"

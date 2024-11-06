@@ -19,6 +19,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | name | Sets the name of the web app. |
 | Web App | link_to_service_plan | Instructs Farmer to link this webapp to a Farmer service plan configuration defined elsewhere in your application, rather than creating a new one. |
 | Web App | link_to_unmanaged_service_plan | Instructs Farmer to link this webapp to an existing service plan that is externally managed, rather than creating a new one. |
+| Web App | use_workspace_based_app_insights | Instructs Farmer to use Workspace Based App Insights, which automatically comes with a Log Analytics instance. Both resources will be automatically created. |
 | Web App | app_insights_name | Sets the name of the automatically-created app insights instance. |
 | Web App | app_insights_off | Removes any automatic app insights creation, configuration and settings for this webapp. |
 | Web App | link_to_app_insights | Instructs Farmer to link this webapp to a Farmer App Insights configuration defined elsewhere in your application, rather than creating a new one. |
@@ -28,7 +29,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | setting | Sets an app setting of the web app in the form "key" "value". |
 | Web App | secret_setting | Sets a "secret" app setting of the web app. You must supply the "key", whilst the value will be supplied as a secure parameter. |
 | Web App | settings | Sets a list of app setting of the web app as tuples in the form of ("key", "value"). |
-| Web App | connection_string | Creates a connection string whose value is supplied as secret parameter, or as an ARM expression in the tupled form of ("key", expr), or with the connection string type ("key", expr, SQLAzure). |
+| Web App | connection_string | Creates a connection string whose value is supplied as a secret parameter, or as an ARM expression in the tupled form of ("key", expr), or with the connection string type ("key", expr, SQLAzure). |
 | Web App | connection_strings | Creates a set of connection strings of the web app whose values will be supplied as secret parameters. |
 | Web App | ftp_state | Allows to enable or disable FTP and FTPS. |
 | Web App | https_only | Disables http for this webapp so that only HTTPS is used. |
@@ -44,7 +45,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | system_identity | Activates the system identity of the Web App. |
 | Web App | enable_cors | Enables CORS support for the app. Either specify `WebApp.AllOrigins` or a list of valid URIs as strings. |
 | Web App | enable_cors_credentials | Allows CORS requests with credentials. |
-| Web App | source_control | Given a github repository URI and branch name, configures the web app to automatically deploy those files to the web app |
+| Web App | source_control | Given a Github repository URI and branch name, configures the web app to automatically deploy those files to the web app |
 | Web App | disable_source_control_ci | Disables continuous integration from source control on push |
 | Web App | enable_source_control_ci | Enables continuous integration from source control on push |
 | Web App | add_extension | Adds the named extension to the Web App |
@@ -58,10 +59,10 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | health_check_path | Sets the path to your functions health check endpoint, which Azure load balancers will ping to determine which instances are healthy.|
 | Web App | custom_domain | Adds a custom domain to the app.  By default this will produce an AppService-managed SSL certificate for your domain as well. Through the overloads of this operator, you can provide a custom certificate thumbprint or choose not to use SSL. You can use this operator multiple times to add multiple custom domains.  |
 | Web App | add_allowed_ip_restriction | Adds an 'allow' rule for an ip |
-| Web App | add_denied_ip_restriction | Adds an 'deny' rule for an ip |
+| Web App | add_denied_ip_restriction | Adds a 'deny' rule for an ip |
 | Web App | docker_port | Adds `WEBSITES_PORT` setting to map custom docker port to app service port 80 |
-| Web App | link_to_vnet | Enable the VNET integration feature in azure where all outbound traffic from the web app with be sent via the specified subnet. Use this operator when the given VNET is in the same deployment |
-| Web App | link_to_unmanaged_vnet | Enable the VNET integration feature in azure where all outbound traffic from the web app with be sent via the specified subnet. Use this operator when the given VNET is *not* in the same deployment |
+| Web App | link_to_vnet | Enable the VNET integration feature in Azure, where all outbound traffic from the web app with be sent via the specified subnet. Use this operator when the given VNET is in the same deployment |
+| Web App | link_to_unmanaged_vnet | Enable the VNET integration feature in Azure, where all outbound traffic from the web app with be sent via the specified subnet. Use this operator when the given VNET is *not* in the same deployment |
 | Web App | add_virtual_applications | Adds list of `virtualApplication` definitions to the webapp |
 | Web App | startup_command | Adds a startup command to be run post-deployment. This is useful on Linux-based web app deployments, where your application is "implicitly" converted into a docker image and may need to be told what to do on startup. |
 | App Slot | name | Sets the name for the slot |
@@ -111,7 +112,7 @@ The following keywords exist on the web app:
 | Member | Purpose |
 |-|-|
 | use_keyvault | Tells the web app to create a brand new KeyVault for this App Service's secrets. |
-| link_to_keyvault | Tells the web app to use an existing Farmer-managed KeyVault which you have defined elsewhere. All secret settings will automatically be mapped into KeyVault. |
+| link_to_keyvault | Tells the web app to use an existing Farmer-managed KeyVault, which you have defined elsewhere. All secret settings will automatically be mapped into KeyVault. |
 | link_to_unmanaged_keyvault | Tells the web app to use an existing non-Farmer managed KeyVault which you have defined elsewhere.  All secret settings will automatically be mapped into KeyVault. |
 
 #### Virtual Applications `virtualApplication`

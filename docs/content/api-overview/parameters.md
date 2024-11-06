@@ -29,7 +29,7 @@ let db = sql {
 }
 ```
 
-This will generate an ARM template which looks as follows (irrelevant content is elided for clarity):
+This will generate an ARM template which looks as follows (irrelevant content is omitted for clarity):
 
 ```json
 {
@@ -54,7 +54,7 @@ This will generate an ARM template which looks as follows (irrelevant content is
 ```
 
 #### Working with variables
-ARM templates allow you to declare [variables](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/template-variables) inside a template to reuse a value across a template. ARM templates also allow the use of a custom set of a commands which are embedded within strings to generate program logic, using *expressions* which contain [*template functions*](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/template-functions). For example, to concatenate a string inside a ARM template made up of two variables and put into a third variable, you might use something like the following:
+ARM templates allow you to declare [variables](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/template-variables) inside a template to reuse a value across a template. ARM templates also allow the use of a custom set of commands which are embedded within strings to generate program logic, using *expressions* which contain [*template functions*](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/template-functions). For example, to concatenate a string inside an ARM template made up of two variables and put into a third variable, you might use something like the following:
 
 ```json
 {

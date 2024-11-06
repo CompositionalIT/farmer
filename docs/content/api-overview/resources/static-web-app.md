@@ -6,7 +6,7 @@ weight: 18
 ---
 
 #### Overview
-The Static Web App builder is used to create [Static Web Apps](https://azure.microsoft.com/en-us/services/app-service/static/). The Static Web App service is modern web app service that offers streamlined full-stack development from source code to global high availability. You can use it to host static web applications and Azure Functions in a single resource, using GitHub native workflows to build and deploy your application.
+The Static Web App builder is used to create [Static Web Apps](https://azure.microsoft.com/en-us/services/app-service/static/). The Static Web App service is a modern web app service that offers streamlined full-stack development from source code to global high availability. You can use it to host static web applications and Azure Functions in a single resource, using GitHub native workflows to build and deploy your application.
 
 * Static Site (`Microsoft.Web/staticSites`)
 
@@ -16,7 +16,7 @@ The Static Web App builder is used to create [Static Web Apps](https://azure.mic
 | Keyword | Purpose |
 |-|-|
 | name | Sets the name of the static web app. |
-| repository | The URI of the github repository containing your static web app. |
+| repository | The URI of the GitHub repository containing your static web app. |
 | artifact_location | The folder where the built web app is copied to e.g. `build` (optional) |
 | api_location | The path containing your Azure Functions (optional) |
 | app_location | The path containing your application code (optional) |

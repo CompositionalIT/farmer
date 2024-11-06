@@ -35,7 +35,7 @@ The `gallery` builder is used to create Galleries for sharing VM images. These c
 |galleryImage|purchase_plan|A purchase plan name, publisher, and product for the image, for use in a community gallery or marketplace images.|
 |galleryImage|recommended_configuration|Recommended range of vCPUs and memory for VMs created from this image.|
 |galleryImage|recommended_memory|A recommended range of memory for VMs created from this image. Default is 1 Gb to 32 Gb.|
-|igalleryImagemage|recommended_vcpu|A recommended range of vCPUs for VMs created from this image. Default is 1 to 16.|
+|igalleryImagemage|recommended_vcpu|A recommended range of vCPUs for VMs created from this image. The default is 1 to 16.|
 |galleryImage|release_notes_uri|URI where release notes can be found for the image.|
 |galleryImage|add_tags|Add tags to the image resource.|
 |galleryImage|depends_on|Add explicit dependencies for the image resource.|

@@ -355,6 +355,18 @@ type AccessPolicyBuilder() =
 let accessPolicy = AccessPolicyBuilder()
 
 type AccessPolicy =
+    static let createFilter searchField values =
+        let query =
+            values
+            |> Seq.map (fun value -> $"{searchField} eq '{value}'")
+            |> String.concat " or "
+
+        $"\"{query}\""
+
+    static let handleSearchResponse =
+        Serialization.ofJson<{| DisplayName: string; Id: Guid |} array>
+        >> Array.map (fun r -> {| r with Id = ObjectId r.Id |})
+
     /// Quickly creates an access policy for the supplied Principal. If no permissions are supplied, defaults to GET and LIST.
     static member create(principal: PrincipalId, ?permissions) = accessPolicy {
         object_id principal
@@ -375,36 +387,21 @@ type AccessPolicy =
         secret_permissions (permissions |> Option.defaultValue Secret.ReadSecrets)
     }
 
-    static member private findEntity(searchField, values, searcher) =
-        values
-        |> Seq.map (sprintf "%s eq '%s'" searchField)
-        |> String.concat " or "
-        |> sprintf "\"%s\""
-        |> searcher
-        |> Result.map (
-            Serialization.ofJson<
-                {|
-                    DisplayName: string
-                    ObjectId: Guid
-                |} array
-             >
-        )
-        |> Result.toOption
-        |> Option.map (
-            Array.map (fun r -> {|
-                r with
-                    ObjectId = ObjectId r.ObjectId
-            |})
-        )
-        |> Option.defaultValue Array.empty
-
     /// Locates users in Azure Active Directory based on the supplied email addresses.
     static member findUsers emailAddresses =
-        AccessPolicy.findEntity ("mail", emailAddresses, Deploy.Az.searchUsers)
+        let filter = createFilter "mail" emailAddresses
+
+        Deploy.Az.searchUsers filter
+        |> Result.map handleSearchResponse
+        |> Result.defaultValue Array.empty
 
     /// Locates groups in Azure Active Directory based on the supplied group names.
     static member findGroups groupNames =
-        AccessPolicy.findEntity ("displayName", groupNames, Deploy.Az.searchGroups)
+        let filter = createFilter "displayName" groupNames
+
+        Deploy.Az.searchGroups filter
+        |> Result.map handleSearchResponse
+        |> Result.defaultValue Array.empty
 
 [<RequireQualifiedAccess>]
 type SimpleCreateMode =

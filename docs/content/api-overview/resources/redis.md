@@ -15,7 +15,7 @@ The Redis builder creates managed Redis Cache accounts.
 |-|-|
 | name | Sets the name of the Redis cache instance. |
 | sku | Sets the sku of the Redis cache instance. |
-| capacity | Sets the capacity level of the Redis cache instance, should be between 1-6 - see [here](https://azure.microsoft.com/en-gb/pricing/details/cache/). |
+| capacity | Sets the capacity level of the Redis cache instance, which should be between 1-6 - see [here](https://azure.microsoft.com/en-gb/pricing/details/cache/). |
 | enable_non_ssl_port | Enabled access to the cache over the non-SSL port. |
 | setting | Allows you to set a Redis-cache specific setting at deployment-time |
 
