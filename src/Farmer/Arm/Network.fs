@@ -327,6 +327,7 @@ type Subnet = {
     Name: ResourceName
     Prefixes: string list
     VirtualNetwork: LinkedResource option
+    RouteTable: LinkedResource option
     NetworkSecurityGroup: LinkedResource option
     Delegations: SubnetDelegation list
     NatGateway: LinkedResource option
@@ -350,6 +351,10 @@ type Subnet = {
             natGateway =
                 this.NatGateway
                 |> Option.map LinkedResource.AsIdObject
+                |> Option.defaultValue Unchecked.defaultof<_>
+            routeTable =
+                this.RouteTable
+                |> Option.map (fun rt -> {| id = rt.ResourceId.Eval() |})
                 |> Option.defaultValue Unchecked.defaultof<_>
             networkSecurityGroup =
                 this.NetworkSecurityGroup
@@ -429,6 +434,10 @@ type VirtualNetwork = {
                         | _ -> ()
 
                         match subnet.NatGateway with
+                        | Some(Managed id) -> id
+                        | _ -> ()
+
+                        match subnet.RouteTable with
                         | Some(Managed id) -> id
                         | _ -> ()
                 }
