@@ -12,9 +12,8 @@ type AppInsights =
             .Map(sprintf "%s.InstrumentationKey")
             .WithOwner(resourceId)
 
-    static member getInstrumentationKey(name: ResourceName, ?resourceGroup, ?resourceType) =
-        let resourceType = resourceType |> Option.defaultValue components
-        AppInsights.getInstrumentationKey (ResourceId.create (resourceType, name, ?group = resourceGroup))
+    static member getInstrumentationKey(name: ResourceName, ?resourceGroup) =
+        AppInsights.getInstrumentationKey (ResourceId.create (components, name, ?group = resourceGroup))
 
     static member getConnectionString(resourceId: ResourceId) =
         ArmExpression
@@ -22,9 +21,8 @@ type AppInsights =
             .Map(sprintf "%s.ConnectionString")
             .WithOwner(resourceId)
 
-    static member getConnectionString(name: ResourceName, ?resourceGroup, ?resourceType) =
-        let resourceType = resourceType |> Option.defaultValue components
-        AppInsights.getConnectionString (ResourceId.create (resourceType, name, ?group = resourceGroup))
+    static member getConnectionString(name: ResourceName, ?resourceGroup) =
+        AppInsights.getConnectionString (ResourceId.create (components, name, ?group = resourceGroup))
 
 type AppInsightsConfig = {
     Name: ResourceName
@@ -36,11 +34,8 @@ type AppInsightsConfig = {
 } with
 
     /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
-    member this.InstrumentationKey =
-        AppInsights.getInstrumentationKey (this.Name, resourceType = this.InstanceKind.ResourceType)
-
-    member this.ConnectionString =
-        AppInsights.getConnectionString (this.Name, resourceType = this.InstanceKind.ResourceType)
+    member this.InstrumentationKey = AppInsights.getInstrumentationKey this.Name
+    member this.ConnectionString = AppInsights.getConnectionString this.Name
 
     interface IBuilder with
         member this.ResourceId = components.resourceId this.Name

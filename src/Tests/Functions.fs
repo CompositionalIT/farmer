@@ -633,7 +633,7 @@ let tests =
                 name "func"
 
                 link_to_unmanaged_app_insights (
-                    ResourceId.create (Farmer.Arm.Insights.components, ResourceName "theName", group = "shared-group")
+                    ResourceId.create (components, ResourceName "theName", group = "shared-group")
                 )
             }
 
@@ -650,7 +650,7 @@ let tests =
                 {|
                     name = "APPINSIGHTS_INSTRUMENTATIONKEY"
                     value =
-                        "[reference(resourceId('shared-group', 'Microsoft.Insights/components', 'theName'), '2014-04-01').InstrumentationKey]"
+                        "[reference(resourceId('shared-group', 'Microsoft.Insights/components', 'theName'), '2020-02-02').InstrumentationKey]"
                 |}
                 "Invalid value for APPINSIGHTS_INSTRUMENTATIONKEY"
         }

@@ -50,10 +50,9 @@ let tests =
                 |> getResources
 
             let wa = resources |> getResource<Web.Site> |> List.head
-            wa.Dependencies |> expectContains componentsWorkspace "test-ai" "app insights"
+            wa.Dependencies |> expectContains components "test-ai" "app insights"
 
             let ai = resources |> getResource<Insights.Components> |> List.head
-            Expect.equal ai.InstanceKind.ResourceType componentsWorkspace "Wrong AI kind"
             ai.Dependencies |> expectContains workspaces "test-logstore" "log analytics"
 
             Expect.hasLength (resources |> getResource<LogAnalytics.Workspace>) 1 "Should be one log workspace"
@@ -78,10 +77,7 @@ let tests =
                 |> getResources
 
             let wa = resources |> getResource<Web.Site> |> List.head
-            wa.Dependencies |> expectContains componentsWorkspace "foo" "app insights"
-
-            let ai = resources |> getResource<Insights.Components> |> List.head
-            Expect.equal ai.InstanceKind.ResourceType componentsWorkspace "Wrong AI kind"
+            wa.Dependencies |> expectContains components "foo" "app insights"
         }
 
         for os, version in [ Windows, 2; Linux, 3 ] do

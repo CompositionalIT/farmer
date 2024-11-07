@@ -333,14 +333,6 @@ type AppInsightsKind =
         | ClassicAi appInsights -> appInsights
         | WorkspaceAi cfg -> cfg.AppInsights
 
-    static member private CreateDerivedAiResourceRef(resourceType: ResourceType) =
-        derived (fun (name: ResourceName) -> resourceType.resourceId (name - "ai"))
-
-    static member DerivedClassicAi = AppInsightsKind.CreateDerivedAiResourceRef components
-
-    static member DerivedWorkspaceAi =
-        AppInsightsKind.CreateDerivedAiResourceRef componentsWorkspace
-
 /// Common fields between WebApp and Functions
 type CommonWebConfig = {
     Name: WebAppName
@@ -898,11 +890,14 @@ type WebAppConfig = {
         ]
 
 type WebAppBuilder() =
+    static member internal DefaultAiResourceRef =
+        derived (fun (name: ResourceName) -> components.resourceId (name - "ai"))
+
     member _.Yield _ = {
         CommonWebConfig = {
             Name = WebAppName.Empty
             AlwaysOn = false
-            AppInsights = Some(ClassicAi AppInsightsKind.DerivedClassicAi)
+            AppInsights = Some(ClassicAi WebAppBuilder.DefaultAiResourceRef)
             ConnectionStrings = Map.empty
             Cors = None
             HTTPSOnly = false
@@ -1281,7 +1276,7 @@ module Extensions =
                             Some(
                                 WorkspaceAi {|
                                     cfg with
-                                        AppInsights = named componentsWorkspace name
+                                        AppInsights = named components name
                                 |}
                             )
             }
@@ -1313,7 +1308,7 @@ module Extensions =
                                     match commonState.AppInsights with
                                     | Some(WorkspaceAi cfg) -> cfg.AppInsights
                                     | Some(ClassicAi _)
-                                    | None -> AppInsightsKind.DerivedWorkspaceAi
+                                    | None -> WebAppBuilder.DefaultAiResourceRef
                                 LogAnalytics =
                                     derived (fun name -> LogAnalytics.workspaces.resourceId (name - "logstore"))
                             |}

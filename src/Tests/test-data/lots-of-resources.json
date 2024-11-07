@@ -96,7 +96,7 @@
       "type": "Microsoft.Storage/storageAccounts"
     },
     {
-      "apiVersion": "2014-04-01",
+      "apiVersion": "2020-02-02",
       "dependsOn": [],
       "kind": "web",
       "location": "northeurope",
@@ -157,7 +157,7 @@
           "appSettings": [
             {
               "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
-              "value": "[reference(resourceId('Microsoft.Insights/components', 'farmerwebapp1979-ai'), '2014-04-01').InstrumentationKey]"
+              "value": "[reference(resourceId('Microsoft.Insights/components', 'farmerwebapp1979-ai'), '2020-02-02').InstrumentationKey]"
             },
             {
               "name": "APPINSIGHTS_PROFILERFEATURE_VERSION",
@@ -236,7 +236,7 @@
       "type": "Microsoft.Storage/storageAccounts"
     },
     {
-      "apiVersion": "2014-04-01",
+      "apiVersion": "2020-02-02",
       "dependsOn": [],
       "kind": "web",
       "location": "northeurope",
@@ -271,7 +271,7 @@
           "appSettings": [
             {
               "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
-              "value": "[reference(resourceId('Microsoft.Insights/components', 'farmerfuncs1979-ai'), '2014-04-01').InstrumentationKey]"
+              "value": "[reference(resourceId('Microsoft.Insights/components', 'farmerfuncs1979-ai'), '2020-02-02').InstrumentationKey]"
             },
             {
               "name": "AzureWebJobsDashboard",

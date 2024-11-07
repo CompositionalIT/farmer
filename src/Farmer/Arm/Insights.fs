@@ -6,20 +6,12 @@ open Farmer
 let private createComponents version =
     ResourceType("Microsoft.Insights/components", version)
 
-/// Classic AI instance
-let components = createComponents "2014-04-01"
-/// Workspace-enabled AI instance
-let componentsWorkspace = createComponents "2020-02-02"
+let components = createComponents "2020-02-02"
 
 /// The type of AI instance to create.
 type InstanceKind =
     | Classic
     | Workspace of workspace: ResourceId
-
-    member this.ResourceType =
-        match this with
-        | Classic -> components
-        | Workspace _ -> componentsWorkspace
 
 type Components = {
     Name: ResourceName
@@ -46,7 +38,7 @@ type Components = {
                 | None -> this.Tags
 
             {|
-                this.InstanceKind.ResourceType.Create(this.Name, this.Location, this.Dependencies, tags) with
+                components.Create(this.Name, this.Location, this.Dependencies, tags) with
                     kind = "web"
                     properties = {|
                         name = this.Name.Value
