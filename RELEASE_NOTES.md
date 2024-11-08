@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* Fix an issue with Access Policies that allows non-string sequences to be supplied for user / group lookups.
 
 ## 1.9.4
 * Network Security Groups: Use a common protocol in security rules with multiple sources. Defaults to Any if sources use different protocols.
