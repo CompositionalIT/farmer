@@ -155,6 +155,7 @@ type VmConfig = {
                         Name = subnetId.Name
                         Prefixes = [ this.SubnetPrefix ]
                         VirtualNetwork = Some(Managed vnet)
+                        RouteTable = None
                         NetworkSecurityGroup = nsgId |> Option.map Managed
                         Delegations = []
                         NatGateway = None

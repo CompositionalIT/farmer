@@ -83,6 +83,7 @@ type RouteServerConfig = {
                 Subnet.Name = ResourceName "RouteServerSubnet"
                 Prefixes = [ IPAddressCidr.format this.SubnetPrefix ]
                 VirtualNetwork = Some(vnetId)
+                RouteTable = None
                 NetworkSecurityGroup = None
                 Delegations = []
                 NatGateway = None

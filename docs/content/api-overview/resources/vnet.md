@@ -45,6 +45,8 @@ The Virtual Network module contains four builders
 | link_to_nat_gateway                  | Specify an existing NAT gateway for the subnet.                                           |
 | network_security_group               | Specify the network security group from the same deployment.                              |
 | link_to_network_security_group       | Specify an existing network security group for this subnet.                               |
+| route_table                          | Specify the route table from the same deployment.                                         |
+| link_to_route_table                  | Specify an existing route table for this subnet.                                          |
 | link_to_vnet                         | Link a standalone subnet to a vnet in the same template.                                  |
 | link_to_unmanaged_vnet               | Link a standalone subnet to an existing vnet that is already deployed.                    |
 | add_delegations                      | Adds one or more delegations to this subnet.                                              |
@@ -72,6 +74,8 @@ The Virtual Network module contains four builders
 | link_to_nat_gateway                   | Specify an existing NAT gateway for the subnet.                                           |
 | network_security_group                  | Specify the network security group from the same deployment.           |
 | link_to_network_security_group          | Specify an existing network security group for the subnet.             |
+| route_table                           | Specify the route table from the same deployment.                                         |
+| link_to_route_table                   | Specify an existing route table for the subnet.                                           |
 | add_delegations                         | Adds service delegations for the subnet.                               |
 | add_service_endpoints                   | Adds service endpoints for the subnet.                                 |
 | add_service_endpoint_policies           | Associates the service endpoint policies with the subnet.              |

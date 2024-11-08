@@ -68,6 +68,7 @@ type NetworkInterfaceConfig = {
                         Subnet.Name = ResourceName subnetName
                         Prefixes = [ IPAddressCidr.format subnetPrefix ]
                         VirtualNetwork = Some(vnetId)
+                        RouteTable = None
                         NetworkSecurityGroup = None
                         Delegations = []
                         NatGateway = None

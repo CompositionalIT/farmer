@@ -152,6 +152,7 @@
         <Compile Include="Builders/Builders.Bastion.fs" />
         <Compile Include="Builders\Builders.NatGateway.fs" />
         <Compile Include="Builders\Builders.NetworkSecurityGroup.fs" />
+        <Compile Include="Builders\Builders.RouteTable.fs" />
         <Compile Include="Builders/Builders.VirtualNetwork.fs" />
         <Compile Include="Builders\Builders.LoadBalancer.fs" />
         <Compile Include="Builders/Builders.Vm.fs" />
@@ -187,7 +188,6 @@
         <Compile Include="Builders/Builders.OperationsManagement.fs" />
         <Compile Include="Builders\Builders.PrivateLink.fs" />
         <Compile Include="Builders\Builders.PrivateEndpoint.fs" />
-        <Compile Include="Builders\Builders.RouteTable.fs" />
         <Compile Include="Builders\Builders.HostGroup.fs" />
         <Compile Include="Builders\Builders.NetworkInterface.fs" />
         <Compile Include="Builders\Builders.RouteServer.fs" />
