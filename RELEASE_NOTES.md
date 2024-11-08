@@ -1,11 +1,12 @@
 Release Notes
 =============
-## vNext
+
+## 1.9.5
 * Fix an issue with Access Policies that allows non-string sequences to be supplied for user / group lookups.
+* Virtual Network: Specify the route table for a subnet.
 
 ## 1.9.4
 * Network Security Groups: Use a common protocol in security rules with multiple sources. Defaults to Any if sources use different protocols.
-* Virtual Network: Specify the route table for a subnet.
 
 ## 1.9.3
 * Deployments: Default to resource group location rather than West Europe.
