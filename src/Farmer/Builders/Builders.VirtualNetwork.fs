@@ -167,7 +167,7 @@ type SubnetBuilder() =
             NetworkSecurityGroup = Some(Unmanaged (nsg :> IBuilder).ResourceId)
     }
 
-    /// Sets the network security group for subnet
+    /// Sets the route table for subnet
     [<CustomOperation "route_table">]
     member _.RouteTable(state: SubnetConfig, rt: IArmResource) = {
         state with
@@ -421,6 +421,7 @@ type SubnetSpecBuilder() =
             NetworkSecurityGroup = Some(Unmanaged (nsg :> IBuilder).ResourceId)
     }
 
+    /// Sets the route table for subnet
     [<CustomOperation "route_table">]
     member _.RouteTable(state: SubnetBuildSpec, rt: IArmResource) = {
         state with
