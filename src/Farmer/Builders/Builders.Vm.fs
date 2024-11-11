@@ -156,7 +156,7 @@ type VmConfig = {
                         Prefixes = [ this.SubnetPrefix ]
                         VirtualNetwork = Some(Managed vnet)
                         RouteTable = None
-                        NetworkSecurityGroup = nsgId |> Option.map Managed
+                        NetworkSecurityGroup = nsgId
                         Delegations = []
                         NatGateway = None
                         ServiceEndpoints = []
@@ -176,7 +176,9 @@ type VmConfig = {
         member this.ResourceId = this.ResourceId
 
         member this.BuildResources location =
-            let nsgId = this.NetworkSecurityGroup |> Option.map (fun nsg -> nsg.ResourceId)
+            let nsgId =
+                this.NetworkSecurityGroup |> Option.map (fun nsg -> (Managed nsg.ResourceId))
+
             let generatedNics = this.buildNics (location, nsgId)
 
             [
