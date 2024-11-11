@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.6
+- Network Interface: Support for adding Network Security Group (NSG) to Network Interface (NIC)
+
 ## 1.9.5
 * Fix an issue with Access Policies that allows non-string sequences to be supplied for user / group lookups.
 * Virtual Network: Specify the route table for a subnet.
