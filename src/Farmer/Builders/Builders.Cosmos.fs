@@ -2,8 +2,8 @@
 module Farmer.Builders.CosmosDb
 
 open Farmer
+open Farmer.Arm
 open Farmer.CosmosDb
-open Farmer.Arm.DocumentDb
 open DatabaseAccounts
 open SqlDatabases
 
@@ -62,6 +62,7 @@ type CosmosDbContainerConfig = {
     Indexes: (string * (IndexDataType * IndexKind) list) list
     UniqueKeys: Set<string list>
     ExcludedPaths: string list
+    Kind: DatabaseKind
 }
 
 type CosmosDbConfig = {
@@ -138,6 +139,7 @@ type CosmosDbConfig = {
                     Name = container.Name
                     Account = this.AccountResourceId.Name
                     Database = this.DbName
+                    Kind = container.Kind
                     PartitionKey = {|
                         Paths = fst container.PartitionKey
                         Kind = snd container.PartitionKey
@@ -160,6 +162,7 @@ type CosmosDbConfig = {
 type CosmosDbContainerBuilder() =
     member _.Yield _ = {
         Name = ResourceName ""
+        Kind = DatabaseKind.Document
         PartitionKey = [], Hash
         Indexes = []
         UniqueKeys = Set.empty
@@ -185,6 +188,13 @@ type CosmosDbContainerBuilder() =
     /// Sets the name of the container.
     [<CustomOperation "name">]
     member _.Name(state: CosmosDbContainerConfig, name) = { state with Name = ResourceName name }
+
+    /// Sets the container kind of the container.
+    [<CustomOperation "gremlin_graph">]
+    member _.Graph(state: CosmosDbContainerConfig) = {
+        state with
+            Kind = DatabaseKind.Gremlin
+    }
 
     /// Sets the partition key of the container.
     [<CustomOperation "partition_key">]
