@@ -1549,6 +1549,12 @@ module Storage =
         /// General Purpose V2 Standard RAGZRS with no default access tier.
         static member Standard_RAGZRS = GeneralPurpose(V2(RAGZRS, None))
 
+    /// <summary>
+    /// The type of access allowed for a storage container.
+    /// </summary>
+    /// <remarks>
+    /// Default is Private.
+    /// </remarks>
     type StorageContainerAccess =
         | Private
         | Container
