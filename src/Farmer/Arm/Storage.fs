@@ -366,6 +366,7 @@ module BlobServices =
         Name: StorageResourceName
         StorageAccount: ResourceName
         Accessibility: StorageContainerAccess
+        Metadata: Metadata option
     } with
 
         member this.ResourceName = this.StorageAccount / "default" / this.Name.ResourceName
@@ -377,6 +378,7 @@ module BlobServices =
                 containers.Create(this.ResourceName, dependsOn = [ storageAccounts.resourceId this.StorageAccount ]) with
                     properties = {|
                         publicAccess = this.Accessibility.ArmValue
+                        metadata = this.Metadata |> Option.defaultValue Unchecked.defaultof<_>
                     |}
             |}
 

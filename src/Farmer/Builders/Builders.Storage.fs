@@ -39,13 +39,45 @@ type StorageQueueConfig = {
     Metadata: Metadata option
 }
 
-[<Struct>]
-type BlobContainerImmutabilityPoliciesConfig = {
+type StorageBlobContainerConfig = {
+    Name: StorageResourceName
+    Accessibility: StorageContainerAccess
+    ImmutabilityPolicies: BlobContainerImmutabilityPoliciesConfig option
+    Metadata: Metadata option
+} with
+
+    static member Create
+        (
+            state: StorageAccountConfig,
+            name,
+            accessibility,
+            ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig
+        ) =
+        {
+            Name = name
+            Accessibility = accessibility
+            ImmutabilityPolicies = immutabilityPolicies
+            Metadata = None
+        }
+
+
+and [<Struct>] BlobContainerImmutabilityPoliciesConfig = {
     AllowProtectedAppendWrites: AllowProtectedAppendWrites option
     ImmutabilityPeriodSinceCreation: int<Days> option
-}
+} with
 
-type StorageAccountConfig = {
+    static member Empty = {
+        AllowProtectedAppendWrites = None
+        ImmutabilityPeriodSinceCreation = None
+    }
+
+    member this.IsEmpty =
+        this.AllowProtectedAppendWrites.IsNone
+        && this.ImmutabilityPeriodSinceCreation.IsNone
+
+    member this.ToOption = if this.IsEmpty then None else Some this
+
+and StorageAccountConfig = {
     /// The name of the storage account.
     Name: StorageAccountName
     /// The sku of the storage account.
@@ -53,7 +85,7 @@ type StorageAccountConfig = {
     /// Whether to enable Data Lake Storage Gen2.
     EnableDataLake: bool option
     /// Containers for the storage account.
-    Containers: (StorageResourceName * StorageContainerAccess * BlobContainerImmutabilityPoliciesConfig option) list
+    Containers: StorageBlobContainerConfig list
     /// File shares
     FileShares: (StorageResourceName * int<Gb> option) list
     /// Queues
@@ -149,18 +181,19 @@ type StorageAccountConfig = {
                 SupportsHttpsTrafficOnly = this.SupportsHttpsTrafficOnly
                 Tags = this.Tags
             }
-            for name, access, immutabilityPolicies in this.Containers do
+            for blobContainer in this.Containers do
                 {
-                    Name = name
+                    Name = blobContainer.Name
                     StorageAccount = this.Name.ResourceName
-                    Accessibility = access
+                    Accessibility = blobContainer.Accessibility
+                    Metadata = blobContainer.Metadata
                 }
 
-                match immutabilityPolicies with
+                match blobContainer.ImmutabilityPolicies with
                 | None -> ()
                 | Some immutabilityPolicies -> {
                     StorageAccount = this.Name.ResourceName
-                    Container = name
+                    Container = blobContainer.Name
                     AllowProtectedAppendWrites = immutabilityPolicies.AllowProtectedAppendWrites
                     ImmutabilityPeriodSinceCreation = immutabilityPolicies.ImmutabilityPeriodSinceCreation
                   }
@@ -278,25 +311,13 @@ type StorageAccountBuilder() =
 
         state
 
-    static member private AddContainers
-        (state, access, names: string seq, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig)
-        =
-        {
-            state with
-                Containers =
-                    let containers =
-                        names
-                        |> Seq.map (fun name ->
-                            ((StorageResourceName.Create name).OkValue, access, immutabilityPolicies))
-                        |> Seq.toList
+    static member private AddContainers(state: StorageAccountConfig, containers: StorageBlobContainerConfig seq) = {
+        state with
+            Containers = [ yield! state.Containers; yield! containers ]
+    }
 
-                    state.Containers @ containers
-        }
-
-    static member private AddContainer
-        (state, access, name: string, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig)
-        =
-        StorageAccountBuilder.AddContainers(state, access, [ name ], ?immutabilityPolicies = immutabilityPolicies)
+    static member private AddContainer(state, container: StorageBlobContainerConfig) =
+        StorageAccountBuilder.AddContainers(state, [ container ])
 
     static member private AddFileShares(state: StorageAccountConfig, names: string seq, quota) = {
         state with
@@ -328,44 +349,100 @@ type StorageAccountBuilder() =
     /// Adds private container.
     [<CustomOperation "add_private_container">]
     member _.AddPrivateContainer
-        (state: StorageAccountConfig, name, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig)
+        (state: StorageAccountConfig, name: string, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig)
         =
-        StorageAccountBuilder.AddContainer(state, Private, name, ?immutabilityPolicies = immutabilityPolicies)
+        let name = (StorageResourceName.Create name).OkValue
+
+        StorageAccountBuilder.AddContainer(
+            state,
+            StorageBlobContainerConfig.Create(state, name, Private, ?immutabilityPolicies = immutabilityPolicies)
+        )
 
     /// Adds private containers.
     [<CustomOperation "add_private_containers">]
     member _.AddPrivateContainers
-        (state: StorageAccountConfig, names, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig)
-        =
-        StorageAccountBuilder.AddContainers(state, Private, names, ?immutabilityPolicies = immutabilityPolicies)
+        (state: StorageAccountConfig, names: string seq, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig) =
+        StorageAccountBuilder.AddContainers(
+            state,
+            names
+            |> Seq.map (fun name ->
+                let name = (StorageResourceName.Create name).OkValue
+                StorageBlobContainerConfig.Create(state, name, Private, ?immutabilityPolicies = immutabilityPolicies))
+        )
 
     /// Adds container with anonymous read access for blobs and containers.
     [<CustomOperation "add_public_container">]
     member _.AddPublicContainer
-        (state: StorageAccountConfig, name, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig)
+        (state: StorageAccountConfig, name: string, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig)
         =
-        StorageAccountBuilder.AddContainer(state, Container, name, ?immutabilityPolicies = immutabilityPolicies)
+        let name = (StorageResourceName.Create name).OkValue
+
+        StorageAccountBuilder.AddContainer(
+            state,
+            StorageBlobContainerConfig.Create(state, name, Container, ?immutabilityPolicies = immutabilityPolicies)
+        )
 
     /// Adds containers with anonymous read access for blobs and containers.
     [<CustomOperation "add_public_containers">]
     member _.AddPublicContainers
-        (state: StorageAccountConfig, names, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig)
-        =
-        StorageAccountBuilder.AddContainers(state, Container, names, ?immutabilityPolicies = immutabilityPolicies)
+        (state: StorageAccountConfig, names: string seq, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig) =
+        StorageAccountBuilder.AddContainers(
+            state,
+            names
+            |> Seq.map (fun name ->
+                let name = (StorageResourceName.Create name).OkValue
+                StorageBlobContainerConfig.Create(state, name, Container, ?immutabilityPolicies = immutabilityPolicies))
+        )
 
     /// Adds container with anonymous read access for blobs only.
     [<CustomOperation "add_blob_container">]
     member _.AddBlobContainer
-        (state: StorageAccountConfig, name, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig)
+        (state: StorageAccountConfig, name: string, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig)
         =
-        StorageAccountBuilder.AddContainer(state, Blob, name, ?immutabilityPolicies = immutabilityPolicies)
+        let name = (StorageResourceName.Create name).OkValue
+
+        StorageAccountBuilder.AddContainer(
+            state,
+            StorageBlobContainerConfig.Create(state, name, Blob, ?immutabilityPolicies = immutabilityPolicies)
+        )
 
     /// Adds containers with anonymous read access for blobs only.
     [<CustomOperation "add_blob_containers">]
     member _.AddBlobContainers
-        (state: StorageAccountConfig, names, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig)
+        (state: StorageAccountConfig, names: string seq, ?immutabilityPolicies: BlobContainerImmutabilityPoliciesConfig) =
+        StorageAccountBuilder.AddContainers(
+            state,
+            names
+            |> Seq.map (fun name ->
+                let name = (StorageResourceName.Create name).OkValue
+                StorageBlobContainerConfig.Create(state, name, Blob, ?immutabilityPolicies = immutabilityPolicies))
+        )
+
+    /// Adds container.
+    [<CustomOperation "add_blob_container">]
+    member _.AddBlobContainer(state: StorageAccountConfig, container: StorageBlobContainerConfig) =
+        StorageAccountBuilder.AddContainer(state, container)
+
+    /// Adds containers.
+    [<CustomOperation "add_blob_containers">]
+    member _.AddBlobContainers(state: StorageAccountConfig, containers: StorageBlobContainerConfig seq) =
+        StorageAccountBuilder.AddContainers(state, containers)
+
+    /// Adds a set of containers to the storage account with the same metadata.
+    [<CustomOperation "add_blob_containers">]
+    member this.AddBlobContainers
+        (state: StorageAccountConfig, containers: StorageBlobContainerConfig seq, metadata: (string * string) list)
         =
-        StorageAccountBuilder.AddContainers(state, Blob, names, ?immutabilityPolicies = immutabilityPolicies)
+        let cs =
+            containers
+            |> Seq.map (fun container -> {
+                container with
+                    Metadata = Some(metadata |> Map.ofSeq)
+            })
+
+        (state, cs)
+        ||> Seq.fold (fun state container -> this.AddBlobContainer(state, container))
+
 
     /// Adds a file share with no quota.
     [<CustomOperation "add_file_share">]
@@ -840,11 +917,53 @@ type StorageQueueBuilder() =
         let m = metadata |> Map.ofList
         { state with Metadata = Some(m) }
 
-type BlobContainerImmutabilityPoliciesBuilder() =
-    member _.Yield _ : BlobContainerImmutabilityPoliciesConfig = {
-        AllowProtectedAppendWrites = None
-        ImmutabilityPeriodSinceCreation = None
+type StorageBlobContainerBuilder() =
+    member _.Yield _ : StorageBlobContainerConfig = {
+        Name = StorageResourceName.Empty
+        Accessibility = StorageContainerAccess.Private
+        ImmutabilityPolicies = None
+        Metadata = Some(Map.empty)
     }
+
+    member _.Run(state: StorageBlobContainerConfig) : StorageBlobContainerConfig =
+        if state.Name.ResourceName = ResourceName.Empty then
+            raiseFarmer "No Storage Account name has been set."
+
+        state
+
+    /// Sets the name of the storage queue.
+    [<CustomOperation "name">]
+    member _.Name(state: StorageBlobContainerConfig, name: string) = {
+        state with
+            Name = StorageResourceName.Create(ResourceName name).OkValue
+    }
+
+    /// Sets the accessibility of the storage blob container.
+    [<CustomOperation "accessibility">]
+    member _.Accessibility(state: StorageBlobContainerConfig, accessibility: StorageContainerAccess) = {
+        state with
+            Accessibility = accessibility
+    }
+
+    /// Sets the immutability policies of the storage blob container.
+    [<CustomOperation "immutability_policies">]
+    member _.ImmutabilityPolicies
+        (state: StorageBlobContainerConfig, policies: BlobContainerImmutabilityPoliciesConfig)
+        =
+        {
+            state with
+                ImmutabilityPolicies = policies.ToOption
+        }
+
+    /// Sets the name of the storage account.
+    [<CustomOperation "metadata">]
+    member _.Name(state: StorageBlobContainerConfig, metadata: (string * string) list) =
+        let m = metadata |> Map.ofList
+        { state with Metadata = Some(m) }
+
+type BlobContainerImmutabilityPoliciesBuilder() =
+    member _.Yield _ =
+        BlobContainerImmutabilityPoliciesConfig.Empty
 
     member _.Run state : BlobContainerImmutabilityPoliciesConfig = state
 
@@ -865,4 +984,5 @@ type BlobContainerImmutabilityPoliciesBuilder() =
 
 let storageAccount = StorageAccountBuilder()
 let storageQueue = StorageQueueBuilder()
+let storageBlobContainer = StorageBlobContainerBuilder()
 let blobContainerImmutabilityPolicies = BlobContainerImmutabilityPoliciesBuilder()
