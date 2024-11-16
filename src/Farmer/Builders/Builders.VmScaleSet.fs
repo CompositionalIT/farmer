@@ -165,7 +165,8 @@ type VmScaleSetConfig = {
             match this.Vm with
             | None -> raiseFarmer "The 'vm_profile' must be set for the VM scale set."
             | Some vm ->
-                let nsgId = vm.NetworkSecurityGroup |> Option.map (fun lr -> lr.ResourceId)
+                let nsgId =
+                    vm.NetworkSecurityGroup |> Option.map (fun lr -> (Managed lr.ResourceId))
 
                 [
                     // The VM Scale Set
