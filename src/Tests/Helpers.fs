@@ -20,7 +20,7 @@ let createSimpleDeployment parameters =
 
 let convertTo<'T> = Serialization.toJson >> Serialization.ofJson<'T>
 
-let farmerToMs<'T when 'T: null> (serializationSettings: Newtonsoft.Json.JsonSerializerSettings) data =
+let farmerToMs<'T when 'T: null and 'T not struct> (serializationSettings: Newtonsoft.Json.JsonSerializerSettings) data =
     data
     |> Serialization.toJson
     |> fun json -> SafeJsonConvert.DeserializeObject<'T>(json, serializationSettings)
