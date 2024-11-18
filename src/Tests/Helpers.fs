@@ -20,7 +20,7 @@ let createSimpleDeployment parameters =
 
 let convertTo<'T> = Serialization.toJson >> Serialization.ofJson<'T>
 
-let farmerToMs<'T when 'T: null and 'T: not struct> (serializationSettings: Newtonsoft.Json.JsonSerializerSettings) data =
+let farmerToMs<'T when 'T: null> (serializationSettings: Newtonsoft.Json.JsonSerializerSettings) data =
     data
     |> Serialization.toJson
     |> fun json -> SafeJsonConvert.DeserializeObject<'T>(json, serializationSettings)
@@ -29,7 +29,7 @@ let getResourceAtIndex serializationSettings index (builder: #IBuilder) =
     builder.BuildResources Location.WestEurope
     |> fun r -> r.[index].JsonModel |> farmerToMs serializationSettings
 
-let findAzureResources<'T when 'T: null>
+let findAzureResources<'T when 'T: null and 'T: not struct>
     (serializationSettings: Newtonsoft.Json.JsonSerializerSettings)
     (deployment: IDeploymentSource)
     =
