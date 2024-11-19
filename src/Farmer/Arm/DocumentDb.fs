@@ -28,7 +28,7 @@ type DatabaseKind =
     | Gremlin
 
 module DatabaseAccounts =
-    module SqlDatabases =
+    module Containers =
         type Container = {
             Name: ResourceName
             Account: ResourceName

@@ -5,7 +5,7 @@ open Farmer
 open Farmer.Arm
 open Farmer.CosmosDb
 open DatabaseAccounts
-open SqlDatabases
+open Containers
 
 type KeyType =
     | PrimaryKey
