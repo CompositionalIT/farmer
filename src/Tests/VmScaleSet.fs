@@ -90,6 +90,35 @@ let tests =
                 "my-scale-set"
                 "VMSS OS profile has incorrect computer name prefix"
         }
+        test "Create a basic scale set using a gallery image" {
+            let deployment = arm {
+                add_resources [
+                    vmss {
+                        name "my-scale-set"
+                        vm_profile (
+                            vm {
+                                username "azureuser"
+                                operating_system (Linux, SharedGalleryImageId "test-image-id")
+                                vm_size Standard_B1s
+                                os_disk 128 StandardSSD_LRS
+                            }
+                        )
+                    }
+                ]
+            }
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmss = jobj.SelectToken("resources[?(@.name=='my-scale-set')]")
+            Expect.isNotNull vmss "Scale set resource not generated"
+            let vmssProps = vmss["properties"]
+            Expect.isNotNull vmssProps "VMSS is missing 'properties'"
+            let vmProfile = vmssProps.SelectToken("virtualMachineProfile")
+            Expect.isNotNull vmProfile "VMSS is missing VM profile"
+
+            Expect.equal
+                (vmProfile.SelectToken("storageProfile.imageReference.sharedGalleryImageId").ToString())
+                "test-image-id"
+                "VMSS OS profile has incorrect image reference"
+        }
         test "Create a scale set linking to existing vnet" {
             let deployment = arm {
                 add_resources [

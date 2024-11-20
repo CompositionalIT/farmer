@@ -821,6 +821,19 @@ module Vm =
         OS: OS
     }
 
+    type GalleryImageId =
+        | SharedGalleryImageId of string
+        | CommunityGalleryImageId of string
+
+        member this.ArmValue =
+            match this with
+            | SharedGalleryImageId i -> i
+            | CommunityGalleryImageId i -> i
+
+    type ImageInfo =
+        | ImageDefinition of ImageDefinition
+        | GalleryImageRef of OS * GalleryImageId
+
     let makeVm os offer publisher sku = {
         Offer = Offer offer
         Publisher = Publisher publisher
@@ -944,7 +957,7 @@ module Vm =
     /// VM OS disks can be created by attaching an existing disk or from a gallery image.
     type OsDiskCreateOption =
         | AttachOsDisk of OS * ManagedDiskId: LinkedResource
-        | FromImage of ImageDefinition * DiskInfo
+        | FromImage of ImageInfo * DiskInfo
 
     /// VM data disks can be created by attaching an existing disk or generating an empty disk.
     type DataDiskCreateOption =

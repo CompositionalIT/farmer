@@ -279,7 +279,8 @@ type VmConfig = {
                     VirtualMachine = this.Name
                     OS =
                         match this.OsDisk with
-                        | FromImage(image, _) -> image.OS
+                        | FromImage(ImageDefinition image, _) -> image.OS
+                        | FromImage(GalleryImageRef (os,_), _) -> os
                         | _ -> raiseFarmer "Unable to determine OS for custom script when attaching an existing disk"
                     ScriptContents = script
                     FileUris = files
@@ -292,12 +293,14 @@ type VmConfig = {
 
                 // Azure AD SSH login extension
                 match this.AadSshLogin, this.OsDisk with
-                | FeatureFlag.Enabled, FromImage(image, _) when
+                | FeatureFlag.Enabled, FromImage(ImageDefinition image, _) when
                     image.OS = Linux && this.Identity.SystemAssigned = Disabled
                     ->
                     raiseFarmer
                         "AAD SSH login requires that system assigned identity be enabled on the virtual machine."
-                | FeatureFlag.Enabled, FromImage(image, _) when image.OS = Windows ->
+                | FeatureFlag.Enabled, FromImage(ImageDefinition image, _) when image.OS = Windows ->
+                    raiseFarmer "AAD SSH login is only supported for Linux Virtual Machines"
+                | FeatureFlag.Enabled, FromImage(GalleryImageRef (Windows,_), _) ->
                     raiseFarmer "AAD SSH login is only supported for Linux Virtual Machines"
                 // Assuming a user that attaches a disk knows to only using this extension for Linux images.
                 | FeatureFlag.Enabled, _ -> {
@@ -334,7 +337,7 @@ type VirtualMachineBuilder() =
         DisablePasswordAuthentication = None
         SshPathAndPublicKeys = None
         AadSshLogin = FeatureFlag.Disabled
-        OsDisk = FromImage(WindowsServer_2012Datacenter, { Size = 128; DiskType = Standard_LRS })
+        OsDisk = FromImage(ImageDefinition WindowsServer_2012Datacenter, { Size = 128; DiskType = Standard_LRS })
         AddressPrefix = "10.0.0.0/16"
         SubnetPrefix = "10.0.0.0/24"
         VNet = derived (fun config -> config.DeriveResourceName virtualNetworks "vnet")
@@ -440,10 +443,18 @@ type VirtualMachineBuilder() =
 
     /// Sets the operating system of the VM. A set of samples is provided in the `CommonImages` module.
     [<CustomOperation "operating_system">]
-    member _.ConfigureOs(state: VmConfig, image) =
+    member _.ConfigureOs(state: VmConfig, image: ImageDefinition) =
         let osDisk =
             match state.OsDisk with
-            | FromImage(_, diskInfo) -> FromImage(image, diskInfo)
+            | FromImage(_, diskInfo) -> FromImage(ImageDefinition image, diskInfo)
+            | AttachOsDisk _ -> raiseFarmer "Operating system from attached disk will be used"
+
+        { state with OsDisk = osDisk }
+
+    member _.ConfigureOs(state: VmConfig, imageRef) =
+        let osDisk =
+            match state.OsDisk with
+            | FromImage(_, diskInfo) -> FromImage(GalleryImageRef imageRef, diskInfo)
             | AttachOsDisk _ -> raiseFarmer "Operating system from attached disk will be used"
 
         { state with OsDisk = osDisk }
