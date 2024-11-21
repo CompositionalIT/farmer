@@ -218,14 +218,16 @@ type DatabaseAccount = {
                         enableAutomaticFailover = this.EnableAutomaticFailover |> Option.toNullable
                         enableMultipleWriteLocations = this.EnableMultipleWriteLocations |> Option.toNullable
                         locations =
-                            match this.FailoverLocations, this.Serverless with
-                            | [], Enabled ->
+                            // Locations has to be specified for the account to be gremlin enabled.
+                            // Otherwise graph database provisioning fails.
+                            match this.FailoverLocations, (this.Serverless = Enabled || this.Kind = Gremlin) with
+                            | [], true ->
                                 box [
                                     {|
                                         locationName = this.Location.ArmValue
                                     |}
                                 ]
-                            | [], Disabled -> null
+                            | [], false -> null
                             | locations, _ -> box locations
                         publicNetworkAccess = string this.PublicNetworkAccess
                         enableFreeTier = this.FreeTier
