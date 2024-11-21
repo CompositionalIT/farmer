@@ -1,6 +1,7 @@
 [<AutoOpen>]
 module Farmer.Builders.CosmosDb
 
+open System
 open Farmer
 open Farmer.Arm
 open Farmer.CosmosDb
@@ -306,12 +307,33 @@ type CosmosDbBuilder() =
     [<CustomOperation "kind">]
     member _.StorageKind(state: CosmosDbConfig, kind) = { state with Kind = kind }
 
+    static member ValidateContainers(state: CosmosDbConfig, containers: CosmosDbContainerConfig list) =
+        let validateContainerAndAccountConfig (container: CosmosDbContainerConfig, accountKind: DatabaseKind) =
+            if container.Kind = accountKind then
+                Ok container
+            else
+                Error $"Container {container.Name.Value} must be of {state.Kind} kind"
+
+        containers
+        |> List.map (fun container -> validateContainerAndAccountConfig (container, state.Kind))
+
     /// Adds a list of containers to the database.
     [<CustomOperation "add_containers">]
-    member _.AddContainers(state: CosmosDbConfig, containers) = {
-        state with
-            Containers = state.Containers @ containers
-    }
+    member _.AddContainers(state: CosmosDbConfig, containers) =
+        let errors =
+            CosmosDbBuilder.ValidateContainers(state, containers)
+            |> List.choose (fun r ->
+                match r with
+                | Error e -> Some(e)
+                | Ok _ -> None)
+
+        if errors.Length > 0 then
+            errors |> String.concat Environment.NewLine |> failwith
+
+        {
+            state with
+                Containers = state.Containers @ containers
+        }
 
     /// Enables public network access
     [<CustomOperation "enable_public_network_access">]
