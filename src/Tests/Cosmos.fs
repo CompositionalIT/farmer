@@ -146,10 +146,40 @@ let tests =
 
                 Expect.equal db.Kind Mongo ""
             }
+
+            test "gremlin" {
+                let db = cosmosDb {
+                    name "test"
+                    kind Gremlin
+                }
+
+                Expect.equal db.Kind Gremlin ""
+            }
         ]
 
         test "Correctly serializes to JSON" {
             let t = arm { add_resource (cosmosDb { name "test" }) }
+
+            t.Template |> Writer.toJson |> ignore
+        }
+
+        test "Correctly serializes gremlin db and container to JSON" {
+            let t = arm {
+                add_resource (
+                    cosmosDb {
+                        name "test"
+                        kind Gremlin
+
+                        add_containers [
+                            cosmosContainer {
+                                name "myContainer"
+                                partition_key [ "pk" ] CosmosDb.Hash
+                                gremlin_graph
+                            }
+                        ]
+                    }
+                )
+            }
 
             t.Template |> Writer.toJson |> ignore
         }
