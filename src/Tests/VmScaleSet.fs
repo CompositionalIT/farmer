@@ -95,6 +95,7 @@ let tests =
                 add_resources [
                     vmss {
                         name "my-scale-set"
+
                         vm_profile (
                             vm {
                                 username "azureuser"
@@ -106,6 +107,7 @@ let tests =
                     }
                 ]
             }
+
             let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
             let vmss = jobj.SelectToken("resources[?(@.name=='my-scale-set')]")
             Expect.isNotNull vmss "Scale set resource not generated"
@@ -115,7 +117,9 @@ let tests =
             Expect.isNotNull vmProfile "VMSS is missing VM profile"
 
             Expect.equal
-                (vmProfile.SelectToken("storageProfile.imageReference.sharedGalleryImageId").ToString())
+                (vmProfile
+                    .SelectToken("storageProfile.imageReference.sharedGalleryImageId")
+                    .ToString())
                 "test-image-id"
                 "VMSS OS profile has incorrect image reference"
         }

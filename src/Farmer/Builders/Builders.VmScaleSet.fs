@@ -121,7 +121,7 @@ type VmScaleSetConfig = {
                             OS =
                                 match vm.OsDisk with
                                 | FromImage(ImageDefinition image, _) -> image.OS
-                                | FromImage(GalleryImageRef (os,_), _) -> os
+                                | FromImage(GalleryImageRef(os, _), _) -> os
                                 | _ ->
                                     raiseFarmer
                                         "Unable to determine OS for custom script when attaching an existing disk"
@@ -135,11 +135,13 @@ type VmScaleSetConfig = {
         this.Vm
         |> Option.bind (fun vm ->
             match vm.AadSshLogin, vm.OsDisk with
-            | FeatureFlag.Enabled, FromImage(ImageDefinition  image, _) when image.OS = Linux && vm.Identity.SystemAssigned = Disabled ->
+            | FeatureFlag.Enabled, FromImage(ImageDefinition image, _) when
+                image.OS = Linux && vm.Identity.SystemAssigned = Disabled
+                ->
                 raiseFarmer "AAD SSH login requires that system assigned identity be enabled on the virtual machine."
             | FeatureFlag.Enabled, FromImage(ImageDefinition image, _) when image.OS = Windows ->
                 raiseFarmer "AAD SSH login is only supported for Linux Virtual Machines"
-            | FeatureFlag.Enabled, FromImage(GalleryImageRef (Windows,_), _) ->
+            | FeatureFlag.Enabled, FromImage(GalleryImageRef(Windows, _), _) ->
                 raiseFarmer "AAD SSH login is only supported for Linux Virtual Machines"
             // Assuming a user that attaches a disk knows to only using this extension for Linux images.
             | FeatureFlag.Enabled, _ ->
