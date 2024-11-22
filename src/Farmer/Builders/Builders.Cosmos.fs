@@ -250,6 +250,28 @@ type CosmosDbBuilder() =
         Kind = DatabaseKind.Document
     }
 
+    static member ValidateContainers(state: CosmosDbConfig) =
+        let validateContainerAndAccountConfig (container: CosmosDbContainerConfig, accountKind: DatabaseKind) =
+            if container.Kind = accountKind then
+                Ok container
+            else
+                Error $"Container {container.Name.Value} must be of {state.Kind} kind"
+
+        state.Containers
+        |> List.map (fun container -> validateContainerAndAccountConfig (container, state.Kind))
+
+    member _.Run state =
+        let errors =
+            CosmosDbBuilder.ValidateContainers(state)
+            |> List.choose (fun r ->
+                match r with
+                | Error e -> Some(e)
+                | Ok _ -> None)
+
+        if errors.Length > 0 then
+            errors |> String.concat Environment.NewLine |> raiseFarmer
+        state
+
     /// Sets the name of the CosmosDB server.
     [<CustomOperation "account_name">]
     member _.AccountName(state: CosmosDbConfig, accountName: ResourceName) = {
@@ -307,29 +329,9 @@ type CosmosDbBuilder() =
     [<CustomOperation "kind">]
     member _.StorageKind(state: CosmosDbConfig, kind) = { state with Kind = kind }
 
-    static member ValidateContainers(state: CosmosDbConfig, containers: CosmosDbContainerConfig list) =
-        let validateContainerAndAccountConfig (container: CosmosDbContainerConfig, accountKind: DatabaseKind) =
-            if container.Kind = accountKind then
-                Ok container
-            else
-                Error $"Container {container.Name.Value} must be of {state.Kind} kind"
-
-        containers
-        |> List.map (fun container -> validateContainerAndAccountConfig (container, state.Kind))
-
     /// Adds a list of containers to the database.
     [<CustomOperation "add_containers">]
     member _.AddContainers(state: CosmosDbConfig, containers) =
-        let errors =
-            CosmosDbBuilder.ValidateContainers(state, containers)
-            |> List.choose (fun r ->
-                match r with
-                | Error e -> Some(e)
-                | Ok _ -> None)
-
-        if errors.Length > 0 then
-            errors |> String.concat Environment.NewLine |> failwith
-
         {
             state with
                 Containers = state.Containers @ containers
