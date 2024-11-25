@@ -270,6 +270,7 @@ type CosmosDbBuilder() =
 
         if errors.Length > 0 then
             errors |> String.concat Environment.NewLine |> raiseFarmer
+
         state
 
     /// Sets the name of the CosmosDB server.
@@ -331,11 +332,10 @@ type CosmosDbBuilder() =
 
     /// Adds a list of containers to the database.
     [<CustomOperation "add_containers">]
-    member _.AddContainers(state: CosmosDbConfig, containers) =
-        {
-            state with
-                Containers = state.Containers @ containers
-        }
+    member _.AddContainers(state: CosmosDbConfig, containers) = {
+        state with
+            Containers = state.Containers @ containers
+    }
 
     /// Enables public network access
     [<CustomOperation "enable_public_network_access">]
