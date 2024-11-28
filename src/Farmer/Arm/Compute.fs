@@ -341,10 +341,16 @@ module VirtualMachine =
         {|
             imageReference =
                 match osDisk with
-                | FromImage(GalleryImageRef(_, SharedGalleryImageId imageId), _) ->
-                    {| sharedGalleryImageId = imageId |} :> obj
-                | FromImage(GalleryImageRef(_, CommunityGalleryImageId imageId), _) ->
-                    {| communityGalleryImageId = imageId |} :> obj
+                | FromImage(GalleryImageRef(_, (SharedGalleryImageId _ as imageRef)), _) ->
+                    {|
+                        sharedGalleryImageId = imageRef.ArmValue
+                    |}
+                    :> obj
+                | FromImage(GalleryImageRef(_, (CommunityGalleryImageId _ as imageRef)), _) ->
+                    {|
+                        communityGalleryImageId = imageRef.ArmValue
+                    |}
+                    :> obj
                 | FromImage(ImageDefinition imageDefintion, _) ->
                     {|
                         publisher = imageDefintion.Publisher.ArmValue

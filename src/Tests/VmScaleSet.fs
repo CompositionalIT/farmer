@@ -99,7 +99,16 @@ let tests =
                         vm_profile (
                             vm {
                                 username "azureuser"
-                                operating_system (Linux, SharedGalleryImageId "test-image-id")
+
+                                operating_system (
+                                    Linux,
+                                    CommunityGalleryImageId(
+                                        ResourceName "test-gallery",
+                                        ResourceName "test-image",
+                                        "version"
+                                    )
+                                )
+
                                 vm_size Standard_B1s
                                 os_disk 128 StandardSSD_LRS
                             }
@@ -118,9 +127,9 @@ let tests =
 
             Expect.equal
                 (vmProfile
-                    .SelectToken("storageProfile.imageReference.sharedGalleryImageId")
+                    .SelectToken("storageProfile.imageReference.communityGalleryImageId")
                     .ToString())
-                "test-image-id"
+                "/CommunityGalleries/test-gallery/Images/test-image/Versions/version"
                 "VMSS OS profile has incorrect image reference"
         }
         test "Create a scale with OS upgrade options" {
@@ -132,7 +141,16 @@ let tests =
                         vm_profile (
                             vm {
                                 username "azureuser"
-                                operating_system (Linux, SharedGalleryImageId "test-image-id")
+
+                                operating_system (
+                                    Linux,
+                                    SharedGalleryImageId(
+                                        ResourceName "test-gallery",
+                                        ResourceName "test-image",
+                                        "version"
+                                    )
+                                )
+
                                 vm_size Standard_B1s
                                 os_disk 128 StandardSSD_LRS
                             }
@@ -149,6 +167,15 @@ let tests =
             Expect.isNotNull vmss "Scale set resource not generated"
             let vmssProps = vmss["properties"]
             Expect.isNotNull vmssProps "VMSS is missing 'properties'"
+            let vmProfile = vmssProps.SelectToken("virtualMachineProfile")
+            Expect.isNotNull vmProfile "VMSS is missing VM profile"
+
+            Expect.equal
+                (vmProfile
+                    .SelectToken("storageProfile.imageReference.sharedGalleryImageId")
+                    .ToString())
+                "/SharedGalleries/test-gallery/Images/test-image/Versions/version"
+                "VMSS OS profile has incorrect image reference"
 
             Expect.equal
                 (vmssProps

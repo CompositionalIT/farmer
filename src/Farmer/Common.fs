@@ -846,13 +846,15 @@ module Vm =
     }
 
     type GalleryImageId =
-        | SharedGalleryImageId of string
-        | CommunityGalleryImageId of string
+        | SharedGalleryImageId of gallery: ResourceName * image: ResourceName * version: string
+        | CommunityGalleryImageId of gallery: ResourceName * image: ResourceName * version: string
 
         member this.ArmValue =
             match this with
-            | SharedGalleryImageId i -> i
-            | CommunityGalleryImageId i -> i
+            | SharedGalleryImageId(ResourceName gallery, ResourceName image, version) ->
+                $"/SharedGalleries/{gallery}/Images/{image}/Versions/{version}"
+            | CommunityGalleryImageId(ResourceName gallery, ResourceName image, version) ->
+                $"/CommunityGalleries/{gallery}/Images/{image}/Versions/{version}"
 
     type ImageInfo =
         | ImageDefinition of ImageDefinition
