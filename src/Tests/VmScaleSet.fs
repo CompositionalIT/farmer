@@ -123,6 +123,51 @@ let tests =
                 "test-image-id"
                 "VMSS OS profile has incorrect image reference"
         }
+        test "Create a scale with OS upgrade options" {
+            let deployment = arm {
+                add_resources [
+                    vmss {
+                        name "my-scale-set"
+
+                        vm_profile (
+                            vm {
+                                username "azureuser"
+                                operating_system (Linux, SharedGalleryImageId "test-image-id")
+                                vm_size Standard_B1s
+                                os_disk 128 StandardSSD_LRS
+                            }
+                        )
+
+                        osupgrade_automatic true
+                        osupgrade_rolling_upgrade true
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmss = jobj.SelectToken("resources[?(@.name=='my-scale-set')]")
+            Expect.isNotNull vmss "Scale set resource not generated"
+            let vmssProps = vmss["properties"]
+            Expect.isNotNull vmssProps "VMSS is missing 'properties'"
+
+            Expect.equal
+                (vmssProps
+                    .SelectToken("upgradePolicy.automaticOSUpgradePolicy.enableAutomaticOSUpgrade")
+                    .ToString())
+                (string true)
+                "VMSS OS upgrade policy is expected to be enabled"
+
+            Expect.equal
+                (vmssProps
+                    .SelectToken("upgradePolicy.automaticOSUpgradePolicy.useRollingUpgradePolicy")
+                    .ToString())
+                (string true)
+                "VMSS OS rolling upgrade policy is expected to be enabled"
+
+            Expect.isNull
+                (vmssProps.SelectToken("upgradePolicy.automaticOSUpgradePolicy.disableAutomaticRollback"))
+                "VMSS OS automatic upgrade rollback is not expected to be set"
+        }
         test "Create a scale set linking to existing vnet" {
             let deployment = arm {
                 add_resources [

@@ -218,8 +218,14 @@ type VmScaleSetConfig = {
                                 ForceDeletion = false
                                 Rules = [ ScaleInPolicyRule.Default ]
                             }
+                        SecurityProfile = vm.SecurityProfile
                         Size = vm.Size
-                        UpgradePolicy = this.UpgradePolicy |> Option.defaultValue { Mode = UpgradeMode.Automatic }
+                        UpgradePolicy =
+                            this.UpgradePolicy
+                            |> Option.defaultValue {
+                                ScaleSetUpgradePolicy.Default with
+                                    Mode = UpgradeMode.Automatic
+                            }
                         ZoneBalance = this.ZoneBalance
                         Tags = this.Tags
                     }
@@ -505,7 +511,91 @@ type VirtualMachineScaleSetBuilder() =
     [<CustomOperation "upgrade_mode">]
     member _.UpgradeMode(state: VmScaleSetConfig, mode: UpgradeMode) = {
         state with
-            UpgradePolicy = { Mode = mode } |> Some
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> { x with Mode = mode })
+                |> Some
+    }
+
+    [<CustomOperation "osupgrade_automatic">]
+    member _.OSUpgrade(state: VmScaleSetConfig, enabled) = {
+        state with
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> {
+                    x with
+                        AutomaticOSUpgradePolicy =
+                            x.AutomaticOSUpgradePolicy
+                            |> Option.defaultValue VmssAutomaticOSUpgradePolicy.Default
+                            |> (fun x -> {
+                                x with
+                                    EnableAutomaticOSUpgrade = Some enabled
+                            })
+                            |> Some
+                })
+                |> Some
+    }
+
+    [<CustomOperation "osupgrade_automatic_rollback">]
+    member _.OSUpgradeRollback(state: VmScaleSetConfig, enabled) = {
+        state with
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> {
+                    x with
+                        AutomaticOSUpgradePolicy =
+                            x.AutomaticOSUpgradePolicy
+                            |> Option.defaultValue VmssAutomaticOSUpgradePolicy.Default
+                            |> (fun x -> {
+                                x with
+                                    DisableAutomaticRollback = Some(not enabled)
+                            })
+                            |> Some
+                })
+                |> Some
+    }
+
+    [<CustomOperation "osupgrade_rolling_upgrade">]
+    member _.OSUpgradeRollingUpgrade(state: VmScaleSetConfig, enabled) = {
+        state with
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> {
+                    x with
+                        AutomaticOSUpgradePolicy =
+                            x.AutomaticOSUpgradePolicy
+                            |> Option.defaultValue VmssAutomaticOSUpgradePolicy.Default
+                            |> (fun x -> {
+                                x with
+                                    UseRollingUpgradePolicy = Some enabled
+                            })
+                            |> Some
+                })
+                |> Some
+    }
+
+    [<CustomOperation "osupgrade_rolling_upgrade_deferral">]
+    member _.OSUpgradeRollingUpgradeDeferral(state: VmScaleSetConfig, enabled) = {
+        state with
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> {
+                    x with
+                        AutomaticOSUpgradePolicy =
+                            x.AutomaticOSUpgradePolicy
+                            |> Option.defaultValue VmssAutomaticOSUpgradePolicy.Default
+                            |> (fun x -> {
+                                x with
+                                    OsRollingUpgradeDeferral = Some enabled
+                            })
+                            |> Some
+                })
+                |> Some
     }
 
 let vmss = VirtualMachineScaleSetBuilder()

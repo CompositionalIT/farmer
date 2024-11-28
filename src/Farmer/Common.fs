@@ -217,6 +217,30 @@ module DedicatedHosts =
             | WindowsPerpetual -> "Windows_Server_Perpetual"
 
 module Vm =
+
+    type UefiSettings = {
+        SecureBootEnabled: bool
+        VTpmEnabled: bool
+    }
+
+    type VmProxyAgentMode =
+        | Audit
+        | Enforce
+
+        member this.ArmValue =
+            match this with
+            | Audit -> "Audit"
+            | Enforce -> "Enforce"
+
+    type VmSecurityType =
+        | ConfidentialVM
+        | TrustedLaunch
+
+        member this.ArmValue =
+            match this with
+            | ConfidentialVM -> "ConfidentialVM"
+            | TrustedLaunch -> "TrustedLaunch"
+
     type VMSize =
         | Basic_A0
         | Basic_A1

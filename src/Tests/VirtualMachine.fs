@@ -77,6 +77,27 @@ let tests =
 
             Expect.isNull (vmProperties.Property "priority") "Priority should not be set by default"
         }
+        test "VM with security profile and trusted launch" {
+            let template =
+                let myVm = vm {
+                    name "myvm"
+                    username "me"
+                    security_type TrustedLaunch
+                }
+
+                arm { add_resource myVm }
+
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(template.Template |> Writer.toJson)
+
+            let securityProfile =
+                jobj.SelectToken("resources[?(@.name=='myvm')].properties.securityProfile")
+                :?> Newtonsoft.Json.Linq.JObject
+
+            Expect.equal
+                (string (securityProfile.Property "securityType").Value)
+                "TrustedLaunch"
+                "Expected securityProfile.securityType to be TrustedLaunch"
+        }
         test "Can create a basic virtual machine with managed boot diagnostics" {
             let resource =
                 let myVm = vm {
