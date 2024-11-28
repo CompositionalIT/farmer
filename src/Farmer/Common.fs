@@ -219,8 +219,8 @@ module DedicatedHosts =
 module Vm =
 
     type UefiSettings = {
-        SecureBootEnabled: bool
-        VTpmEnabled: bool
+        SecureBoot: FeatureFlag
+        Vtpm: FeatureFlag
     }
 
     type VmProxyAgentMode =

@@ -247,8 +247,8 @@ type VmSecurityProfile = {
         uefiSettings =
             this.UefiSettings
             |> Option.map (fun x -> {|
-                secureBootEnabled = x.SecureBootEnabled
-                vTpmEnabled = x.VTpmEnabled
+                secureBootEnabled = FeatureFlag.toBool x.SecureBoot
+                vTpmEnabled = FeatureFlag.toBool x.Vtpm
             |})
             |> Option.defaultValue Unchecked.defaultof<_>
     |}
