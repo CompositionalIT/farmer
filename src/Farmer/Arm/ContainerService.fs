@@ -179,6 +179,7 @@ type ManagedCluster = {
             VmSize: VMSize
             VirtualNetworkName: ResourceName option
             SubnetName: ResourceName option
+            PodSubnetName: ResourceName option
         |} list
     DnsPrefix: string
     EnableRBAC: bool
@@ -283,6 +284,10 @@ type ManagedCluster = {
                                 vnetSubnetID =
                                     match agent.VirtualNetworkName, agent.SubnetName with
                                     | Some vnet, Some subnet -> subnets.resourceId(vnet, subnet).Eval()
+                                    | _ -> null
+                                podSubnetID =
+                                    match agent.VirtualNetworkName, agent.PodSubnetName with
+                                    | Some vnet, Some pod_subnet -> subnets.resourceId(vnet, pod_subnet).Eval()
                                     | _ -> null
                             |})
                         dnsPrefix = this.DnsPrefix

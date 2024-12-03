@@ -20,6 +20,7 @@ type AgentPoolConfig = {
     VmSize: VMSize
     VirtualNetworkName: ResourceName option
     SubnetName: ResourceName option
+    PodSubnetName: ResourceName option
 } with
 
     static member Default = {
@@ -34,6 +35,7 @@ type AgentPoolConfig = {
         OsType = OS.Linux
         VirtualNetworkName = None
         SubnetName = None
+        PodSubnetName = None
         VmSize = Standard_DS2_v2
     }
 
@@ -170,6 +172,7 @@ type AksConfig = {
                         OsDiskSize = agentPool.OsDiskSize
                         OsType = agentPool.OsType
                         SubnetName = agentPool.SubnetName
+                        PodSubnetName = agentPool.PodSubnetName
                         VmSize = agentPool.VmSize
                         VirtualNetworkName = agentPool.VirtualNetworkName
                     |})
@@ -269,6 +272,13 @@ type AgentPoolBuilder() =
     member _.SubnetName(state: AgentPoolConfig, subnetName) = {
         state with
             SubnetName = Some(ResourceName subnetName)
+    }
+
+    /// Sets the name of a virtual network subnet where the AKS pods should be deployed.
+    [<CustomOperation "pod_subnet">]
+    member _.PodSubnetName(state: AgentPoolConfig, podSubnetName) = {
+        state with
+            PodSubnetName = Some(ResourceName podSubnetName)
     }
 
     /// Sets the size of the VM's in the agent pool.
