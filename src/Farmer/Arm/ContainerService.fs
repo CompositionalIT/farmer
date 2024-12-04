@@ -3,6 +3,7 @@ module Farmer.Arm.ContainerService
 
 open Farmer
 open Farmer.Identity
+open Farmer.ContainerService
 open Farmer.Vm
 
 let managedClusters =
@@ -162,6 +163,7 @@ type SecurityProfileSettings = {
 
 type ManagedCluster = {
     Name: ResourceName
+    Sku: ContainerServiceSku
     Location: Location
     Dependencies: ResourceId Set
     /// Dependencies that are expressed in ARM functions instead of a resource Id
@@ -248,6 +250,10 @@ type ManagedCluster = {
                             this.DependencyExpressions |> Seq.map (fun r -> r.Eval())
                         ]
                         |> Seq.concat
+                    sku = {|
+                        name = this.Sku.Name.ArmValue
+                        tier = this.Sku.Tier.ArmValue
+                    |}
                     identity = // If using MSI but no identity was set, then enable the system identity like the CLI
                         if
                             this.ServicePrincipalProfile.ClientId = "msi"

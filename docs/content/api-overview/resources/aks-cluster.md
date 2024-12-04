@@ -16,6 +16,8 @@ The AKS builder (`aks`) constructs AKS clusters.
 | Keyword                             | Purpose                                                                                                                                                     |
 |-------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | name                                | Sets the name of the AKS cluster.                                                                                                                           |
+| sku                                 | Specifies the SKU of the AKS cluster - default is 'Base'.                                                                                                   |
+| tier                                | Specifies the tier of the AKS cluster - default is 'Free'.                                                                                                  | 
 | dns_prefix                          | Sets the DNS prefix of the AKS cluster.                                                                                                                     |
 | enable_defender                     | Enables Defender for the containers running in the cluster.                                                                                                 |
 | enable_image_cleaner                | Enables a service to periodically purge images that are no longer used.                                                                                     |
@@ -77,6 +79,7 @@ The CNI builder (`azureCniNetworkProfile`) creates Azure CNI network profiles on
 
 The simplest cluster uses a system assigned managed identity and
 default settings for the node pool (size of 3).
+The pricing tier is 'Free'.
 
 ```fsharp
 open Farmer
@@ -89,10 +92,11 @@ let myAks = aks {
 }
 ```
 
-#### Customizing agent pool and network profile
+#### Standard pricing tier. Customizing agent pool and network profile
 ```fsharp
 let myAks = aks {
     name "k8s-cluster"
+    tier Tier.Standard
     dns_prefix "testaks"
     add_agent_pools [
         agentPool {

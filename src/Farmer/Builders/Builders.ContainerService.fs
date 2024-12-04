@@ -7,6 +7,7 @@ open Farmer.Arm
 open Farmer.Arm.ContainerService.AddonProfiles
 open Farmer.Arm.RoleAssignment
 open Farmer.Identity
+open Farmer.ContainerService
 open Farmer.Vm
 
 type AgentPoolConfig = {
@@ -113,6 +114,7 @@ type AddonConfig =
 
 type AksConfig = {
     Name: ResourceName
+    Sku: ContainerServiceSku
     AddonProfiles: AddonConfig list
     AgentPools: AgentPoolConfig list
     Dependencies: ResourceId Set
@@ -139,6 +141,7 @@ type AksConfig = {
         member this.BuildResources location = [
             {
                 Name = this.Name
+                Sku = this.Sku
                 Location = location
                 AddOnProfiles =
                     match this.AddonProfiles with
@@ -385,6 +388,10 @@ let private (|PrivateClusterEnabled|_|) =
 type AksBuilder() =
     member _.Yield _ = {
         Name = ResourceName.Empty
+        Sku = {
+            Name = Sku.Base
+            Tier = Tier.Free
+        }
         Dependencies = Set.empty
         DependencyExpressions = Set.empty
         AddonProfiles = []
@@ -417,6 +424,20 @@ type AksBuilder() =
     /// Sets the name of the AKS cluster.
     [<CustomOperation "name">]
     member _.Name(state: AksConfig, name) = { state with Name = ResourceName name }
+
+    /// Sets the sku of the AKS cluster (default is 'Base').
+    [<CustomOperation "sku">]
+    member _.Sku(state: AksConfig, skuName) = {
+        state with
+            Sku = { state.Sku with Name = skuName }
+    }
+
+    /// Sets the tier of the load balancer (default is 'Free').
+    [<CustomOperation "tier">]
+    member _.Tier(state: AksConfig, skuTier) = {
+        state with
+            Sku = { state.Sku with Tier = skuTier }
+    }
 
     /// Sets the DNS prefix of the AKS cluster.
     [<CustomOperation "dns_prefix">]

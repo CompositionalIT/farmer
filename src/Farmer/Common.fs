@@ -2330,6 +2330,30 @@ module ContainerService =
             | Kubenet -> "kubenet"
             | AzureCni -> "azure"
 
+    [<RequireQualifiedAccess>]
+    type Sku =
+        | Automatic
+        | Base
+
+        member this.ArmValue =
+            match this with
+            | Automatic -> "Automatic"
+            | Base -> "Base"
+
+    [<RequireQualifiedAccess>]
+    type Tier =
+        | Free
+        | Standard
+        | Premium
+
+        member this.ArmValue =
+            match this with
+            | Free -> "Free"
+            | Standard -> "Standard"
+            | Premium -> "Premium"
+
+    type ContainerServiceSku = { Name: Sku; Tier: Tier }
+
 module B2cTenant =
     type Sku =
         | PremiumP1

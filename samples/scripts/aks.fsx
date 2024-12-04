@@ -43,6 +43,7 @@ let msi = userAssignedIdentity { name "aks-user" }
 let makeAks (n: int) =
     aks {
         name (aksName n)
+        tier Tier.Standard
         dns_prefix (aksDns n)
         enable_rbac
         add_identity msi
