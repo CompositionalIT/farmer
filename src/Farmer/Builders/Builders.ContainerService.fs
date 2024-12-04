@@ -388,10 +388,7 @@ let private (|PrivateClusterEnabled|_|) =
 type AksBuilder() =
     member _.Yield _ = {
         Name = ResourceName.Empty
-        Sku = {
-            Name = Sku.Base
-            Tier = Tier.Free
-        }
+        Sku = { Name = Sku.Base; Tier = Tier.Free }
         Dependencies = Set.empty
         DependencyExpressions = Set.empty
         AddonProfiles = []
