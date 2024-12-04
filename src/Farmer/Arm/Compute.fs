@@ -176,7 +176,7 @@ type NetworkInterfaceConfiguration = {
     EnableIpForwarding: bool option
     IpConfigs: IpConfiguration list
     VirtualNetwork: LinkedResource
-    NetworkSecurityGroup: ResourceId option
+    NetworkSecurityGroup: LinkedResource option
     Primary: bool
 } with
 
@@ -187,6 +187,7 @@ type NetworkInterfaceConfiguration = {
             enableIPForwarding = this.EnableIpForwarding |> Option.map box |> Option.defaultValue null
             networkSecurityGroup =
                 this.NetworkSecurityGroup
+                |> Option.map _.ResourceId
                 |> Option.map ResourceId.AsIdObject
                 |> Option.map box
                 |> Option.defaultValue null

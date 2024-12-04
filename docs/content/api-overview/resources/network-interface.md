@@ -5,8 +5,8 @@ weight: 5
 ---
 
 #### Overview
-The `networkInterface` builder allows you to create network interfaces (NIC) so that Azure virtual machine (VM) can 
-communicate with internet, Azure, and on-premises resources. To learn more about routeServer, reference to 
+The `networkInterface` builder allows you to create network interfaces (NIC) so that Azure virtual machine (VM) can
+communicate with internet, Azure, and on-premises resources. To learn more about routeServer, reference to
 [Azure Docs](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-network-interface?tabs=azure-portal)
 
 * NetworkInterface (`Microsoft.Network/networkInterfaces`)
@@ -23,6 +23,8 @@ communicate with internet, Azure, and on-premises resources. To learn more about
 | networkInterface | add_static_ip       | Use static ip for the network interface. If not provided, ip will be dynamically allocated            |
 | networkInterface | accelerated_networking_flag    | The accelerated networking flag for the network interface. Default is false                           |
 | networkInterface | ip_forwarding_flag    | The ip forwarding flag for the network interface. Default is false                                    |
+| networkInterface | network_security_group               | Specify the network security group from the same deployment.                                          |
+| networkInterface | link_to_network_security_group       | Specify an existing network security group for this network interface.                                |
 
 #### Example
 
