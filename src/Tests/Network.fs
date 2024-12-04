@@ -1174,6 +1174,82 @@ let tests =
                 "Incorrect subnet id for ipConfig"
         }
 
+        test "Creates basic network interface with existing vnet subnet and network security group" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    nsg { name "my-nsg" }
+                    networkInterface {
+                        name "my-network-interface-with-nsg"
+                        link_to_subnet "test-subnet"
+                        link_to_vnet "test-vnet"
+                        network_security_group (networkSecurityGroups.resourceId "my-nsg")
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+
+            let networkInterfaceWithNsg =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.Network/networkInterfaces')]"
+
+            Expect.equal
+                (networkInterfaceWithNsg.["properties"].["networkSecurityGroup"].["id"]
+                    .ToString())
+                "[resourceId(\u0027Microsoft.Network/networkSecurityGroups\u0027, \u0027my-nsg\u0027)]"
+                "Incorrect networkSecurityGroup for networkInterface"
+
+            let networkInterfaceWithNsgDependencies =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.Network/networkInterfaces')].dependsOn" :?> JArray
+
+            Expect.isNotNull networkInterfaceWithNsgDependencies "Missing dependency for networkInterface"
+
+            Expect.hasLength
+                networkInterfaceWithNsgDependencies
+                1
+                "Incorrect number of dependencies for networkInterface"
+
+            Expect.equal
+                (networkInterfaceWithNsgDependencies.[0].ToString())
+                "[resourceId(\u0027Microsoft.Network/networkSecurityGroups\u0027, \u0027my-nsg\u0027)]"
+                "Incorrect networkInterface dependencies"
+        }
+
+        test "Creates basic network interface with existing vnet subnet and existing network security group" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    networkInterface {
+                        name "my-network-interface-with-existing-nsg"
+                        link_to_subnet "test-subnet"
+                        link_to_vnet "test-vnet"
+                        link_to_network_security_group (networkSecurityGroups.resourceId "my-nsg")
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+
+            let networkInterfaceWithExistingNsg =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.Network/networkInterfaces')]"
+
+            Expect.equal
+                (networkInterfaceWithExistingNsg.["properties"].["networkSecurityGroup"].["id"]
+                    .ToString())
+                "[resourceId(\u0027Microsoft.Network/networkSecurityGroups\u0027, \u0027my-nsg\u0027)]"
+                "Incorrect networkSecurityGroup for networkInterface"
+
+            let networkInterfaceWithExistingNsgDependencies =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.Network/networkInterfaces')].dependsOn" :?> JArray
+
+            Expect.hasLength
+                networkInterfaceWithExistingNsgDependencies
+                0
+                "Incorrect number of dependencies for networkInterface"
+        }
+
         test "Creates basic network interface with existing vnet subnet and dynamic ip" {
             let deployment = arm {
                 location Location.EastUS

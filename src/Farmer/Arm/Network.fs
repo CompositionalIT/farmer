@@ -725,7 +725,7 @@ type NetworkInterface = {
     EnableIpForwarding: bool option
     IpConfigs: IpConfiguration list
     VirtualNetwork: LinkedResource
-    NetworkSecurityGroup: ResourceId option
+    NetworkSecurityGroup: LinkedResource option
     Primary: bool option
     Tags: Map<string, string>
 } with
@@ -752,8 +752,9 @@ type NetworkInterface = {
                         match linkedResource with
                         | Managed resId -> resId
                         | _ -> ()
-                if this.NetworkSecurityGroup.IsSome then
-                    this.NetworkSecurityGroup.Value
+                match this.NetworkSecurityGroup with
+                | Some(Managed id) -> id
+                | _ -> ()
             ]
 
             let props = {|
@@ -763,20 +764,18 @@ type NetworkInterface = {
                 ipConfigurations =
                     this.IpConfigs
                     |> List.mapi (fun index ipConfig -> ipConfig.ToArmJson(index, this.VirtualNetwork.ResourceId, true))
+                networkSecurityGroup =
+                    this.NetworkSecurityGroup
+                    |> Option.map (fun nsg -> {|
+                        id = nsg.ResourceId.ArmExpression.Eval()
+                    |})
+                    |> Option.defaultValue Unchecked.defaultof<_>
             |}
 
-            match this.NetworkSecurityGroup with
-            | None -> {|
+            {|
                 networkInterfaces.Create(this.Name, this.Location, dependsOn, this.Tags) with
                     properties = props
-              |}
-            | Some nsg -> {|
-                networkInterfaces.Create(this.Name, this.Location, dependsOn, this.Tags) with
-                    properties = {|
-                        props with
-                            networkSecurityGroup = {| id = nsg.Eval() |}
-                    |}
-              |}
+            |}
 
 type NetworkProfile = {
     Name: ResourceName
