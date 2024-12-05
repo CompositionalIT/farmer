@@ -98,41 +98,19 @@ template
 open Farmer
 open Farmer.Builders
 open Sql
-open Farmer.Arm.Sql
 
-let activeDirectoryAdmin: ActiveDirectoryAdminSettings =
-    {
-        Login = "adadmin"
-        Sid = "F9D49C34-01BA-4897-B7E2-3694BF3DE2CF"
-        PrincipalType = ActiveDirectoryPrincipalType.User
-        AdOnlyAuth = false  // when false, admin_username is required
-                            // when true admin_username is ignored
-    }
+let entraAdminGroup = AccessPolicy.findGroups [ "adadmin" ] |> Array.head
 
 let myDatabases = sqlServer {
     name "my_server"
-    active_directory_admin (Some(activeDirectoryAdmin))
+    entra_id_admin_group entraAdminGroup.DisplayName entraAdminGroup.Id
     admin_username "admin_username"
     enable_azure_firewall
 
     elastic_pool_name "mypool"
     elastic_pool_sku PoolSku.Basic100
 
-    add_databases [
-        sqlDb { name "poolDb1" }
-        sqlDb { name "poolDb2" }
-        sqlDb { name "dtuDb"; sku Basic }
-        sqlDb { name "memoryDb"; sku M_8 }
-        sqlDb { name "cpuDb"; sku Fsv2_8 }
-        sqlDb { name "businessCriticalDb"; sku (BusinessCritical Gen5_2) }
-        sqlDb { name "hyperscaleDb"; sku (Hyperscale Gen5_2) }
-        sqlDb {
-            name "generalPurposeDb"
-            sku (GeneralPurpose Gen5_8)
-            db_size (1024<Mb> * 128)
-            hybrid_benefit
-        }
-    ]
+    add_databases [ sqlDb { name "poolDb1" } ]
 }
 
 let template = arm {
@@ -140,9 +118,9 @@ let template = arm {
     add_resource myDatabases
 }
 
-template
-|> Writer.quickWrite "sql-example"
+template |> Writer.quickWrite "sql-example"
 
 template
 |> Deploy.execute "my-resource-group" [ "password-for-my_server", "*****" ]
+|> ignore
 ```
