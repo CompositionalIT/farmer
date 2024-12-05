@@ -218,11 +218,6 @@ module DedicatedHosts =
 
 module Vm =
 
-    type UefiSettings = {
-        SecureBoot: FeatureFlag
-        Vtpm: FeatureFlag
-    }
-
     type VmProxyAgentMode =
         | Audit
         | Enforce

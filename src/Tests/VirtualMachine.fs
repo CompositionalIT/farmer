@@ -104,11 +104,8 @@ let tests =
                     name "myvm"
                     username "me"
                     security_type TrustedLaunch
-
-                    uefi {
-                        SecureBoot = Enabled
-                        Vtpm = Disabled
-                    }
+                    secure_boot Enabled
+                    vtpm Disabled
                 }
 
                 arm { add_resource myVm }

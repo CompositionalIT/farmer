@@ -204,6 +204,13 @@ type VmProxyAgentSettings = {
     Mode: VmProxyAgentMode
 }
 
+type UefiSettings = {
+    SecureBoot: FeatureFlag option
+    Vtpm: FeatureFlag option
+} with
+
+    static member Default = { SecureBoot = None; Vtpm = None }
+
 type VmSecurityProfile = {
     EncryptionAtHost: bool option
     EncryptionIdentity: Identity.ManagedIdentity option
@@ -247,8 +254,8 @@ type VmSecurityProfile = {
         uefiSettings =
             this.UefiSettings
             |> Option.map (fun x -> {|
-                secureBootEnabled = FeatureFlag.toBool x.SecureBoot
-                vTpmEnabled = FeatureFlag.toBool x.Vtpm
+                secureBootEnabled = x.SecureBoot |> Option.map FeatureFlag.toBool |> Option.toNullable
+                vTpmEnabled = x.Vtpm |> Option.map FeatureFlag.toBool |> Option.toNullable
             |})
             |> Option.defaultValue Unchecked.defaultof<_>
     |}

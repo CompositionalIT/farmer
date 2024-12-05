@@ -381,7 +381,7 @@ type VirtualMachineBuilder() =
                         | other -> other)
         }
 
-    [<CustomOperation "encryption_atHost">]
+    [<CustomOperation "encryption_at_host">]
     member _.Encryption(state: VmConfig, enabled) = {
         state with
             SecurityProfile =
@@ -425,13 +425,39 @@ type VirtualMachineBuilder() =
                 |> Some
     }
 
-    [<CustomOperation "uefi">]
-    member _.Uefi(state: VmConfig, settings) = {
+    [<CustomOperation "secure_boot">]
+    member _.SecureBoot(state: VmConfig, featureFlag) = {
         state with
             SecurityProfile =
                 state.SecurityProfile
                 |> Option.defaultValue VmSecurityProfile.Default
-                |> (fun x -> { x with UefiSettings = Some settings })
+                |> (fun x -> {
+                    x with
+                        UefiSettings =
+                            {
+                                (x.UefiSettings |> Option.defaultValue UefiSettings.Default) with
+                                    SecureBoot = Some featureFlag
+                            }
+                            |> Some
+                })
+                |> Some
+    }
+
+    [<CustomOperation "vtpm">]
+    member _.Vtpm(state: VmConfig, featureFlag) = {
+        state with
+            SecurityProfile =
+                state.SecurityProfile
+                |> Option.defaultValue VmSecurityProfile.Default
+                |> (fun x -> {
+                    x with
+                        UefiSettings =
+                            {
+                                (x.UefiSettings |> Option.defaultValue UefiSettings.Default) with
+                                    Vtpm = Some featureFlag
+                            }
+                            |> Some
+                })
                 |> Some
     }
 
