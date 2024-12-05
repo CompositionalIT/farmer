@@ -22,6 +22,10 @@ type AgentPoolConfig = {
     VirtualNetworkName: ResourceName option
     SubnetName: ResourceName option
     PodSubnetName: ResourceName option
+    AutoscaleSetting: FeatureFlag option
+    ScaleDownMode: ScaleDownMode option
+    MinCount: int option
+    MaxCount: int option
 } with
 
     static member Default = {
@@ -38,6 +42,10 @@ type AgentPoolConfig = {
         SubnetName = None
         PodSubnetName = None
         VmSize = Standard_DS2_v2
+        AutoscaleSetting = None
+        ScaleDownMode = None
+        MinCount = None
+        MaxCount = None
     }
 
 type ApiServerAccessProfileConfig = {
@@ -178,6 +186,10 @@ type AksConfig = {
                         PodSubnetName = agentPool.PodSubnetName
                         VmSize = agentPool.VmSize
                         VirtualNetworkName = agentPool.VirtualNetworkName
+                        AutoscaleSetting = agentPool.AutoscaleSetting
+                        ScaleDownMode = agentPool.ScaleDownMode
+                        MinCount = agentPool.MinCount
+                        MaxCount = agentPool.MaxCount
                     |})
                 ApiServerAccessProfile =
                     this.ApiServerAccessProfile
@@ -294,6 +306,33 @@ type AgentPoolBuilder() =
         state with
             VirtualNetworkName = Some(ResourceName vnetName)
     }
+
+    /// Enables FIPS compliant nodes in the VM scale set for this agent pool.
+    [<CustomOperation "enable_autoscaling">]
+    member _.AutoscaleSetting(state: AgentPoolConfig) = {
+        state with
+            AutoscaleSetting = Some Enabled
+    }
+
+    [<CustomOperation "enable_autoscaling">]
+    member _.AutoscaleSetting(state: AgentPoolConfig, featureFlag) = {
+        state with
+            AutoscaleSetting = Some featureFlag
+    }
+
+    [<CustomOperation "scaleDownMode">]
+    member _.ScaleDownMode(state: AgentPoolConfig, scaleDownMode) = {
+        state with
+            ScaleDownMode = Some scaleDownMode
+    }
+
+    /// Sets the min count of VM's in the agent pool if autoscale is enabled
+    [<CustomOperation "min_count">]
+    member _.MinCount(state: AgentPoolConfig, minCount) = { state with MinCount = Some minCount }
+
+    /// Sets the min count of VM's in the agent pool if autoscale is enabled
+    [<CustomOperation "max_count">]
+    member _.MaxCount(state: AgentPoolConfig, maxCount) = { state with MaxCount = Some maxCount }
 
 /// Builds an AKS cluster agent pool ARM resource definition
 let agentPool = AgentPoolBuilder()

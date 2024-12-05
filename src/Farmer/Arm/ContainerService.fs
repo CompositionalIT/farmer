@@ -161,6 +161,10 @@ type SecurityProfileSettings = {
         WorkloadIdentity = None
     }
 
+type ScaleDownMode =
+    | Delete
+    | Deallocate
+
 type ManagedCluster = {
     Name: ResourceName
     Sku: ContainerServiceSku
@@ -182,6 +186,10 @@ type ManagedCluster = {
             VirtualNetworkName: ResourceName option
             SubnetName: ResourceName option
             PodSubnetName: ResourceName option
+            AutoscaleSetting: FeatureFlag option
+            ScaleDownMode: ScaleDownMode option
+            MinCount: int option
+            MaxCount: int option
         |} list
     DnsPrefix: string
     EnableRBAC: bool
@@ -295,6 +303,13 @@ type ManagedCluster = {
                                     match agent.VirtualNetworkName, agent.PodSubnetName with
                                     | Some vnet, Some pod_subnet -> subnets.resourceId(vnet, pod_subnet).Eval()
                                     | _ -> null
+                                enableAutoScaling = agent.AutoscaleSetting |> Option.mapBoxed _.AsBoolean
+                                scaleDownMode =
+                                    match agent.ScaleDownMode with
+                                    | Some scaledownmode -> string scaledownmode
+                                    | _ -> null
+                                minCount = agent.MinCount |> Option.toNullable
+                                maxCount = agent.MaxCount |> Option.toNullable
                             |})
                         dnsPrefix = this.DnsPrefix
                         enableRBAC = this.EnableRBAC
