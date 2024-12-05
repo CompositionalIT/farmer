@@ -307,32 +307,31 @@ type AgentPoolBuilder() =
             VirtualNetworkName = Some(ResourceName vnetName)
     }
 
-    /// Enables FIPS compliant nodes in the VM scale set for this agent pool.
-    [<CustomOperation "enable_autoscaling">]
+    /// Enables autoscaling for this agent pool.
+    [<CustomOperation "enable_autoscale">]
     member _.AutoscaleSetting(state: AgentPoolConfig) = {
         state with
             AutoscaleSetting = Some Enabled
     }
 
-    [<CustomOperation "enable_autoscaling">]
-    member _.AutoscaleSetting(state: AgentPoolConfig, featureFlag) = {
-        state with
-            AutoscaleSetting = Some featureFlag
-    }
-
-    [<CustomOperation "scaleDownMode">]
+    [<CustomOperation "autoscale_scale_down_mode">]
     member _.ScaleDownMode(state: AgentPoolConfig, scaleDownMode) = {
         state with
             ScaleDownMode = Some scaleDownMode
     }
 
     /// Sets the min count of VM's in the agent pool if autoscale is enabled
-    [<CustomOperation "min_count">]
+    [<CustomOperation "autoscale_min_count">]
     member _.MinCount(state: AgentPoolConfig, minCount) = { state with MinCount = Some minCount }
 
     /// Sets the min count of VM's in the agent pool if autoscale is enabled
-    [<CustomOperation "max_count">]
-    member _.MaxCount(state: AgentPoolConfig, maxCount) = { state with MaxCount = Some maxCount }
+    [<CustomOperation "autoscale_max_count">]
+    member _.MaxCount(state: AgentPoolConfig, maxCount) = {
+        state with
+            MaxCount = Some maxCount
+            AutoscaleSetting = Some(state.AutoscaleSetting |> Option.defaultValue Enabled)
+            MinCount = Some(state.MinCount |> Option.defaultValue 1)
+    }
 
 /// Builds an AKS cluster agent pool ARM resource definition
 let agentPool = AgentPoolBuilder()
