@@ -329,7 +329,7 @@ let tests =
         test "Can parse JSON into an ARM template" {
             let json =
                 """    {
-      "apiVersion": "2019-06-01",
+      "apiVersion": "2023-05-01",
       "dependsOn": [],
       "kind": "StorageV2",
       "location": "northeurope",

@@ -269,6 +269,8 @@ type VmConfig = {
                     DisableBlobPublicAccess = None
                     DisableSharedKeyAccess = None
                     DefaultToOAuthAuthentication = None
+                    ImmutableStorageWithVersioning = None
+                    RequireInfrastructureEncryption = None
                   }
                 | Some _
                 | None -> ()
