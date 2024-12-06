@@ -3,6 +3,7 @@ module Farmer.Arm.ContainerService
 
 open Farmer
 open Farmer.Identity
+open Farmer.ContainerService
 open Farmer.Vm
 
 let managedClusters =
@@ -160,8 +161,13 @@ type SecurityProfileSettings = {
         WorkloadIdentity = None
     }
 
+type ScaleDownMode =
+    | Delete
+    | Deallocate
+
 type ManagedCluster = {
     Name: ResourceName
+    Sku: ContainerServiceSku
     Location: Location
     Dependencies: ResourceId Set
     /// Dependencies that are expressed in ARM functions instead of a resource Id
@@ -179,6 +185,11 @@ type ManagedCluster = {
             VmSize: VMSize
             VirtualNetworkName: ResourceName option
             SubnetName: ResourceName option
+            PodSubnetName: ResourceName option
+            AutoscaleSetting: FeatureFlag option
+            ScaleDownMode: ScaleDownMode option
+            MinCount: int option
+            MaxCount: int option
         |} list
     DnsPrefix: string
     EnableRBAC: bool
@@ -247,6 +258,10 @@ type ManagedCluster = {
                             this.DependencyExpressions |> Seq.map (fun r -> r.Eval())
                         ]
                         |> Seq.concat
+                    sku = {|
+                        name = this.Sku.Name.ArmValue
+                        tier = this.Sku.Tier.ArmValue
+                    |}
                     identity = // If using MSI but no identity was set, then enable the system identity like the CLI
                         if
                             this.ServicePrincipalProfile.ClientId = "msi"
@@ -284,6 +299,17 @@ type ManagedCluster = {
                                     match agent.VirtualNetworkName, agent.SubnetName with
                                     | Some vnet, Some subnet -> subnets.resourceId(vnet, subnet).Eval()
                                     | _ -> null
+                                podSubnetID =
+                                    match agent.VirtualNetworkName, agent.PodSubnetName with
+                                    | Some vnet, Some pod_subnet -> subnets.resourceId(vnet, pod_subnet).Eval()
+                                    | _ -> null
+                                enableAutoScaling = agent.AutoscaleSetting |> Option.mapBoxed _.AsBoolean
+                                scaleDownMode =
+                                    match agent.ScaleDownMode with
+                                    | Some scaledownmode -> string scaledownmode
+                                    | _ -> null
+                                minCount = agent.MinCount |> Option.toNullable
+                                maxCount = agent.MaxCount |> Option.toNullable
                             |})
                         dnsPrefix = this.DnsPrefix
                         enableRBAC = this.EnableRBAC

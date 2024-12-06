@@ -215,6 +215,7 @@ let tests =
                         count 3
                         vnet "my-vnet"
                         subnet "containernet"
+                        pod_subnet "podnet"
                     }
                 ]
 

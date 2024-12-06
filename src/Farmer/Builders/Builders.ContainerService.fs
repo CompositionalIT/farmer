@@ -7,6 +7,7 @@ open Farmer.Arm
 open Farmer.Arm.ContainerService.AddonProfiles
 open Farmer.Arm.RoleAssignment
 open Farmer.Identity
+open Farmer.ContainerService
 open Farmer.Vm
 
 type AgentPoolConfig = {
@@ -20,6 +21,11 @@ type AgentPoolConfig = {
     VmSize: VMSize
     VirtualNetworkName: ResourceName option
     SubnetName: ResourceName option
+    PodSubnetName: ResourceName option
+    AutoscaleSetting: FeatureFlag option
+    ScaleDownMode: ScaleDownMode option
+    MinCount: int option
+    MaxCount: int option
 } with
 
     static member Default = {
@@ -34,7 +40,12 @@ type AgentPoolConfig = {
         OsType = OS.Linux
         VirtualNetworkName = None
         SubnetName = None
+        PodSubnetName = None
         VmSize = Standard_DS2_v2
+        AutoscaleSetting = None
+        ScaleDownMode = None
+        MinCount = None
+        MaxCount = None
     }
 
 type ApiServerAccessProfileConfig = {
@@ -111,6 +122,7 @@ type AddonConfig =
 
 type AksConfig = {
     Name: ResourceName
+    Sku: ContainerServiceSku
     AddonProfiles: AddonConfig list
     AgentPools: AgentPoolConfig list
     Dependencies: ResourceId Set
@@ -137,6 +149,7 @@ type AksConfig = {
         member this.BuildResources location = [
             {
                 Name = this.Name
+                Sku = this.Sku
                 Location = location
                 AddOnProfiles =
                     match this.AddonProfiles with
@@ -170,8 +183,13 @@ type AksConfig = {
                         OsDiskSize = agentPool.OsDiskSize
                         OsType = agentPool.OsType
                         SubnetName = agentPool.SubnetName
+                        PodSubnetName = agentPool.PodSubnetName
                         VmSize = agentPool.VmSize
                         VirtualNetworkName = agentPool.VirtualNetworkName
+                        AutoscaleSetting = agentPool.AutoscaleSetting
+                        ScaleDownMode = agentPool.ScaleDownMode
+                        MinCount = agentPool.MinCount
+                        MaxCount = agentPool.MaxCount
                     |})
                 ApiServerAccessProfile =
                     this.ApiServerAccessProfile
@@ -271,6 +289,13 @@ type AgentPoolBuilder() =
             SubnetName = Some(ResourceName subnetName)
     }
 
+    /// Sets the name of a virtual network subnet where the AKS pods should be deployed.
+    [<CustomOperation "pod_subnet">]
+    member _.PodSubnetName(state: AgentPoolConfig, podSubnetName) = {
+        state with
+            PodSubnetName = Some(ResourceName podSubnetName)
+    }
+
     /// Sets the size of the VM's in the agent pool.
     [<CustomOperation "vm_size">]
     member _.VmSize(state: AgentPoolConfig, size) = { state with VmSize = size }
@@ -280,6 +305,32 @@ type AgentPoolBuilder() =
     member _.VNetName(state: AgentPoolConfig, vnetName) = {
         state with
             VirtualNetworkName = Some(ResourceName vnetName)
+    }
+
+    /// Enables autoscaling for this agent pool.
+    [<CustomOperation "enable_autoscale">]
+    member _.AutoscaleSetting(state: AgentPoolConfig) = {
+        state with
+            AutoscaleSetting = Some Enabled
+    }
+
+    [<CustomOperation "autoscale_scale_down_mode">]
+    member _.ScaleDownMode(state: AgentPoolConfig, scaleDownMode) = {
+        state with
+            ScaleDownMode = Some scaleDownMode
+    }
+
+    /// Sets the min count of VM's in the agent pool if autoscale is enabled
+    [<CustomOperation "autoscale_min_count">]
+    member _.MinCount(state: AgentPoolConfig, minCount) = { state with MinCount = Some minCount }
+
+    /// Sets the min count of VM's in the agent pool if autoscale is enabled
+    [<CustomOperation "autoscale_max_count">]
+    member _.MaxCount(state: AgentPoolConfig, maxCount) = {
+        state with
+            MaxCount = Some maxCount
+            AutoscaleSetting = Some(state.AutoscaleSetting |> Option.defaultValue Enabled)
+            MinCount = Some(state.MinCount |> Option.defaultValue 1)
     }
 
 /// Builds an AKS cluster agent pool ARM resource definition
@@ -375,6 +426,7 @@ let private (|PrivateClusterEnabled|_|) =
 type AksBuilder() =
     member _.Yield _ = {
         Name = ResourceName.Empty
+        Sku = { Name = Sku.Base; Tier = Tier.Free }
         Dependencies = Set.empty
         DependencyExpressions = Set.empty
         AddonProfiles = []
@@ -407,6 +459,20 @@ type AksBuilder() =
     /// Sets the name of the AKS cluster.
     [<CustomOperation "name">]
     member _.Name(state: AksConfig, name) = { state with Name = ResourceName name }
+
+    /// Sets the sku of the AKS cluster (default is 'Base').
+    [<CustomOperation "sku">]
+    member _.Sku(state: AksConfig, skuName) = {
+        state with
+            Sku = { state.Sku with Name = skuName }
+    }
+
+    /// Sets the tier of the load balancer (default is 'Free').
+    [<CustomOperation "tier">]
+    member _.Tier(state: AksConfig, skuTier) = {
+        state with
+            Sku = { state.Sku with Tier = skuTier }
+    }
 
     /// Sets the DNS prefix of the AKS cluster.
     [<CustomOperation "dns_prefix">]

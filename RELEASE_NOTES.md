@@ -4,6 +4,9 @@ Release Notes
 - Support gallery references for VMs (`operating_system`)
 - Support for VM/VMSS security profile options (#1163)
 
+## 1.9.7
+- AKS Cluster: support for Sku and Tier. Support for pod subnet in agent pool config. Support for node pool autoscaling
+
 ## 1.9.6
 - Network Interface: Support for adding Network Security Group (NSG) to Network Interface (NIC)
 

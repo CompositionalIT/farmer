@@ -16,6 +16,8 @@ The AKS builder (`aks`) constructs AKS clusters.
 | Keyword                             | Purpose                                                                                                                                                     |
 |-------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | name                                | Sets the name of the AKS cluster.                                                                                                                           |
+| sku                                 | Specifies the SKU of the AKS cluster - default is 'Base'.                                                                                                   |
+| tier                                | Specifies the tier of the AKS cluster - default is 'Free'.                                                                                                  | 
 | dns_prefix                          | Sets the DNS prefix of the AKS cluster.                                                                                                                     |
 | enable_defender                     | Enables Defender for the containers running in the cluster.                                                                                                 |
 | enable_image_cleaner                | Enables a service to periodically purge images that are no longer used.                                                                                     |
@@ -43,18 +45,23 @@ The AKS builder (`aks`) constructs AKS clusters.
 #### Agent Pool Builder keywords
 The Agent Pool builder (`agentPool`) constructs agent pools in the AKS cluster.
 
-| Keyword     | Purpose                                                                                          |
-|-------------|--------------------------------------------------------------------------------------------------|
-| name        | Sets the name of the agent pool.                                                                 |
-| count       | Sets the count of VM's in the agent pool.                                                        |
-| user_mode   | Sets the agent pool to user mode.                                                                |
-| disk_size   | Sets the disk size for the VM's in the agent pool.                                               |
-| enable_fips | Uses a FIPS compliant OS image for VM's in the agent pool.                                       |
-| max_pods    | Sets the maximum number of pods in the agent pool.                                               |
-| os_type     | Sets the OS type of the VM's in the agent pool.                                                  |
-| subnet      | Sets the name of a virtual network subnet where this AKS cluster should be attached.             |
-| vm_size     | Sets the size of the VM's in the agent pool.                                                     |
-| vnet        | Sets the name of a virtual network in the same region where this AKS cluster should be attached. |
+| Keyword                           | Purpose                                                                                          |
+|-----------------------------------|--------------------------------------------------------------------------------------------------|
+| name                              | Sets the name of the agent pool.                                                                 |
+| count                             | Sets the count of VM's in the agent pool.                                                        |
+| user_mode                         | Sets the agent pool to user mode.                                                                |
+| disk_size                         | Sets the disk size for the VM's in the agent pool.                                               |
+| enable_fips                       | Uses a FIPS compliant OS image for VM's in the agent pool.                                       |
+| max_pods                          | Sets the maximum number of pods in the agent pool.                                               |
+| os_type                           | Sets the OS type of the VM's in the agent pool.                                                  |
+| pod_subnet                        | Sets the name of a virtual network subnet where this AKS cluster should be attached.             |
+| subnet                            | Sets the name of a virtual network subnet where this AKS cluster should be attached.             |
+| vm_size                           | Sets the size of the VM's in the agent pool.                                                     |
+| vnet                              | Sets the name of a virtual network in the same region where this AKS cluster should be attached. |
+| enable_autoscale                  | Enables node pool autoscale                                                                      |
+| autoscale_scale_down_mode         | Optional. Use with enable_autoscaling. Options are Delete and Deallocate                         |
+| autoscale_min_count               | Use with enable_autoscaling. Minimum node count in node pool                                     |
+| autoscale_max_count               | Use with enable_autoscaling. Maximum node count in node pool                                     |
 
 #### Kubenet Builder
 The Kubenet builder (`kubenetNetworkProfile`) creates Kubenet network profiles on the AKS cluster.
@@ -77,6 +84,7 @@ The CNI builder (`azureCniNetworkProfile`) creates Azure CNI network profiles on
 
 The simplest cluster uses a system assigned managed identity and
 default settings for the node pool (size of 3).
+The pricing tier is 'Free'.
 
 ```fsharp
 open Farmer
@@ -89,10 +97,11 @@ let myAks = aks {
 }
 ```
 
-#### Customizing agent pool and network profile
+#### Standard pricing tier. Customizing agent pool and network profile
 ```fsharp
 let myAks = aks {
     name "k8s-cluster"
+    tier Tier.Standard
     dns_prefix "testaks"
     add_agent_pools [
         agentPool {
