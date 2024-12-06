@@ -217,6 +217,25 @@ module DedicatedHosts =
             | WindowsPerpetual -> "Windows_Server_Perpetual"
 
 module Vm =
+
+    type VmProxyAgentMode =
+        | Audit
+        | Enforce
+
+        member this.ArmValue =
+            match this with
+            | Audit -> "Audit"
+            | Enforce -> "Enforce"
+
+    type VmSecurityType =
+        | ConfidentialVM
+        | TrustedLaunch
+
+        member this.ArmValue =
+            match this with
+            | ConfidentialVM -> "ConfidentialVM"
+            | TrustedLaunch -> "TrustedLaunch"
+
     type VMSize =
         | Basic_A0
         | Basic_A1
@@ -821,6 +840,21 @@ module Vm =
         OS: OS
     }
 
+    type GalleryImageId =
+        | SharedGalleryImageId of gallery: ResourceName * image: ResourceName * version: string
+        | CommunityGalleryImageId of gallery: ResourceName * image: ResourceName * version: string
+
+        member this.ArmValue =
+            match this with
+            | SharedGalleryImageId(ResourceName gallery, ResourceName image, version) ->
+                $"/SharedGalleries/{gallery}/Images/{image}/Versions/{version}"
+            | CommunityGalleryImageId(ResourceName gallery, ResourceName image, version) ->
+                $"/CommunityGalleries/{gallery}/Images/{image}/Versions/{version}"
+
+    type ImageInfo =
+        | ImageDefinition of ImageDefinition
+        | GalleryImageRef of OS * GalleryImageId
+
     let makeVm os offer publisher sku = {
         Offer = Offer offer
         Publisher = Publisher publisher
@@ -944,7 +978,7 @@ module Vm =
     /// VM OS disks can be created by attaching an existing disk or from a gallery image.
     type OsDiskCreateOption =
         | AttachOsDisk of OS * ManagedDiskId: LinkedResource
-        | FromImage of ImageDefinition * DiskInfo
+        | FromImage of ImageInfo * DiskInfo
 
     /// VM data disks can be created by attaching an existing disk or generating an empty disk.
     type DataDiskCreateOption =

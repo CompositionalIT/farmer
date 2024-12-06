@@ -120,7 +120,8 @@ type VmScaleSetConfig = {
                             ScriptContents = vm.CustomScript.Value
                             OS =
                                 match vm.OsDisk with
-                                | FromImage(image, _) -> image.OS
+                                | FromImage(ImageDefinition image, _) -> image.OS
+                                | FromImage(GalleryImageRef(os, _), _) -> os
                                 | _ ->
                                     raiseFarmer
                                         "Unable to determine OS for custom script when attaching an existing disk"
@@ -134,9 +135,13 @@ type VmScaleSetConfig = {
         this.Vm
         |> Option.bind (fun vm ->
             match vm.AadSshLogin, vm.OsDisk with
-            | FeatureFlag.Enabled, FromImage(image, _) when image.OS = Linux && vm.Identity.SystemAssigned = Disabled ->
+            | FeatureFlag.Enabled, FromImage(ImageDefinition image, _) when
+                image.OS = Linux && vm.Identity.SystemAssigned = Disabled
+                ->
                 raiseFarmer "AAD SSH login requires that system assigned identity be enabled on the virtual machine."
-            | FeatureFlag.Enabled, FromImage(image, _) when image.OS = Windows ->
+            | FeatureFlag.Enabled, FromImage(ImageDefinition image, _) when image.OS = Windows ->
+                raiseFarmer "AAD SSH login is only supported for Linux Virtual Machines"
+            | FeatureFlag.Enabled, FromImage(GalleryImageRef(Windows, _), _) ->
                 raiseFarmer "AAD SSH login is only supported for Linux Virtual Machines"
             // Assuming a user that attaches a disk knows to only using this extension for Linux images.
             | FeatureFlag.Enabled, _ ->
@@ -213,8 +218,14 @@ type VmScaleSetConfig = {
                                 ForceDeletion = false
                                 Rules = [ ScaleInPolicyRule.Default ]
                             }
+                        SecurityProfile = vm.SecurityProfile
                         Size = vm.Size
-                        UpgradePolicy = this.UpgradePolicy |> Option.defaultValue { Mode = UpgradeMode.Automatic }
+                        UpgradePolicy =
+                            this.UpgradePolicy
+                            |> Option.defaultValue {
+                                ScaleSetUpgradePolicy.Default with
+                                    Mode = UpgradeMode.Automatic
+                            }
                         ZoneBalance = this.ZoneBalance
                         Tags = this.Tags
                     }
@@ -500,7 +511,91 @@ type VirtualMachineScaleSetBuilder() =
     [<CustomOperation "upgrade_mode">]
     member _.UpgradeMode(state: VmScaleSetConfig, mode: UpgradeMode) = {
         state with
-            UpgradePolicy = { Mode = mode } |> Some
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> { x with Mode = mode })
+                |> Some
+    }
+
+    [<CustomOperation "osupgrade_automatic">]
+    member _.OSUpgrade(state: VmScaleSetConfig, enabled) = {
+        state with
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> {
+                    x with
+                        AutomaticOSUpgradePolicy =
+                            x.AutomaticOSUpgradePolicy
+                            |> Option.defaultValue VmssAutomaticOSUpgradePolicy.Default
+                            |> (fun x -> {
+                                x with
+                                    EnableAutomaticOSUpgrade = Some enabled
+                            })
+                            |> Some
+                })
+                |> Some
+    }
+
+    [<CustomOperation "osupgrade_automatic_rollback">]
+    member _.OSUpgradeRollback(state: VmScaleSetConfig, enabled) = {
+        state with
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> {
+                    x with
+                        AutomaticOSUpgradePolicy =
+                            x.AutomaticOSUpgradePolicy
+                            |> Option.defaultValue VmssAutomaticOSUpgradePolicy.Default
+                            |> (fun x -> {
+                                x with
+                                    DisableAutomaticRollback = Some(not enabled)
+                            })
+                            |> Some
+                })
+                |> Some
+    }
+
+    [<CustomOperation "osupgrade_rolling_upgrade">]
+    member _.OSUpgradeRollingUpgrade(state: VmScaleSetConfig, enabled) = {
+        state with
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> {
+                    x with
+                        AutomaticOSUpgradePolicy =
+                            x.AutomaticOSUpgradePolicy
+                            |> Option.defaultValue VmssAutomaticOSUpgradePolicy.Default
+                            |> (fun x -> {
+                                x with
+                                    UseRollingUpgradePolicy = Some enabled
+                            })
+                            |> Some
+                })
+                |> Some
+    }
+
+    [<CustomOperation "osupgrade_rolling_upgrade_deferral">]
+    member _.OSUpgradeRollingUpgradeDeferral(state: VmScaleSetConfig, enabled) = {
+        state with
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> {
+                    x with
+                        AutomaticOSUpgradePolicy =
+                            x.AutomaticOSUpgradePolicy
+                            |> Option.defaultValue VmssAutomaticOSUpgradePolicy.Default
+                            |> (fun x -> {
+                                x with
+                                    OsRollingUpgradeDeferral = Some enabled
+                            })
+                            |> Some
+                })
+                |> Some
     }
 
 let vmss = VirtualMachineScaleSetBuilder()

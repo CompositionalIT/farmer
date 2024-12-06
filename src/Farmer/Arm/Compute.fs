@@ -198,6 +198,69 @@ type NetworkInterfaceConfiguration = {
         |}
     |}
 
+type VmProxyAgentSettings = {
+    Enabled: bool
+    KeyIncarnationId: int
+    Mode: VmProxyAgentMode
+}
+
+type UefiSettings = {
+    SecureBoot: FeatureFlag option
+    Vtpm: FeatureFlag option
+} with
+
+    static member Default = { SecureBoot = None; Vtpm = None }
+
+type VmSecurityProfile = {
+    EncryptionAtHost: bool option
+    EncryptionIdentity: Identity.ManagedIdentity option
+    ProxyAgentSettings: VmProxyAgentSettings option
+    SecurityType: VmSecurityType option
+    UefiSettings: UefiSettings option
+} with
+
+    static member Default = {
+        EncryptionAtHost = None
+        EncryptionIdentity = None
+        ProxyAgentSettings = None
+        SecurityType = None
+        UefiSettings = None
+    }
+
+    member this.ToArmJson = {|
+        encryptionAtHost = this.EncryptionAtHost |> Option.toNullable
+        encryptionIdentity =
+            this.EncryptionIdentity
+            |> Option.map (fun x -> {|
+                userAssignedIdentityResourceId =
+                    if x = ManagedIdentity.Empty then
+                        Unchecked.defaultof<_>
+                    else
+                        x.ToArmJson
+            |})
+            |> Option.defaultValue Unchecked.defaultof<_>
+        proxyAgentSettings =
+            this.ProxyAgentSettings
+            |> Option.map (fun x -> {|
+                enabled = x.Enabled
+                keyIncarnationId = x.KeyIncarnationId
+                mode = x.Mode.ArmValue
+            |})
+            |> Option.defaultValue Unchecked.defaultof<_>
+        securityType =
+            this.SecurityType
+            |> Option.map _.ArmValue
+            |> Option.defaultValue Unchecked.defaultof<_>
+        uefiSettings =
+            this.UefiSettings
+            |> Option.map (fun x -> {|
+                secureBootEnabled = x.SecureBoot |> Option.map FeatureFlag.toBool |> Option.toNullable
+                vTpmEnabled = x.Vtpm |> Option.map FeatureFlag.toBool |> Option.toNullable
+            |})
+            |> Option.defaultValue Unchecked.defaultof<_>
+    |}
+
+
 module VirtualMachine =
     let additionalCapabilities (dataDisks: DataDiskCreateOption list) =
         // If data disks use UltraSSD then enable that support
@@ -285,7 +348,17 @@ module VirtualMachine =
         {|
             imageReference =
                 match osDisk with
-                | FromImage(imageDefintion, _) ->
+                | FromImage(GalleryImageRef(_, (SharedGalleryImageId _ as imageRef)), _) ->
+                    {|
+                        sharedGalleryImageId = imageRef.ArmValue
+                    |}
+                    :> obj
+                | FromImage(GalleryImageRef(_, (CommunityGalleryImageId _ as imageRef)), _) ->
+                    {|
+                        communityGalleryImageId = imageRef.ArmValue
+                    |}
+                    :> obj
+                | FromImage(ImageDefinition imageDefintion, _) ->
                     {|
                         publisher = imageDefintion.Publisher.ArmValue
                         offer = imageDefintion.Offer.ArmValue
@@ -395,6 +468,7 @@ type VirtualMachine = {
     Dependencies: ResourceId Set
     AvailabilityZone: string option
     DiagnosticsEnabled: bool option
+    SecurityProfile: VmSecurityProfile option
     StorageAccount: LinkedResource option
     Size: VMSize
     Priority: Priority option
@@ -456,6 +530,10 @@ type VirtualMachine = {
                         this.CustomData,
                         this.PublicKeys
                     )
+                securityProfile =
+                    this.SecurityProfile
+                    |> Option.map _.ToArmJson
+                    |> Option.defaultValue Unchecked.defaultof<_>
                 storageProfile = VirtualMachine.storageProfile (this.Name, this.OsDisk, this.DataDisks, false)
                 networkProfile = VirtualMachine.networkProfile (this.NetworkInterfaceIds, [])
                 diagnosticsProfile = VirtualMachine.diagnosticsProfile (this.DiagnosticsEnabled, this.StorageAccount)
@@ -481,11 +559,44 @@ type VirtualMachine = {
                     zones = this.AvailabilityZone |> Option.map ResizeArray |> Option.toObj
             |}
 
-type ScaleSetUpgradePolicy = {
-    Mode: VmScaleSet.UpgradeMode
+type VmssAutomaticOSUpgradePolicy = {
+    DisableAutomaticRollback: bool option
+    EnableAutomaticOSUpgrade: bool option
+    OsRollingUpgradeDeferral: bool option
+    UseRollingUpgradePolicy: bool option
 } with
 
-    member this.ArmJson = {| mode = this.Mode.ArmValue |}
+    member this.ArmJson = {|
+        disableAutomaticRollback = this.DisableAutomaticRollback |> Option.toNullable
+        enableAutomaticOSUpgrade = this.EnableAutomaticOSUpgrade |> Option.toNullable
+        osRollingUpgradeDeferral = this.OsRollingUpgradeDeferral |> Option.toNullable
+        useRollingUpgradePolicy = this.UseRollingUpgradePolicy |> Option.toNullable
+    |}
+
+    static member Default = {
+        DisableAutomaticRollback = None
+        EnableAutomaticOSUpgrade = None
+        OsRollingUpgradeDeferral = None
+        UseRollingUpgradePolicy = None
+    }
+
+type ScaleSetUpgradePolicy = {
+    Mode: VmScaleSet.UpgradeMode
+    AutomaticOSUpgradePolicy: VmssAutomaticOSUpgradePolicy option
+} with
+
+    static member Default = {
+        Mode = VmScaleSet.UpgradeMode.Automatic
+        AutomaticOSUpgradePolicy = None
+    }
+
+    member this.ArmJson = {|
+        mode = this.Mode.ArmValue
+        automaticOSUpgradePolicy =
+            this.AutomaticOSUpgradePolicy
+            |> Option.map _.ArmJson
+            |> Option.defaultValue Unchecked.defaultof<_>
+    |}
 
 type ScaleSetScaleInPolicy = {
     // Set false when reusing disks or MAC addresses
@@ -522,6 +633,7 @@ type VirtualMachineScaleSet = {
     Size: VMSize
     Capacity: int
     ScaleInPolicy: ScaleSetScaleInPolicy
+    SecurityProfile: VmSecurityProfile option
     UpgradePolicy: ScaleSetUpgradePolicy
     AutomaticRepairsPolicy: ScaleSetAutomaticRepairsPolicy option
     Priority: Priority option
@@ -609,6 +721,10 @@ type VirtualMachineScaleSet = {
                                     this.CustomData,
                                     this.PublicKeys
                                 )
+                            securityProfile =
+                                this.SecurityProfile
+                                |> Option.map _.ToArmJson
+                                |> Option.defaultValue Unchecked.defaultof<_>
                             storageProfile =
                                 VirtualMachine.storageProfile (this.Name, this.OsDisk, this.DataDisks, true)
                             networkProfile = {|

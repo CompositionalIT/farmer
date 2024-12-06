@@ -1,5 +1,8 @@
 Release Notes
 =============
+## vNext
+- Support gallery references for VMs (`operating_system`)
+- Support for VM/VMSS security profile options (#1163)
 
 ## 1.9.6
 - Network Interface: Support for adding Network Security Group (NSG) to Network Interface (NIC)

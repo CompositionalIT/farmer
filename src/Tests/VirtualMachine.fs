@@ -77,6 +77,49 @@ let tests =
 
             Expect.isNull (vmProperties.Property "priority") "Priority should not be set by default"
         }
+        test "VM with security profile and trusted launch" {
+            let template =
+                let myVm = vm {
+                    name "myvm"
+                    username "me"
+                    security_type TrustedLaunch
+                }
+
+                arm { add_resource myVm }
+
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(template.Template |> Writer.toJson)
+
+            let securityProfile =
+                jobj.SelectToken("resources[?(@.name=='myvm')].properties.securityProfile")
+                :?> Newtonsoft.Json.Linq.JObject
+
+            Expect.equal
+                (string (securityProfile.Property "securityType").Value)
+                "TrustedLaunch"
+                "Expected securityProfile.securityType to be TrustedLaunch"
+        }
+        test "VM with security profile and UEFI" {
+            let template =
+                let myVm = vm {
+                    name "myvm"
+                    username "me"
+                    security_type TrustedLaunch
+                    secure_boot Enabled
+                    vtpm Disabled
+                }
+
+                arm { add_resource myVm }
+
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(template.Template |> Writer.toJson)
+
+            let uefi =
+                jobj.SelectToken("resources[?(@.name=='myvm')].properties.securityProfile.uefiSettings")
+                :?> Newtonsoft.Json.Linq.JObject
+
+            Expect.equal (string (uefi.Property "secureBootEnabled").Value) "True" "Expected secureBootEnabled"
+
+            Expect.equal (string (uefi.Property "vTpmEnabled").Value) "False" "Expected vTpmEnabled to be False"
+        }
         test "Can create a basic virtual machine with managed boot diagnostics" {
             let resource =
                 let myVm = vm {
