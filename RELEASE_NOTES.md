@@ -7,6 +7,9 @@ Release Notes
 ## 1.9.7
 - AKS Cluster: support for Sku and Tier. Support for pod subnet in agent pool config. Support for node pool autoscaling
 
+## 1.9.7
+* CosmosDB: Add support for Gremlin Graphs
+
 ## 1.9.6
 - Network Interface: Support for adding Network Security Group (NSG) to Network Interface (NIC)
 
