@@ -53,6 +53,7 @@
       "properties": {
         "agentPoolProfiles": [
           {
+            "availabilityZones": [],
             "count": 3,
             "mode": "System",
             "name": "nodepool1",

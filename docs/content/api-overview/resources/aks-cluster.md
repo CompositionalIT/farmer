@@ -57,6 +57,7 @@ The Agent Pool builder (`agentPool`) constructs agent pools in the AKS cluster.
 | pod_subnet                        | Sets the name of a virtual network subnet where this AKS cluster should be attached.             |
 | subnet                            | Sets the name of a virtual network subnet where this AKS cluster should be attached.             |
 | vm_size                           | Sets the size of the VM's in the agent pool.                                                     |
+| add_availability_zones            | Sets the Azure availability zones for the VM's in the agent pool.                                |
 | vnet                              | Sets the name of a virtual network in the same region where this AKS cluster should be attached. |
 | enable_autoscale                  | Enables node pool autoscale                                                                      |
 | autoscale_scale_down_mode         | Optional. Use with enable_autoscaling. Options are Delete and Deallocate                         |
