@@ -19,6 +19,7 @@ type AgentPoolConfig = {
     OsDiskSize: int<Gb>
     OsType: OS
     VmSize: VMSize
+    AvailabilityZones: string list
     VirtualNetworkName: ResourceName option
     SubnetName: ResourceName option
     PodSubnetName: ResourceName option
@@ -42,6 +43,7 @@ type AgentPoolConfig = {
         SubnetName = None
         PodSubnetName = None
         VmSize = Standard_DS2_v2
+        AvailabilityZones = []
         AutoscaleSetting = None
         ScaleDownMode = None
         MinCount = None
@@ -185,6 +187,7 @@ type AksConfig = {
                         SubnetName = agentPool.SubnetName
                         PodSubnetName = agentPool.PodSubnetName
                         VmSize = agentPool.VmSize
+                        AvailabilityZones = agentPool.AvailabilityZones
                         VirtualNetworkName = agentPool.VirtualNetworkName
                         AutoscaleSetting = agentPool.AutoscaleSetting
                         ScaleDownMode = agentPool.ScaleDownMode
@@ -281,6 +284,12 @@ type AgentPoolBuilder() =
     /// Sets the OS type of the VM's in the agent pool.
     [<CustomOperation "os_type">]
     member _.OsType(state: AgentPoolConfig, os) = { state with OsType = os }
+
+    [<CustomOperation "add_availability_zones">]
+    member _.AddAvailabilityZone(state: AgentPoolConfig, availabilityZones: string list) = {
+        state with
+            AvailabilityZones = state.AvailabilityZones @ availabilityZones
+    }
 
     /// Sets the name of a virtual network subnet where this AKS cluster should be attached.
     [<CustomOperation "subnet">]
