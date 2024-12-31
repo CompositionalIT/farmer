@@ -58,7 +58,7 @@ The `gallery` builder is used to create Galleries for sharing VM images. These c
 | galleryAppVersion | add_tags                 | Add tags to the gallery application version resource.                                                                                                                                                           |
 | galleryAppVersion | depends_on               | Add explicit dependencies for the gallery application version resource.                                                                                                                                         |
 
-#### Example of an Gallery Image
+#### Example of a Gallery Image
 
 ```fsharp
 open Farmer
@@ -105,7 +105,7 @@ arm {
 }
 ```
 
-#### Example of an Gallery Application Version
+#### Example of a Gallery Application Version
 
 ```fsharp
 open Farmer

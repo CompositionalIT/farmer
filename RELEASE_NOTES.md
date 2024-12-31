@@ -1,6 +1,11 @@
 Release Notes
 =============
 
+## 1.9.9
+* Virtual Machines: support for Azure Linux 3.0
+* Virtual Machines: support for Standard SKU Public IP Address
+* Galleries: support for Gallery Applications to distribute applications for Virtual Machines and Virtual Machine Scale Sets
+
 ## 1.9.8
 * AKS Cluster: support for node pool availability zones
 

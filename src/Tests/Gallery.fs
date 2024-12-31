@@ -188,6 +188,7 @@ let tests =
 
             Expect.isNotNull app "Gallery App not found by gallery/galleryApplication name"
             Expect.hasLength app.["dependsOn"] 1 "Gallery App should have 1 dependency"
+
             Expect.equal
                 app.["dependsOn"].[0]
                 (JValue "[resourceId('Microsoft.Compute/galleries', 'mygallery')]")
