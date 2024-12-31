@@ -1,5 +1,6 @@
 module Gallery
 
+open System
 open Expecto
 open Farmer
 open Farmer.Builders
@@ -144,5 +145,68 @@ let tests =
                 image.["dependsOn"].[0]
                 (JValue "[resourceId('Microsoft.Compute/galleries', 'mygallery')]")
                 "Image should depend on gallery"
+        }
+        test "Create gallery, application, and version" {
+            let myGallery = gallery {
+                name "mygallery"
+                description "Example Private Gallery"
+            }
+
+            let myGalleryApp = galleryApp {
+                name "java-17"
+                gallery myGallery
+                os_type OS.Linux
+            }
+
+            let myGalleryAppVersion = galleryAppVersion {
+                name "1.0.1"
+                gallery_app myGalleryApp
+                gallery myGallery
+                end_of_life (DateTimeOffset(DateTime(2026, 9, 30)))
+                install_action "sudo apt-get update && sudo apt-get -y install openjdk-17-jre-headless"
+                remove_action "sudo apt-get remove openjdk-17-jre-headless && sudo apt-get autoremove"
+                source_media_link "https://mystorageaccount/sas-url"
+
+                add_target_regions [
+                    targetRegion { name Location.EastUS }
+                    targetRegion { name Location.EastUS2 }
+                    targetRegion { name Location.WestUS2 }
+                    targetRegion { name Location.WestUS3 }
+                    targetRegion { name Location.NorthEurope }
+                    targetRegion { name Location.WestEurope }
+                ]
+            }
+
+            let deployment = arm {
+                location Location.EastUS
+                add_resources [ myGallery; myGalleryApp; myGalleryAppVersion ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+
+            let app = jobj.SelectToken "resources[?(@.name=='mygallery/java-17')]"
+
+            Expect.isNotNull app "Gallery App not found by gallery/galleryApplication name"
+            Expect.hasLength app.["dependsOn"] 1 "Gallery App should have 1 dependency"
+            Expect.equal
+                app.["dependsOn"].[0]
+                (JValue "[resourceId('Microsoft.Compute/galleries', 'mygallery')]")
+                "Gallery App should depend on gallery"
+
+            let appVersion = jobj.SelectToken "resources[?(@.name=='mygallery/java-17/1.0.1')]"
+
+            Expect.isNotNull appVersion "Gallery App Version not found by gallery/galleryApplication/version name"
+            Expect.hasLength appVersion.["dependsOn"] 2 "Gallery App Version should have 2 dependencies"
+
+            Expect.contains
+                appVersion.["dependsOn"]
+                (JValue "[resourceId('Microsoft.Compute/galleries/applications', 'mygallery', 'java-17')]")
+                "Gallery App Version should depend on gallery app"
+
+            Expect.contains
+                appVersion.["dependsOn"]
+                (JValue "[resourceId('Microsoft.Compute/galleries', 'mygallery')]")
+                "Gallery App Version should depend on gallery"
+
         }
     ]
