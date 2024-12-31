@@ -910,6 +910,19 @@ module Vm =
     let Mariner_2_Fips =
         makeLinuxVm "cbl-mariner" "MicrosoftCBLMariner" "cbl-mariner-2-gen2-fips"
 
+    // Aliasing Azure Linux 2 to Mariner 2 since rebranding.
+    let AzureLinux_2 = Mariner_2
+
+    let AzureLinux_2Arm = Mariner_2Arm
+
+    let AzureLinux_2Fips = Mariner_2_Fips
+
+    let AzureLinux_3 =
+        makeLinuxVm "azure-linux-3" "MicrosoftCBLMariner" "azure-linux-3-gen2"
+
+    let AzureLinux_3Arm =
+        makeLinuxVm "azure-linux-3" "MicrosoftCBLMariner" "azure-linux-3-arm64"
+
     let WindowsServer_2022DatacenterAzureEdition =
         makeWindowsVm "2022-datacenter-azure-edition"
 
@@ -1186,6 +1199,8 @@ module internal Validation =
 
     let lettersNumbersDashOrDot =
         "alphanumeric characters, a dash (-) or a dot (.)", Char.IsLetterOrDigit <|> (snd dash) <|> (snd dot)
+
+    let numbersOrDot = "numeric characters or the dot (.)", Char.IsDigit <|> (snd dot)
 
     let validate entity inputValue rules =
         rules
@@ -1922,6 +1937,36 @@ module GalleryValidation =
         member this.ResourceName =
             match this with
             | GalleryName name -> name
+
+    type GalleryApplicationName =
+        private
+        | GalleryApplicationName of ResourceName
+
+        static member Create name =
+            [ containsOnly lettersNumbersDashOrDot; nonEmptyLengthBetween 1 80 ]
+            |> validate "Gallery Application Name" name
+            |> Result.map (ResourceName >> GalleryApplicationName)
+
+        static member internal Empty = GalleryApplicationName ResourceName.Empty
+
+        member this.ResourceName =
+            match this with
+            | GalleryApplicationName name -> name
+
+    type GalleryApplicationVersionName =
+        private
+        | GalleryApplicationVersionName of ResourceName
+
+        static member Create name =
+            [ containsOnly numbersOrDot; isNonEmpty ]
+            |> validate "Gallery Application Version Name" name
+            |> Result.map (ResourceName >> GalleryApplicationVersionName)
+
+        static member internal Empty = GalleryApplicationVersionName ResourceName.Empty
+
+        member this.ResourceName =
+            match this with
+            | GalleryApplicationVersionName name -> name
 
 module Search =
     type HostingMode =
