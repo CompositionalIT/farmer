@@ -1242,4 +1242,25 @@ let tests =
                 "[resourceId('Microsoft.Compute/galleries/applications/versions', 'farmer.app.gallery', 'some-data', '1.0.1')]"
                 "Missing on incorrect packageReferenceId"
         }
+        test "Creates VM with Standard SKU Public IP" {
+            let deployment = arm {
+                location Location.WestUS3
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        vm_size Standard_B1ms
+                        username "azureuser"
+                        operating_system UbuntuServer_2204LTS
+                        public_ip_sku PublicIpAddress.Standard
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+
+            let publicIpSku = jobj.SelectToken "resources[?(@.name=='my-vm-ip')].sku.name"
+
+            Expect.equal (string publicIpSku) "Standard" "Public IP SKU should be 'Standard'."
+        }
     ]

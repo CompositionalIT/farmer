@@ -392,7 +392,7 @@ type AutoscaleSettingsBuilder() =
 
     member _.Yield _ = {
         AutoscaleSettings.Name = ResourceName.Empty
-        Location = Location.Location "[resourceGroup().Location]"
+        Location = Location.ResourceGroup
         Dependencies = Set.empty
         Tags = Map.empty
         Properties = AutoscaleSettingsPropertiesBuilder().Yield()

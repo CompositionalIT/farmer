@@ -11,7 +11,7 @@ let autoscaleSettings =
 
 // Have avoided SRTPs in the past but end up with a lot of repetitive code, so trying them.
 
-module private Option =
+module internal Option =
     let defaultUnchecked<'t> = Option.defaultValue Unchecked.defaultof<'t>
 
     let inline toArmJson resourceOpt =
