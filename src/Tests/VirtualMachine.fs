@@ -57,7 +57,7 @@ let tests =
 
             Expect.equal
                 resource.DiagnosticsProfile.BootDiagnostics.StorageUri
-                "[reference(resourceId('Microsoft.Storage/storageAccounts', 'isaacsvmstorage'), '2022-05-01').primaryEndpoints.blob]"
+                "[reference(resourceId('Microsoft.Storage/storageAccounts', 'isaacsvmstorage'), '2023-05-01').primaryEndpoints.blob]"
                 "Incorrect diagnostics storage Uri"
         }
 
