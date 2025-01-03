@@ -614,7 +614,7 @@ type GalleryApplicationVersionBuilder() =
         if String.IsNullOrEmpty config.ManageActions.Remove then
             raiseFarmer "Gallery application version 'remove_action' is required."
 
-        if config.Source.MediaLink.IsUnc then
+        if String.IsNullOrEmpty config.Source.MediaLink then
             raiseFarmer "Gallery application version 'source_media_link' is required."
 
         config
@@ -691,12 +691,17 @@ type GalleryApplicationVersionBuilder() =
     [<CustomOperation "source_media_link">]
     member _.SourceMediaLink(config: GalleryApplicationVersionConfig, sourceMediaLink) = {
         config with
-            Source.MediaLink = Uri sourceMediaLink
+            Source.MediaLink = sourceMediaLink
     }
 
-    member _.SourceMediaLink(config: GalleryApplicationVersionConfig, sourceMediaLink) = {
+    member _.SourceMediaLink(config: GalleryApplicationVersionConfig, sourceMediaLink: Uri) = {
         config with
-            Source.MediaLink = sourceMediaLink
+            Source.MediaLink = sourceMediaLink.AbsoluteUri
+    }
+
+    member _.SourceMediaLink(config: GalleryApplicationVersionConfig, sourceMediaLink: ArmExpression) = {
+        config with
+            Source.MediaLink = sourceMediaLink.Eval()
     }
 
     [<CustomOperation "default_configuration_link">]

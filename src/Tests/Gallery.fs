@@ -210,4 +210,43 @@ let tests =
                 "Gallery App Version should depend on gallery"
 
         }
+        test "Gallery app version with ARM Expression for source media link" {
+            let myGallery = gallery {
+                name "mygallery"
+                description "Example Private Gallery"
+            }
+
+            let myGalleryApp = galleryApp {
+                name "myapp"
+                gallery myGallery
+                os_type OS.Linux
+            }
+
+            let sasUrl =
+                "concat('https://', 'mystorageaccount', '/sas-url')" |> ArmExpression.create
+
+            let myGalleryAppVersion = galleryAppVersion {
+                name "1.0.1"
+                gallery_app myGalleryApp
+                gallery myGallery
+                install_action "install.sh"
+                remove_action "remove.sh"
+                source_media_link sasUrl
+            }
+
+            let deployment = arm {
+                location Location.EastUS
+                add_resources [ myGallery; myGalleryApp; myGalleryAppVersion ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+
+            let appVersion = jobj.SelectToken "resources[?(@.name=='mygallery/myapp/1.0.1')]"
+
+            Expect.equal
+                (appVersion.SelectToken("properties.publishingProfile.source.mediaLink")
+                 |> string)
+                "[concat('https://', 'mystorageaccount', '/sas-url')]"
+                "ARM expression incorrect for Gallery App Version source media link"
+        }
     ]
