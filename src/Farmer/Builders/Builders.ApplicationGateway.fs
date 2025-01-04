@@ -3,6 +3,7 @@ module Farmer.Builders.ApplicationGateway
 
 open System
 open Farmer
+open Farmer.Arm
 open Farmer.Arm.Network
 open Farmer.PublicIpAddress
 open Farmer.Arm.ApplicationGateway
@@ -232,6 +233,10 @@ type HttpListenerBuilder() =
 
     [<CustomOperation "protocol">]
     member _.Protocol(state: HttpListenerConfig, protocol) = { state with Protocol = protocol }
+
+    [<CustomOperation "ssl_certificate">]
+    member _.SslCertificate(state: HttpListenerConfig, sslCertificate: string) =
+        { state with SslCertificate = Some (ResourceName sslCertificate) }
 
 let httpListener = HttpListenerBuilder()
 
@@ -568,7 +573,41 @@ type BasicRequestRoutingRuleBuilder() =
             BackendHttpSettings = httpSettings.Name
     }
 
+    [<CustomOperation "priority">]
+    member _.Priority(state: RequestRoutingRuleConfig, priority: int) = {
+        state with Priority = Some priority
+    }
+
 let basicRequestRoutingRule = BasicRequestRoutingRuleBuilder()
+
+type SslCertificateConfig = {
+    Name: ResourceName
+    KeyVaultSecretId: string option
+} with
+    static member BuildResource (conf:SslCertificateConfig) = {|
+          Name = conf.Name
+          Data = None // TODO: needs implementation after further testing.
+          KeyVaultSecretId = conf.KeyVaultSecretId
+          Password = None // TODO: needs implementation, will generate password parameter.
+    |}
+
+type SslCertificateBuilder () =
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        KeyVaultSecretId = None
+    }
+
+    [<CustomOperation "name">]
+    member _.Name (config:SslCertificateConfig, name:string) = {
+        config with Name = ResourceName name
+    }
+
+    [<CustomOperation "key_vault_secret_id">]
+    member _.KeyVaultSecretId (config:SslCertificateConfig, secretId:string) = {
+        config with KeyVaultSecretId = Some secretId
+    }
+
+let sslCertificate = SslCertificateBuilder()
 
 type AppGatewayConfig = {
     Name: ResourceName
@@ -582,6 +621,7 @@ type AppGatewayConfig = {
     HttpListeners: HttpListenerConfig list
     Probes: AppGatewayProbeConfig list
     RequestRoutingRules: RequestRoutingRuleConfig list
+    SslCertificates: SslCertificateConfig list
     Dependencies: Set<ResourceId>
     Tags: Map<string, string>
 } with
@@ -615,6 +655,7 @@ type AppGatewayConfig = {
                 HttpListeners = this.HttpListeners |> List.map HttpListenerConfig.BuildResource
                 Probes = this.Probes |> List.map AppGatewayProbeConfig.BuildResource
                 RequestRoutingRules = this.RequestRoutingRules |> List.map RequestRoutingRuleConfig.BuildResource
+                SslCertificates = this.SslCertificates |> List.map SslCertificateConfig.BuildResource
 
                 Dependencies =
                     frontendPublicIps
@@ -633,7 +674,6 @@ type AppGatewayConfig = {
                 ForceFirewallPolicyAssociation = false
                 RedirectConfigurations = []
                 RewriteRuleSets = []
-                SslCertificates = []
                 SslPolicy = None
                 SslProfiles = []
                 TrustedClientCertificates = []
@@ -664,6 +704,7 @@ type AppGatewayBuilder() =
         HttpListeners = []
         Probes = []
         RequestRoutingRules = []
+        SslCertificates = []
         Dependencies = Set.empty
         Tags = Map.empty
     }
@@ -691,19 +732,19 @@ type AppGatewayBuilder() =
                     Capacity = Some skuCapacity
             }
     }
-    /// Sets the managed identity on this Application Gateway.
+    // Sets the managed identity on this Application Gateway.
     interface IIdentity<AppGatewayConfig> with
         member _.Add state updater = {
             state with
                 Identity = updater state.Identity
         }
-    /// Support for adding tags to this Application Gateway.
+    // Support for adding tags to this Application Gateway.
     interface ITaggable<AppGatewayConfig> with
         member _.Add state tags = {
             state with
                 Tags = state.Tags |> Map.merge tags
         }
-    /// Support for adding dependencies to this Application Gateway.
+    // Support for adding dependencies to this Application Gateway.
     interface IDependable<AppGatewayConfig> with
         member _.Add state newDeps = {
             state with
@@ -759,6 +800,11 @@ type AppGatewayBuilder() =
     member _.AddRequestRoutingRules(state: AppGatewayConfig, reqRoutingRules: RequestRoutingRuleConfig list) = {
         state with
             RequestRoutingRules = state.RequestRoutingRules @ reqRoutingRules
+    }
+
+    [<CustomOperation "add_ssl_certificates">]
+    member _.AddSslCertificates (state: AppGatewayConfig, sslCertificates: SslCertificateConfig list) = {
+        state with SslCertificates = state.SslCertificates @ sslCertificates
     }
 
 let appGateway = AppGatewayBuilder()
