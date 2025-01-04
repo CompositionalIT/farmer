@@ -5,6 +5,7 @@ open Farmer
 open Farmer.NetworkSecurity
 open Farmer.Arm.NetworkSecurityGroup
 open Farmer.Builders
+open Farmer.Vm
 open Microsoft.Azure.Management.Network
 open Microsoft.Azure.Management.Network.Models
 open Microsoft.Rest
@@ -44,6 +45,7 @@ let tests =
 
                 let acceptRule = {
                     Name = ResourceName "accept-web"
+                    Dependencies = Set.empty
                     Description = Some(sprintf "Rule created on %s" (DateTimeOffset.Now.Date.ToShortDateString()))
                     SecurityGroup = Managed (nsg :> IArmResource).ResourceId
                     Protocol = TCP
@@ -382,5 +384,56 @@ let tests =
                         (nicAsgs |> Seq.map string)
                         "[resourceId('Microsoft.Network/applicationSecurityGroups', 'db-servers')]"
                         "dbSvr-nic should have 'db-servers' ASG"
+        }
+        test "ARM expressions in NSG rules" {
+            let myNsg = nsg { name "my-nsg" }
+
+            let myVm1 = vm {
+                name "my-vm1"
+                vm_size Standard_B1s
+                operating_system UbuntuServer_2204LTS
+                // Public IP needs to be static so it has an address when the reference is evaluated
+                ip_allocation PublicIpAddress.AllocationMethod.Static
+                username "azureuser"
+                disable_password_authentication true
+                add_authorized_key "/home/azureuser/.ssh/authorized_keys" "ssh-rsa somefakekey"
+            }
+
+            let myVm2 = vm {
+                name "my-vm2"
+                vm_size Standard_B1s
+                operating_system UbuntuServer_2204LTS
+                // Public IP needs to be static so it has an address when the reference is evaluated
+                ip_allocation PublicIpAddress.AllocationMethod.Static
+                username "azureuser"
+                disable_password_authentication true
+                add_authorized_key "/home/azureuser/.ssh/authorized_keys" "ssh-rsa somefakekey"
+            }
+
+            let myVmRule = securityRule {
+                name "my-vm-access"
+                description "Public web server access"
+                services [ "http", 80; "https", 443 ]
+                add_source_address TCP myVm1.PublicIpAddress.Value
+                add_destination_address myVm2.PublicIpAddress.Value
+                link_to_network_security_group myNsg
+                priority 350
+            }
+
+            let deployment = arm { add_resources [ myVm1; myVm2; myVmRule ] }
+
+            let jobj = deployment.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JToken.Parse
+
+            let nsgRule = jobj.SelectToken("resources[?(@.name=='my-nsg/my-vm-access')]")
+
+            Expect.equal
+                (nsgRule.SelectToken("properties.sourceAddressPrefixes[0]") |> string)
+                "[reference(resourceId('Microsoft.Network/publicIPAddresses', 'my-vm1-ip')).ipAddress]"
+                "ARM expression for NSG source does not match"
+
+            Expect.equal
+                (nsgRule.SelectToken("properties.destinationAddressPrefixes[0]") |> string)
+                "[reference(resourceId('Microsoft.Network/publicIPAddresses', 'my-vm2-ip')).ipAddress]"
+                "ARM expression for NSG destination does not match"
         }
     ]
