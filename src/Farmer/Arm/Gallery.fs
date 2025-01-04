@@ -297,7 +297,7 @@ type UserArtifactSettings = {
 
 type UserArtifactSource = {
     DefaultConfigurationLink: Uri option
-    MediaLink: Uri
+    MediaLink: string
 } with
 
     static member Empty = {

@@ -3488,6 +3488,7 @@ module NetworkSecurity =
         | Network of IPAddressCidr
         | Tag of string
         | AnyEndpoint
+        | Expression of ArmExpression
 
         member this.ArmValue: obj =
             match this with
@@ -3496,6 +3497,7 @@ module NetworkSecurity =
             | Network cidr -> cidr |> IPAddressCidr.format |> box
             | Tag tag -> tag
             | AnyEndpoint -> "*"
+            | Expression expr -> expr.Eval()
 
     module Endpoint =
         let ArmValue (endpoint: Endpoint) = endpoint.ArmValue

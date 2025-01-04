@@ -1,6 +1,11 @@
 Release Notes
 =============
 
+## 1.9.10
+* Application Gateways: Adds SSL Certificates
+* Network Security Groups: use ARM expressions in security rules
+* Gallery Applications: `source_media_link` can be an ARM expression
+
 ## 1.9.9
 * Virtual Machines: support for Azure Linux 3.0
 * Virtual Machines: support for Standard SKU Public IP Address

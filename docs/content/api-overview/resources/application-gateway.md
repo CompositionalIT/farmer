@@ -13,19 +13,20 @@ The Application Gateway builder is used to create Application Gateways.
 #### Application Gateway Builder Keywords
 The Application Gateway builder (`appGateway`) constructs Application Gateways.
 
-| Keyword | Purpose |
-|-|-|
-| name | Sets the name of the Application Gateway. |
-| sku_capacity | Sets the capacity for this SKU of Application Gateway. |
-| add_identity | Assigns a managed identity to the Application Gateway. |
-| add_ip_configs | Assigns one or more gateway IP configuration for the subnet where it should be created. |
-| add_frontends | Assigns one or more frontend IP configuration for a public or private IP for the services accessible through the gateway. |
-| add_frontend_ports | Assigns one or more frontend ports to listen |
-| add_http_listeners | Assigns one or more http listeners. |
-| add_backend_address_pools | Assigns one or more backend pools. |
-| add_backend_http_settings_collection | Assigns HTTP settings for the listener. |
-| add_request_routing_rules | Assigns routing rules between frontend IP configurations and ports and services in the backend pool. |
-| add_probes | Assigns health probes to ensure backend services are healthy or removed from the pool. |
+| Keyword                              | Purpose                                                                                                                   |
+|--------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| name                                 | Sets the name of the Application Gateway.                                                                                 |
+| sku_capacity                         | Sets the capacity for this SKU of Application Gateway.                                                                    |
+| add_identity                         | Assigns a managed identity to the Application Gateway.                                                                    |
+| add_ip_configs                       | Assigns one or more gateway IP configuration for the subnet where it should be created.                                   |
+| add_frontends                        | Assigns one or more frontend IP configuration for a public or private IP for the services accessible through the gateway. |
+| add_frontend_ports                   | Assigns one or more frontend ports to listen                                                                              |
+| add_http_listeners                   | Assigns one or more http listeners.                                                                                       |
+| add_backend_address_pools            | Assigns one or more backend pools.                                                                                        |
+| add_backend_http_settings_collection | Assigns HTTP settings for the listener.                                                                                   |
+| add_request_routing_rules            | Assigns routing rules between frontend IP configurations and ports and services in the backend pool.                      |
+| add_probes                           | Assigns health probes to ensure backend services are healthy or removed from the pool.                                    |
+| add_ssl_certificates                 | Assigns one or more SSL certificates to the App Gateway for use in httpListeners.                                         |
 
 #### Complete Example
 
@@ -45,7 +46,7 @@ let myNsg = nsg {
         securityRule {
             name "inet-gw"
             description "Internet to gateway"
-            services [ "http", 80 ]
+            services [ "https", 443 ]
             add_source_tag NetworkSecurity.TCP "Internet"
             add_destination_network "10.28.0.0/24"
         }
@@ -99,15 +100,17 @@ let myAppGateway =
         }
     let frontendPort =
         frontendPort {
-            name "port-80"
-            port 80
+            name "port-443"
+            port 443
         }
     let listener =
         httpListener {
-            name "http-listener"
+            name "https-listener"
             frontend_ip frontendIp
             frontend_port frontendPort
             backend_pool backendPoolName.Value
+            protocol Protocol.Https
+            ssl_certificate "my-tls-cert"
         }
     let backendPool =
         appGatewayBackendAddressPool {
@@ -153,6 +156,13 @@ let myAppGateway =
         add_backend_http_settings_collection [ backendSettings ]
         add_request_routing_rules [ routingRule ]
         add_probes [ healthProbe ]
+        add_ssl_certificates [
+            sslCertificate {
+                name "my-tls-cert"
+                // Ensure App Gateway identity (MSI) has access to read this secret.
+                key_vault_secret_id "https://my-kv.vault.azure.net/secrets/app-gw-cert"
+            }
+        ]
         depends_on myNsg
         depends_on net
    }
