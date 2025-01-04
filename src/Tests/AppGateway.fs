@@ -361,12 +361,14 @@ let tests =
                     add_backend_http_settings_collection [ backendSettings ]
                     add_request_routing_rules [ routingRule ]
                     add_probes [ healthProbe ]
+
                     add_ssl_certificates [
                         sslCertificate {
                             name "ag-test-cert"
                             key_vault_secret_id "https://my-kv.vault.azure.net/secrets/app-gw-cert"
                         }
                     ]
+
                     depends_on myNsg
                     depends_on net
                 }
@@ -378,16 +380,18 @@ let tests =
 
             let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
             let appGwProps = jobj.SelectToken("resources[?(@.name=='app-gw')].properties")
-            let appGwHttpsCertId = appGwProps.SelectToken("httpListeners[0].properties.sslCertificate.id")
+
+            let appGwHttpsCertId =
+                appGwProps.SelectToken("httpListeners[0].properties.sslCertificate.id")
+
             Expect.equal
                 (appGwHttpsCertId |> string)
                 "[resourceId('Microsoft.Network/applicationGateways/sslCertificates', 'app-gw', 'ag-test-cert')]"
                 "Generated incorrect references to HTTPS cert"
+
             let appGwSslCert = appGwProps.SelectToken("sslCertificates[0]")
-            Expect.equal
-                (appGwSslCert["name"] |> string)
-                "ag-test-cert"
-                "Wrong name on SSL Certificate"
+            Expect.equal (appGwSslCert["name"] |> string) "ag-test-cert" "Wrong name on SSL Certificate"
+
             Expect.equal
                 (appGwSslCert.SelectToken("properties.keyVaultSecretId") |> string)
                 "https://my-kv.vault.azure.net/secrets/app-gw-cert"

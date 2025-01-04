@@ -235,8 +235,10 @@ type HttpListenerBuilder() =
     member _.Protocol(state: HttpListenerConfig, protocol) = { state with Protocol = protocol }
 
     [<CustomOperation "ssl_certificate">]
-    member _.SslCertificate(state: HttpListenerConfig, sslCertificate: string) =
-        { state with SslCertificate = Some (ResourceName sslCertificate) }
+    member _.SslCertificate(state: HttpListenerConfig, sslCertificate: string) = {
+        state with
+            SslCertificate = Some(ResourceName sslCertificate)
+    }
 
 let httpListener = HttpListenerBuilder()
 
@@ -574,9 +576,7 @@ type BasicRequestRoutingRuleBuilder() =
     }
 
     [<CustomOperation "priority">]
-    member _.Priority(state: RequestRoutingRuleConfig, priority: int) = {
-        state with Priority = Some priority
-    }
+    member _.Priority(state: RequestRoutingRuleConfig, priority: int) = { state with Priority = Some priority }
 
 let basicRequestRoutingRule = BasicRequestRoutingRuleBuilder()
 
@@ -584,27 +584,27 @@ type SslCertificateConfig = {
     Name: ResourceName
     KeyVaultSecretId: string option
 } with
-    static member BuildResource (conf:SslCertificateConfig) = {|
-          Name = conf.Name
-          Data = None // TODO: needs implementation after further testing.
-          KeyVaultSecretId = conf.KeyVaultSecretId
-          Password = None // TODO: needs implementation, will generate password parameter.
+
+    static member BuildResource(conf: SslCertificateConfig) = {|
+        Name = conf.Name
+        Data = None // TODO: needs implementation after further testing.
+        KeyVaultSecretId = conf.KeyVaultSecretId
+        Password = None // TODO: needs implementation, will generate password parameter.
     |}
 
-type SslCertificateBuilder () =
+type SslCertificateBuilder() =
     member _.Yield _ = {
         Name = ResourceName.Empty
         KeyVaultSecretId = None
     }
 
     [<CustomOperation "name">]
-    member _.Name (config:SslCertificateConfig, name:string) = {
-        config with Name = ResourceName name
-    }
+    member _.Name(config: SslCertificateConfig, name: string) = { config with Name = ResourceName name }
 
     [<CustomOperation "key_vault_secret_id">]
-    member _.KeyVaultSecretId (config:SslCertificateConfig, secretId:string) = {
-        config with KeyVaultSecretId = Some secretId
+    member _.KeyVaultSecretId(config: SslCertificateConfig, secretId: string) = {
+        config with
+            KeyVaultSecretId = Some secretId
     }
 
 let sslCertificate = SslCertificateBuilder()
@@ -803,8 +803,9 @@ type AppGatewayBuilder() =
     }
 
     [<CustomOperation "add_ssl_certificates">]
-    member _.AddSslCertificates (state: AppGatewayConfig, sslCertificates: SslCertificateConfig list) = {
-        state with SslCertificates = state.SslCertificates @ sslCertificates
+    member _.AddSslCertificates(state: AppGatewayConfig, sslCertificates: SslCertificateConfig list) = {
+        state with
+            SslCertificates = state.SslCertificates @ sslCertificates
     }
 
 let appGateway = AppGatewayBuilder()
