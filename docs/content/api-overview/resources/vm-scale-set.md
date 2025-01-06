@@ -35,6 +35,9 @@ The Virtual Machine Scale Set builder (`vmss`) creates a virtual machine scale s
 | applicationHealthExtension | port                           | TCP port to probe.                                                                                                                                                                                        |
 | applicationHealthExtension | interval                       | Interval to probe for health.                                                                                                                                                                             |
 | applicationHealthExtension | number_of_probes               | Sets the number of times the probe must fail to consider this instance a failure.                                                                                                                            |
+| applicationHealthExtension | enable_automatic_upgrade       | Enable/Disable automatic extension upgrade (not enabled by default)         |
+| applicationHealthExtension | type_handler_version           | Extension version (default: "1.0")         |
+
 
 #### Example
 

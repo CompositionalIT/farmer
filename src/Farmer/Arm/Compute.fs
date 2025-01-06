@@ -124,6 +124,8 @@ type ApplicationHealthExtension = {
     NumberOfProbes: int option
     GracePeriod: TimeSpan option
     Tags: Map<string, string>
+    EnableAutomaticUpgrade: bool option
+    TypeHandlerVersion: string option
 } with
 
     static member Name = "HealthExtension"
@@ -138,8 +140,9 @@ type ApplicationHealthExtension = {
                 match this.OS with
                 | Linux -> "ApplicationHealthLinux"
                 | Windows -> "ApplicationHealthWindows"
-            typeHandlerVersion = "1.0"
+            typeHandlerVersion = this.TypeHandlerVersion |> Option.defaultValue "1.0"
             autoUpgradeMinorVersion = true
+            enableAutomaticUpgrade = this.EnableAutomaticUpgrade |> Option.map box |> Option.defaultValue null
             settings = {|
                 protocol = this.Protocol.ArmValue
                 port = this.Port

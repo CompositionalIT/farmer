@@ -24,6 +24,8 @@ type ApplicationHealthExtensionConfig = {
     NumberOfProbes: int option
     GracePeriod: TimeSpan option
     Tags: Map<string, string>
+    TypeHandlerVersion: string option
+    EnableAutomaticUpgrade: bool option
 } with
 
     interface IExtensionBuilder with
@@ -37,6 +39,8 @@ type ApplicationHealthExtensionConfig = {
             NumberOfProbes = this.NumberOfProbes
             GracePeriod = this.GracePeriod
             Tags = this.Tags
+            TypeHandlerVersion = this.TypeHandlerVersion
+            EnableAutomaticUpgrade = this.EnableAutomaticUpgrade
         }
 
     interface IBuilder with
@@ -279,6 +283,20 @@ type ApplicationHealthExtensionBuilder() =
         NumberOfProbes = None
         GracePeriod = None
         Tags = Map.empty
+        TypeHandlerVersion = None
+        EnableAutomaticUpgrade = None
+    }
+
+    [<CustomOperation "enable_automatic_upgrade">]
+    member _.EnableAutomaticUpgrade(state: ApplicationHealthExtensionConfig, enable) = {
+        state with
+            EnableAutomaticUpgrade = Some enable
+    }
+
+    [<CustomOperation "type_handler_version">]
+    member _.TypeHandlerVersion(state: ApplicationHealthExtensionConfig, version) = {
+        state with
+            TypeHandlerVersion = Some version
     }
 
     /// Sets the VMSS where this health extension should be installed.
