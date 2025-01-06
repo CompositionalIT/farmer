@@ -79,13 +79,13 @@ stages:
       inputs:
         testResultsFiles: '**/*.trx'
         testResultsFormat: VSTest
-    - task: PublishCodeCoverageResults@1
+    - task: PublishCodeCoverageResults@2
       displayName: "Publish Code Coverage"
       condition:  and(succeeded(), not(eq(variables['build.reason'], 'PullRequest')))
       inputs:
         codeCoverageTool: 'Cobertura'
         summaryFileLocation: '$(Build.SourcesDirectory)/src/Tests/TestResults/*/coverage.cobertura.xml'
-    - task: PublishCodeCoverageResults@1
+    - task: PublishCodeCoverageResults@2
       displayName: "Publish PR Code Coverage"
       condition:  and(succeeded(), eq(variables['build.reason'], 'PullRequest'))
       inputs:
