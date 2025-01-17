@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.11
+* VM extensions: support for auto-upgrades and initial version
+
 ## 1.9.10
 * Application Gateways: Adds SSL Certificates
 * Network Security Groups: use ARM expressions in security rules

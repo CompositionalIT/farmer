@@ -1051,7 +1051,7 @@ type VmGalleryApplicationBuilder() =
         galleryApp
 
     [<CustomOperation "enable_automatic_upgrade">]
-    member _.EnableAutomaticUpgrade(state, enable) = {
+    member _.EnableAutomaticUpgrade(state: VmGalleryApplication, enable) = {
         state with
             EnableAutomaticUpgrade = Some enable
     }
