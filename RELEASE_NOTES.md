@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.12
+* VMSS overprovisioning controls
+
 ## 1.9.11
 * VM extensions: support for auto-upgrades and initial version
 
