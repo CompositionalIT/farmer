@@ -125,6 +125,12 @@ let tests =
             let vmProfile = vmssProps.SelectToken("virtualMachineProfile")
             Expect.isNotNull vmProfile "VMSS is missing VM profile"
 
+            Expect.isNull (vmssProps.SelectToken "overprovision") "VMSS is not expected to have overprovision"
+
+            Expect.isNull
+                (vmssProps.SelectToken "doNotRunExtensionsOnOverprovisionedVMs")
+                "VMSS is not expected to have doNotRunExtensionsOnOverprovisionedVMs"
+
             Expect.equal
                 (vmProfile
                     .SelectToken("storageProfile.imageReference.communityGalleryImageId")
@@ -132,11 +138,14 @@ let tests =
                 "/CommunityGalleries/test-gallery/Images/test-image/Versions/version"
                 "VMSS OS profile has incorrect image reference"
         }
-        test "Create a scale with OS upgrade options" {
+        test "Create a scale with OS upgrade and overprovisioning options" {
             let deployment = arm {
                 add_resources [
                     vmss {
                         name "my-scale-set"
+                        capacity 1
+                        overprovision false
+                        run_extensions_on_overprovisioned_vms false
 
                         vm_profile (
                             vm {
@@ -169,6 +178,16 @@ let tests =
             Expect.isNotNull vmssProps "VMSS is missing 'properties'"
             let vmProfile = vmssProps.SelectToken("virtualMachineProfile")
             Expect.isNotNull vmProfile "VMSS is missing VM profile"
+
+            Expect.equal
+                (vmssProps.SelectToken "overprovision" |> string)
+                (string false)
+                "VMSS is expected to have overprovision"
+
+            Expect.equal
+                (vmssProps.SelectToken "doNotRunExtensionsOnOverprovisionedVMs" |> string)
+                (string true)
+                "VMSS is expected to have doNotRunExtensionsOnOverprovisionedVMs"
 
             Expect.equal
                 (vmProfile

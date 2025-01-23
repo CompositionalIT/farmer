@@ -635,6 +635,8 @@ type VirtualMachineScaleSet = {
     DiagnosticsEnabled: bool option
     Size: VMSize
     Capacity: int
+    Overprovision: bool option
+    RunExtensionsOnOverprovisionedVMs: bool option
     ScaleInPolicy: ScaleSetScaleInPolicy
     SecurityProfile: VmSecurityProfile option
     UpgradePolicy: ScaleSetUpgradePolicy
@@ -697,6 +699,9 @@ type VirtualMachineScaleSet = {
                         tier = this.Size.Tier
                     |}
                     properties = {|
+                        overprovision = this.Overprovision |> Option.toNullable
+                        doNotRunExtensionsOnOverprovisionedVMs =
+                            this.RunExtensionsOnOverprovisionedVMs |> Option.map not |> Option.toNullable
                         additionalCapabilities = VirtualMachine.additionalCapabilities this.DataDisks
                         virtualMachineProfile = {|
                             applicationProfile = VirtualMachine.applicationProfile this.GalleryApplications

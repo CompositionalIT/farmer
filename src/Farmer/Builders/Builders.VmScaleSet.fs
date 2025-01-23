@@ -59,6 +59,8 @@ type VmScaleSetConfig = {
     Autoscale: AutoscaleSettings option
     AvailabilityZones: string list
     Capacity: int option
+    Overprovision: bool option
+    RunExtensionsOnOverprovisionedVMs: bool option
     Extensions: IExtensionBuilder list
     HealthProbeId: ResourceId option
     LoadBalancerBackendAddressPools: LinkedResource list
@@ -186,6 +188,8 @@ type VmScaleSetConfig = {
                         AutomaticRepairsPolicy = this.AutomaticRepairsPolicy
                         AvailabilityZones = this.AvailabilityZones
                         Capacity = this.Capacity |> Option.defaultValue 1
+                        Overprovision = this.Overprovision
+                        RunExtensionsOnOverprovisionedVMs = this.RunExtensionsOnOverprovisionedVMs
                         Credentials =
                             match vm.Username with
                             | Some username -> {|
@@ -361,6 +365,8 @@ type VirtualMachineScaleSetBuilder() =
         UpgradePolicy = None
         AutomaticRepairsPolicy = None
         Autoscale = None
+        Overprovision = None
+        RunExtensionsOnOverprovisionedVMs = None
         AvailabilityZones = []
         HealthProbeId = None
         LoadBalancerBackendAddressPools = []
@@ -480,6 +486,18 @@ type VirtualMachineScaleSetBuilder() =
 
     [<CustomOperation "capacity">]
     member _.Capacity(state: VmScaleSetConfig, capacity: int) = { state with Capacity = Some capacity }
+
+    [<CustomOperation "overprovision">]
+    member _.Overprovision(state: VmScaleSetConfig, enable) = {
+        state with
+            Overprovision = Some enable
+    }
+
+    [<CustomOperation "run_extensions_on_overprovisioned_vms">]
+    member _.RunExtensionsOnOverprovisionedVMs(state: VmScaleSetConfig, enable) = {
+        state with
+            RunExtensionsOnOverprovisionedVMs = Some enable
+    }
 
     [<CustomOperation "health_probe">]
     member _.HealthProbeId(state: VmScaleSetConfig, healthProbeId: ResourceId) = {
