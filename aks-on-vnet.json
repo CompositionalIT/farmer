@@ -5,17 +5,9 @@
   "parameters": {},
   "resources": [
     {
-      "apiVersion": "2023-01-31",
-      "dependsOn": [],
-      "location": "eastus",
-      "name": "aks-user",
-      "tags": {},
-      "type": "Microsoft.ManagedIdentity/userAssignedIdentities"
-    },
-    {
       "apiVersion": "2020-10-01",
       "dependsOn": [],
-      "name": "tnt160-mgmt-p01-eastus2-aks-nested",
+      "name": "tnt161-mgmt-p03-eastus2-aks-nested",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "Inner"
@@ -31,16 +23,16 @@
             {
               "apiVersion": "2024-02-01",
               "dependsOn": [
-                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'aks-user')]"
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'tnt161-mgmt-p03-eastus2')]"
               ],
               "identity": {
                 "type": "UserAssigned",
                 "userAssignedIdentities": {
-                  "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'aks-user')]": {}
+                  "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'tnt161-mgmt-p03-eastus2')]": {}
                 }
               },
               "location": "[resourcegroup().location]",
-              "name": "tnt160-mgmt-p01-eastus2-aks",
+              "name": "tnt161-mgmt-p03-eastus2-aks",
               "properties": {
                 "agentPoolProfiles": [
                   {
@@ -51,12 +43,12 @@
                     ],
                     "count": 2,
                     "mode": "System",
-                    "name": "tnt160-mgmt-p01-eastus2-aks-systempool",
+                    "name": "systempool",
                     "osDiskSizeGB": 128,
                     "osType": "Linux",
-                    "podSubnetID": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'tnt160-mgmt-p01-eastus2', 'aksPod')]",
+                    "podSubnetID": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'tnt161-mgmt-p03-eastus2-vnet', 'aksPod')]",
                     "vmSize": "Standard_D2s_v3",
-                    "vnetSubnetID": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'tnt160-mgmt-p01-eastus2', 'aksNode')]"
+                    "vnetSubnetID": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'tnt161-mgmt-p03-eastus2-vnet', 'aksNode')]"
                   },
                   {
                     "availabilityZones": [
@@ -69,12 +61,12 @@
                     "maxCount": 4,
                     "minCount": 2,
                     "mode": "User",
-                    "name": "tnt160-mgmt-p01-eastus2-aks-userpool",
+                    "name": "userpool",
                     "osDiskSizeGB": 128,
                     "osType": "Linux",
-                    "podSubnetID": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'tnt160-mgmt-p01-eastus2', 'aksPod')]",
+                    "podSubnetID": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'tnt161-mgmt-p03-eastus2-vnet', 'aksPod')]",
                     "vmSize": "Standard_D4s_v3",
-                    "vnetSubnetID": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'tnt160-mgmt-p01-eastus2', 'aksNode')]"
+                    "vnetSubnetID": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'tnt161-mgmt-p03-eastus2-vnet', 'aksNode')]"
                   }
                 ],
                 "apiServerAccessProfile": {
@@ -85,10 +77,13 @@
                 "enableRBAC": false,
                 "identityProfile": {
                   "kubeletIdentity": {
-                    "clientId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'aks-user'), '2023-01-31').clientId]",
-                    "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'aks-user'), '2023-01-31').principalId]",
-                    "resourceId": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'aks-user')]"
+                    "clientId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'tnt161-mgmt-p03-eastus2'), '2023-01-31').clientId]",
+                    "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'tnt161-mgmt-p03-eastus2'), '2023-01-31').principalId]",
+                    "resourceId": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'tnt161-mgmt-p03-eastus2')]"
                   }
+                },
+                "networkProfile": {
+                  "networkPlugin": "azure"
                 },
                 "oidcIssuerProfile": {
                   "enabled": true
@@ -116,14 +111,14 @@
               "apiVersion": "2023-01-31",
               "dependsOn": [],
               "location": "[resourcegroup().location]",
-              "name": "aks-user",
+              "name": "tnt161-mgmt-p03-eastus2",
               "tags": {},
               "type": "Microsoft.ManagedIdentity/userAssignedIdentities"
             }
           ]
         }
       },
-      "resourceGroup": "tnt160-mgmt-p01-eastus2",
+      "resourceGroup": "tnt161-mgmt-p03-eastus2",
       "tags": {},
       "type": "Microsoft.Resources/deployments"
     }
