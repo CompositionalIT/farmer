@@ -1,0 +1,127 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {},
+  "resources": [
+    {
+      "apiVersion": "2023-01-31",
+      "dependsOn": [],
+      "location": "eastus",
+      "name": "aks-user",
+      "tags": {},
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities"
+    },
+    {
+      "apiVersion": "2020-10-01",
+      "dependsOn": [],
+      "name": "tnt160-mgmt-p01-eastus2-aks-nested",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "Inner"
+        },
+        "mode": "Incremental",
+        "parameters": {},
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "outputs": {},
+          "parameters": {},
+          "resources": [
+            {
+              "apiVersion": "2024-02-01",
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'aks-user')]"
+              ],
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'aks-user')]": {}
+                }
+              },
+              "location": "[resourcegroup().location]",
+              "name": "tnt160-mgmt-p01-eastus2-aks",
+              "properties": {
+                "agentPoolProfiles": [
+                  {
+                    "availabilityZones": [
+                      "1",
+                      "2",
+                      "3"
+                    ],
+                    "count": 2,
+                    "mode": "System",
+                    "name": "tnt160-mgmt-p01-eastus2-aks-systempool",
+                    "osDiskSizeGB": 128,
+                    "osType": "Linux",
+                    "vmSize": "Standard_D2s_v3"
+                  },
+                  {
+                    "availabilityZones": [
+                      "1",
+                      "2",
+                      "3"
+                    ],
+                    "count": 1,
+                    "enableAutoScaling": true,
+                    "maxCount": 4,
+                    "minCount": 2,
+                    "mode": "User",
+                    "name": "tnt160-mgmt-p01-eastus2-aks-userpool",
+                    "osDiskSizeGB": 128,
+                    "osType": "Linux",
+                    "vmSize": "Standard_D4s_v3"
+                  }
+                ],
+                "apiServerAccessProfile": {
+                  "authorizedIPRanges": [],
+                  "enablePrivateCluster": true
+                },
+                "dnsPrefix": "aks",
+                "enableRBAC": false,
+                "identityProfile": {
+                  "kubeletIdentity": {
+                    "clientId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'aks-user'), '2023-01-31').clientId]",
+                    "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'aks-user'), '2023-01-31').principalId]",
+                    "resourceId": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'aks-user')]"
+                  }
+                },
+                "oidcIssuerProfile": {
+                  "enabled": true
+                },
+                "securityProfile": {
+                  "imageCleaner": {
+                    "enabled": true,
+                    "intervalHours": 168
+                  },
+                  "workloadIdentity": {
+                    "enabled": true
+                  }
+                },
+                "servicePrincipalProfile": {
+                  "clientId": "msi"
+                }
+              },
+              "sku": {
+                "name": "Base",
+                "tier": "Standard"
+              },
+              "type": "Microsoft.ContainerService/managedClusters"
+            },
+            {
+              "apiVersion": "2023-01-31",
+              "dependsOn": [],
+              "location": "[resourcegroup().location]",
+              "name": "aks-user",
+              "tags": {},
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities"
+            }
+          ]
+        }
+      },
+      "resourceGroup": "tnt160-mgmt-p01-eastus2",
+      "tags": {},
+      "type": "Microsoft.Resources/deployments"
+    }
+  ]
+}

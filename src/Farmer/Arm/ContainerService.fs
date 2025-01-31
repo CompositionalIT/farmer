@@ -185,6 +185,7 @@ type ManagedCluster = {
             VmSize: VMSize
             AvailabilityZones: string list
             VirtualNetworkName: ResourceName option
+            VirtualNetwork: LinkedResource option
             SubnetName: ResourceName option
             PodSubnetName: ResourceName option
             AutoscaleSetting: FeatureFlag option
@@ -300,7 +301,10 @@ type ManagedCluster = {
                                 vnetSubnetID =
                                     match agent.VirtualNetworkName, agent.SubnetName with
                                     | Some vnet, Some subnet -> subnets.resourceId(vnet, subnet).Eval()
-                                    | _ -> null
+                                    | _ ->
+                                        match agent.VirtualNetwork, agent.SubnetName with
+                                        | Some vnet, Some subnet -> vnet.ResourceId.Eval()
+                                        | _ -> null
                                 podSubnetID =
                                     match agent.VirtualNetworkName, agent.PodSubnetName with
                                     | Some vnet, Some pod_subnet -> subnets.resourceId(vnet, pod_subnet).Eval()

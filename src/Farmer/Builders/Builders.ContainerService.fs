@@ -21,6 +21,7 @@ type AgentPoolConfig = {
     VmSize: VMSize
     AvailabilityZones: string list
     VirtualNetworkName: ResourceName option
+    VirtualNetwork: LinkedResource option
     SubnetName: ResourceName option
     PodSubnetName: ResourceName option
     AutoscaleSetting: FeatureFlag option
@@ -40,6 +41,7 @@ type AgentPoolConfig = {
         OsDiskSize = 0<Gb>
         OsType = OS.Linux
         VirtualNetworkName = None
+        VirtualNetwork = None
         SubnetName = None
         PodSubnetName = None
         VmSize = Standard_DS2_v2
@@ -189,6 +191,7 @@ type AksConfig = {
                         VmSize = agentPool.VmSize
                         AvailabilityZones = agentPool.AvailabilityZones
                         VirtualNetworkName = agentPool.VirtualNetworkName
+                        VirtualNetwork = agentPool.VirtualNetwork
                         AutoscaleSetting = agentPool.AutoscaleSetting
                         ScaleDownMode = agentPool.ScaleDownMode
                         MinCount = agentPool.MinCount
@@ -269,6 +272,14 @@ type AgentPoolBuilder() =
     /// Sets the agent pool to user mode.
     [<CustomOperation "user_mode">]
     member _.UserMode(state: AgentPoolConfig) = { state with Mode = AgentPoolMode.User }
+
+
+    /// Sets the name of a virtual network where this agent pool should be attached.
+    [<CustomOperation "link_to_vnet">]
+    member _.LinkToVNetId(state: AgentPoolConfig, vnetId: ResourceId) = {
+        state with
+            VirtualNetwork = Some(Unmanaged vnetId)
+    }
 
     /// Sets the disk size for the VM's in the agent pool.
     [<CustomOperation "disk_size">]
