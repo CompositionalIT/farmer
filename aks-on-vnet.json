@@ -54,7 +54,9 @@
                     "name": "tnt160-mgmt-p01-eastus2-aks-systempool",
                     "osDiskSizeGB": 128,
                     "osType": "Linux",
-                    "vmSize": "Standard_D2s_v3"
+                    "podSubnetID": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'tnt160-mgmt-p01-eastus2', 'aksPod')]",
+                    "vmSize": "Standard_D2s_v3",
+                    "vnetSubnetID": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'tnt160-mgmt-p01-eastus2', 'aksNode')]"
                   },
                   {
                     "availabilityZones": [
@@ -70,7 +72,9 @@
                     "name": "tnt160-mgmt-p01-eastus2-aks-userpool",
                     "osDiskSizeGB": 128,
                     "osType": "Linux",
-                    "vmSize": "Standard_D4s_v3"
+                    "podSubnetID": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'tnt160-mgmt-p01-eastus2', 'aksPod')]",
+                    "vmSize": "Standard_D4s_v3",
+                    "vnetSubnetID": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'tnt160-mgmt-p01-eastus2', 'aksNode')]"
                   }
                 ],
                 "apiServerAccessProfile": {

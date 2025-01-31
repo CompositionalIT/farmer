@@ -11,7 +11,8 @@ open Farmer.ContainerService
 type AksDeploymentRequestV1 =
     { ManagementResourceGroupName: string
       TenantMsi: UserAssignedIdentityConfig
-      TenantVnet: ResourceId }
+      PodSubnet: ResourceId
+      NodeSubnet: ResourceId }
 
 let aksResourceV1 (req: AksDeploymentRequestV1) =
     aks {
@@ -31,9 +32,8 @@ let aksResourceV1 (req: AksDeploymentRequestV1) =
                   disk_size 128<Gb>
                   add_availability_zones [ "1"; "2"; "3" ]
                   vm_size (Vm.CustomImage "Standard_D2s_v3")
-                  pod_subnet "aksPod"
-                  subnet "aksNode"
-                  link_to_vnet req.TenantVnet // $"{req.ManagementResourceGroupName}-vnet"
+                  link_to_subnet req.NodeSubnet
+                  link_to_pod_subnet req.PodSubnet
               }
               agentPool {
                   name $"{req.ManagementResourceGroupName}-aks-userpool"
@@ -44,9 +44,8 @@ let aksResourceV1 (req: AksDeploymentRequestV1) =
                   autoscale_min_count 2
                   autoscale_max_count 4
                   vm_size (Vm.CustomImage "Standard_D4s_v3")
-                  pod_subnet "aksPod"
-                  subnet "aksNode"
-                  link_to_vnet req.TenantVnet // $"{req.ManagementResourceGroupName}-vnet"
+                  link_to_subnet req.NodeSubnet
+                  link_to_pod_subnet req.PodSubnet
               } ]
     }
 
@@ -67,7 +66,8 @@ let msi = userAssignedIdentity { name "aks-user" }
 let aksDeploy = 
     { ManagementResourceGroupName = "tnt160-mgmt-p01-eastus2"
       TenantMsi = msi
-      TenantVnet = Arm.Network.virtualNetworks.resourceId(ResourceName "tnt160-mgmt-p01-eastus2-vnet") }
+      PodSubnet = Arm.Network.subnets.resourceId (ResourceName "tnt160-mgmt-p01-eastus2", ResourceName "aksPod" )
+      NodeSubnet = Arm.Network.subnets.resourceId (ResourceName "tnt160-mgmt-p01-eastus2", ResourceName "aksNode" ) }
 
 arm {
     location Location.EastUS
