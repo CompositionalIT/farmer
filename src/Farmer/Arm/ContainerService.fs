@@ -242,12 +242,12 @@ type ManagedCluster = {
             let dependencies =
                 [
                     this.AgentPoolProfiles
-                    |> List.choose(fun pool ->
+                    |> List.choose (fun pool ->
                         match pool.PodSubnet with
                         | Some(Managed podSubnet) -> Some podSubnet
                         | _ -> None)
                     this.AgentPoolProfiles
-                    |> List.choose(fun pool ->
+                    |> List.choose (fun pool ->
                         match pool.Subnet with
                         | Some(Managed subnet) -> Some subnet
                         | _ -> None)
@@ -319,7 +319,7 @@ type ManagedCluster = {
                                 podSubnetID =
                                     match agent.VirtualNetworkName, agent.PodSubnetName with
                                     | Some vnet, Some pod_subnet -> subnets.resourceId(vnet, pod_subnet).Eval()
-                                    | _ -> 
+                                    | _ ->
                                         match agent.PodSubnet with
                                         | Some podSubnet -> podSubnet.ResourceId.Eval()
                                         | _ -> null
