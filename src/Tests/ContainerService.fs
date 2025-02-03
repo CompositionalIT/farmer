@@ -232,6 +232,62 @@ let tests =
             Expect.hasLength aks.AgentPoolProfiles 1 ""
             Expect.equal aks.AgentPoolProfiles.[0].Name "linuxpool" ""
         }
+        test "AKS cluster on linked VNet" {
+            let myAks = aks {
+                name "private-k8s-cluster"
+                dns_prefix "testprivateaks"
+
+                add_agent_pools [
+                    agentPool {
+                        name "linuxPool"
+                        count 3
+
+                        link_to_subnet (
+                            Arm.Network.subnets.resourceId (ResourceName "aks-rg", ResourceName "vnet-subnet")
+                        )
+
+                        link_to_pod_subnet (
+                            Arm.Network.subnets.resourceId (ResourceName "aks-rg", ResourceName "vnet-pod")
+                        )
+                    }
+                ]
+
+                network_profile (azureCniNetworkProfile { service_cidr "10.250.0.0/16" })
+                linux_profile "aksuser" "public-key-here"
+                service_principal_client_id "some-spn-client-id"
+            }
+
+            let template = arm {
+                location Location.EastUS
+                add_resource myAks
+                output "oidcUrl" myAks.OidcIssuerUrl
+            }
+
+            let json = template.Template |> Writer.toJson
+            let jobj = JObject.Parse(json)
+
+            let podSubnetId =
+                jobj.SelectToken(
+                    "resources[?(@.name=='private-k8s-cluster')].properties.agentPoolProfiles[0].podSubnetID"
+                )
+                |> string
+
+            let subnetId =
+                jobj.SelectToken(
+                    "resources[?(@.name=='private-k8s-cluster')].properties.agentPoolProfiles[0].vnetSubnetID"
+                )
+                |> string
+
+            Expect.equal
+                podSubnetId
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'aks-rg', 'vnet-pod')]"
+                "pod subnet not enabled on agent pool"
+
+            Expect.equal
+                subnetId
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'aks-rg', 'vnet-subnet')]"
+                "subnet not enabled on agent pool"
+        }
         test "AKS with private API must use a standard load balancer." {
             Expect.throws
                 (fun () ->
