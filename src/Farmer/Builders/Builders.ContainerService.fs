@@ -23,6 +23,8 @@ type AgentPoolConfig = {
     VirtualNetworkName: ResourceName option
     SubnetName: ResourceName option
     PodSubnetName: ResourceName option
+    Subnet: LinkedResource option
+    PodSubnet: LinkedResource option
     AutoscaleSetting: FeatureFlag option
     ScaleDownMode: ScaleDownMode option
     MinCount: int option
@@ -42,6 +44,8 @@ type AgentPoolConfig = {
         VirtualNetworkName = None
         SubnetName = None
         PodSubnetName = None
+        PodSubnet = None
+        Subnet = None
         VmSize = Standard_DS2_v2
         AvailabilityZones = []
         AutoscaleSetting = None
@@ -186,6 +190,8 @@ type AksConfig = {
                         OsType = agentPool.OsType
                         SubnetName = agentPool.SubnetName
                         PodSubnetName = agentPool.PodSubnetName
+                        Subnet = agentPool.Subnet
+                        PodSubnet = agentPool.PodSubnet
                         VmSize = agentPool.VmSize
                         AvailabilityZones = agentPool.AvailabilityZones
                         VirtualNetworkName = agentPool.VirtualNetworkName
@@ -269,6 +275,21 @@ type AgentPoolBuilder() =
     /// Sets the agent pool to user mode.
     [<CustomOperation "user_mode">]
     member _.UserMode(state: AgentPoolConfig) = { state with Mode = AgentPoolMode.User }
+
+
+    /// Sets the name of a virtual network where this agent pool should be attached.
+    [<CustomOperation "link_to_subnet">]
+    member _.LinkToSubnetId(state: AgentPoolConfig, subnetId: ResourceId) = {
+        state with
+            Subnet = Some(Unmanaged subnetId)
+    }
+
+    /// Sets the name of a virtual network where this agent pool should be attached.
+    [<CustomOperation "link_to_pod_subnet">]
+    member _.LinkToPodSubnetId(state: AgentPoolConfig, subnetId: ResourceId) = {
+        state with
+            PodSubnet = Some(Unmanaged subnetId)
+    }
 
     /// Sets the disk size for the VM's in the agent pool.
     [<CustomOperation "disk_size">]

@@ -186,6 +186,8 @@ type ManagedCluster = {
             AvailabilityZones: string list
             VirtualNetworkName: ResourceName option
             SubnetName: ResourceName option
+            Subnet: LinkedResource option
+            PodSubnet: LinkedResource option
             PodSubnetName: ResourceName option
             AutoscaleSetting: FeatureFlag option
             ScaleDownMode: ScaleDownMode option
@@ -239,6 +241,16 @@ type ManagedCluster = {
         member this.JsonModel =
             let dependencies =
                 [
+                    this.AgentPoolProfiles
+                    |> List.choose (fun pool ->
+                        match pool.PodSubnet with
+                        | Some(Managed podSubnet) -> Some podSubnet
+                        | _ -> None)
+                    this.AgentPoolProfiles
+                    |> List.choose (fun pool ->
+                        match pool.Subnet with
+                        | Some(Managed subnet) -> Some subnet
+                        | _ -> None)
                     this.AgentPoolProfiles
                     |> List.choose (fun pool -> pool.VirtualNetworkName)
                     |> List.map virtualNetworks.resourceId
@@ -300,11 +312,17 @@ type ManagedCluster = {
                                 vnetSubnetID =
                                     match agent.VirtualNetworkName, agent.SubnetName with
                                     | Some vnet, Some subnet -> subnets.resourceId(vnet, subnet).Eval()
-                                    | _ -> null
+                                    | _ ->
+                                        match agent.Subnet with
+                                        | Some subnet -> subnet.ResourceId.Eval()
+                                        | _ -> null
                                 podSubnetID =
                                     match agent.VirtualNetworkName, agent.PodSubnetName with
                                     | Some vnet, Some pod_subnet -> subnets.resourceId(vnet, pod_subnet).Eval()
-                                    | _ -> null
+                                    | _ ->
+                                        match agent.PodSubnet with
+                                        | Some podSubnet -> podSubnet.ResourceId.Eval()
+                                        | _ -> null
                                 enableAutoScaling = agent.AutoscaleSetting |> Option.mapBoxed _.AsBoolean
                                 scaleDownMode =
                                     match agent.ScaleDownMode with

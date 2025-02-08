@@ -56,6 +56,8 @@ The Agent Pool builder (`agentPool`) constructs agent pools in the AKS cluster.
 | os_type                           | Sets the OS type of the VM's in the agent pool.                                                  |
 | pod_subnet                        | Sets the name of a virtual network subnet where this AKS cluster should be attached.             |
 | subnet                            | Sets the name of a virtual network subnet where this AKS cluster should be attached.             |
+| link_to_subnet                    | Specify an existing subnet this AKS cluster should be attached.                                  |
+| link_to_pod_subnet                | Specify an existing subnet this AKS cluster should be attached.                                  |
 | vm_size                           | Sets the size of the VM's in the agent pool.                                                     |
 | add_availability_zones            | Sets the Azure availability zones for the VM's in the agent pool.                                |
 | vnet                              | Sets the name of a virtual network in the same region where this AKS cluster should be attached. |
