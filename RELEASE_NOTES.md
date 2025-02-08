@@ -1,12 +1,9 @@
 Release Notes
 =============
 
-## 1.9.13
-
-* AKS Cluster: Added link_to_subnet and link_to_pod_subnet to agent pool config
-
 ## 1.9.12
-* VMSS overprovisioning controls
+* VM Scale Sets: overprovisioning controls
+* AKS Cluster: Added link_to_subnet and link_to_pod_subnet to agent pool config
 
 ## 1.9.11
 * VM extensions: support for auto-upgrades and initial version
