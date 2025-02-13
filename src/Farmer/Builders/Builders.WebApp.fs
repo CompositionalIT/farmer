@@ -183,8 +183,8 @@ type SlotBuilder() =
     member this.AddKeyVaultIdentity(state: SlotConfig, identity: UserAssignedIdentityConfig) =
         this.AddKeyVaultIdentity(state, identity.UserAssignedIdentity)
 
-    [<CustomOperation "setting">]
     /// Adds an AppSetting to this deployment slot
+    [<CustomOperation "setting">]
     member this.AddSetting(state, key, value) : SlotConfig = {
         state with
             AppSettings = state.AppSettings.Add(key, value)
@@ -947,6 +947,24 @@ type WebAppBuilder() =
         VirtualApplications = Map []
         FunctionAppScaleLimit = None
     }
+    member __.Combine (currentValueFromYield: WebAppConfig, accumulatorFromDelay: WebAppConfig) =
+        System.Console.WriteLine($"currentValueFromYield: {currentValueFromYield.CommonWebConfig.AlwaysOn}")
+        System.Console.WriteLine($"accumulatorFromDelay: {accumulatorFromDelay.CommonWebConfig.AlwaysOn}")
+        { currentValueFromYield with
+           WebAppConfig.CommonWebConfig.AlwaysOn = false//accumulatorFromDelay.CommonWebConfig.AlwaysOn
+        }
+
+    member this.For(state: WebAppConfig , f: unit -> WebAppConfig) =
+        let delayed = f()
+        this.Combine(state, delayed)
+
+    member x.Zero() =
+        let v = x.Yield()
+        System.Console.WriteLine($"Zero {v.CommonWebConfig.AlwaysOn}")
+        v
+    // [<CustomOperation "eef">]
+    // member _.eef(cond, thenExpr, elseExpr) =
+    //     if cond then thenExpr() else elseExpr()
 
     member _.Run(state: WebAppConfig) =
         if state.Name.ResourceName = ResourceName.Empty then
@@ -1560,6 +1578,11 @@ module Extensions =
         member this.AlwaysOn(state: 'T) =
             { this.Get state with AlwaysOn = true } |> this.Wrap state
 
+        /// Sets "Always On" flag
+        [<CustomOperation "always_on">]
+        member this.AlwaysOn(state: 'T, value: bool) =
+            { this.Get state with AlwaysOn = value } |> this.Wrap state
+
         ///Chooses the bitness (32 or 64) of the worker process
         [<CustomOperation "worker_process">]
         member this.WorkerProcess(state: 'T, bitness) =
@@ -1652,8 +1675,8 @@ module Extensions =
         member this.FTPState(state: 'T, ftpState: FTPState) =
             this.Map state (fun x -> { x with FTPState = Some ftpState })
 
-        [<CustomOperation "health_check_path">]
         /// Specifies the path Azure load balancers will ping to check for unhealthy instances.
+        [<CustomOperation "health_check_path">]
         member this.HealthCheckPath(state: 'T, healthCheckPath: string) =
             this.Map state (fun x -> {
                 x with
