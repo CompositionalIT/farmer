@@ -30,6 +30,7 @@ type FunctionsRuntime with
     static member DotNet50 = DotNet, Some "5.0"
     static member DotNet50Isolated = DotNetIsolated, Some "5.0"
     static member DotNet60 = DotNet, Some "6.0"
+    static member DotNet80 = DotNet, Some "8.0"
     static member DotNet60Isolated = DotNetIsolated, Some "6.0"
     static member DotNet70Isolated = DotNetIsolated, Some "7.0"
     static member DotNet80Isolated = DotNetIsolated, Some "8.0"
