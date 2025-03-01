@@ -1,6 +1,7 @@
-﻿namespace Farmer
+namespace Farmer
 
 open System
+open System.Runtime.CompilerServices
 
 type NonEmptyList<'T> =
     private
@@ -70,6 +71,21 @@ module LocationExtensions =
         static member NorwayWest = Location "NorwayWest"
         static member NorwayEast = Location "NorwayEast"
         static member Global = Location "global"
+        static member SpainCentral = Location "SpainCentral"
+        static member ItalyNorth = Location "ItalyNorth"
+        static member PolandCentral = Location "PolandCentral"
+        static member MexicoCentral = Location "MexicoCentral"
+        static member IsraelCentral = Location "IsraelCentral"
+        static member QatarCentral = Location "QatarCentral"
+        static member ChileCentral = Location "ChileCentral"
+        static member NewZealandNorth = Location "NewZealandNorth"
+        static member MalaysiaCentral = Location "MalaysiaCentral"
+        static member IndonesiaCentral = Location "IndonesiaCentral"
+        static member TaiwanNorth = Location "TaiwanNorth"
+        static member AustriaCentral = Location "AustriaCentral"
+        static member GreeceCentral = Location "GreeceCentral"
+        static member DenmarkCentral = Location "DenmarkCentral"
+        static member SwedenCentral = Location "SwedenCentral"
 
         static member ResourceGroup =
             LocationExpression(ArmExpression.create "resourceGroup().location")
@@ -140,6 +156,14 @@ type TlsVersion =
         | Tls10 -> "1.0"
         | Tls11 -> "1.1"
         | Tls12 -> "1.2"
+
+[<AbstractClass; Sealed; Extension>]
+type TlsVersionExtensions =
+
+    [<Extension>]
+    static member ArmValue(version: TlsVersion option) =
+        version |> Option.map (fun v -> v.ArmValue) |> Option.toObj
+
 
 /// Represents an environment variable that can be set, typically on Docker container services.
 type EnvVar =
@@ -1438,6 +1462,11 @@ module Storage =
         | Hot
         | Cool
 
+        member this.ArmValue =
+            match this with
+            | Hot -> "Hot"
+            | Cool -> "Cool"
+
     type StoragePerformance =
         | Standard
         | Premium
@@ -1520,10 +1549,22 @@ module Storage =
         /// General Purpose V2 Standard RAGZRS with no default access tier.
         static member Standard_RAGZRS = GeneralPurpose(V2(RAGZRS, None))
 
+    /// <summary>
+    /// The type of access allowed for a storage container.
+    /// </summary>
+    /// <remarks>
+    /// Default is Private.
+    /// </remarks>
     type StorageContainerAccess =
         | Private
         | Container
         | Blob
+
+        member this.ArmValue =
+            match this with
+            | Private -> "None"
+            | Container -> "Container"
+            | Blob -> "Blob"
 
     /// The type of action to take when defining a lifecycle policy.
     type LifecyclePolicyAction =
