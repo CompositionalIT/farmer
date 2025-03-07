@@ -68,6 +68,7 @@ type DaprComponent = {
     Secrets: Map<string, SecretValue>
     SecretStoreComponent: ResourceName option
     Version: string
+    ResiliencyPolicy: DaprResiliencyPolicy
 }
 
 type ContainerEnvironmentConfig = {
@@ -170,6 +171,7 @@ type ContainerEnvironmentConfig = {
                     Secrets = daprComponent.Secrets
                     SecretStoreComponent = daprComponent.SecretStoreComponent
                     Version = daprComponent.Version
+                    ResiliencyPolicy = daprComponent.ResiliencyPolicy
                 }
         ]
 
@@ -675,6 +677,14 @@ type DaprComponentBuilder() =
         Secrets = Map.empty
         SecretStoreComponent = None
         Version = ""
+        ResiliencyPolicy = {
+            InboundTimeoutPolicy = None
+            InboundHttpRetryPolicy = None
+            InboundCircuitBreakerPolicy = None
+            OutboundTimeoutPolicy = None
+            OutboundHttpRetryPolicy = None
+            OutboundCircuitBreakerPolicy = None
+        }
     }
 
     [<CustomOperation "name">]
@@ -835,6 +845,101 @@ type DaprComponentBuilder() =
                     |> Map.add "connectionString" (SecretRef connectionStringSecretKey)
         }
 
+    /// <summary>
+    /// Sets the timeout policy for inbound requests.
+    /// </summary>
+    [<CustomOperation "resiliency_policy_inbound_timeout">]
+    member _.ResiliencyPolicyInboundTimeout(state: DaprComponent, responseTimeoutInSeconds: int) = {
+        state with
+            ResiliencyPolicy.InboundTimeoutPolicy =
+                Some {
+                    ResponseTimeoutInSeconds = responseTimeoutInSeconds
+                }
+    }
+
+    /// <summary>
+    /// Sets the HTTP retry policy for inbound requests.
+    /// </summary>
+    [<CustomOperation "resiliency_policy_inbound_http_retry">]
+    member _.ResiliencyPolicyInboundHttpRetry
+        (state: DaprComponent, maxRetries: int, initialDelayInMilliseconds: int, maxIntervalInMilliseconds: int)
+        =
+        {
+            state with
+                ResiliencyPolicy.InboundHttpRetryPolicy =
+                    Some {
+                        MaxRetries = maxRetries
+                        RetryBackOff = {
+                            InitialDelayInMilliseconds = initialDelayInMilliseconds
+                            MaxIntervalInMilliseconds = maxIntervalInMilliseconds
+                        }
+                    }
+        }
+
+    /// <summary>
+    /// Sets the circuit breaker policy for inbound requests.
+    /// </summary>
+    [<CustomOperation "resiliency_policy_inbound_circuit_breaker">]
+    member _.ResiliencyPolicyInboundCircuitBreaker
+        (state: DaprComponent, consecutiveErrors: int, timeoutInSeconds: int, ?intervalInSeconds: int)
+        =
+        {
+            state with
+                ResiliencyPolicy.InboundCircuitBreakerPolicy =
+                    Some {
+                        ConsecutiveErrors = consecutiveErrors
+                        TimeoutInSeconds = timeoutInSeconds
+                        IntervalInSeconds = intervalInSeconds
+                    }
+        }
+
+    /// <summary>
+    /// Sets the timeout policy for outbound requests.
+    /// </summary>
+    [<CustomOperation "resiliency_policy_outbound_timeout">]
+    member _.ResiliencyPolicyOutboundTimeout(state: DaprComponent, responseTimeoutInSeconds: int) = {
+        state with
+            ResiliencyPolicy.OutboundTimeoutPolicy =
+                Some {
+                    ResponseTimeoutInSeconds = responseTimeoutInSeconds
+                }
+    }
+
+    /// <summary>
+    /// Sets the HTTP retry policy for outbound requests.
+    /// </summary>
+    [<CustomOperation "resiliency_policy_outbound_http_retry">]
+    member _.ResiliencyPolicyOutboundHttpRetry
+        (state: DaprComponent, maxRetries: int, initialDelayInMilliseconds: int, maxIntervalInMilliseconds: int)
+        =
+        {
+            state with
+                ResiliencyPolicy.OutboundHttpRetryPolicy =
+                    Some {
+                        MaxRetries = maxRetries
+                        RetryBackOff = {
+                            InitialDelayInMilliseconds = initialDelayInMilliseconds
+                            MaxIntervalInMilliseconds = maxIntervalInMilliseconds
+                        }
+                    }
+        }
+
+    /// <summary>
+    /// Sets the circuit breaker policy for outbound requests.
+    /// </summary>
+    [<CustomOperation "resiliency_policy_outbound_circuit_breaker">]
+    member _.ResiliencyPolicyOutboundCircuitBreaker
+        (state: DaprComponent, consecutiveErrors: int, timeoutInSeconds: int, ?intervalInSeconds: int)
+        =
+        {
+            state with
+                ResiliencyPolicy.OutboundCircuitBreakerPolicy =
+                    Some {
+                        ConsecutiveErrors = consecutiveErrors
+                        TimeoutInSeconds = timeoutInSeconds
+                        IntervalInSeconds = intervalInSeconds
+                    }
+        }
 
 let containerEnvironment = ContainerEnvironmentBuilder()
 

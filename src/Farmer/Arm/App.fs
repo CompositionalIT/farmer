@@ -81,6 +81,33 @@ type DaprMetadataValue =
     | SecretRef of string
     | Value of string
 
+type TimeoutPolicy = { ResponseTimeoutInSeconds: int }
+
+type RetryBackOff = {
+    InitialDelayInMilliseconds: int
+    MaxIntervalInMilliseconds: int
+}
+
+type HttpRetryPolicy = {
+    MaxRetries: int
+    RetryBackOff: RetryBackOff
+}
+
+type CircuitBreakerPolicy = {
+    IntervalInSeconds: int option
+    ConsecutiveErrors: int
+    TimeoutInSeconds: int
+}
+
+type DaprResiliencyPolicy = {
+    InboundTimeoutPolicy: TimeoutPolicy option
+    InboundHttpRetryPolicy: HttpRetryPolicy option
+    InboundCircuitBreakerPolicy: CircuitBreakerPolicy option
+    OutboundTimeoutPolicy: TimeoutPolicy option
+    OutboundHttpRetryPolicy: HttpRetryPolicy option
+    OutboundCircuitBreakerPolicy: CircuitBreakerPolicy option
+}
+
 type DaprComponent = {
     Name: ResourceName
     Environment: ResourceId
@@ -92,6 +119,7 @@ type DaprComponent = {
     Secrets: Map<string, SecretValue>
     SecretStoreComponent: ResourceName option
     Version: string
+    ResiliencyPolicy: DaprResiliencyPolicy
 } with
 
     interface IArmResource with
