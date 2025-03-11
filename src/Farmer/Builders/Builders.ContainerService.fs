@@ -591,7 +591,7 @@ type AksBuilder() =
                     }
           }
 
-    [<CustomOperation "link_to_kublet_identity">]
+    [<CustomOperation "link_to_kubelet_identity">]
     member this.LinkToKubletIdentity(state: AksConfig, resourceId: ResourceId) =
         match state.IdentityProfile with
         | None -> {

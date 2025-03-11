@@ -283,6 +283,49 @@ let tests =
 
             Expect.equal (authIpRanges.[0].ToString()) "88.77.66.0/24" "Got incorrect value for authorized IP ranges."
         }
+        test "AKS with linked MSI" {
+            let linkedMsi =
+                ResourceId.create (
+                    ResourceType.ResourceType("Microsoft.ManagedIdentity/userAssignedIdentities", "2023-01-31"),
+                    Farmer.ResourceName("test-msi"),
+                    "test-rg",
+                    "d33736db-6f4e-44c4-8846-e779334f300c"
+                )
+
+            let myAks = aks {
+                name "aks-cluster"
+                dns_prefix "aks-cluster-223d2976"
+                link_to_identity linkedMsi
+                service_principal_use_msi
+                link_to_kubelet_identity linkedMsi
+            }
+
+            let template = arm {
+                location Location.EastUS
+                add_resource myAks
+            }
+
+            let json = template.Template |> Writer.toJson
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+            let kubeletIdentityDependsOn =
+                jobj.SelectToken("resources[?(@.name=='aks-cluster')].dependsOn").Children()
+                |> Seq.map string
+                |> Seq.toArray
+
+            Expect.equal kubeletIdentityDependsOn.Length 0 "incorrect number of dependencies"
+
+            let kubeletIdentityClientId =
+                jobj.SelectToken(
+                    "resources[?(@.name=='aks-cluster')].properties.identityProfile.kubeletIdentity.clientId"
+                )
+                |> string
+
+            Expect.equal
+                kubeletIdentityClientId
+                "[reference(resourceId('d33736db-6f4e-44c4-8846-e779334f300c', 'test-rg', 'Microsoft.ManagedIdentity/userAssignedIdentities', 'test-msi'), '2023-01-31').clientId]"
+                "Incorrect kubelet identity reference."
+        }
         test "AKS with MSI and Kubelet identity" {
             let kubeletMsi = createUserAssignedIdentity "kubeletIdentity"
             let clusterMsi = createUserAssignedIdentity "clusterIdentity"
@@ -347,6 +390,13 @@ let tests =
                 jobj.SelectToken("resources[?(@.name=='aks-cluster')].identity.type") |> string
 
             Expect.equal identity "UserAssigned" "Should have a UserAssigned identity."
+
+            let kubeletIdentityDependsOn =
+                jobj.SelectToken("resources[?(@.name=='aks-cluster')].dependsOn").Children()
+                |> Seq.map string
+                |> Seq.toArray
+
+            Expect.equal kubeletIdentityDependsOn.Length 5 "incorrect number of dependencies"
 
             let kubeletIdentityClientId =
                 jobj.SelectToken(
