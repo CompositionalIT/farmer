@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+## 1.9.13
+
+* AKS Cluster: Add link_to_kubelet_identity
+
 ## 1.9.12
 * VMSS overprovisioning controls
 
