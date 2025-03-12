@@ -577,14 +577,36 @@ type AksBuilder() =
         match state.IdentityProfile with
         | None -> {
             state with
-                IdentityProfile = Some { KubeletIdentity = Some identity }
+                IdentityProfile =
+                    Some {
+                        KubeletIdentity = Some(Managed(identity))
+                    }
           }
         | Some identityProfile -> {
             state with
                 IdentityProfile =
                     Some {
                         identityProfile with
-                            KubeletIdentity = Some identity
+                            KubeletIdentity = Some(Managed(identity))
+                    }
+          }
+
+    [<CustomOperation "link_to_kubelet_identity">]
+    member this.LinkToKubletIdentity(state: AksConfig, resourceId: ResourceId) =
+        match state.IdentityProfile with
+        | None -> {
+            state with
+                IdentityProfile =
+                    Some {
+                        KubeletIdentity = Some(Unmanaged(resourceId))
+                    }
+          }
+        | Some identityProfile -> {
+            state with
+                IdentityProfile =
+                    Some {
+                        identityProfile with
+                            KubeletIdentity = Some(Unmanaged(resourceId))
                     }
           }
 

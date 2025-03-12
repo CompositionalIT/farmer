@@ -114,29 +114,33 @@ type AgentPoolMode =
 
 /// Additional identity settings for the managed cluster, such as the identity for kubelet to pull container images.
 type ManagedClusterIdentityProfile = {
-    KubeletIdentity: ResourceId option
+    KubeletIdentity: LinkedResource option
 } with
 
     member internal this.ToArmJson = {|
         kubeletIdentity =
             match this.KubeletIdentity with
             | Some kubeletIdentity -> {|
-                resourceId = kubeletIdentity.Eval()
+                resourceId = kubeletIdentity.ResourceId.Eval()
                 clientId =
                     ArmExpression
-                        .reference(kubeletIdentity.Type, kubeletIdentity)
+                        .reference(kubeletIdentity.ResourceId.Type, kubeletIdentity.ResourceId)
                         .Map(fun r -> r + ".clientId")
                         .Eval()
                 objectId =
                     ArmExpression
-                        .reference(kubeletIdentity.Type, kubeletIdentity)
+                        .reference(kubeletIdentity.ResourceId.Type, kubeletIdentity.ResourceId)
                         .Map(fun r -> r + ".principalId")
                         .Eval()
               |}
             | None -> Unchecked.defaultof<_>
     |}
 
-    member internal this.Dependencies = [ this.KubeletIdentity ] |> List.choose id
+    member internal this.Dependencies =
+        match this.KubeletIdentity with
+        | Some(Managed kubeletIdentity) -> [ kubeletIdentity ]
+        | Some(Unmanaged _)
+        | None -> []
 
 type OidcIssuerProfile = { Enabled: FeatureFlag }
 

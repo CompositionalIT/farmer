@@ -28,8 +28,10 @@ The AKS builder (`aks`) constructs AKS clusters.
 | add_agent_pools                     | Adds agent pools to the AKS cluster.                                                                                                                        |
 | add_agent_pool                      | Adds an agent pool to the AKS cluster.                                                                                                                      |
 | add_identity                        | Adds a managed identity to the the AKS cluster.                                                                                                             |
+| link_to_identity                    | Links an existing managed identity to the container group.                                                                                                  |
 | system_identity                     | Activates the system identity of the AKS cluster.                                                                                                           |
 | kubelet_identity                    | Assigns a user assigned identity to the kubelet user that pulls container images.                                                                           |
+| link_to_kubelet_identity            | Links an existing managed identity to the kublet user that pulls container images.                                                                          |
 | network_profile                     | Sets the network profile for the AKS cluster.                                                                                                               |
 | linux_profile                       | Sets the linux profile for the AKS cluster.                                                                                                                 |
 | service_principal_client_id         | Sets the client id of the service principal for the AKS cluster.                                                                                            |
