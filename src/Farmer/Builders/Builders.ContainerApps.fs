@@ -847,6 +847,7 @@ type DaprComponentBuilder() =
 
     /// <summary>
     /// Sets the timeout policy for inbound requests.
+    /// See https://learn.microsoft.com/en-us/azure/container-apps/dapr-component-resiliency#timeouts.
     /// </summary>
     [<CustomOperation "resiliency_policy_inbound_timeout">]
     member _.ResiliencyPolicyInboundTimeout(state: DaprComponent, responseTimeoutInSeconds: int) = {
@@ -859,6 +860,7 @@ type DaprComponentBuilder() =
 
     /// <summary>
     /// Sets the HTTP retry policy for inbound requests.
+    /// See https://learn.microsoft.com/en-us/azure/container-apps/dapr-component-resiliency#retries.
     /// </summary>
     [<CustomOperation "resiliency_policy_inbound_http_retry">]
     member _.ResiliencyPolicyInboundHttpRetry
@@ -878,6 +880,7 @@ type DaprComponentBuilder() =
 
     /// <summary>
     /// Sets the circuit breaker policy for inbound requests.
+    /// See https://learn.microsoft.com/en-us/azure/container-apps/dapr-component-resiliency#circuit-breakers.
     /// </summary>
     [<CustomOperation "resiliency_policy_inbound_circuit_breaker">]
     member _.ResiliencyPolicyInboundCircuitBreaker
@@ -895,6 +898,7 @@ type DaprComponentBuilder() =
 
     /// <summary>
     /// Sets the timeout policy for outbound requests.
+    /// See https://learn.microsoft.com/en-us/azure/container-apps/dapr-component-resiliency#timeouts.
     /// </summary>
     [<CustomOperation "resiliency_policy_outbound_timeout">]
     member _.ResiliencyPolicyOutboundTimeout(state: DaprComponent, responseTimeoutInSeconds: int) = {
@@ -907,6 +911,7 @@ type DaprComponentBuilder() =
 
     /// <summary>
     /// Sets the HTTP retry policy for outbound requests.
+    /// See https://learn.microsoft.com/en-us/azure/container-apps/dapr-component-resiliency#retries.
     /// </summary>
     [<CustomOperation "resiliency_policy_outbound_http_retry">]
     member _.ResiliencyPolicyOutboundHttpRetry
@@ -926,6 +931,7 @@ type DaprComponentBuilder() =
 
     /// <summary>
     /// Sets the circuit breaker policy for outbound requests.
+    /// See https://learn.microsoft.com/en-us/azure/container-apps/dapr-component-resiliency#circuit-breakers.
     /// </summary>
     [<CustomOperation "resiliency_policy_outbound_circuit_breaker">]
     member _.ResiliencyPolicyOutboundCircuitBreaker
