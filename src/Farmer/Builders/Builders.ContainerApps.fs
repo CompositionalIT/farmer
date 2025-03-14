@@ -850,12 +850,9 @@ type DaprComponentBuilder() =
     /// See https://learn.microsoft.com/en-us/azure/container-apps/dapr-component-resiliency#timeouts.
     /// </summary>
     [<CustomOperation "resiliency_policy_inbound_timeout">]
-    member _.ResiliencyPolicyInboundTimeout(state: DaprComponent, responseTimeoutInSeconds: int) = {
+    member _.ResiliencyPolicyInboundTimeout(state: DaprComponent, timeoutPolicy: TimeoutPolicy) = {
         state with
-            ResiliencyPolicy.InboundTimeoutPolicy =
-                Some {
-                    ResponseTimeoutInSeconds = responseTimeoutInSeconds
-                }
+            ResiliencyPolicy.InboundTimeoutPolicy = Some timeoutPolicy
     }
 
     /// <summary>
@@ -863,50 +860,29 @@ type DaprComponentBuilder() =
     /// See https://learn.microsoft.com/en-us/azure/container-apps/dapr-component-resiliency#retries.
     /// </summary>
     [<CustomOperation "resiliency_policy_inbound_http_retry">]
-    member _.ResiliencyPolicyInboundHttpRetry
-        (state: DaprComponent, maxRetries: int, initialDelayInMilliseconds: int, maxIntervalInMilliseconds: int)
-        =
-        {
-            state with
-                ResiliencyPolicy.InboundHttpRetryPolicy =
-                    Some {
-                        MaxRetries = maxRetries
-                        RetryBackOff = {
-                            InitialDelayInMilliseconds = initialDelayInMilliseconds
-                            MaxIntervalInMilliseconds = maxIntervalInMilliseconds
-                        }
-                    }
-        }
+    member _.ResiliencyPolicyInboundHttpRetry(state: DaprComponent, httpRetryPolicy: HttpRetryPolicy) = {
+        state with
+            ResiliencyPolicy.InboundHttpRetryPolicy = Some httpRetryPolicy
+    }
 
     /// <summary>
     /// Sets the circuit breaker policy for inbound requests.
     /// See https://learn.microsoft.com/en-us/azure/container-apps/dapr-component-resiliency#circuit-breakers.
     /// </summary>
     [<CustomOperation "resiliency_policy_inbound_circuit_breaker">]
-    member _.ResiliencyPolicyInboundCircuitBreaker
-        (state: DaprComponent, consecutiveErrors: int, timeoutInSeconds: int, ?intervalInSeconds: int)
-        =
-        {
-            state with
-                ResiliencyPolicy.InboundCircuitBreakerPolicy =
-                    Some {
-                        ConsecutiveErrors = consecutiveErrors
-                        TimeoutInSeconds = timeoutInSeconds
-                        IntervalInSeconds = intervalInSeconds
-                    }
-        }
+    member _.ResiliencyPolicyInboundCircuitBreaker(state: DaprComponent, circuitBreakerPolicy: CircuitBreakerPolicy) = {
+        state with
+            ResiliencyPolicy.InboundCircuitBreakerPolicy = Some circuitBreakerPolicy
+    }
 
     /// <summary>
     /// Sets the timeout policy for outbound requests.
     /// See https://learn.microsoft.com/en-us/azure/container-apps/dapr-component-resiliency#timeouts.
     /// </summary>
     [<CustomOperation "resiliency_policy_outbound_timeout">]
-    member _.ResiliencyPolicyOutboundTimeout(state: DaprComponent, responseTimeoutInSeconds: int) = {
+    member _.ResiliencyPolicyOutboundTimeout(state: DaprComponent, timeoutPolicy: TimeoutPolicy) = {
         state with
-            ResiliencyPolicy.OutboundTimeoutPolicy =
-                Some {
-                    ResponseTimeoutInSeconds = responseTimeoutInSeconds
-                }
+            ResiliencyPolicy.OutboundTimeoutPolicy = Some timeoutPolicy
     }
 
     /// <summary>
@@ -914,38 +890,20 @@ type DaprComponentBuilder() =
     /// See https://learn.microsoft.com/en-us/azure/container-apps/dapr-component-resiliency#retries.
     /// </summary>
     [<CustomOperation "resiliency_policy_outbound_http_retry">]
-    member _.ResiliencyPolicyOutboundHttpRetry
-        (state: DaprComponent, maxRetries: int, initialDelayInMilliseconds: int, maxIntervalInMilliseconds: int)
-        =
-        {
-            state with
-                ResiliencyPolicy.OutboundHttpRetryPolicy =
-                    Some {
-                        MaxRetries = maxRetries
-                        RetryBackOff = {
-                            InitialDelayInMilliseconds = initialDelayInMilliseconds
-                            MaxIntervalInMilliseconds = maxIntervalInMilliseconds
-                        }
-                    }
-        }
+    member _.ResiliencyPolicyOutboundHttpRetry(state: DaprComponent, httpRetryPolicy: HttpRetryPolicy) = {
+        state with
+            ResiliencyPolicy.OutboundHttpRetryPolicy = Some httpRetryPolicy
+    }
 
     /// <summary>
     /// Sets the circuit breaker policy for outbound requests.
     /// See https://learn.microsoft.com/en-us/azure/container-apps/dapr-component-resiliency#circuit-breakers.
     /// </summary>
     [<CustomOperation "resiliency_policy_outbound_circuit_breaker">]
-    member _.ResiliencyPolicyOutboundCircuitBreaker
-        (state: DaprComponent, consecutiveErrors: int, timeoutInSeconds: int, ?intervalInSeconds: int)
-        =
-        {
-            state with
-                ResiliencyPolicy.OutboundCircuitBreakerPolicy =
-                    Some {
-                        ConsecutiveErrors = consecutiveErrors
-                        TimeoutInSeconds = timeoutInSeconds
-                        IntervalInSeconds = intervalInSeconds
-                    }
-        }
+    member _.ResiliencyPolicyOutboundCircuitBreaker(state: DaprComponent, circuitBreakerPolicy: CircuitBreakerPolicy) = {
+        state with
+            ResiliencyPolicy.OutboundCircuitBreakerPolicy = Some circuitBreakerPolicy
+    }
 
 let containerEnvironment = ContainerEnvironmentBuilder()
 
