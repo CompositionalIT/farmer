@@ -175,8 +175,8 @@ type StorageAccount = {
                     | Blobs _ -> "BlobStorage"
                     | Files _ -> "FileStorage"
                     | BlockBlobs _ -> "BlockBlobStorage"
-                extendedLocation = None // TODO:
-                identity = None // TODO: user assigned identity
+                extendedLocation = None
+                identity = None
                 properties = {|
                     accessTier =
                         match this.Sku with
