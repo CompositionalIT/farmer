@@ -173,7 +173,7 @@ and StorageAccountConfig = {
                 DisableSharedKeyAccess = this.DisableSharedKeyAccess
                 DnsZoneType = this.DnsZoneType
                 EnableHierarchicalNamespace = this.EnableDataLake
-                ImmutableStorageWithVersioning = None // TODO: Implement
+                ImmutableStorageWithVersioning = None // TODO: Implement on the `StorageAccountConfig` type
                 MinTlsVersion = this.MinTlsVersion
                 NetworkAcls = this.NetworkAcls
                 RequireInfrastructureEncryption = this.RequireInfrastructureEncryption
@@ -957,7 +957,7 @@ type StorageBlobContainerBuilder() =
 
     /// Sets the name of the storage account.
     [<CustomOperation "metadata">]
-    member _.Name(state: StorageBlobContainerConfig, metadata: (string * string) list) =
+    member _.Metadata(state: StorageBlobContainerConfig, metadata: (string * string) list) =
         let m = metadata |> Map.ofList
         { state with Metadata = Some(m) }
 

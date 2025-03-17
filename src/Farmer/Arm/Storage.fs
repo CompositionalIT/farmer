@@ -175,8 +175,8 @@ type StorageAccount = {
                     | Blobs _ -> "BlobStorage"
                     | Files _ -> "FileStorage"
                     | BlockBlobs _ -> "BlockBlobStorage"
-                extendedLocation = None // TODO:
-                identity = None // TODO: user assigned identity
+                extendedLocation = None
+                identity = None
                 properties = {|
                     accessTier =
                         match this.Sku with
@@ -212,9 +212,7 @@ type StorageAccount = {
                     dnsEndpointType = this.DnsZoneType |> Option.toObj
                     encryption =
                         this.RequireInfrastructureEncryption
-                        |> Option.map (fun _ -> {|
-                            requireInfrastructureEncryption = this.RequireInfrastructureEncryption
-                        |})
+                        |> Option.map (fun b -> {| requireInfrastructureEncryption = b |})
                     immutableStorageWithVersioning =
                         this.ImmutableStorageWithVersioning
                         |> Option.map (fun immutableStorage -> {|
