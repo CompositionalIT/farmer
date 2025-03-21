@@ -386,6 +386,8 @@ type FunctionsConfig = {
                 DisableBlobPublicAccess = None
                 DisableSharedKeyAccess = None
                 DefaultToOAuthAuthentication = None
+                ImmutableStorageWithVersioning = None
+                RequireInfrastructureEncryption = None
               }
             | _ -> ()
 

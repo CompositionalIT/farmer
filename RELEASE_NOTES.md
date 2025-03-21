@@ -1,6 +1,11 @@
 Release Notes
 =============
 
+## 1.9.13
+* Storage: Add BLOB `immutableStorageWithVersioning`
+* Storage: Add BLOB `encryption.requireInfrastructureEncryption`
+* Storage: Add BLOB container immutability policies support
+
 ## 1.9.12
 * AKS Cluster: Add link_to_kubelet_identity
 * VMSS overprovisioning controls
