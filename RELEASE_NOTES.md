@@ -1,6 +1,11 @@
 Release Notes
 =============
 
+## 1.9.13
+* Storage: Add BLOB `immutableStorageWithVersioning`
+* Storage: Add BLOB `encryption.requireInfrastructureEncryption`
+* Storage: Add BLOB container immutability policies support
+
 ## 1.9.12
 * AKS Cluster: Add link_to_kubelet_identity
 * VMSS overprovisioning controls
@@ -33,9 +38,6 @@ Release Notes
 ## 1.9.5
 * Fix an issue with Access Policies that allows non-string sequences to be supplied for user / group lookups.
 * Virtual Network: Specify the route table for a subnet.
-* Storage: Add BLOB `immutableStorageWithVersioning`
-* Storage: Add BLOB `encryption.requireInfrastructureEncryption`
-* Storage: Add BLOB container immutability policies support
 
 ## 1.9.4
 * Network Security Groups: Use a common protocol in security rules with multiple sources. Defaults to Any if sources use different protocols.
