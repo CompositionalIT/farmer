@@ -5,6 +5,7 @@ open Farmer
 open Farmer.Builders
 open Farmer.Network
 open Farmer.Storage
+open Farmer.Arm.Storage
 open Microsoft.Azure.Management.Storage
 open Microsoft.Azure.Management.Storage.Models
 open Microsoft.Rest
@@ -143,84 +144,6 @@ let tests =
             Expect.equal resources.[1].Name "storage/default/table2" "table name for 'table2' is wrong"
             Expect.equal resources.[2].Name "storage/default/table3" "table name for 'table3' is wrong"
         }
-        testList "Blob Container Immutability Policies Tests" [
-            let getPolicy (policyConfig: Builders.Storage.BlobContainerImmutabilityPoliciesConfig) =
-                let account = storageAccount {
-                    name "storage"
-                    add_blob_container "blob" policyConfig
-                }
-
-                let resource = arm { add_resource account }
-
-                resource.Template.Resources.OfType<Arm.Storage.BlobContainers.ImmutabilityPolicies>()
-                |> Seq.last
-
-            test "Sets NoAppendAllowed correctly" {
-                let policy = blobContainerImmutabilityPolicies {
-                    allow_protected_append_writes Arm.Storage.AllowProtectedAppendWrites.NoAppendAllowed
-                }
-
-                let policy = getPolicy policy
-
-                Expect.equal
-                    policy.ImmutabilityPeriodSinceCreation
-                    None
-                    "ImmutabilityPeriodSinceCreation not set correctly"
-
-                Expect.equal
-                    policy.AllowProtectedAppendWrites
-                    (Some Arm.Storage.AllowProtectedAppendWrites.NoAppendAllowed)
-                    "NoAppendAllowed not set correctly"
-            }
-
-            test "Sets AppendBlobOnlyAppendAllowed correctly" {
-                let policy = blobContainerImmutabilityPolicies {
-                    allow_protected_append_writes Arm.Storage.AllowProtectedAppendWrites.AppendBlobOnlyAppendAllowed
-                }
-
-                let policy = getPolicy policy
-
-                Expect.equal
-                    policy.ImmutabilityPeriodSinceCreation
-                    None
-                    "ImmutabilityPeriodSinceCreation not set correctly"
-
-                Expect.equal
-                    policy.AllowProtectedAppendWrites
-                    (Some Arm.Storage.AllowProtectedAppendWrites.AppendBlobOnlyAppendAllowed)
-                    "AppendBlobOnlyAppendAllowed not set correctly"
-            }
-
-            test "Sets AllAppendAllowed correctly" {
-                let policy = blobContainerImmutabilityPolicies {
-                    allow_protected_append_writes Arm.Storage.AllowProtectedAppendWrites.AllAppendAllowed
-                }
-
-                let policy = getPolicy policy
-
-                Expect.equal
-                    policy.ImmutabilityPeriodSinceCreation
-                    None
-                    "ImmutabilityPeriodSinceCreation not set correctly"
-
-                Expect.equal
-                    policy.AllowProtectedAppendWrites
-                    (Some Arm.Storage.AllowProtectedAppendWrites.AllAppendAllowed)
-                    "AllAppendAllowed not set correctly"
-            }
-
-            test "Sets creation period correctly" {
-                let policy = blobContainerImmutabilityPolicies { immutability_period_since_creation 5<Days> }
-                let policy = getPolicy policy
-
-                Expect.equal
-                    policy.ImmutabilityPeriodSinceCreation
-                    (Some 5<Days>)
-                    "ImmutabilityPeriodSinceCreation not set correctly"
-
-                Expect.equal policy.AllowProtectedAppendWrites None "AllowProtectedAppendWrites not set correctly"
-            }
-        ]
         testList "Blob Container Tests" [
             test "Creates containers correctly" {
                 let resources: BlobContainer list =
@@ -434,6 +357,84 @@ let tests =
                     resources.[1].Metadata
                     (containerMetadata |> dict)
                     "Metadata not set correctly for container2"
+            }
+        ]
+        testList "Blob Container Immutability Policies Tests" [
+            let getPolicy (policyConfig: Builders.Storage.BlobContainerImmutabilityPoliciesConfig) =
+                let account = storageAccount {
+                    name "storage"
+                    add_blob_container "blob" policyConfig
+                }
+
+                let resource = arm { add_resource account }
+
+                resource.Template.Resources.OfType<Arm.Storage.BlobContainers.ImmutabilityPolicies>()
+                |> Seq.last
+
+            test "Sets NoAppendAllowed correctly" {
+                let policy = blobContainerImmutabilityPolicies {
+                    allow_protected_append_writes Arm.Storage.AllowProtectedAppendWrites.NoAppendAllowed
+                }
+
+                let policy = getPolicy policy
+
+                Expect.equal
+                    policy.ImmutabilityPeriodSinceCreation
+                    None
+                    "ImmutabilityPeriodSinceCreation not set correctly"
+
+                Expect.equal
+                    policy.AllowProtectedAppendWrites
+                    (Some Arm.Storage.AllowProtectedAppendWrites.NoAppendAllowed)
+                    "NoAppendAllowed not set correctly"
+            }
+
+            test "Sets AppendBlobOnlyAppendAllowed correctly" {
+                let policy = blobContainerImmutabilityPolicies {
+                    allow_protected_append_writes Arm.Storage.AllowProtectedAppendWrites.AppendBlobOnlyAppendAllowed
+                }
+
+                let policy = getPolicy policy
+
+                Expect.equal
+                    policy.ImmutabilityPeriodSinceCreation
+                    None
+                    "ImmutabilityPeriodSinceCreation not set correctly"
+
+                Expect.equal
+                    policy.AllowProtectedAppendWrites
+                    (Some Arm.Storage.AllowProtectedAppendWrites.AppendBlobOnlyAppendAllowed)
+                    "AppendBlobOnlyAppendAllowed not set correctly"
+            }
+
+            test "Sets AllAppendAllowed correctly" {
+                let policy = blobContainerImmutabilityPolicies {
+                    allow_protected_append_writes Arm.Storage.AllowProtectedAppendWrites.AllAppendAllowed
+                }
+
+                let policy = getPolicy policy
+
+                Expect.equal
+                    policy.ImmutabilityPeriodSinceCreation
+                    None
+                    "ImmutabilityPeriodSinceCreation not set correctly"
+
+                Expect.equal
+                    policy.AllowProtectedAppendWrites
+                    (Some Arm.Storage.AllowProtectedAppendWrites.AllAppendAllowed)
+                    "AllAppendAllowed not set correctly"
+            }
+
+            test "Sets creation period correctly" {
+                let policy = blobContainerImmutabilityPolicies { immutability_period_since_creation 5<Days> }
+                let policy = getPolicy policy
+
+                Expect.equal
+                    policy.ImmutabilityPeriodSinceCreation
+                    (Some 5<Days>)
+                    "ImmutabilityPeriodSinceCreation not set correctly"
+
+                Expect.equal policy.AllowProtectedAppendWrites None "AllowProtectedAppendWrites not set correctly"
             }
         ]
         testList "Storage Queue Tests" [
@@ -957,6 +958,118 @@ let tests =
             Expect.isTrue containerDeleteRetentionPolicy.enabled ""
             Expect.equal containerDeleteRetentionPolicy.days 11 ""
         }
+        testList "Immutability policy tests" [
+            test "Immutability policy enables correctly" {
+                let account = storageAccount {
+                    name "storage"
+                    enable_immutable_storage_with_versioning
+                }
+
+                let value =
+                    Expect.wantSome account.ImmutableStorageWithVersioning "Immutability policy should be set"
+
+                Expect.equal value.Enable (Some Enabled) "Immutability policy should be enabled"
+            }
+            test "Immutability policy disables correctly" {
+                let account = storageAccount {
+                    name "storage"
+                    disable_immutable_storage_with_versioning
+                }
+
+                let value =
+                    Expect.wantSome account.ImmutableStorageWithVersioning "Immutability policy should be set"
+
+                Expect.equal value.Enable (Some Disabled) "Immutability policy should be disabled"
+            }
+            test "Immutable policy is enabled if no value specified" {
+                let policy = storageAccountImmutabilityPolicy { allow_protected_append_writes }
+                Expect.equal policy.AllowProtectedAppendWrites (Some true) "Immutability policy should be enabled"
+            }
+            let check isPolicyEnabled allowWrites (state: StorageImmutabilityPolicyState) period (account: Newtonsoft.Json.Linq.JObject) =
+                let properties = account.SelectToken("properties")
+
+                let immutableStorageWithVersioning =
+                    properties.SelectToken("immutableStorageWithVersioning")
+
+                Expect.equal
+                    (immutableStorageWithVersioning.SelectToken("enable").ToObject<bool>())
+                    isPolicyEnabled
+                    $"enable policy is wrong"
+
+                let policy = immutableStorageWithVersioning.SelectToken("policy")
+
+                Expect.equal
+                    (policy.SelectToken("immutabilityPeriodSinceCreationInDays").ToObject<int>())
+                    period
+                    $"policy immutability period is wrong"
+
+                Expect.equal
+                    (policy.SelectToken("allowProtectedAppendWrites").ToObject<bool>())
+                    allowWrites
+                    $"policy allowProtectedAppendWrites is wrong"
+
+                Expect.equal (policy.SelectToken("state").ToObject<string>()) state.ArmValue $"policy state is wrong"
+
+            test "Immutability policy enables and sets correctly" {
+                let policy = storageAccountImmutabilityPolicy {
+                    allow_protected_append_writes true
+                    immutability_period_since_creation 5<Days>
+                    state StorageImmutabilityPolicyState.Disabled
+                }
+
+                let account = storageAccount {
+                    name "storage"
+                    enable_immutable_storage_with_versioning policy
+                }
+
+                let value =
+                    Expect.wantSome account.ImmutableStorageWithVersioning "Immutability policy should be set"
+
+                let actualPolicy =
+                    Expect.wantSome value.ImmutabilityPolicy "Immutability policy should be set"
+
+                Expect.equal actualPolicy policy "Immutability policy should be set"
+
+                let resource = arm { add_resource account }
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                jobj.SelectTokens("resources[*]")
+                |> Seq.cast<Newtonsoft.Json.Linq.JObject>
+                |> Seq.head
+                |> check true true StorageImmutabilityPolicyState.Disabled 5
+            }
+
+            test "Immutability policy disables and sets correctly" {
+                let policy = storageAccountImmutabilityPolicy {
+                    allow_protected_append_writes false
+                    immutability_period_since_creation 0<Days>
+                    state StorageImmutabilityPolicyState.Unlocked
+                }
+
+                let account = storageAccount {
+                    name "storage"
+                    disable_immutable_storage_with_versioning policy
+                }
+
+                let value =
+                    Expect.wantSome account.ImmutableStorageWithVersioning "Immutability policy should be set"
+
+                let actualPolicy =
+                    Expect.wantSome value.ImmutabilityPolicy "Immutability policy should be set"
+
+                Expect.equal actualPolicy policy "Immutability policy should be set"
+
+                let resource = arm { add_resource account }
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                jobj.SelectTokens("resources[*]")
+                |> Seq.cast<Newtonsoft.Json.Linq.JObject>
+                |> Seq.head
+                |> check false false StorageImmutabilityPolicyState.Unlocked 0
+            }
+        ]
 
         test "Versioning" {
             let account = storageAccount {

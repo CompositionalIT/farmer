@@ -110,6 +110,11 @@ and StorageAccountConfig = {
     Policies: List<Storage.StorageService * Policy list>
     /// Versioning enable information for a storage service
     IsVersioningEnabled: List<Storage.StorageService * bool>
+    ImmutableStorageWithVersioning:
+        {|
+            Enable: FeatureFlag option
+            ImmutabilityPolicy: StorageImmutabilityPolicy option
+        |} option
     /// Minimum TLS version
     MinTlsVersion: TlsVersion option
     /// Supports Https Traffic Only
@@ -173,7 +178,7 @@ and StorageAccountConfig = {
                 DisableSharedKeyAccess = this.DisableSharedKeyAccess
                 DnsZoneType = this.DnsZoneType
                 EnableHierarchicalNamespace = this.EnableDataLake
-                ImmutableStorageWithVersioning = None // TODO: Implement on the `StorageAccountConfig` type
+                ImmutableStorageWithVersioning = this.ImmutableStorageWithVersioning
                 MinTlsVersion = this.MinTlsVersion
                 NetworkAcls = this.NetworkAcls
                 RequireInfrastructureEncryption = this.RequireInfrastructureEncryption
@@ -294,6 +299,7 @@ type StorageAccountBuilder() =
         CorsRules = []
         Policies = []
         IsVersioningEnabled = []
+        ImmutableStorageWithVersioning = None
         MinTlsVersion = None
         SupportsHttpsTrafficOnly = None
         Tags = Map.empty
@@ -869,6 +875,28 @@ type StorageAccountBuilder() =
                 DisableSharedKeyAccess = Some flag
         }
 
+    /// Disable immutability storage with versioning
+    [<CustomOperation "disable_immutable_storage_with_versioning">]
+    member _.DisableImmutableStorageWithVersioning(state: StorageAccountConfig, ?policy: StorageImmutabilityPolicy) = {
+        state with
+            ImmutableStorageWithVersioning =
+                Some {|
+                    Enable = Some FeatureFlag.Disabled
+                    ImmutabilityPolicy = policy
+                |}
+    }
+
+    /// Enable immutability storage with versioning
+    [<CustomOperation "enable_immutable_storage_with_versioning">]
+    member _.EnableImmutableStorageWithVersioning(state: StorageAccountConfig, ?policy: StorageImmutabilityPolicy) = {
+        state with
+            ImmutableStorageWithVersioning =
+                Some {|
+                    Enable = Some FeatureFlag.Enabled
+                    ImmutabilityPolicy = policy
+                |}
+    }
+
     /// Default to Azure Active Directory authorization in the Azure portal
     [<CustomOperation "default_to_oauth_authentication">]
     member _.DefaultToOAuthAuthentication(state: StorageAccountConfig, ?flag: FeatureFlag) =
@@ -884,6 +912,32 @@ type StorageAccountBuilder() =
             state with
                 Tags = state.Tags |> Map.merge tags
         }
+
+type StorageAccountImmutabilityPolicyBuilder() =
+    member _.Yield _ = StorageImmutabilityPolicy.Empty
+
+    member _.Run state : StorageImmutabilityPolicy = state
+
+    /// Sets the AllowProtectedAppendWrites property.
+    [<CustomOperation "allow_protected_append_writes">]
+    member _.AllowProtectedAppendWrites(state: StorageImmutabilityPolicy, ?value) = {
+        state with
+            AllowProtectedAppendWrites = value |> Option.defaultValue true |> Some
+    }
+
+    /// Sets the ImmutabilityPeriodSinceCreation property.
+    [<CustomOperation "immutability_period_since_creation">]
+    member _.ImmutabilityPeriodSinceCreation(state: StorageImmutabilityPolicy, value) = {
+        state with
+            ImmutabilityPeriodSinceCreation = Some value
+    }
+
+    /// Sets the State property.
+    [<CustomOperation "state">]
+    member _.State(state: StorageImmutabilityPolicy, value: StorageImmutabilityPolicyState) = {
+        state with
+            State = Some value
+    }
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with
@@ -983,6 +1037,7 @@ type BlobContainerImmutabilityPoliciesBuilder() =
 
 
 let storageAccount = StorageAccountBuilder()
+let storageAccountImmutabilityPolicy = StorageAccountImmutabilityPolicyBuilder()
 let storageQueue = StorageQueueBuilder()
 let storageBlobContainer = StorageBlobContainerBuilder()
 let blobContainerImmutabilityPolicies = BlobContainerImmutabilityPoliciesBuilder()

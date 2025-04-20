@@ -44,12 +44,19 @@ let roleAssignments =
 
 type Metadata = Map<string, string>
 
-type ImmutabilityPolicyState =
+/// <remarks>
+/// A policy can only be created in a Disabled or Unlocked state and can be toggled between the two states.
+/// Only a policy in an Unlocked state can transition to a Locked state which cannot be reverted.
+/// </remarks
+[<RequireQualifiedAccess>]
+type StorageImmutabilityPolicyState =
+    | Disabled
     | Unlocked
     | Locked
 
     member this.ArmValue =
         match this with
+        | Disabled -> "Disabled"
         | Unlocked -> "Unlocked"
         | Locked -> "Locked"
 
@@ -104,6 +111,25 @@ type NetworkRuleSet = {
     DefaultAction: RuleAction
 }
 
+[<Struct>]
+type StorageImmutabilityPolicy = {
+    AllowProtectedAppendWrites: bool option
+    ImmutabilityPeriodSinceCreation: int<Days> option
+    State: StorageImmutabilityPolicyState option
+} with
+
+    static member Empty = {
+        AllowProtectedAppendWrites = None
+        ImmutabilityPeriodSinceCreation = None
+        State = None
+    }
+
+    member this.IsEmpty =
+        this.AllowProtectedAppendWrites.IsNone
+        && this.ImmutabilityPeriodSinceCreation.IsNone
+
+    member this.ToOption = if this.IsEmpty then None else Some this
+
 /// Needed to build subnet resource ids for ACLs.
 let private subnets = ResourceType("Microsoft.Network/virtualNetworks/subnets", "")
 
@@ -126,13 +152,8 @@ type StorageAccount = {
     DnsZoneType: string option
     ImmutableStorageWithVersioning:
         {|
-            Enable: bool option
-            ImmutabilityPolicy:
-                {|
-                    AllowProtectedAppendWrites: bool option
-                    ImmutabilityPeriodSinceCreation: int<Days> option
-                    State: ImmutabilityPolicyState option
-                |} option
+            Enable: FeatureFlag option
+            ImmutabilityPolicy: StorageImmutabilityPolicy option
         |} option
     MinTlsVersion: TlsVersion option
     NetworkAcls: NetworkRuleSet option
@@ -218,7 +239,7 @@ type StorageAccount = {
                     immutableStorageWithVersioning =
                         this.ImmutableStorageWithVersioning
                         |> Option.map (fun immutableStorage -> {|
-                            enable = immutableStorage.Enable |> Option.toNullable
+                            enable = immutableStorage.Enable.AsBoolean()
                             policy =
                                 immutableStorage.ImmutabilityPolicy
                                 |> Option.map (fun immutableStorage -> {|
