@@ -11,6 +11,7 @@ open Farmer.Arm.Storage
 open Farmer.Arm.KeyVault
 open Farmer.Arm.KeyVault.Vaults
 open System
+open System.Globalization
 open Farmer.Arm
 
 type FunctionsRuntime =
@@ -320,7 +321,7 @@ type FunctionsConfig = {
                     | Linux ->
                         match this.VersionedRuntime with
                         | DotNet, Some version ->
-                            match Double.TryParse(version) with
+                            match Double.TryParse(version, NumberStyles.Any, CultureInfo.InvariantCulture) with
                             | true, versionNo when versionNo < 4.0 -> Some $"DOTNETCORE|{version}"
                             | _ -> Some $"DOTNET|{version}"
                         | DotNetIsolated, Some version -> Some $"DOTNET-ISOLATED|{version}"
