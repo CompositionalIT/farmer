@@ -5,10 +5,12 @@ open Farmer
 open Farmer.Builders
 open Farmer.Network
 open Farmer.Storage
+open Farmer.Arm.Storage
 open Microsoft.Azure.Management.Storage
 open Microsoft.Azure.Management.Storage.Models
 open Microsoft.Rest
 open System
+open System.Linq
 
 /// Client instance needed to get the serializer settings.
 let client =
@@ -100,42 +102,6 @@ let tests =
             resource.Validate()
             Expect.isFalse resource.IsHnsEnabled.Value "Hierarchical namespace should be false"
         }
-        test "Creates containers correctly" {
-            let resources: BlobContainer list =
-                let account = storageAccount {
-                    name "storage"
-                    add_blob_container "blob"
-                    add_private_container "private"
-                    add_public_container "public"
-                    add_blob_containers [ "blob1"; "blob2" ]
-                    add_private_containers [ "private1"; "private2" ]
-                    add_public_containers [ "public1"; "public2" ]
-                }
-
-                [
-                    for i in 1..9 do
-                        account |> getResourceAtIndex client.SerializationSettings i
-                ]
-
-            Expect.equal resources.[0].Name "storage/default/blob" "blob name is wrong"
-            Expect.equal resources.[0].PublicAccess.Value PublicAccess.Blob "blob access is wrong"
-            Expect.equal resources.[1].Name "storage/default/private" "private name is wrong"
-            Expect.equal resources.[1].PublicAccess.Value PublicAccess.None "private access is wrong"
-            Expect.equal resources.[2].Name "storage/default/public" "public name is wrong"
-            Expect.equal resources.[2].PublicAccess.Value PublicAccess.Container "container access is wrong"
-            Expect.equal resources.[3].Name "storage/default/blob1" "blob1 name is wrong"
-            Expect.equal resources.[3].PublicAccess.Value PublicAccess.Blob "blob1 access is wrong"
-            Expect.equal resources.[4].Name "storage/default/blob2" "blob2 name is wrong"
-            Expect.equal resources.[4].PublicAccess.Value PublicAccess.Blob "blob2 access is wrong"
-            Expect.equal resources.[5].Name "storage/default/private1" "private1 name is wrong"
-            Expect.equal resources.[5].PublicAccess.Value PublicAccess.None "private1 access is wrong"
-            Expect.equal resources.[6].Name "storage/default/private2" "private2 name is wrong"
-            Expect.equal resources.[6].PublicAccess.Value PublicAccess.None "private2 access is wrong"
-            Expect.equal resources.[7].Name "storage/default/public1" "public1 name is wrong"
-            Expect.equal resources.[7].PublicAccess.Value PublicAccess.Container "public1 access is wrong"
-            Expect.equal resources.[8].Name "storage/default/public2" "public2 name is wrong"
-            Expect.equal resources.[8].PublicAccess.Value PublicAccess.Container "public2 access is wrong"
-        }
         test "Creates file shares correctly" {
             let resources: FileShare list =
                 let account = storageAccount {
@@ -178,6 +144,299 @@ let tests =
             Expect.equal resources.[1].Name "storage/default/table2" "table name for 'table2' is wrong"
             Expect.equal resources.[2].Name "storage/default/table3" "table name for 'table3' is wrong"
         }
+        testList "Blob Container Tests" [
+            test "Creates containers correctly" {
+                let resources: BlobContainer list =
+                    let container = storageBlobContainer {
+                        name "frombuilder"
+                        metadata [ "environment", "dev"; "source", "image" ]
+                    }
+
+                    let account = storageAccount {
+                        name "storage"
+                        add_blob_container "blob"
+                        add_private_container "private"
+                        add_public_container "public"
+                        add_blob_containers [ "blob1"; "blob2" ]
+                        add_private_containers [ "private1"; "private2" ]
+                        add_public_containers [ "public1"; "public2" ]
+                        add_blob_container container
+                    }
+
+                    [
+                        for i in 1..10 do
+                            account |> getResourceAtIndex client.SerializationSettings i
+                    ]
+
+                Expect.equal resources.[0].Name "storage/default/blob" "blob name is wrong"
+                Expect.equal resources.[0].PublicAccess.Value PublicAccess.Blob "blob access is wrong"
+                Expect.equal resources.[1].Name "storage/default/private" "private name is wrong"
+                Expect.equal resources.[1].PublicAccess.Value PublicAccess.None "private access is wrong"
+                Expect.equal resources.[2].Name "storage/default/public" "public name is wrong"
+                Expect.equal resources.[2].PublicAccess.Value PublicAccess.Container "container access is wrong"
+                Expect.equal resources.[3].Name "storage/default/blob1" "blob1 name is wrong"
+                Expect.equal resources.[3].PublicAccess.Value PublicAccess.Blob "blob1 access is wrong"
+                Expect.equal resources.[4].Name "storage/default/blob2" "blob2 name is wrong"
+                Expect.equal resources.[4].PublicAccess.Value PublicAccess.Blob "blob2 access is wrong"
+                Expect.equal resources.[5].Name "storage/default/private1" "private1 name is wrong"
+                Expect.equal resources.[5].PublicAccess.Value PublicAccess.None "private1 access is wrong"
+                Expect.equal resources.[6].Name "storage/default/private2" "private2 name is wrong"
+                Expect.equal resources.[6].PublicAccess.Value PublicAccess.None "private2 access is wrong"
+                Expect.equal resources.[7].Name "storage/default/public1" "public1 name is wrong"
+                Expect.equal resources.[7].PublicAccess.Value PublicAccess.Container "public1 access is wrong"
+                Expect.equal resources.[8].Name "storage/default/public2" "public2 name is wrong"
+                Expect.equal resources.[8].PublicAccess.Value PublicAccess.Container "public2 access is wrong"
+                Expect.equal resources.[9].Name "storage/default/frombuilder" "frombuilder name is wrong"
+                Expect.equal resources.[9].PublicAccess.Value PublicAccess.None "frombuilder access is wrong"
+            }
+            test "Creates containers with immutability policies" {
+                let policy = blobContainerImmutabilityPolicies {
+                    allow_protected_append_writes Arm.Storage.AllowProtectedAppendWrites.AllAppendAllowed
+                    immutability_period_since_creation 5<Days>
+                }
+
+                let resource =
+                    let account = storageAccount {
+                        name "storage"
+
+                        add_blob_container (
+                            storageBlobContainer {
+                                name "blobfrombuilder"
+                                immutability_policies policy
+                            }
+                        )
+
+                        add_blob_container "blob" policy
+                        add_private_container "private" policy
+                        add_public_container "public" policy
+
+                        add_blob_containers [
+                            (storageBlobContainer {
+                                name "blobfrombuilder1"
+                                immutability_policies policy
+                            })
+                            (storageBlobContainer {
+                                name "blobfrombuilder2"
+                                immutability_policies policy
+                            })
+                        ]
+
+                        add_blob_containers [ "blob1"; "blob2" ] policy
+                        add_private_containers [ "private1"; "private2" ] policy
+                        add_public_containers [ "public1"; "public2" ] policy
+                    }
+
+                    arm { add_resource account }
+
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                let check i (container: Newtonsoft.Json.Linq.JObject, policy: Newtonsoft.Json.Linq.JObject) =
+                    Expect.equal
+                        (policy.SelectToken("name").ToObject<string>())
+                        (container.SelectToken("name").ToObject<string>() + "/default")
+                        $"policy %d{i} name is wrong"
+
+                    let properties = policy.SelectToken("properties")
+
+                    Expect.equal
+                        (properties.SelectToken("immutabilityPeriodSinceCreationInDays").ToObject<int>())
+                        5
+                        $"policy %d{i} immutability period is wrong"
+
+                    Expect.equal
+                        (properties.SelectToken("allowProtectedAppendWritesAll").ToObject<bool>())
+                        true
+                        $"policy %d{i} allowProtectedAppendWrites is wrong"
+
+                jobj.SelectTokens("resources[*]")
+                |> Seq.skip 1
+                |> Seq.cast<Newtonsoft.Json.Linq.JObject>
+                |> Seq.chunkBySize 2
+                |> Seq.map (fun items -> (items[0], items[1]))
+                |> Seq.iteri check
+            }
+            test "Metadata is added correctly to single container" {
+                let resource: BlobContainer =
+                    let account = storageAccount {
+                        name "storage"
+
+                        add_blob_container (
+                            storageBlobContainer {
+                                name "container1"
+                                metadata [ "environment", "dev"; "project", "farmer" ]
+                            }
+                        )
+                    }
+
+                    account |> getResourceAtIndex client.SerializationSettings 1
+
+                Expect.equal resource.Name "storage/default/container1" "container name for 'container1' is wrong"
+
+                Expect.containsAll
+                    resource.Metadata
+                    (seq [ ("environment", "dev"); ("project", "farmer") ] |> dict)
+                    "Metadata not set correctly"
+            }
+            test "Metadata is added correctly to multiple containers" {
+                let resources: BlobContainer list =
+                    let account = storageAccount {
+                        name "storage"
+
+                        add_blob_containers [
+                            storageBlobContainer {
+                                name "container1"
+                                metadata [ "environment", "dev"; "project", "farmer" ]
+                            }
+                            storageBlobContainer {
+                                name "container2"
+                                metadata [ "environment", "test"; "project", "barnyard" ]
+                            }
+                        ]
+
+                        add_blob_containers [
+                            storageBlobContainer { name "container3" }
+                            storageBlobContainer { name "container4" }
+                        ] [ "environment", "test"; "project", "barnyard" ]
+                    }
+
+                    [
+                        for i in 1..2 do
+                            account |> getResourceAtIndex client.SerializationSettings i
+                    ]
+
+                Expect.equal resources.[0].Name "storage/default/container1" "container name for 'container1' is wrong"
+                Expect.equal resources.[1].Name "storage/default/container2" "container name for 'container2' is wrong"
+
+                let container1Metadata = seq [ ("environment", "dev"); ("project", "farmer") ]
+                let container2Metadata = seq [ ("environment", "test"); ("project", "barnyard") ]
+
+                Expect.containsAll
+                    resources.[0].Metadata
+                    (container1Metadata |> dict)
+                    "Metadata not set correctly for container1"
+
+                Expect.containsAll
+                    resources.[1].Metadata
+                    (container2Metadata |> dict)
+                    "Metadata not set correctly for container2"
+            }
+            test "Metadata is added correctly to multiple containers when same for all" {
+                let resources: BlobContainer list =
+                    let account = storageAccount {
+                        name "storage"
+
+                        add_blob_containers [
+                            storageBlobContainer {
+                                name "container1"
+                                metadata [ "environment", "dev"; "project", "farmer" ]
+                            }
+                            storageBlobContainer {
+                                name "container2"
+                                metadata [ "environment", "dev"; "project", "farmer" ]
+                            }
+                        ]
+                    }
+
+                    [
+                        for i in 1..2 do
+                            account |> getResourceAtIndex client.SerializationSettings i
+                    ]
+
+                Expect.equal resources.[0].Name "storage/default/container1" "container name for 'container1' is wrong"
+                Expect.equal resources.[1].Name "storage/default/container2" "container name for 'container2' is wrong"
+
+                let containerMetadata = seq [ ("environment", "dev"); ("project", "farmer") ]
+
+                Expect.containsAll
+                    resources.[0].Metadata
+                    (containerMetadata |> dict)
+                    "Metadata not set correctly for container1"
+
+                Expect.containsAll
+                    resources.[1].Metadata
+                    (containerMetadata |> dict)
+                    "Metadata not set correctly for container2"
+            }
+        ]
+        testList "Blob Container Immutability Policies Tests" [
+            let getPolicy (policyConfig: Builders.Storage.BlobContainerImmutabilityPoliciesConfig) =
+                let account = storageAccount {
+                    name "storage"
+                    add_blob_container "blob" policyConfig
+                }
+
+                let resource = arm { add_resource account }
+
+                resource.Template.Resources.OfType<Arm.Storage.BlobContainers.ImmutabilityPolicies>()
+                |> Seq.last
+
+            test "Sets NoAppendAllowed correctly" {
+                let policy = blobContainerImmutabilityPolicies {
+                    allow_protected_append_writes Arm.Storage.AllowProtectedAppendWrites.NoAppendAllowed
+                }
+
+                let policy = getPolicy policy
+
+                Expect.equal
+                    policy.ImmutabilityPeriodSinceCreation
+                    None
+                    "ImmutabilityPeriodSinceCreation not set correctly"
+
+                Expect.equal
+                    policy.AllowProtectedAppendWrites
+                    (Some Arm.Storage.AllowProtectedAppendWrites.NoAppendAllowed)
+                    "NoAppendAllowed not set correctly"
+            }
+
+            test "Sets AppendBlobOnlyAppendAllowed correctly" {
+                let policy = blobContainerImmutabilityPolicies {
+                    allow_protected_append_writes Arm.Storage.AllowProtectedAppendWrites.AppendBlobOnlyAppendAllowed
+                }
+
+                let policy = getPolicy policy
+
+                Expect.equal
+                    policy.ImmutabilityPeriodSinceCreation
+                    None
+                    "ImmutabilityPeriodSinceCreation not set correctly"
+
+                Expect.equal
+                    policy.AllowProtectedAppendWrites
+                    (Some Arm.Storage.AllowProtectedAppendWrites.AppendBlobOnlyAppendAllowed)
+                    "AppendBlobOnlyAppendAllowed not set correctly"
+            }
+
+            test "Sets AllAppendAllowed correctly" {
+                let policy = blobContainerImmutabilityPolicies {
+                    allow_protected_append_writes Arm.Storage.AllowProtectedAppendWrites.AllAppendAllowed
+                }
+
+                let policy = getPolicy policy
+
+                Expect.equal
+                    policy.ImmutabilityPeriodSinceCreation
+                    None
+                    "ImmutabilityPeriodSinceCreation not set correctly"
+
+                Expect.equal
+                    policy.AllowProtectedAppendWrites
+                    (Some Arm.Storage.AllowProtectedAppendWrites.AllAppendAllowed)
+                    "AllAppendAllowed not set correctly"
+            }
+
+            test "Sets creation period correctly" {
+                let policy = blobContainerImmutabilityPolicies { immutability_period_since_creation 5<Days> }
+                let policy = getPolicy policy
+
+                Expect.equal
+                    policy.ImmutabilityPeriodSinceCreation
+                    (Some 5<Days>)
+                    "ImmutabilityPeriodSinceCreation not set correctly"
+
+                Expect.equal policy.AllowProtectedAppendWrites None "AllowProtectedAppendWrites not set correctly"
+            }
+        ]
         testList "Storage Queue Tests" [
             test "Creates queues correctly" {
                 let resources: StorageQueue list =
@@ -456,7 +715,7 @@ let tests =
 
             Expect.equal
                 builder.WebsitePrimaryEndpoint.Value
-                "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2022-05-01').primaryEndpoints.web"
+                "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2023-05-01').primaryEndpoints.web"
                 "Zone names are not fixed and should be related to a storage account name"
         }
         test "Creates different SKU kinds correctly" {
@@ -699,6 +958,124 @@ let tests =
             Expect.isTrue containerDeleteRetentionPolicy.enabled ""
             Expect.equal containerDeleteRetentionPolicy.days 11 ""
         }
+        testList "Immutability policy tests" [
+            test "Immutability policy enables correctly" {
+                let account = storageAccount {
+                    name "storage"
+                    enable_immutable_storage_with_versioning
+                }
+
+                let value =
+                    Expect.wantSome account.ImmutableStorageWithVersioning "Immutability policy should be set"
+
+                Expect.equal value.Enable (Some Enabled) "Immutability policy should be enabled"
+            }
+            test "Immutability policy disables correctly" {
+                let account = storageAccount {
+                    name "storage"
+                    disable_immutable_storage_with_versioning
+                }
+
+                let value =
+                    Expect.wantSome account.ImmutableStorageWithVersioning "Immutability policy should be set"
+
+                Expect.equal value.Enable (Some Disabled) "Immutability policy should be disabled"
+            }
+            test "Immutable policy is enabled if no value specified" {
+                let policy = storageAccountImmutabilityPolicy { allow_protected_append_writes }
+                Expect.equal policy.AllowProtectedAppendWrites (Some true) "Immutability policy should be enabled"
+            }
+            let check
+                isPolicyEnabled
+                allowWrites
+                (state: StorageImmutabilityPolicyState)
+                period
+                (account: Newtonsoft.Json.Linq.JObject)
+                =
+                let properties = account.SelectToken("properties")
+
+                let immutableStorageWithVersioning =
+                    properties.SelectToken("immutableStorageWithVersioning")
+
+                Expect.equal
+                    (immutableStorageWithVersioning.SelectToken("enable").ToObject<bool>())
+                    isPolicyEnabled
+                    $"enable policy is wrong"
+
+                let policy = immutableStorageWithVersioning.SelectToken("policy")
+
+                Expect.equal
+                    (policy.SelectToken("immutabilityPeriodSinceCreationInDays").ToObject<int>())
+                    period
+                    $"policy immutability period is wrong"
+
+                Expect.equal
+                    (policy.SelectToken("allowProtectedAppendWrites").ToObject<bool>())
+                    allowWrites
+                    $"policy allowProtectedAppendWrites is wrong"
+
+                Expect.equal (policy.SelectToken("state").ToObject<string>()) state.ArmValue $"policy state is wrong"
+
+            test "Immutability policy enables and sets correctly" {
+                let policy = storageAccountImmutabilityPolicy {
+                    allow_protected_append_writes true
+                    immutability_period_since_creation 5<Days>
+                    state StorageImmutabilityPolicyState.Disabled
+                }
+
+                let account = storageAccount {
+                    name "storage"
+                    enable_immutable_storage_with_versioning policy
+                }
+
+                let value =
+                    Expect.wantSome account.ImmutableStorageWithVersioning "Immutability policy should be set"
+
+                let actualPolicy =
+                    Expect.wantSome value.ImmutabilityPolicy "Immutability policy should be set"
+
+                Expect.equal actualPolicy policy "Immutability policy should be set"
+
+                let resource = arm { add_resource account }
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                jobj.SelectTokens("resources[*]")
+                |> Seq.cast<Newtonsoft.Json.Linq.JObject>
+                |> Seq.head
+                |> check true true StorageImmutabilityPolicyState.Disabled 5
+            }
+
+            test "Immutability policy disables and sets correctly" {
+                let policy = storageAccountImmutabilityPolicy {
+                    allow_protected_append_writes false
+                    immutability_period_since_creation 0<Days>
+                    state StorageImmutabilityPolicyState.Unlocked
+                }
+
+                let account = storageAccount {
+                    name "storage"
+                    disable_immutable_storage_with_versioning policy
+                }
+
+                let value =
+                    Expect.wantSome account.ImmutableStorageWithVersioning "Immutability policy should be set"
+
+                let actualPolicy =
+                    Expect.wantSome value.ImmutabilityPolicy "Immutability policy should be set"
+
+                Expect.equal actualPolicy policy "Immutability policy should be set"
+
+                let resource = arm { add_resource account }
+                let jsn = resource.Template |> Writer.toJson
+                let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+                jobj.SelectTokens("resources[*]")
+                |> Seq.cast<Newtonsoft.Json.Linq.JObject>
+                |> Seq.head
+                |> check false false StorageImmutabilityPolicyState.Unlocked 0
+            }
+        ]
 
         test "Versioning" {
             let account = storageAccount {
@@ -720,7 +1097,7 @@ let tests =
 
                 arm { add_resource account } |> getStorageResource
 
-            Expect.equal resource.MinimumTlsVersion "TLS1_2" "Min TLS version is wrong"
+            Expect.equal resource.MinimumTlsVersion "1.2" "Min TLS version is wrong"
         }
 
         test "Test Disable HTTPS Traffic only" {
@@ -736,8 +1113,10 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj.SelectToken("resources[0].properties.supportsHttpsTrafficOnly").ToString())
-                "false"
+                (jobj
+                    .SelectToken("resources[0].properties.supportsHttpsTrafficOnly")
+                    .ToObject<bool>())
+                false
                 "https traffic only should be disabled"
         }
 
@@ -754,8 +1133,10 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj.SelectToken("resources[0].properties.supportsHttpsTrafficOnly").ToString())
-                "true"
+                (jobj
+                    .SelectToken("resources[0].properties.supportsHttpsTrafficOnly")
+                    .ToObject<bool>())
+                true
                 "https traffic only should be enabled"
         }
 
@@ -863,8 +1244,10 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj.SelectToken("resources[0].properties.allowBlobPublicAccess").ToString())
-                "false"
+                (jobj
+                    .SelectToken("resources[0].properties.allowBlobPublicAccess")
+                    .ToObject<bool>())
+                false
                 "blob public access should be disabled"
         }
 
@@ -882,8 +1265,10 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj.SelectToken("resources[0].properties.allowBlobPublicAccess").ToString())
-                "true"
+                (jobj
+                    .SelectToken("resources[0].properties.allowBlobPublicAccess")
+                    .ToObject<bool>())
+                true
                 "blob public access should be enabled"
         }
 
@@ -900,8 +1285,10 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj.SelectToken("resources[0].properties.allowSharedKeyAccess").ToString())
-                "false"
+                (jobj
+                    .SelectToken("resources[0].properties.allowSharedKeyAccess")
+                    .ToObject<bool>())
+                false
                 "shared key access should be disabled"
         }
 
@@ -919,8 +1306,10 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj.SelectToken("resources[0].properties.allowSharedKeyAccess").ToString())
-                "true"
+                (jobj
+                    .SelectToken("resources[0].properties.allowSharedKeyAccess")
+                    .ToObject<bool>())
+                true
                 "shared key access should be enabled"
         }
 
@@ -939,8 +1328,8 @@ let tests =
             Expect.equal
                 (jobj
                     .SelectToken("resources[0].properties.defaultToOAuthAuthentication")
-                    .ToString())
-                "true"
+                    .ToObject<bool>())
+                true
                 "default to OAuth should be enabled"
         }
 
@@ -960,8 +1349,8 @@ let tests =
             Expect.equal
                 (jobj
                     .SelectToken("resources[0].properties.defaultToOAuthAuthentication")
-                    .ToString())
-                "false"
+                    .ToObject<bool>())
+                false
                 "default to OAuth should be disabled"
         }
     ]

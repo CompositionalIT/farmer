@@ -10,3 +10,6 @@ insert_final_newline = false
 [*.{fs,fsx}]
 fsharp_multiline_bracket_style = stroustrup
 fsharp_newline_before_multiline_computation_expression = false
+
+[*.json]
+indent_size = 2

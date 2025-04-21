@@ -1,17 +1,22 @@
 [<AutoOpen>]
 module Farmer.Arm.Storage
 
+open System
+open System.Runtime.CompilerServices
 open Farmer
 open Farmer.Storage
 
 let storageAccounts =
-    ResourceType("Microsoft.Storage/storageAccounts", "2022-05-01")
+    ResourceType("Microsoft.Storage/storageAccounts", "2023-05-01")
 
 let blobServices =
-    ResourceType("Microsoft.Storage/storageAccounts/blobServices", "2019-06-01")
+    ResourceType("Microsoft.Storage/storageAccounts/blobServices", "2023-05-01")
 
 let containers =
-    ResourceType("Microsoft.Storage/storageAccounts/blobServices/containers", "2018-03-01-preview")
+    ResourceType("Microsoft.Storage/storageAccounts/blobServices/containers", "2023-05-01")
+
+let immutabilityPolicies =
+    ResourceType("Microsoft.Storage/storageAccounts/blobServices/containers/immutabilityPolicies", "2023-05-01")
 
 let fileServices =
     ResourceType("Microsoft.Storage/storageAccounts/fileServices", "2019-06-01")
@@ -38,6 +43,22 @@ let roleAssignments =
     ResourceType("Microsoft.Storage/storageAccounts/providers/roleAssignments", "2018-09-01-preview")
 
 type Metadata = Map<string, string>
+
+/// <remarks>
+/// A policy can only be created in a Disabled or Unlocked state and can be toggled between the two states.
+/// Only a policy in an Unlocked state can transition to a Locked state which cannot be reverted.
+/// </remarks
+[<RequireQualifiedAccess>]
+type StorageImmutabilityPolicyState =
+    | Disabled
+    | Unlocked
+    | Locked
+
+    member this.ArmValue =
+        match this with
+        | Disabled -> "Disabled"
+        | Unlocked -> "Unlocked"
+        | Locked -> "Locked"
 
 [<RequireQualifiedAccess>]
 type NetworkRuleSetBypass =
@@ -90,6 +111,25 @@ type NetworkRuleSet = {
     DefaultAction: RuleAction
 }
 
+[<Struct>]
+type StorageImmutabilityPolicy = {
+    AllowProtectedAppendWrites: bool option
+    ImmutabilityPeriodSinceCreation: int<Days> option
+    State: StorageImmutabilityPolicyState option
+} with
+
+    static member Empty = {
+        AllowProtectedAppendWrites = None
+        ImmutabilityPeriodSinceCreation = None
+        State = None
+    }
+
+    member this.IsEmpty =
+        this.AllowProtectedAppendWrites.IsNone
+        && this.ImmutabilityPeriodSinceCreation.IsNone
+
+    member this.ToOption = if this.IsEmpty then None else Some this
+
 /// Needed to build subnet resource ids for ACLs.
 let private subnets = ResourceType("Microsoft.Network/virtualNetworks/subnets", "")
 
@@ -98,21 +138,28 @@ type StorageAccount = {
     Location: Location
     Sku: Sku
     Dependencies: ResourceId list
-    EnableHierarchicalNamespace: bool option
-    NetworkAcls: NetworkRuleSet option
     StaticWebsite:
         {|
             IndexPage: string
             ErrorPage: string option
             ContentPath: string
         |} option
-    MinTlsVersion: TlsVersion option
-    SupportsHttpsTrafficOnly: FeatureFlag option
-    DnsZoneType: string option
+    EnableHierarchicalNamespace: bool option
+    DefaultToOAuthAuthentication: FeatureFlag option
     DisablePublicNetworkAccess: FeatureFlag option
     DisableBlobPublicAccess: FeatureFlag option
     DisableSharedKeyAccess: FeatureFlag option
-    DefaultToOAuthAuthentication: FeatureFlag option
+    DnsZoneType: string option
+    ImmutableStorageWithVersioning:
+        {|
+            Enable: FeatureFlag option
+            ImmutabilityPolicy: StorageImmutabilityPolicy option
+        |} option
+    MinTlsVersion: TlsVersion option
+    NetworkAcls: NetworkRuleSet option
+    /// <remarks>Azure default is false</remarks>
+    RequireInfrastructureEncryption: bool option
+    SupportsHttpsTrafficOnly: FeatureFlag option
     Tags: Map<string, string>
 } with
 
@@ -149,15 +196,13 @@ type StorageAccount = {
                     | Blobs _ -> "BlobStorage"
                     | Files _ -> "FileStorage"
                     | BlockBlobs _ -> "BlockBlobStorage"
+                extendedLocation = None
+                identity = None
                 properties = {|
-                    isHnsEnabled = this.EnableHierarchicalNamespace |> Option.toNullable
                     accessTier =
                         match this.Sku with
                         | Blobs(_, Some tier)
-                        | GeneralPurpose(V2(_, Some tier)) ->
-                            match tier with
-                            | Hot -> "Hot"
-                            | Cool -> "Cool"
+                        | GeneralPurpose(V2(_, Some tier)) -> tier.ArmValue
                         | _ -> null
                     networkAcls =
                         this.NetworkAcls
@@ -182,41 +227,33 @@ type StorageAccount = {
                             defaultAction = networkRuleSet.DefaultAction.ArmValue
                         |})
                         |> Option.defaultValue Unchecked.defaultof<_>
-                    minimumTlsVersion =
-                        match this.MinTlsVersion with
-                        | Some Tls10 -> "TLS1_0"
-                        | Some Tls11 -> "TLS1_1"
-                        | Some Tls12 -> "TLS1_2"
-                        | None -> null
-                    supportsHttpsTrafficOnly =
-                        match this.SupportsHttpsTrafficOnly with
-                        | Some FeatureFlag.Disabled -> "false"
-                        | Some FeatureFlag.Enabled -> "true"
-                        | None -> null
-                    dnsEndpointType =
-                        match this.DnsZoneType with
-                        | Some s -> s
-                        | None -> null
-                    publicNetworkAccess =
-                        match this.DisablePublicNetworkAccess with
-                        | Some FeatureFlag.Disabled -> "Enabled"
-                        | Some FeatureFlag.Enabled -> "Disabled"
-                        | None -> null
-                    allowBlobPublicAccess =
-                        match this.DisableBlobPublicAccess with
-                        | Some FeatureFlag.Disabled -> "true"
-                        | Some FeatureFlag.Enabled -> "false"
-                        | None -> null
-                    allowSharedKeyAccess =
-                        match this.DisableSharedKeyAccess with
-                        | Some FeatureFlag.Disabled -> "true"
-                        | Some FeatureFlag.Enabled -> "false"
-                        | None -> null
-                    defaultToOAuthAuthentication =
-                        match this.DefaultToOAuthAuthentication with
-                        | Some FeatureFlag.Disabled -> "false"
-                        | Some FeatureFlag.Enabled -> "true"
-                        | None -> null
+                    allowBlobPublicAccess = this.DisableBlobPublicAccess.AsInvertedBoolean()
+                    allowSharedKeyAccess = this.DisableSharedKeyAccess.AsInvertedBoolean()
+                    defaultToOAuthAuthentication = this.DefaultToOAuthAuthentication.AsBoolean()
+                    dnsEndpointType = this.DnsZoneType |> Option.toObj
+                    encryption =
+                        this.RequireInfrastructureEncryption
+                        |> Option.map (fun b -> {|
+                            requireInfrastructureEncryption = b
+                        |})
+                    immutableStorageWithVersioning =
+                        this.ImmutableStorageWithVersioning
+                        |> Option.map (fun immutableStorage -> {|
+                            enable = immutableStorage.Enable.AsBoolean()
+                            policy =
+                                immutableStorage.ImmutabilityPolicy
+                                |> Option.map (fun immutableStorage -> {|
+                                    allowProtectedAppendWrites =
+                                        immutableStorage.AllowProtectedAppendWrites |> Option.toNullable
+                                    immutabilityPeriodSinceCreationInDays =
+                                        immutableStorage.ImmutabilityPeriodSinceCreation |> Option.toNullable
+                                    state = immutableStorage.State |> Option.map _.ArmValue |> Option.toObj
+                                |})
+                        |})
+                    isHnsEnabled = this.EnableHierarchicalNamespace |> Option.toNullable
+                    minimumTlsVersion = this.MinTlsVersion.ArmValue()
+                    publicNetworkAccess = this.DisablePublicNetworkAccess.ArmInvertedValue()
+                    supportsHttpsTrafficOnly = this.SupportsHttpsTrafficOnly.AsBoolean()
                 |}
         |}
 
@@ -350,25 +387,91 @@ module BlobServices =
         Name: StorageResourceName
         StorageAccount: ResourceName
         Accessibility: StorageContainerAccess
+        Metadata: Metadata option
     } with
 
+        member this.ResourceName = this.StorageAccount / "default" / this.Name.ResourceName
+
         interface IArmResource with
-            member this.ResourceId =
-                containers.resourceId (this.StorageAccount / "default" / this.Name.ResourceName)
+            member this.ResourceId = containers.resourceId this.ResourceName
 
             member this.JsonModel = {|
-                containers.Create(
-                    this.StorageAccount / "default" / this.Name.ResourceName,
-                    dependsOn = [ storageAccounts.resourceId this.StorageAccount ]
-                ) with
+                containers.Create(this.ResourceName, dependsOn = [ storageAccounts.resourceId this.StorageAccount ]) with
                     properties = {|
-                        publicAccess =
-                            match this.Accessibility with
-                            | Private -> "None"
-                            | Container -> "Container"
-                            | Blob -> "Blob"
+                        publicAccess = this.Accessibility.ArmValue
+                        metadata = this.Metadata |> Option.defaultValue Unchecked.defaultof<_>
                     |}
             |}
+
+type AllowProtectedAppendWrites =
+    | NoAppendAllowed
+    /// When enabled, new blocks can be written to both 'Append and Bock Blobs' while maintaining immutability protection and compliance. Only new blocks can be added and any existing blocks cannot be modified or deleted.
+    | AllAppendAllowed
+    /// When enabled, new blocks can be written to an append blob while maintaining immutability protection and compliance. Only new blocks can be added and any existing blocks cannot be modified or deleted.
+    | AppendBlobOnlyAppendAllowed
+
+    member internal this.AllowProtectedAppendWrites =
+        match this with
+        | NoAppendAllowed -> Nullable()
+        | AllAppendAllowed -> Nullable()
+        | AppendBlobOnlyAppendAllowed -> Nullable(true)
+
+    member internal this.AllowProtectedAppendWritesAll =
+        match this with
+        | NoAppendAllowed -> Nullable()
+        | AllAppendAllowed -> Nullable(true)
+        | AppendBlobOnlyAppendAllowed -> Nullable()
+
+[<AbstractClass; Sealed; Extension>]
+type AllowProtectedAppendWritesExtensions =
+
+    [<Extension>]
+    static member AllowProtectedAppendWrites(this: AllowProtectedAppendWrites option) =
+        match this with
+        | Some value -> value.AllowProtectedAppendWrites
+        | None -> Nullable()
+
+    [<Extension>]
+    static member AllowProtectedAppendWritesAll(this: AllowProtectedAppendWrites option) =
+        match this with
+        | Some value -> value.AllowProtectedAppendWritesAll
+        | None -> Nullable()
+
+module BlobContainers =
+    type ImmutabilityPolicies = {
+        StorageAccount: ResourceName
+        Container: StorageResourceName
+        /// This property can only be changed for unlocked time-based retention policies. This property cannot be changed with ExtendImmutabilityPolicy API.
+        AllowProtectedAppendWrites: AllowProtectedAppendWrites option
+        /// The immutability period for the blobs in the container since the policy creation, in days.
+        ImmutabilityPeriodSinceCreation: int<Days> option
+    } with
+
+        member _.Name = ResourceName "default"
+
+        member this.ResourceName =
+            this.StorageAccount / "default" / this.Container.ResourceName / this.Name
+
+        interface IArmResource with
+            member this.ResourceId = immutabilityPolicies.resourceId this.ResourceName
+
+            member this.JsonModel = {|
+                immutabilityPolicies.Create(
+                    this.ResourceName,
+                    dependsOn = [
+                        containers.resourceId (this.StorageAccount / "default" / this.Container.ResourceName)
+                    ]
+                ) with
+                    properties = {|
+                        immutabilityPeriodSinceCreationInDays =
+                            this.ImmutabilityPeriodSinceCreation |> Option.toNullable
+                        // The 'allowProtectedAppendWrites' and 'allowProtectedAppendWritesAll' properties are mutually exclusive
+                        allowProtectedAppendWrites = this.AllowProtectedAppendWrites.AllowProtectedAppendWrites()
+                        allowProtectedAppendWritesAll = this.AllowProtectedAppendWrites.AllowProtectedAppendWritesAll()
+                    |}
+            |}
+
+
 
 module FileShares =
     type FileShare = {
