@@ -985,7 +985,13 @@ let tests =
                 let policy = storageAccountImmutabilityPolicy { allow_protected_append_writes }
                 Expect.equal policy.AllowProtectedAppendWrites (Some true) "Immutability policy should be enabled"
             }
-            let check isPolicyEnabled allowWrites (state: StorageImmutabilityPolicyState) period (account: Newtonsoft.Json.Linq.JObject) =
+            let check
+                isPolicyEnabled
+                allowWrites
+                (state: StorageImmutabilityPolicyState)
+                period
+                (account: Newtonsoft.Json.Linq.JObject)
+                =
                 let properties = account.SelectToken("properties")
 
                 let immutableStorageWithVersioning =
