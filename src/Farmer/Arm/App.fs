@@ -123,10 +123,7 @@ type DaprComponent = {
                     scopes = this.Scopes
                     secrets = [|
                         for secret in this.Secrets do
-                            {|
-                                name = secret.Key
-                                value = secret.Value.Value
-                            |}
+                            secret.Value.armObj secret.Key
                     |]
                     secretStoreComponent = this.SecretStoreComponent |> Option.map _.Value |> Option.toObj
                     version = this.Version
@@ -173,6 +170,7 @@ type ContainerApp = {
                 match secret.Value with
                 | ParameterSecret sp -> sp
                 | ExpressionSecret _ -> ()
+                | KeyVaultSecretReference _ -> ()
             for credential in this.ImageRegistryCredentials do
                 match credential with
                 | ImageRegistryAuthentication.Credential credential -> credential.Password
@@ -204,23 +202,24 @@ type ContainerApp = {
                                     match cred with
                                     | ImageRegistryAuthentication.Credential cred -> {|
                                         name = cred.Username
-                                        value = cred.Password.ArmExpression.Eval()
+                                        value = Some (cred.Password.ArmExpression.Eval())
+                                        keyVaultUrl = Option<string>.None
+                                        identity = Option<string>.None
                                       |}
                                     | ImageRegistryAuthentication.ListCredentials resourceId -> {|
                                         name = buildPasswordRef resourceId
-                                        value =
-                                            ArmExpression
+                                        value = Some (ArmExpression
                                                 .create(
                                                     $"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').passwords[0].value"
                                                 )
                                                 .Eval()
+                                                )
+                                        keyVaultUrl = Option<string>.None
+                                        identity = Option<string>.None
                                       |}
                                     | ImageRegistryAuthentication.ManagedIdentityCredential cred -> ()
                                 for setting in this.Secrets do
-                                    {|
-                                        name = setting.Key.Value
-                                        value = setting.Value.Value
-                                    |}
+                                    setting.Value.armObj setting.Key.Value
                             |]
                             activeRevisionsMode =
                                 match this.ActiveRevisionsMode with

@@ -534,6 +534,7 @@ type ContainerAppBuilder() =
                     match expression.Owner with
                     | Some owner -> state.Dependencies.Add owner
                     | None -> state.Dependencies
+
         }
 
     /// Adds an application secrets to the Azure Container App.
@@ -541,6 +542,19 @@ type ContainerAppBuilder() =
     member this.AddSecretExpressions(state: ContainerAppConfig, xs: #seq<_>) =
         xs |> Seq.fold (fun s (k, e) -> this.AddSecretExpression(s, k, e)) state
 
+
+    /// Adds an application secret to the Azure Container App.
+    [<CustomOperation "add_secret_keyvault_ref">]
+    member _.AddSecretKeyVaultRef(state: ContainerAppConfig, key, keyVaultUrl: string, identity: string) =
+        let key = (ContainerAppSettingKey.Create key).OkValue
+
+        {
+            state with
+                Secrets = state.Secrets.Add(key, (KeyVaultSecretReference (keyVaultUrl, identity)))
+                EnvironmentVariables = state.EnvironmentVariables.Add(EnvVar.createSecure key.Value key.Value)
+                // TODO: Need to track resourceId of dependencies for keyVaultUrl and Identity
+                // Dependencies = state.Dependencies
+        }
 
     /// Adds a public environment variable to the Azure Container App environment variables.
     [<CustomOperation "add_env_variable">]

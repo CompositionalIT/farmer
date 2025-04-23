@@ -89,6 +89,7 @@ let fullContainerAppDeployment =
                 add_env_variables [ "ServiceBusQueueName", "wishrequests" ]
 
                 add_secret_expressions [ "containerlogs", containerLogs.PrimarySharedKey ]
+                add_secret_keyvault_ref "keyvaultname" "url" "master"
             }
             containerApp {
                 name "servicebus"
@@ -464,5 +465,14 @@ let tests =
                     | _ -> None)
 
             Expect.isSome managedEnvironment.AppInsightsInstrumentationKey "Dapr AI key not set"
+        }
+
+        test "Referencing KeyVault Secrets in Container App Secrets" {
+            let containerApp = jobj.SelectToken("resources[?(@.name=='multienv')]")
+            let secrets = containerApp.SelectToken("properties.configuration.secrets")
+
+            Expect.equal (secrets.[1].["name"] |> string) "keyvaultname" "Incorrect Name for KeyVault Secret Reference"
+            Expect.equal (secrets.[1].["keyVaultUrl"] |> string) "url" "Incorrect Url for KeyVault Secret Reference"
+            Expect.equal (secrets.[1].["identity"] |> string) "master" "Incorrect Url for KeyVault Secret Reference"
         }
     ]
