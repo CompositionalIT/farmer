@@ -454,7 +454,7 @@ type SecretValue =
     | ParameterSecret of SecureParameter
     | ExpressionSecret of ArmExpression
 
-    member this.armObj name=
+    member this.toArmJson name =
        match this with
        | ParameterSecret secureParameter ->
            {| name = name

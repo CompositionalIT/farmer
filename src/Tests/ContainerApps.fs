@@ -52,6 +52,7 @@ let fullContainerAppDeployment =
         replicas 1 5
         add_env_variable "ServiceBusQueueName" "wishrequests"
         add_secret_parameter "servicebusconnectionkey"
+        add_secret_keyvault_reference "keyvaultname" "url" "userAssignedManagedIdentity"
         ingress_state Enabled
         ingress_target_port 80us
         ingress_transport Auto
@@ -89,7 +90,6 @@ let fullContainerAppDeployment =
                 add_env_variables [ "ServiceBusQueueName", "wishrequests" ]
 
                 add_secret_expressions [ "containerlogs", containerLogs.PrimarySharedKey ]
-                add_secret_keyvault_ref "keyvaultname" "url" "master"
             }
             containerApp {
                 name "servicebus"
@@ -289,13 +289,13 @@ let tests =
 
             let secrets = httpContainerApp.SelectToken("properties.configuration.secrets")
 
-            Expect.hasLength secrets 2 "Expecting 2 secrets"
+            Expect.hasLength secrets 3 "Expecting 3 secrets"
             Expect.equal (secrets.[0].["name"] |> string) "myregistry" "Incorrect name for registry password secret"
 
-            Expect.equal
-                (secrets.[0].["value"] |> string)
-                "[parameters('myregistry.azurecr.io-password')]"
-                "Incorrect password parameter for registry password secret"
+            let keyVaultReference = secrets[1]
+            Expect.equal (keyVaultReference["name"] |> string) "keyvaultname" "Incorrect Name for KeyVault Secret Reference"
+            Expect.equal (keyVaultReference["keyVaultUrl"] |> string) "url" "Incorrect Url for KeyVault Secret Reference"
+            Expect.equal (keyVaultReference["identity"] |> string) "userAssignedManagedIdentity" "Incorrect identity for KeyVault Secret Reference"
 
             Expect.equal
                 (httpContainerApp.SelectToken("properties.managedEnvironmentId") |> string)
@@ -465,14 +465,5 @@ let tests =
                     | _ -> None)
 
             Expect.isSome managedEnvironment.AppInsightsInstrumentationKey "Dapr AI key not set"
-        }
-
-        test "Referencing KeyVault Secrets in Container App Secrets" {
-            let containerApp = jobj.SelectToken("resources[?(@.name=='multienv')]")
-            let secrets = containerApp.SelectToken("properties.configuration.secrets")
-
-            Expect.equal (secrets.[1].["name"] |> string) "keyvaultname" "Incorrect Name for KeyVault Secret Reference"
-            Expect.equal (secrets.[1].["keyVaultUrl"] |> string) "url" "Incorrect Url for KeyVault Secret Reference"
-            Expect.equal (secrets.[1].["identity"] |> string) "master" "Incorrect Url for KeyVault Secret Reference"
         }
     ]

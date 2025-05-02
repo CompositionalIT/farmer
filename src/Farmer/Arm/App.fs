@@ -5,7 +5,7 @@ open System
 open Farmer.ContainerApp
 open Farmer
 
-let containerApps = ResourceType("Microsoft.App/containerApps", "2022-03-01")
+let containerApps = ResourceType("Microsoft.App/containerApps", "2025-01-01")
 
 let managedEnvironments =
     ResourceType("Microsoft.App/managedEnvironments", "2022-03-01")
@@ -123,7 +123,7 @@ type DaprComponent = {
                     scopes = this.Scopes
                     secrets = [|
                         for secret in this.Secrets do
-                            secret.Value.armObj secret.Key
+                            secret.Value.toArmJson secret.Key
                     |]
                     secretStoreComponent = this.SecretStoreComponent |> Option.map _.Value |> Option.toObj
                     version = this.Version
