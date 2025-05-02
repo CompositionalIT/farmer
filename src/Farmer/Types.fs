@@ -450,27 +450,9 @@ type ObjectId =
         | ObjectId id -> id
 
 type SecretValue =
-    | KeyVaultSecretReference of keyVaultUrl: string * identity: string
+    | KeyVaultSecretReference of keyVaultUrl: ArmExpression * identity: ArmExpression
     | ParameterSecret of SecureParameter
     | ExpressionSecret of ArmExpression
-
-    member this.toArmJson name =
-       match this with
-       | ParameterSecret secureParameter ->
-           {| name = name
-              value = Some (secureParameter.ArmExpression.Eval())
-              keyVaultUrl = None
-              identity = None |}
-       | ExpressionSecret armExpression ->
-           {| name = name
-              value = Some (armExpression.Eval())
-              keyVaultUrl = None
-              identity = None |}
-       | KeyVaultSecretReference (url, identity) ->
-           {| name = name
-              value = None
-              keyVaultUrl = Some url
-              identity = Some identity |}
 
 type Setting =
     | ParameterSetting of SecureParameter

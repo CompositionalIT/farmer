@@ -122,8 +122,23 @@ type DaprComponent = {
                     |]
                     scopes = this.Scopes
                     secrets = [|
-                        for secret in this.Secrets do
-                            secret.Value.toArmJson secret.Key
+                        for KeyValue(name, secretValue) in this.Secrets ->
+                            match secretValue with
+                            | ParameterSecret secureParameter ->
+                               {| name = name
+                                  value = Some (secureParameter.ArmExpression.Eval())
+                                  keyVaultUrl = None
+                                  identity = None |}
+                            | ExpressionSecret armExpression ->
+                               {| name = name
+                                  value = Some (armExpression.Eval())
+                                  keyVaultUrl = None
+                                  identity = None |}
+                            | KeyVaultSecretReference (url, identity) ->
+                               {| name = name
+                                  value = None
+                                  keyVaultUrl = Some (url.Eval())
+                                  identity = Some (identity.Eval()) |}
                     |]
                     secretStoreComponent = this.SecretStoreComponent |> Option.map _.Value |> Option.toObj
                     version = this.Version
@@ -219,7 +234,7 @@ type ContainerApp = {
                                       |}
                                     | ImageRegistryAuthentication.ManagedIdentityCredential cred -> ()
                                 for setting in this.Secrets do
-                                    setting.Value.armObj setting.Key.Value
+                                    setting.Value.toArmJson setting.Key.Value
                             |]
                             activeRevisionsMode =
                                 match this.ActiveRevisionsMode with
