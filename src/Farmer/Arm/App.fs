@@ -5,7 +5,8 @@ open System
 open Farmer.ContainerApp
 open Farmer
 
-let containerApps = ResourceType("Microsoft.App/containerApps", "2025-01-01")
+let containerApps =
+    ResourceType("Microsoft.App/containerApps", "2022-11-01-preview")
 
 let managedEnvironments =
     ResourceType("Microsoft.App/managedEnvironments", "2022-03-01")
@@ -218,8 +219,8 @@ type ContainerApp = {
                                     | ImageRegistryAuthentication.Credential cred -> {|
                                         name = cred.Username
                                         value = Some (cred.Password.ArmExpression.Eval())
-                                        keyVaultUrl = Option<string>.None
-                                        identity = Option<string>.None
+                                        keyVaultUrl = None
+                                        identity = None
                                       |}
                                     | ImageRegistryAuthentication.ListCredentials resourceId -> {|
                                         name = buildPasswordRef resourceId
@@ -229,8 +230,8 @@ type ContainerApp = {
                                                 )
                                                 .Eval()
                                                 )
-                                        keyVaultUrl = Option<string>.None
-                                        identity = Option<string>.None
+                                        keyVaultUrl = None
+                                        identity = None
                                       |}
                                     | ImageRegistryAuthentication.ManagedIdentityCredential cred -> ()
                                 for setting in this.Secrets do

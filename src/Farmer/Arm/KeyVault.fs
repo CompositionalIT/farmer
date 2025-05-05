@@ -45,7 +45,7 @@ module Vaults =
             member this.JsonModel = {|
                 secrets.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                     properties = {|
-                        value = this.Value.armObj this.Name
+                        value = this.Value.toArmJson this.Name
                         contentType = this.ContentType |> Option.toObj
                         attributes = {|
                             enabled = this.Enabled |> Option.toNullable

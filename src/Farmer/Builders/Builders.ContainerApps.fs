@@ -541,15 +541,21 @@ type ContainerAppBuilder() =
     member this.AddSecretExpressions(state: ContainerAppConfig, xs: #seq<_>) =
         xs |> Seq.fold (fun s (k, e) -> this.AddSecretExpression(s, k, e)) state
 
-    /// Adds an application secret referencing a KeyVault  to the Azure Container App.
-    [<CustomOperation "add_secret_keyvault_reference">]
-    member _.AddSecretKeyVaultReference(state: ContainerAppConfig, key, keyVaultUrl: string, identity: string) =
+    /// Adds a container app secret that references a KeyVault secret to the Azure Container App.
+    [<CustomOperation "add_keyvault_secret">]
+    member _.AddKeyVaultSecret(state: ContainerAppConfig, key, keyVaultUrl: ArmExpression, identity: ArmExpression) =
         let key = (ContainerAppSettingKey.Create key).OkValue
+
+        let newDeps =
+            [ identity.Owner; keyVaultUrl.Owner ]
+            |> Seq.choose id
+            |> Set.ofSeq
 
         {
             state with
                 Secrets = state.Secrets.Add(key, (KeyVaultSecretReference (keyVaultUrl, identity)))
                 EnvironmentVariables = state.EnvironmentVariables.Add(EnvVar.createSecure key.Value key.Value)
+                Dependencies = state.Dependencies + newDeps
         }
 
     /// Adds a public environment variable to the Azure Container App environment variables.

@@ -30,14 +30,20 @@ let fullContainerAppDeployment =
     }
 
     let version = "1.0.0"
-    let managedIdentity = ManagedIdentity.Empty
+    let userIdentityId = createUserAssignedIdentity "identityName" |> _.ResourceId
+    let identity = ManagedIdentity.create userIdentityId
+
+    let secret =
+        ResourceName "keyVaultSecretName"
+        |> secrets.resourceId
+        |> ArmExpression.reference
 
     let httpContainerApp = containerApp {
         name "http"
         add_identity msi
         active_revision_mode Single
 
-        add_registry_credentials [ registry containerRegistryDomain containerRegistryName managedIdentity ]
+        add_registry_credentials [ registry containerRegistryDomain containerRegistryName identity ]
 
         add_containers [
             container {
@@ -52,7 +58,7 @@ let fullContainerAppDeployment =
         replicas 1 5
         add_env_variable "ServiceBusQueueName" "wishrequests"
         add_secret_parameter "servicebusconnectionkey"
-        add_secret_keyvault_reference "keyvaultname" "url" "userAssignedManagedIdentity"
+        add_keyvault_secret "keyvaultname" secret userIdentityId.ArmExpression
         ingress_state Enabled
         ingress_target_port 80us
         ingress_transport Auto
@@ -294,8 +300,8 @@ let tests =
 
             let keyVaultReference = secrets[1]
             Expect.equal (keyVaultReference["name"] |> string) "keyvaultname" "Incorrect Name for KeyVault Secret Reference"
-            Expect.equal (keyVaultReference["keyVaultUrl"] |> string) "url" "Incorrect Url for KeyVault Secret Reference"
-            Expect.equal (keyVaultReference["identity"] |> string) "userAssignedManagedIdentity" "Incorrect identity for KeyVault Secret Reference"
+            Expect.equal (keyVaultReference["keyVaultUrl"] |> string) "[reference(resourceId('Microsoft.KeyVault/vaults/secrets', 'keyVaultSecretName'), '2022-07-01')]" "Incorrect Url for KeyVault Secret Reference"
+            Expect.equal (keyVaultReference["identity"] |> string) "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'identityName')]" "Incorrect identity for KeyVault Secret Reference"
 
             Expect.equal
                 (httpContainerApp.SelectToken("properties.managedEnvironmentId") |> string)
