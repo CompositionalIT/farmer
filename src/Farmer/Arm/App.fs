@@ -6,7 +6,7 @@ open Farmer.ContainerApp
 open Farmer
 
 let containerApps =
-    ResourceType("Microsoft.App/containerApps", "2022-11-01-preview")
+    ResourceType("Microsoft.App/containerApps", "2023-05-01")
 
 let managedEnvironments =
     ResourceType("Microsoft.App/managedEnvironments", "2022-03-01")
@@ -123,23 +123,8 @@ type DaprComponent = {
                     |]
                     scopes = this.Scopes
                     secrets = [|
-                        for KeyValue(name, secretValue) in this.Secrets ->
-                            match secretValue with
-                            | ParameterSecret secureParameter ->
-                               {| name = name
-                                  value = Some (secureParameter.ArmExpression.Eval())
-                                  keyVaultUrl = None
-                                  identity = None |}
-                            | ExpressionSecret armExpression ->
-                               {| name = name
-                                  value = Some (armExpression.Eval())
-                                  keyVaultUrl = None
-                                  identity = None |}
-                            | KeyVaultSecretReference (url, identity) ->
-                               {| name = name
-                                  value = None
-                                  keyVaultUrl = Some (url.Eval())
-                                  identity = Some (identity.Eval()) |}
+                        for secret in this.Secrets ->
+                            secret.Value.toArmJson secret.Key
                     |]
                     secretStoreComponent = this.SecretStoreComponent |> Option.map _.Value |> Option.toObj
                     version = this.Version
