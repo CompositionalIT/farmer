@@ -153,8 +153,6 @@ let tests =
     testList "Container Apps" [
         let jsonTemplate = fullContainerAppDeployment.Template |> Writer.toJson
 
-        printfn $"{jsonTemplate}"
-
         let jobj = JObject.Parse jsonTemplate
 
         test "Container automatically creates a log analytics workspace" {
