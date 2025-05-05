@@ -542,12 +542,12 @@ type ContainerAppBuilder() =
         xs |> Seq.fold (fun s (k, e) -> this.AddSecretExpression(s, k, e)) state
 
     /// Adds a container app secret that references a KeyVault secret to the Azure Container App.
-    [<CustomOperation "add_keyvault_secret">]
+    [<CustomOperation "add_key_vault_secret">]
     member _.AddKeyVaultSecret(state: ContainerAppConfig, key, keyVaultUrl: ArmExpression, identity: ArmExpression) =
         let key = (ContainerAppSettingKey.Create key).OkValue
 
         let newDeps =
-            [ identity.Owner; keyVaultUrl.Owner ]
+            [ keyVaultUrl.Owner ]
             |> Seq.choose id
             |> Set.ofSeq
 

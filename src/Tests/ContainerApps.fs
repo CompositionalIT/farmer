@@ -11,6 +11,8 @@ open Farmer.Arm
 let msi = createUserAssignedIdentity "appUser"
 let containerRegistryName = "myregistry"
 let storageAccountName = "storagename"
+let keyVaultName = "myKeyVault"
+let secretName = "mySecretName"
 
 let fullContainerAppDeployment =
     let containerLogs = logAnalytics { name "containerlogs" }
@@ -30,13 +32,14 @@ let fullContainerAppDeployment =
     }
 
     let version = "1.0.0"
-    let userIdentityId = createUserAssignedIdentity "identityName" |> _.ResourceId
-    let identity = ManagedIdentity.create userIdentityId
+    let identity = ManagedIdentity.create msi.ResourceId
+    let identityReference = ArmExpression.reference identity.UserAssigned.Head.ResourceId
 
-    let secret =
-        ResourceName "keyVaultSecretName"
+    let secretUri =
+        ResourceName keyVaultName / ResourceName secretName
         |> secrets.resourceId
         |> ArmExpression.reference
+        |> _.Map(fun v -> $"{v}.secretUri")
 
     let httpContainerApp = containerApp {
         name "http"
@@ -58,7 +61,7 @@ let fullContainerAppDeployment =
         replicas 1 5
         add_env_variable "ServiceBusQueueName" "wishrequests"
         add_secret_parameter "servicebusconnectionkey"
-        add_keyvault_secret "keyvaultname" secret userIdentityId.ArmExpression
+        add_key_vault_secret "keyvaultname" secretUri identityReference
         ingress_state Enabled
         ingress_target_port 80us
         ingress_transport Auto
@@ -149,6 +152,8 @@ let fullContainerAppDeployment =
 let tests =
     testList "Container Apps" [
         let jsonTemplate = fullContainerAppDeployment.Template |> Writer.toJson
+
+        printfn $"{jsonTemplate}"
 
         let jobj = JObject.Parse jsonTemplate
 
@@ -300,8 +305,8 @@ let tests =
 
             let keyVaultReference = secrets[1]
             Expect.equal (keyVaultReference["name"] |> string) "keyvaultname" "Incorrect Name for KeyVault Secret Reference"
-            Expect.equal (keyVaultReference["keyVaultUrl"] |> string) "[reference(resourceId('Microsoft.KeyVault/vaults/secrets', 'keyVaultSecretName'), '2022-07-01')]" "Incorrect Url for KeyVault Secret Reference"
-            Expect.equal (keyVaultReference["identity"] |> string) "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'identityName')]" "Incorrect identity for KeyVault Secret Reference"
+            Expect.equal (keyVaultReference["keyVaultUrl"] |> string) "[reference(resourceId('Microsoft.KeyVault/vaults/secrets', 'myKeyVault', 'mySecretName'), '2022-07-01').secretUri]" "Incorrect Url for KeyVault Secret Reference"
+            Expect.equal (keyVaultReference["identity"] |> string) "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'appUser'), '2023-01-31')]" "Incorrect identity for KeyVault Secret Reference"
 
             Expect.equal
                 (httpContainerApp.SelectToken("properties.managedEnvironmentId") |> string)
