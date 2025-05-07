@@ -313,6 +313,11 @@ type ContainerApp = {
                                                 value = null
                                                 secretref = env.Key
                                               |}
+                                            | EnvValueSecretReference ref -> {|
+                                                name = env.Key
+                                                value = null
+                                                secretref = ref
+                                              |}
                                     |]
                                     resources =
                                         {|

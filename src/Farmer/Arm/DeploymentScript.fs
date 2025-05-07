@@ -97,6 +97,11 @@ type DeploymentScript = {
                                     value = null
                                     secureValue = v.ArmExpression.Eval()
                                   |}
+                                | EnvValueSecretReference ref -> {|
+                                    name = key
+                                    value = null
+                                    secureValue = ref
+                                  |}
                         ]
                         forceUpdateTag = this.ForceUpdateTag |> Option.toNullable
                         scriptContent =

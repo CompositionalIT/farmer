@@ -555,7 +555,7 @@ type ContainerAppBuilder() =
         {
             state with
                 Secrets = state.Secrets.Add(key, (KeyVaultSecretReference (keyVaultUrl, identity)))
-                EnvironmentVariables = state.EnvironmentVariables.Add(EnvVar.createSecure envVarName key.Value)
+                EnvironmentVariables = state.EnvironmentVariables.Add(EnvVar.createSecretReference envVarName key.Value)
                 Dependencies = state.Dependencies + newDeps
         }
 
