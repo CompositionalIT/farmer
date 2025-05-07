@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.13
+* Container Apps: Able to create Container Apps secrets referencing KeyVault secrets.
+
 ## 1.9.12
 * AKS Cluster: Add link_to_kubelet_identity
 * VMSS overprovisioning controls

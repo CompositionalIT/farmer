@@ -541,7 +541,7 @@ type ContainerAppBuilder() =
     member this.AddSecretExpressions(state: ContainerAppConfig, xs: #seq<_>) =
         xs |> Seq.fold (fun s (k, e) -> this.AddSecretExpression(s, k, e)) state
 
-    /// Adds a container app secret referencing a KeyVault secret using the KeyVault URL.
+    /// Adds a container app secret that references a KeyVault secret using the KeyVault URL as an ArmExpression.
     /// Overloaded function allows for passing environment variable name different from secret.
     [<CustomOperation "add_key_vault_secret">]
     member this.AddKeyVaultSecret(state: ContainerAppConfig, key, envVarName, keyVaultUrl: ArmExpression, identity: ArmExpression) =
@@ -559,7 +559,7 @@ type ContainerAppBuilder() =
                 Dependencies = state.Dependencies + newDeps
         }
 
-    /// Adds a container app secret that references a KeyVault secret using the KeyVault URL.
+    /// Adds a container app secret that references a KeyVault secret using the KeyVault URL as an ArmExpression.
     [<CustomOperation "add_key_vault_secret">]
     member this.AddKeyVaultSecret(state: ContainerAppConfig, key, keyVaultUrl: ArmExpression, identity: ArmExpression) =
         this.AddKeyVaultSecret(state, key, key, keyVaultUrl, identity)
