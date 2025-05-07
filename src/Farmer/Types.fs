@@ -465,7 +465,7 @@ type SecretValue =
         match this with
         | ParameterSecret secureParameter -> {| defaultArm with value = Some(secureParameter.ArmExpression.Eval()) |}
         | ExpressionSecret armExpression -> {| defaultArm with value = Some(armExpression.Eval()) |}
-        | KeyVaultSecretReference(url, identity) ->
+        | KeyVaultSecretReference (url, identity) ->
             {|
               defaultArm with
                 keyVaultUrl = Some (url.Eval())

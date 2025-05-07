@@ -8,11 +8,12 @@ open Farmer.ContainerApp
 open Farmer.Identity
 open Farmer.Arm
 
-let msi = createUserAssignedIdentity "appUser"
+let identityName = "appUser"
 let containerRegistryName = "myregistry"
 let storageAccountName = "storagename"
-let keyVaultName = "myKeyVault"
-let secretName = "mySecretName"
+let keyVaultName = "mykeyvault"
+let secretName = "mysecretname"
+let msi = createUserAssignedIdentity identityName
 
 let fullContainerAppDeployment =
     let containerLogs = logAnalytics { name "containerlogs" }
@@ -33,13 +34,11 @@ let fullContainerAppDeployment =
 
     let version = "1.0.0"
     let identity = ManagedIdentity.create msi.ResourceId
-    let identityReference = ArmExpression.reference identity.UserAssigned.Head.ResourceId
 
-    let secretUri =
-        ResourceName keyVaultName / ResourceName secretName
-        |> secrets.resourceId
-        |> ArmExpression.reference
-        |> _.Map(fun v -> $"{v}.secretUri")
+    let containerSecret = secret {
+        name secretName
+        link_to_unmanaged_keyvault (vaults.resourceId keyVaultName)
+    }
 
     let httpContainerApp = containerApp {
         name "http"
@@ -61,7 +60,7 @@ let fullContainerAppDeployment =
         replicas 1 5
         add_env_variable "ServiceBusQueueName" "wishrequests"
         add_secret_parameter "servicebusconnectionkey"
-        add_key_vault_secret "keyvaultname" secretUri identityReference
+        add_key_vault_secret secretName containerSecret.SecretUri.Value msi.ResourceId.ArmExpression
         ingress_state Enabled
         ingress_target_port 80us
         ingress_transport Auto
@@ -302,9 +301,9 @@ let tests =
             Expect.equal (secrets.[0].["name"] |> string) "myregistry" "Incorrect name for registry password secret"
 
             let keyVaultReference = secrets[1]
-            Expect.equal (keyVaultReference["name"] |> string) "keyvaultname" "Incorrect Name for KeyVault Secret Reference"
-            Expect.equal (keyVaultReference["keyVaultUrl"] |> string) "[reference(resourceId('Microsoft.KeyVault/vaults/secrets', 'myKeyVault', 'mySecretName'), '2022-07-01').secretUri]" "Incorrect Url for KeyVault Secret Reference"
-            Expect.equal (keyVaultReference["identity"] |> string) "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'appUser'), '2023-01-31')]" "Incorrect identity for KeyVault Secret Reference"
+            Expect.equal (keyVaultReference["name"] |> string) secretName "Incorrect Name for KeyVault Secret Reference"
+            Expect.equal (keyVaultReference["keyVaultUrl"] |> string) $"[reference(resourceId('Microsoft.KeyVault/vaults/secrets', '{keyVaultName}', '{secretName}'), '2022-07-01').secretUri]" "Incorrect Url for KeyVault Secret Reference"
+            Expect.equal (keyVaultReference["identity"] |> string) $"[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', '{identityName}')]" "Incorrect identity for KeyVault Secret Reference"
 
             Expect.equal
                 (httpContainerApp.SelectToken("properties.managedEnvironmentId") |> string)
@@ -407,9 +406,9 @@ let tests =
             Expect.equal
                 containerApp.Identity.UserAssigned.[0]
                 (UserAssignedIdentity(
-                    ResourceId.create (Arm.ManagedIdentity.userAssignedIdentities, ResourceName "appUser")
+                    ResourceId.create (Arm.ManagedIdentity.userAssignedIdentities, ResourceName $"{identityName}")
                 ))
-                "Expected user identity named 'appUser'."
+                $"Expected user identity named '{identityName}'."
         }
 
         test "Makes container environment with volumes" {

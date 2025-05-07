@@ -116,7 +116,13 @@ type SecretConfig = {
 
     member this.ResourceName = this.Vault |> Option.map (fun x -> x.Name / this.SecretName)
     member this.ResourceId = this.ResourceName |> Option.map secrets.resourceId
-
+    member this.CreateExpression field =
+        this.ResourceId
+        |> Option.map (
+            ArmExpression.reference >> _.Map(fun e ->
+                $"{e}.%s{field}"))
+    member this.SecretUri = this.CreateExpression "secretUri"
+    member this.SecretUriWithVersion = this.CreateExpression "secretUriWithVersion"
     static member private HandleNoVault() =
         failwith "Secret must be linked to a vault in order to add it to a deployment"
 
