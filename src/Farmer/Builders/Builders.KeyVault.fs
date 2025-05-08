@@ -118,9 +118,10 @@ type SecretConfig = {
     member this.ResourceId = this.ResourceName |> Option.map secrets.resourceId
     member this.CreateExpression field =
         this.ResourceId
-        |> Option.map (
-            ArmExpression.reference >> _.Map(fun e ->
-                $"{e}.%s{field}"))
+        |> Option.map (fun id ->
+            let expr = ArmExpression.reference id
+            expr.Map (fun e -> $"{e}.%s{field}"))
+
     member this.SecretUri = this.CreateExpression "secretUri"
     member this.SecretUriWithVersion = this.CreateExpression "secretUriWithVersion"
     static member private HandleNoVault() =

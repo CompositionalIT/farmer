@@ -454,24 +454,6 @@ type SecretValue =
     | ParameterSecret of SecureParameter
     | ExpressionSecret of ArmExpression
 
-    member this.toArmJson name =
-        let defaultArm =
-            {|
-              name = name
-              value = None
-              keyVaultUrl = None
-              identity = None
-            |}
-        match this with
-        | ParameterSecret secureParameter -> {| defaultArm with value = Some(secureParameter.ArmExpression.Eval()) |}
-        | ExpressionSecret armExpression -> {| defaultArm with value = Some(armExpression.Eval()) |}
-        | KeyVaultSecretReference (url, identity) ->
-            {|
-              defaultArm with
-                keyVaultUrl = Some (url.Eval())
-                identity = Some (identity.Eval())
-            |}
-
 type Setting =
     | ParameterSetting of SecureParameter
     | LiteralSetting of string

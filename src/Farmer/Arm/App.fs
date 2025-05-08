@@ -124,7 +124,22 @@ type DaprComponent = {
                     scopes = this.Scopes
                     secrets = [|
                         for secret in this.Secrets ->
-                            secret.Value.toArmJson secret.Key
+                            let defaultArm =
+                                {|
+                                  name = secret.Key
+                                  value = None
+                                  keyVaultUrl = None
+                                  identity = None
+                                |}
+                            match secret.Value with
+                            | ParameterSecret secureParameter -> {| defaultArm with value = Some(secureParameter.ArmExpression.Eval()) |}
+                            | ExpressionSecret armExpression -> {| defaultArm with value = Some(armExpression.Eval()) |}
+                            | KeyVaultSecretReference (url, identity) ->
+                                {|
+                                  defaultArm with
+                                    keyVaultUrl = Some (url.Eval())
+                                    identity = Some (identity.Eval())
+                                |}
                     |]
                     secretStoreComponent = this.SecretStoreComponent |> Option.map _.Value |> Option.toObj
                     version = this.Version
@@ -220,7 +235,22 @@ type ContainerApp = {
                                       |}
                                     | ImageRegistryAuthentication.ManagedIdentityCredential cred -> ()
                                 for setting in this.Secrets do
-                                    setting.Value.toArmJson setting.Key.Value
+                                    let defaultArm =
+                                        {|
+                                          name = setting.Key.Value
+                                          value = None
+                                          keyVaultUrl = None
+                                          identity = None
+                                        |}
+                                    match setting.Value with
+                                    | ParameterSecret secureParameter -> {| defaultArm with value = Some(secureParameter.ArmExpression.Eval()) |}
+                                    | ExpressionSecret armExpression -> {| defaultArm with value = Some(armExpression.Eval()) |}
+                                    | KeyVaultSecretReference (url, identity) ->
+                                        {|
+                                          defaultArm with
+                                            keyVaultUrl = Some (url.Eval())
+                                            identity = Some (identity.Eval())
+                                        |}
                             |]
                             activeRevisionsMode =
                                 match this.ActiveRevisionsMode with
