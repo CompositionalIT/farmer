@@ -743,14 +743,14 @@
               "type": "Microsoft.Network/virtualNetworks"
             },
             {
-              "apiVersion": "2018-11-01",
+              "apiVersion": "2024-05-01",
               "location": "uksouth",
               "name": "farmervm-ip",
               "properties": {
                 "publicIPAllocationMethod": "Dynamic"
               },
               "sku": {
-                "name": "Basic"
+                "name": "Standard"
               },
               "tags": {},
               "type": "Microsoft.Network/publicIPAddresses"

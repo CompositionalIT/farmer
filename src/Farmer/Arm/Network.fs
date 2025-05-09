@@ -28,10 +28,10 @@ let networkProfiles =
     ResourceType("Microsoft.Network/networkProfiles", "2020-04-01")
 
 let publicIPAddresses =
-    ResourceType("Microsoft.Network/publicIPAddresses", "2018-11-01")
+    ResourceType("Microsoft.Network/publicIPAddresses", "2024-05-01")
 
 let publicIPPrefixes =
-    ResourceType("Microsoft.Network/publicIPPrefixes", "2021-08-01")
+    ResourceType("Microsoft.Network/publicIPPrefixes", "2024-05-01")
 
 let serviceEndpointPolicies =
     ResourceType("Microsoft.Network/serviceEndpointPolicies", "2020-07-01")
@@ -254,7 +254,7 @@ type RouteServerBGPConnection = {
 
 type PublicIpAddress = {
     Name: ResourceName
-    AvailabilityZone: string option
+    AvailabilityZones: string seq
     Location: Location
     Sku: PublicIpAddress.Sku
     AllocationMethod: PublicIpAddress.AllocationMethod
@@ -280,7 +280,9 @@ type PublicIpAddress = {
                         | Some label -> box {| domainNameLabel = label.ToLower() |}
                         | None -> null
                 |}
-                zones = this.AvailabilityZone |> Option.map ResizeArray |> Option.toObj
+                zones =
+                    if Seq.isEmpty this.AvailabilityZones then null
+                    else this.AvailabilityZones |> ResizeArray
         |}
 
 /// If using the IPs in the frontend of a cross-region laod balancer, public IPs and prefixes must be in

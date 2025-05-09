@@ -245,17 +245,10 @@ type VmConfig = {
                             | None when this.AvailabilityZone.IsSome -> PublicIpAddress.AllocationMethod.Static
                             | None -> PublicIpAddress.AllocationMethod.Dynamic
                     AddressVersion = IPv4
-                    Sku =
-                        match this.PublicIpSku with
-                        | Some sku -> sku
-                        | None ->
-                            if this.AvailabilityZone.IsSome then
-                                PublicIpAddress.Sku.Standard
-                            else
-                                PublicIpAddress.Sku.Basic
+                    Sku = PublicIpAddress.Sku.Standard
                     DomainNameLabel = this.DomainNamePrefix
                     Tags = this.Tags
-                    AvailabilityZone = this.AvailabilityZone
+                    AvailabilityZones = this.AvailabilityZone |> Option.toList
                   }
                 | None -> ()
 

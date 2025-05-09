@@ -417,11 +417,10 @@ let makeLinuxProfile user sshKeys = user, sshKeys
 
 /// Match on type of load balancer for an AKS config's network profile.
 /// The default if nothing is specified is a Standard LB.
-let private (|BasicLoadBalancer|StandardLoadBalancer|) =
+let private (|StandardLoadBalancer|) =
     function
     | Some netProfile ->
         match netProfile.LoadBalancerSku with
-        | Some LoadBalancer.Sku.Basic -> BasicLoadBalancer
         | _ -> StandardLoadBalancer
     | _ -> StandardLoadBalancer
 
@@ -454,11 +453,6 @@ type AksBuilder() =
     }
 
     member _.Run(config: AksConfig) =
-        match config.NetworkProfile, config.ApiServerAccessProfile with
-        | BasicLoadBalancer, PrivateClusterEnabled ->
-            invalidArg "sku" "Private cluster requires a standard SKU load balancer."
-        | _ -> ()
-
         if String.IsNullOrWhiteSpace config.ServicePrincipalClientID then
             raiseFarmer
                 "Missing ServicePrincipalClientID on ManagedCluster - specify 'service_principal_use_msi' or 'service_principal_client_id' to assign one."

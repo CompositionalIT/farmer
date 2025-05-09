@@ -18,7 +18,7 @@ type NatGatewayConfig = {
             // Currently just generate with a single public IP.
             {
                 PublicIpAddress.Name = ResourceName $"{this.Name.Value}-publicip-1"
-                AvailabilityZone = None
+                AvailabilityZones = []
                 Location = location
                 Sku = Sku.Standard
                 AllocationMethod = AllocationMethod.Static

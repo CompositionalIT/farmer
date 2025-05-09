@@ -2668,12 +2668,10 @@ module PrivateIpAddress =
 module LoadBalancer =
     [<RequireQualifiedAccess>]
     type Sku =
-        | Basic
         | Standard
 
         member this.ArmValue =
             match this with
-            | Basic -> "Basic"
             | Standard -> "Standard"
 
     [<RequireQualifiedAccess>]
@@ -3529,12 +3527,10 @@ module PublicIpAddress =
             | Static -> "Static"
 
     type Sku =
-        | Basic
         | Standard
 
         member this.ArmValue =
             match this with
-            | Basic -> "Basic"
             | Standard -> "Standard"
 
 module Cdn =

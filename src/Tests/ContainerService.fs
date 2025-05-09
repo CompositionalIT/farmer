@@ -232,28 +232,6 @@ let tests =
             Expect.hasLength aks.AgentPoolProfiles 1 ""
             Expect.equal aks.AgentPoolProfiles.[0].Name "linuxpool" ""
         }
-        test "AKS with private API must use a standard load balancer." {
-            Expect.throws
-                (fun () ->
-                    let _ = aks {
-                        name "k8s-cluster"
-                        service_principal_client_id "some-spn-client-id"
-                        dns_prefix "testaks"
-
-                        add_agent_pools [
-                            agentPool {
-                                name "linuxPool"
-                                count 3
-                            }
-                        ]
-
-                        network_profile (kubenetNetworkProfile { load_balancer_sku LoadBalancer.Sku.Basic })
-                        enable_private_cluster true
-                    }
-
-                    ())
-                "Should throw validation exception when trying to use a private cluster on a basic LB"
-        }
         test "AKS API accessible to limited IP range." {
             let myAks = aks {
                 name "k8s-cluster"

@@ -16,6 +16,7 @@ type FrontendIpConfig = {
     AddressVersion: AddressVersion
     PublicIp: LinkedResource option
     Subnet: LinkedResource option
+    Zones: string seq
 } with
 
     static member BuildResource frontend = {|
@@ -24,6 +25,7 @@ type FrontendIpConfig = {
         AddressVersion = frontend.AddressVersion
         PublicIp = frontend.PublicIp |> Option.map (fun linkedRes -> linkedRes.ResourceId)
         Subnet = frontend.Subnet |> Option.map (fun linkedRes -> linkedRes.ResourceId)
+        Zones = frontend.Zones
     |}
 
     static member BuildIp
@@ -37,12 +39,9 @@ type FrontendIpConfig = {
                 Name = resId.Name
                 AllocationMethod = AllocationMethod.Static
                 AddressVersion = frontend.AddressVersion
-                AvailabilityZone = None
+                AvailabilityZones = frontend.Zones
                 Location = location
-                Sku =
-                    match lbSku with
-                    | Farmer.LoadBalancer.Sku.Basic -> PublicIpAddress.Sku.Basic
-                    | Farmer.LoadBalancer.Sku.Standard -> PublicIpAddress.Sku.Standard
+                Sku = Sku.Standard
                 DomainNameLabel = None
                 Tags = Map.empty
             }
@@ -57,6 +56,7 @@ type FrontendIpBuilder() =
         AddressVersion = AddressVersion.IPv4
         PublicIp = None
         Subnet = None
+        Zones = []
     }
 
     /// Sets the name of the frontend IP configuration.
@@ -102,6 +102,13 @@ type FrontendIpBuilder() =
     member _.LinkToUnmanagedSubnet(state: FrontendIpConfig, subnetId) = {
         state with
             Subnet = Some(Unmanaged subnetId)
+    }
+
+    /// Adds availability zones for the frontend, and therefore, the load balancer itself.
+    [<CustomOperation "add_availability_zones">]
+    member _.AddAvailabilityZones(state: FrontendIpConfig, zones: string seq) = {
+        state with
+            Zones = Seq.append state.Zones zones |> Set.ofSeq
     }
 
 let frontend = FrontendIpBuilder()
@@ -527,7 +534,7 @@ type LoadBalancerBuilder() =
     member _.Yield _ = {
         Name = ResourceName.Empty
         Sku = {
-            Name = LoadBalancer.Sku.Basic
+            Name = LoadBalancer.Sku.Standard
             Tier = LoadBalancer.Tier.Regional
         }
         FrontendIpConfigs = []
