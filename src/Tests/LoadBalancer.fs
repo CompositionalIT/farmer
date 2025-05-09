@@ -168,8 +168,7 @@ let tests =
 
             Expect.isNotNull frontend "Should have one frontend IP configuration"
             let zones = frontend["zones"]
-            Expect.isNotNull zones "Frontend should have zones."
-            Expect.containsAll [ "1"; "2"; "3" ] (zones |> Seq.map (string)) "Incorrect zones for frontend"
+            Expect.isNull zones "Frontend should not have zones when using public IP."
 
             let frontendPip =
                 let deployment = arm { add_resource (completeLoadBalancer ()) }

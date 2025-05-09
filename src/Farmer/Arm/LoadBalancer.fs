@@ -88,8 +88,10 @@ type LoadBalancer = {
                                         |> Option.map (fun subnetId -> {| id = subnetId.Eval() |})
                                         |> Option.defaultValue Unchecked.defaultof<_>
                                 |}
-                                zones =
-                                    if isNull frontend.Zones || Seq.isEmpty frontend.Zones then
+                                zones = // Zones are specified on the frontend only for internal load balancers
+                                    if
+                                        frontend.Subnet.IsNone || isNull frontend.Zones || Seq.isEmpty frontend.Zones
+                                    then
                                         null
                                     else
                                         ResizeArray(frontend.Zones)
@@ -202,7 +204,7 @@ type BackendAddressPool = {
                                         | Some(Managed subnetId) -> {| id = subnetId.Eval() |}
                                         | Some(Unmanaged subnetId) -> {| id = subnetId.Eval() |}
                                         | None -> Unchecked.defaultof<_>
-                                    vnet =
+                                    virtualNetwork =
                                         match addr.Subnet with
                                         | None ->
                                             match addr.VirtualNetwork with
