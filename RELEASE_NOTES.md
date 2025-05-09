@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+## 1.9.13
+* Subnets: Support for `disable_outbound_access`.
+* Public IP Addresses and Load Balancers: drop `Basic` SKU, support zones.
+
 ## 1.9.12
 * AKS Cluster: Add link_to_kubelet_identity
 * VMSS overprovisioning controls
