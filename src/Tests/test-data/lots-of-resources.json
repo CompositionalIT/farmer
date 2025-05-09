@@ -719,7 +719,7 @@
               "type": "Microsoft.Network/networkInterfaces"
             },
             {
-              "apiVersion": "2020-07-01",
+              "apiVersion": "2024-05-01",
               "dependsOn": [],
               "location": "uksouth",
               "name": "farmervm-vnet",

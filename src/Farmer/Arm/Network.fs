@@ -37,10 +37,10 @@ let serviceEndpointPolicies =
     ResourceType("Microsoft.Network/serviceEndpointPolicies", "2020-07-01")
 
 let subnets =
-    ResourceType("Microsoft.Network/virtualNetworks/subnets", "2020-07-01")
+    ResourceType("Microsoft.Network/virtualNetworks/subnets", "2024-05-01")
 
 let virtualNetworks =
-    ResourceType("Microsoft.Network/virtualNetworks", "2020-07-01")
+    ResourceType("Microsoft.Network/virtualNetworks", "2024-05-01")
 
 let virtualNetworkGateways =
     ResourceType("Microsoft.Network/virtualNetworkGateways", "2020-05-01")
@@ -329,6 +329,7 @@ type Subnet = {
     VirtualNetwork: LinkedResource option
     RouteTable: LinkedResource option
     NetworkSecurityGroup: LinkedResource option
+    DefaultOutboundAccess: bool option
     Delegations: SubnetDelegation list
     NatGateway: LinkedResource option
     ServiceEndpoints: (Network.EndpointServiceType * Location list) list
@@ -362,6 +363,7 @@ type Subnet = {
                     id = nsg.ResourceId.ArmExpression.Eval()
                 |})
                 |> Option.defaultValue Unchecked.defaultof<_>
+            defaultOutboundAccess = this.DefaultOutboundAccess |> Option.toNullable
             delegations =
                 this.Delegations
                 |> List.map (fun delegation -> {|

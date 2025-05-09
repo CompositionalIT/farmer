@@ -159,6 +159,7 @@ type VmConfig = {
                         VirtualNetwork = Some(Managed vnet)
                         RouteTable = None
                         NetworkSecurityGroup = nsgId
+                        DefaultOutboundAccess = None
                         Delegations = []
                         NatGateway = None
                         ServiceEndpoints = []
