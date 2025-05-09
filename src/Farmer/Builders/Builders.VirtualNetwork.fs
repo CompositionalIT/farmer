@@ -272,6 +272,7 @@ type SubnetBuilder() =
         state with
             PrivateLinkServiceNetworkPolicies = Some flag
     }
+
     /// Set to false to disable default outbound access on the vnet, requiring VMs to
     /// use their own public IP, a NAT Gateway, or a Load Balancer for outbound access.
     [<CustomOperation "default_outbound_access">]
@@ -294,7 +295,7 @@ type SubnetBuildSpec = {
     Size: int
     NetworkSecurityGroup: LinkedResource option
     RouteTable: LinkedResource option
-    DefaultOutboundAccess : bool option
+    DefaultOutboundAccess: bool option
     Delegations: SubnetDelegationService list
     NatGateway: LinkedResource option
     ServiceEndpoints: (EndpointServiceType * Location list) list
@@ -504,6 +505,7 @@ type SubnetSpecBuilder() =
         state with
             PrivateLinkServiceNetworkPolicies = Some flag
     }
+
     /// Set to false to disable default outbound access on the vnet, requiring VMs to
     /// use their own public IP, a NAT Gateway, or a Load Balancer for outbound access.
     [<CustomOperation "default_outbound_access">]

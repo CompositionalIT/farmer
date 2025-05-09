@@ -15,9 +15,7 @@ let client =
 let tests =
     testList "Load Balancers" [
         test "Empty standard load balancer" {
-            let lb = loadBalancer {
-                name "lb"
-            }
+            let lb = loadBalancer { name "lb" }
 
             let resource =
                 arm { add_resource lb }
@@ -167,19 +165,21 @@ let tests =
                 let deployment = arm { add_resource (completeLoadBalancer ()) }
                 let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
                 jobj.SelectToken("resources[?(@.name=='lb')].properties.frontendIpConfigurations[0]")
+
             Expect.isNotNull frontend "Should have one frontend IP configuration"
             let zones = frontend["zones"]
             Expect.isNotNull zones "Frontend should have zones."
-            Expect.containsAll ["1"; "2"; "3"] (zones |> Seq.map(string)) "Incorrect zones for frontend"
+            Expect.containsAll [ "1"; "2"; "3" ] (zones |> Seq.map (string)) "Incorrect zones for frontend"
 
             let frontendPip =
                 let deployment = arm { add_resource (completeLoadBalancer ()) }
                 let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
                 jobj.SelectToken("resources[?(@.name=='lb-pip')]")
+
             Expect.isNotNull frontendPip "Should have a frontend IP"
             let zones = frontendPip["zones"]
             Expect.isNotNull zones "Frontend public IP should have zones."
-            Expect.containsAll ["1"; "2"; "3"] (zones |> Seq.map(string)) "Incorrect zones for frontend public IP"
+            Expect.containsAll [ "1"; "2"; "3" ] (zones |> Seq.map (string)) "Incorrect zones for frontend public IP"
         }
 
         test "Complete load balancer backend pool" {

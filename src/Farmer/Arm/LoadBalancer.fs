@@ -89,8 +89,10 @@ type LoadBalancer = {
                                         |> Option.defaultValue Unchecked.defaultof<_>
                                 |}
                                 zones =
-                                    if isNull frontend.Zones || Seq.isEmpty frontend.Zones then null
-                                    else ResizeArray(frontend.Zones)
+                                    if isNull frontend.Zones || Seq.isEmpty frontend.Zones then
+                                        null
+                                    else
+                                        ResizeArray(frontend.Zones)
                             |})
                     backendAddressPools =
                         this.BackendAddressPools |> List.map (fun backend -> {| name = backend.Value |})

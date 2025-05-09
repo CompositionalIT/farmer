@@ -689,6 +689,7 @@ let tests =
 
             let subnet =
                 jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks')].properties.subnets[0]"
+
             Expect.isNotNull subnet "Subnet resource not generated."
             let defaultOutbound = subnet.SelectToken "properties.defaultOutboundAccess"
             Expect.isNotNull defaultOutbound "defaultOutboundAccess should be emitted"
