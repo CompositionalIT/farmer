@@ -134,7 +134,7 @@
       "location": "northeurope",
       "name": "isaacsVM-ip",
       "properties": {
-        "publicIPAllocationMethod": "Dynamic"
+        "publicIPAllocationMethod": "Static"
       },
       "sku": {
         "name": "Standard"

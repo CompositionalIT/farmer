@@ -747,7 +747,7 @@
               "location": "uksouth",
               "name": "farmervm-ip",
               "properties": {
-                "publicIPAllocationMethod": "Dynamic"
+                "publicIPAllocationMethod": "Static"
               },
               "sku": {
                 "name": "Standard"
