@@ -10,28 +10,28 @@ open Farmer.ContainerAppValidation
 open Farmer.Arm.App
 open Farmer.Identity
 
-type ContainerConfig =
-    {
-        ContainerName: string
-        DockerImage: Containers.DockerImage option
-        /// Volume mounts for the container
-        VolumeMounts: Map<string, string>
-        Resources: {| CPU: float<VCores>
-                      Memory: float<Gb>
-                      EphemeralStorage: float<Gb> option |}
-        Probes: ProbeMap
-    }
+type ContainerConfig = {
+    ContainerName: string
+    DockerImage: Containers.DockerImage option
+    /// Volume mounts for the container
+    VolumeMounts: Map<string, string>
+    Resources: {|
+        CPU: float<VCores>
+        Memory: float<Gb>
+        EphemeralStorage: float<Gb> option
+    |}
+    Probes: ProbeMap
+} with
 
     member internal this.BuildContainer: Container =
         match this.DockerImage with
-        | Some dockerImage ->
-            {
-                Name = this.ContainerName
-                DockerImage = dockerImage
-                Resources = this.Resources
-                VolumeMounts = this.VolumeMounts
-                Probes = this.Probes
-            }
+        | Some dockerImage -> {
+            Name = this.ContainerName
+            DockerImage = dockerImage
+            Resources = this.Resources
+            VolumeMounts = this.VolumeMounts
+            Probes = this.Probes
+          }
         | None -> raiseFarmer $"Container '{this.ContainerName}' requires a docker image."
 
 type ContainerAppConfig = {
@@ -560,14 +560,13 @@ type ContainerAppBuilder() =
 
     [<CustomOperation "add_simple_container">]
     member this.AddSimpleContainer(state: ContainerAppConfig, dockerImage, dockerVersion) =
-        let container =
-            {
-                ContainerConfig.ContainerName = state.Name.Value
-                DockerImage = Some(Containers.PublicImage(dockerImage, Some dockerVersion))
-                Resources = defaultResources
-                VolumeMounts = Map.empty
-                Probes = Map.empty
-            }
+        let container = {
+            ContainerConfig.ContainerName = state.Name.Value
+            DockerImage = Some(Containers.PublicImage(dockerImage, Some dockerVersion))
+            Resources = defaultResources
+            VolumeMounts = Map.empty
+            Probes = Map.empty
+        }
 
         this.AddContainers(state, [ container ])
 
@@ -590,14 +589,13 @@ type ContainerAppBuilder() =
         }
 
 type ContainerBuilder() =
-    member _.Yield _ =
-        {
-            ContainerName = ""
-            DockerImage = None
-            Resources = defaultResources
-            VolumeMounts = Map.empty
-            Probes = Map.empty
-        }
+    member _.Yield _ = {
+        ContainerName = ""
+        DockerImage = None
+        Resources = defaultResources
+        VolumeMounts = Map.empty
+        Probes = Map.empty
+    }
 
     /// Set docker credentials
     [<CustomOperation "name">]
@@ -673,8 +671,8 @@ type ContainerBuilder() =
     }
 
     [<CustomOperation "set_probe">]
-    member _.SetHealthProbe(state: ContainerConfig, probe, protocol, route, port) =
-        { state with
+    member _.SetHealthProbe(state: ContainerConfig, probe, protocol, route, port) = {
+        state with
             Probes =
                 state.Probes.Add(
                     probe,
@@ -684,7 +682,7 @@ type ContainerBuilder() =
                         Port = port
                     |}
                 )
-        }
+    }
 
 type DaprComponentBuilder() =
     member _.Yield _ = {

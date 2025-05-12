@@ -26,20 +26,26 @@ type HealthProbe =
     | Startup
 
 type ProbeMap =
-    Map<HealthProbe, {| Protocol: ProbeProtocol
-                        Route: Uri
-                        Port: int |}>
+    Map<
+        HealthProbe,
+        {|
+            Protocol: ProbeProtocol
+            Route: Uri
+            Port: int
+        |}
+     >
 
-type Container =
-    {
-        Name: string
-        DockerImage: Containers.DockerImage
-        VolumeMounts: Map<string, string>
-        Resources: {| CPU: float<VCores>
-                      Memory: float<Gb>
-                      EphemeralStorage: float<Gb> option |}
-        Probes: ProbeMap
-    }
+type Container = {
+    Name: string
+    DockerImage: Containers.DockerImage
+    VolumeMounts: Map<string, string>
+    Resources: {|
+        CPU: float<VCores>
+        Memory: float<Gb>
+        EphemeralStorage: float<Gb> option
+    |}
+    Probes: ProbeMap
+}
 
 type ManagedEnvironmentStorage = {
     Name: ResourceName
@@ -345,21 +351,19 @@ type ContainerApp = {
                                         |> function
                                             | [] -> Unchecked.defaultof<_>
                                             | vms -> vms
-                                    probes =
-                                        [
-                                            for probe in container.Probes do
-                                                [
-                                                    "type", box (probe.Key.ToString().ToLower())
-                                                    (match probe.Value.Protocol with
-                                                        | ProbeProtocol.TCP -> "tcpSocket"
-                                                        | ProbeProtocol.HTTPS -> "httpGet"),
-                                                    box
-                                                        {|
-                                                            path = probe.Value.Route
-                                                            port = probe.Value.Port
-                                                        |}
-                                                ]
-                                        ]
+                                    probes = [
+                                        for probe in container.Probes do
+                                            [
+                                                "type", box (probe.Key.ToString().ToLower())
+                                                (match probe.Value.Protocol with
+                                                 | ProbeProtocol.TCP -> "tcpSocket"
+                                                 | ProbeProtocol.HTTPS -> "httpGet"),
+                                                box {|
+                                                    path = probe.Value.Route
+                                                    port = probe.Value.Port
+                                                |}
+                                            ]
+                                    ]
                                 |}
                         |]
                         scale = {|
