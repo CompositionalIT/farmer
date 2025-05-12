@@ -5,12 +5,12 @@ open Farmer.Builders
 
 arm {
     location Location.EastUS
+
     add_resources [
         vnet {
             name "private-network"
-            add_address_spaces [
-                "10.1.0.0/16"
-            ]
+            add_address_spaces [ "10.1.0.0/16" ]
+
             add_subnets [
                 subnet {
                     name "default"
@@ -27,4 +27,5 @@ arm {
             vnet "private-network"
         }
     ]
-} |> Writer.quickWrite "bastion"
+}
+|> Writer.quickWrite "bastion"

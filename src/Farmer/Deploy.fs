@@ -100,36 +100,35 @@ module Az =
     let version () = az "--version"
 
     /// Checks that the version of the Azure CLI meets minimum version.
-    let checkVersion minimum =
-        result {
-            let! versionOutput = version ()
+    let checkVersion minimum = result {
+        let! versionOutput = version ()
 
-            let! version =
-                versionOutput
-                    .Replace("\r\n", "\n")
-                    .Replace("\r", "\n")
-                    .Split([| "\n" |], StringSplitOptions.RemoveEmptyEntries)
-                |> Array.tryHead
-                |> Option.bind (fun text ->
-                    match text.Split([| ' ' |], StringSplitOptions.RemoveEmptyEntries) with
-                    | [| _; version |]
-                    | [| _; version; _ |] -> Some version
-                    | _ -> None)
-                |> Option.bind (fun versionText ->
-                    try
-                        Some(Version versionText)
-                    with _ ->
-                        None)
-                |> Result.ofOption
-                    $"Unable to determine Azure CLI version. You need to have at least {minimum} installed. Output was: %s{versionOutput}"
+        let! version =
+            versionOutput
+                .Replace("\r\n", "\n")
+                .Replace("\r", "\n")
+                .Split([| "\n" |], StringSplitOptions.RemoveEmptyEntries)
+            |> Array.tryHead
+            |> Option.bind (fun text ->
+                match text.Split([| ' ' |], StringSplitOptions.RemoveEmptyEntries) with
+                | [| _; version |]
+                | [| _; version; _ |] -> Some version
+                | _ -> None)
+            |> Option.bind (fun versionText ->
+                try
+                    Some(Version versionText)
+                with _ ->
+                    None)
+            |> Result.ofOption
+                $"Unable to determine Azure CLI version. You need to have at least {minimum} installed. Output was: %s{versionOutput}"
 
-            return!
-                if version < minimum then
-                    Error
-                        $"You have {version} of the Azure CLI installed, but the minimum version is {minimum}. Please upgrade."
-                else
-                    Ok version
-        }
+        return!
+            if version < minimum then
+                Error
+                    $"You have {version} of the Azure CLI installed, but the minimum version is {minimum}. Please upgrade."
+            else
+                Ok version
+    }
 
     /// Lists all subscriptions
     let listSubscriptions () = az "account list --all"
@@ -249,7 +248,7 @@ module Az =
                 "Deployment failed. Correlation ID: 3c51a527-c6e2-42a9-acee-7d9c796a626f. "
                     .Length
 
-            match Serialization.ofJson<AzureError> error.[skip..] with
+            match Serialization.ofJson<AzureError> error[skip..] with
             | {
                   Error = {
                               Code = "RoleAssignmentExists"
@@ -262,12 +261,11 @@ module Az =
             error
 
 /// Represents an Azure subscription
-type Subscription =
-    {
-        ID: Guid
-        Name: string
-        IsDefault: bool
-    }
+type Subscription = {
+    ID: Guid
+    Name: string
+    IsDefault: bool
+}
 
 /// Authenticates the Az CLI using the supplied ApplicationId, Client Secret and Tenant Id.
 /// Returns the list of subscriptions, including which one the default is.
@@ -276,11 +274,10 @@ let authenticate appId secret tenantId =
     |> Result.map (Serialization.ofJson<Subscription[]>)
 
 /// Lists all subscriptions that the logged in identity has access to.
-let listSubscriptions () =
-    result {
-        let! response = Az.listSubscriptions ()
-        return response |> Serialization.ofJson<Subscription array>
-    }
+let listSubscriptions () = result {
+    let! response = Az.listSubscriptions ()
+    return response |> Serialization.ofJson<Subscription array>
+}
 
 /// Sets the currently active (default) subscription.
 let setSubscription (subscriptionId: Guid) =
@@ -308,31 +305,32 @@ let validateParameters suppliedParameters (deployment: IDeploymentSource) =
 
 let NoParameters: (string * string) list = []
 
-let private prepareForDeployment parameters resourceGroupName (deployment: IDeploymentSource) =
-    result {
-        do! deployment |> validateParameters parameters
+let private prepareForDeployment parameters resourceGroupName (deployment: IDeploymentSource) = result {
+    do! deployment |> validateParameters parameters
 
-        let! version = Az.checkVersion Az.MinimumVersion
-        printfn "Compatible version of Azure CLI %O detected" version
+    let! version = Az.checkVersion Az.MinimumVersion
+    stdout.WriteLine $"Compatible version of Azure CLI {version} detected"
 
-        prepareDeploymentFolder ()
+    prepareDeploymentFolder ()
 
-        let! subscriptionDetails =
-            printf "Checking Azure CLI logged in status... "
+    let! subscriptionDetails =
+        stdout.Write "Checking Azure CLI logged in status... "
 
-            match Az.showAccount () with
-            | Ok response ->
-                printfn "you are already logged in, nothing to do."
-                Ok response
-            | Error _ ->
-                printfn "logging you in."
-                Az.login () |> Result.bind (fun _ -> Az.showAccount ())
+        match Az.showAccount () with
+        | Ok response ->
+            stdout.WriteLine "you are already logged in, nothing to do."
+            Ok response
+        | Error _ ->
+            stdout.WriteLine "logging you in."
+            Az.login () |> Result.bind (fun _ -> Az.showAccount ())
 
-        let subscriptionDetails =
-            subscriptionDetails |> Serialization.ofJson<{| id: Guid; name: string |}>
+    let subscriptionDetails =
+        subscriptionDetails |> Serialization.ofJson<{| id: Guid; name: string |}>
 
-        printfn "Using subscription '%s' (%O)." subscriptionDetails.name subscriptionDetails.id
+    stdout.WriteLine $"Using subscription '%s{subscriptionDetails.name}' ({subscriptionDetails.id})."
 
+    match deployment.Deployment.Location with
+    | Location _ ->
         let resourceGroups =
             (resourceGroupName :: deployment.Deployment.RequiredResourceGroups)
             |> List.distinct
@@ -341,82 +339,82 @@ let private prepareForDeployment parameters resourceGroupName (deployment: IDepl
             |> List.mapi (fun i x -> i, x)
 
         for (i, rg) in resourceGroups do
-            printfn $"Creating resource group {rg} ({i + 1}/{resourceGroups.Length})..."
+            stdout.WriteLine $"Creating resource group {rg} ({i + 1}/{resourceGroups.Length})..."
             do! Az.createResourceGroup deployment.Deployment.Location.ArmValue deployment.Deployment.Tags rg
+    | LocationExpression _ ->
+        stdout.WriteLine
+            "Deployment location is an ARM expression that cannot be evaluated by the CLI. Skipping resource group creation."
 
-        return
-            {|
-                DeploymentName = $"farmer-deploy-{generateDeployNumber ()}"
-                TemplateFilename =
-                    deployment.Deployment.Template
-                    |> Writer.toJson
-                    |> Writer.toFile deployFolder "farmer-deploy"
-            |}
-    }
+        return () // Cannot evaluate an ARM expression in Az CLI.
 
-/// Validates a deployment against a resource group. If the resource group does not exist, it will be created automatically.
-let tryValidate resourceGroupName parameters (deployment: IDeploymentSource) =
-    result {
-        let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
-
-        return!
-            Az.validate
-                resourceGroupName
-                deploymentParameters.DeploymentName
-                deploymentParameters.TemplateFilename
-                parameters
-    }
+    return {|
+        DeploymentName = $"farmer-deploy-{generateDeployNumber ()}"
+        TemplateFilename =
+            deployment.Deployment.Template
+            |> Writer.toJson
+            |> Writer.toFile deployFolder "farmer-deploy"
+    |}
+}
 
 /// Validates a deployment against a resource group. If the resource group does not exist, it will be created automatically.
-let tryWhatIf resourceGroupName parameters (deployment: IDeploymentSource) =
-    result {
-        let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
+let tryValidate resourceGroupName parameters (deployment: IDeploymentSource) = result {
+    let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
 
-        return!
-            Az.whatIf
-                resourceGroupName
-                deploymentParameters.DeploymentName
-                deploymentParameters.TemplateFilename
-                parameters
-    }
+    return!
+        Az.validate
+            resourceGroupName
+            deploymentParameters.DeploymentName
+            deploymentParameters.TemplateFilename
+            parameters
+}
+
+/// Validates a deployment against a resource group. If the resource group does not exist, it will be created automatically.
+let tryWhatIf resourceGroupName parameters (deployment: IDeploymentSource) = result {
+    let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
+
+    return!
+        Az.whatIf resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
+}
 
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values.
-let tryExecute resourceGroupName parameters (deployment: IDeploymentSource) =
-    result {
-        let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
+let tryExecute resourceGroupName parameters (deployment: IDeploymentSource) = result {
+    let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
 
-        printfn "Deploying ARM template (please be patient, this can take a while)..."
+    stdout.WriteLine "Deploying ARM template (please be patient, this can take a while)..."
 
-        let! response =
-            Az.deploy
-                resourceGroupName
-                deploymentParameters.DeploymentName
-                deploymentParameters.TemplateFilename
-                parameters
+    let! response =
+        Az.deploy resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
 
-        do!
-            [
-                for task in deployment.Deployment.PostDeployTasks do
-                    task.Run resourceGroupName
-            ]
-            |> List.choose id
-            |> Result.sequence
-            |> Result.ignore
+    do!
+        [
+            for task in deployment.Deployment.PostDeployTasks do
+                task.Run resourceGroupName
+        ]
+        |> List.choose id
+        |> Result.sequence
+        |> Result.ignore
 
-        printfn "All done, now parsing ARM response to get any outputs..."
+    stdout.WriteLine "All done, now parsing ARM response to get any outputs..."
 
-        let! response =
-            response
-            |> Result.ofExn
-                Serialization.ofJson<{| properties: {| outputs: IDictionary<string, {| value: string |}> |} |}>
-            |> Result.mapError (fun _ -> response)
+    let! response =
+        response
+        |> Result.ofExn
+            Serialization.ofJson<
+                {|
+                    properties:
+                        {|
+                            outputs: IDictionary<string, {| value: string |}>
+                        |}
+                |}
+             >
+        |> Result.mapError (fun _ -> response)
 
-        return
-            response.properties.outputs
-            |> Seq.map (fun r -> r.Key, r.Value.value)
-            |> Map.ofSeq
-    }
+    return
+        response.properties.outputs
+        |> Seq.map (fun r -> r.Key, r.Value.value)
+        |> Map.ofSeq
+}
 
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values, otherwise returns any error as an exception.

@@ -3,9 +3,7 @@
 open Farmer
 open Farmer.Builders
 
-let appIdentity = userAssignedIdentity {
-    name "my-app-user"
-}
+let appIdentity = userAssignedIdentity { name "my-app-user" }
 
 let certStorage = storageAccount {
     name "myappcertstorage123"
@@ -15,6 +13,7 @@ let certStorage = storageAccount {
 
 let kv = keyVault {
     name "myappcertificates"
+
     add_access_policies [
         accessPolicy {
             object_id appIdentity.PrincipalId
@@ -81,52 +80,47 @@ az keyvault certificate get-default-policy --scaffold
 }
 *)
 let createCertificate =
-    let policy =
-        {|
-            keyProperties =
-                {|
-                    exportable = true
-                    keyType = "RSA"
-                    keySize = 2048
-                    reuseKey = false
-                |}
-            secretProperties =
-                {|
-                    contentType = "application/x-pkcs12"
-                |}
-            x509CertificateProperties =
-                {|
-                    subject = "CN=my-web-app.eastus.azurecontainer.io"
-                    subjectAlternativeNames =
-                        {|
-                            dnsNames = [ "my-web-app.eastus.azurecontainer.io" ]
-                        |}
-                |}
-            issuerParameters =
-                {|
-                    name = "Self"
-                |}
+    let policy = {|
+        keyProperties = {|
+            exportable = true
+            keyType = "RSA"
+            keySize = 2048
+            reuseKey = false
         |}
+        secretProperties = {|
+            contentType = "application/x-pkcs12"
+        |}
+        x509CertificateProperties = {|
+            subject = "CN=my-web-app.eastus.azurecontainer.io"
+            subjectAlternativeNames = {|
+                dnsNames = [ "my-web-app.eastus.azurecontainer.io" ]
+            |}
+        |}
+        issuerParameters = {| name = "Self" |}
+    |}
+
     let policyJsonB64 =
         policy
         |> System.Text.Json.JsonSerializer.Serialize // serialize to JSON
         |> System.Text.Encoding.UTF8.GetBytes // and then encode it for easy embedding
         |> System.Convert.ToBase64String
+
     let script =
-      [
-        "set -e"
-        // Write the encoded policy to a file in the deployment script resource.
-        $"echo {policyJsonB64} | base64 -d > policy.json"
-        // Run imperative az CLI commands to create the certificate.
-        $"az keyvault certificate create --vault-name {kv.Name.Value} -n my-app-cert -p @policy.json"
-        // Download the cert
-        $"az keyvault certificate download --file cert.pem --vault-name {kv.Name.Value} -n my-app-cert"
-        // Download the pfx with cert and private key
-        $"az keyvault secret show --vault-name {kv.Name.Value} -n my-app-cert | jq .value -r | base64 -d > key.pfx"
-        // Upload to storage file
-        $"az storage file upload --account-name {certStorage.Name.ResourceName.Value} --share-name certs --source key.pfx"
-      ] |> String.concat ";\n"
-    
+        [
+            "set -e"
+            // Write the encoded policy to a file in the deployment script resource.
+            $"echo {policyJsonB64} | base64 -d > policy.json"
+            // Run imperative az CLI commands to create the certificate.
+            $"az keyvault certificate create --vault-name {kv.Name.Value} -n my-app-cert -p @policy.json"
+            // Download the cert
+            $"az keyvault certificate download --file cert.pem --vault-name {kv.Name.Value} -n my-app-cert"
+            // Download the pfx with cert and private key
+            $"az keyvault secret show --vault-name {kv.Name.Value} -n my-app-cert | jq .value -r | base64 -d > key.pfx"
+            // Upload to storage file
+            $"az storage file upload --account-name {certStorage.Name.ResourceName.Value} --share-name certs --source key.pfx"
+        ]
+        |> String.concat ";\n"
+
     // Define the deployment script resource, encapsulating the imperative steps as an ARM resource.
     deploymentScript {
         name "create-certificate"
@@ -139,13 +133,14 @@ let createCertificate =
         script_content script
     }
 
-// The F# script will load the cert with the key, add it to the store to trust it, 
+// The F# script will load the cert with the key, add it to the store to trust it,
 // and then bind it to the HTTPS port for the service.
 let webAppMain = System.IO.File.ReadAllText "keyvault-certs-app.fsx"
 
 let webApp = containerGroup {
     name "my-web-app"
     add_identity appIdentity
+
     add_instances [
         containerInstance {
             name "fsi"
@@ -158,7 +153,9 @@ let webApp = containerGroup {
             memory 0.5<Gb>
         }
     ]
+
     public_dns "my-web-app" [ TCP, 443us ]
+
     add_volumes [
         volume_mount.secret_string "script-source" "main.fsx" webAppMain
         volume_mount.azureFile "cert-volume" "certs" certStorage.Name.ResourceName.Value
@@ -167,11 +164,6 @@ let webApp = containerGroup {
 
 arm {
     location Location.EastUS
-    add_resources [
-        appIdentity
-        kv
-        certStorage
-        createCertificate
-        webApp
-    ]
-} |> Writer.quickWrite "keyvault-certs"
+    add_resources [ appIdentity; kv; certStorage; createCertificate; webApp ]
+}
+|> Writer.quickWrite "keyvault-certs"

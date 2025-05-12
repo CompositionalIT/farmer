@@ -39,7 +39,7 @@ let mySubnet = {
 }
 ```
 
-These resource can be used i.e. in referencing a `web app { }` to a subnet.
+These resources can be used i.e. in referencing a `web app { }` to a subnet.
 
 ```fsharp
 let webApp = webApp {

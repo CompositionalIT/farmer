@@ -17,7 +17,7 @@ The Virtual Network module contains four builders
 - The `vnet` builder is used to create Azure Virtual Network instances.
 - The `subnet` builder is used within the `vnet` builder to define subnets.
 - The `addressSpace` builder can be used to automatically generate subnets based on the sizes of networks needed within the address space.
-- The `subnetSpec` builder is used to define the automatically generated subnets, with the primary different from the `subnet` builder being that you define the `size` for the prefix, and not the address.
+- The `subnetSpec` builder is used to define the automatically generated subnets, with the primary difference from the `subnet` builder being that you define the `size` for the prefix, and not the address.
 
 #### Builder Keywords
 
@@ -36,21 +36,26 @@ The Virtual Network module contains four builders
 
 ##### Subnet: `subnet`
 
-| Keyword                               | Purpose                                                                                   |
-|---------------------------------------|-------------------------------------------------------------------------------------------|
-| name                                  | Name of the subnet resource                                                               |
-| prefix                                | Subnet prefix in CIDR notation (e.g. 192.168.100.0/24)                                    |
-| nat_gateway                           | Specify the NAT gateway for the subnet from the same deployment.                          |
-| link_to_nat_gateway                   | Specify an existing NAT gateway for the subnet.                                           |
-| network_security_group                | Specify the network security group from the same deployment.                              |
-| link_to_network_security_group        | Specify an existing network security group for this subnet.                               |
-| link_to_vnet                          | Link a standalone subnet to a vnet in the same template.                                  |
-| link_to_unmanaged_vnet                | Link a standalone subnet to an existing vnet that is already deployed.                    |
-| add_delegations                       | Adds one or more delegations to this subnet.                                              |
-| add_service_endpoints                 | Adds one or more service endpoints to this subnet.                                        |
-| associate_service_endpoint_policies   | Associates a subnet with an existing service policy.                                      |
-| allow_private_endpoints               | Enable or disable support for private endpoints, default is `Disabled`                    |
-| private_link_service_network_policies | Enable or disable support for private link service network polices, default is `Disabled` |
+| Keyword                               | Purpose                                                                                     |
+|---------------------------------------|---------------------------------------------------------------------------------------------|
+| name                                  | Name of the subnet resource                                                                 |
+| prefix                                | Subnet prefix in CIDR notation (e.g. 192.168.100.0/24)                                      |
+| add_prefixes                          | Add one or more prefixes for this subnet. If using IPv6, an IPv4 prefix is also required.   |
+| nat_gateway                           | Specify the NAT gateway for the subnet from the same deployment.                            |
+| link_to_nat_gateway                   | Specify an existing NAT gateway for the subnet.                                             |
+| network_security_group                | Specify the network security group from the same deployment.                                |
+| link_to_network_security_group        | Specify an existing network security group for this subnet.                                 |
+| default_outbound_access               | Set to false to disable default outbound access, requiring use of NAT Gateway for outbound. |
+| route_table                           | Specify the route table from the same deployment.                                           |
+| link_to_route_table                   | Specify an existing route table for this subnet.                                            |
+| link_to_vnet                          | Link a standalone subnet to a vnet in the same template.                                    |
+| link_to_unmanaged_vnet                | Link a standalone subnet to an existing vnet that is already deployed.                      |
+| add_delegations                       | Adds one or more delegations to this subnet.                                                |
+| add_service_endpoints                 | Adds one or more service endpoints to this subnet.                                          |
+| associate_service_endpoint_policies   | Associates a subnet with an existing service policy.                                        |
+| allow_private_endpoints               | Enable or disable support for private endpoints, default is `Disabled`                      |
+| private_link_service_network_policies | Enable or disable support for private link service network polices, default is `Disabled`   |
+| depends_on                            | Add dependencies on the deployment of another resource.                                     |
 
 ##### Automatically build out an address space: `addressSpace`
 
@@ -70,6 +75,8 @@ The Virtual Network module contains four builders
 | link_to_nat_gateway                   | Specify an existing NAT gateway for the subnet.                                           |
 | network_security_group                  | Specify the network security group from the same deployment.           |
 | link_to_network_security_group          | Specify an existing network security group for the subnet.             |
+| route_table                           | Specify the route table from the same deployment.                                         |
+| link_to_route_table                   | Specify an existing route table for the subnet.                                           |
 | add_delegations                         | Adds service delegations for the subnet.                               |
 | add_service_endpoints                   | Adds service endpoints for the subnet.                                 |
 | add_service_endpoint_policies           | Associates the service endpoint policies with the subnet.              |

@@ -4,11 +4,14 @@ module Farmer.Arm.NetworkSecurityGroup
 open Farmer
 open Farmer.NetworkSecurity
 
+let applicationSecurityGroups =
+    ResourceType("Microsoft.Network/applicationSecurityGroups", "2023-04-01")
+
 let networkSecurityGroups =
-    ResourceType("Microsoft.Network/networkSecurityGroups", "2020-04-01")
+    ResourceType("Microsoft.Network/networkSecurityGroups", "2022-07-01")
 
 let securityRules =
-    ResourceType("Microsoft.Network/networkSecurityGroups/securityRules", "2020-04-01")
+    ResourceType("Microsoft.Network/networkSecurityGroups/securityRules", "2022-07-01")
 
 let (|SingleEndpoint|ManyEndpoints|) endpoints =
     // Use a wildcard if there is one
@@ -21,11 +24,10 @@ let (|SingleEndpoint|ManyEndpoints|) endpoints =
             | Tag _ -> true
             | _ -> false)
         |> function
-            | Some (Tag tag) -> SingleEndpoint(Tag tag)
+            | Some(Tag tag) -> SingleEndpoint(Tag tag)
             | None
-            | Some (AnyEndpoint
-            | Network _
-            | Host _) -> ManyEndpoints(List.ofSeq endpoints)
+            | Some(AnyEndpoint | Network _ | Host _ | ApplicationSecurityGroup _ | Expression _) ->
+                ManyEndpoints(List.ofSeq endpoints)
 
 let private (|SinglePort|ManyPorts|) (ports: _ Set) =
     if ports.Contains AnyPort then
@@ -54,70 +56,105 @@ module private EndpointWriter =
         | SinglePort _ -> []
         | ManyPorts ports -> [ for port in ports -> port.ArmValue ]
 
-type SecurityRule =
-    {
-        Name: ResourceName
-        Description: string option
-        SecurityGroup: ResourceName
-        Protocol: NetworkProtocol
-        SourcePorts: Port Set
-        DestinationPorts: Port Set
-        SourceAddresses: Endpoint list
-        DestinationAddresses: Endpoint list
-        Access: Operation
-        Direction: TrafficDirection
-        Priority: int
-    }
+type SecurityRule = {
+    Name: ResourceName
+    Dependencies: ResourceId Set
+    Description: string option
+    SecurityGroup: LinkedResource
+    Protocol: NetworkProtocol
+    SourceAddresses: Endpoint list
+    SourceApplicationSecurityGroups: LinkedResource list
+    SourcePorts: Port Set
+    DestinationAddresses: Endpoint list
+    DestinationApplicationSecurityGroups: LinkedResource list
+    DestinationPorts: Port Set
+    Access: Operation
+    Direction: TrafficDirection
+    Priority: int
+} with
 
-    member this.PropertiesModel =
-        {|
-            description = this.Description |> Option.toObj
-            protocol = this.Protocol.ArmValue
-            sourcePortRange = this.SourcePorts |> EndpointWriter.toRange
-            sourcePortRanges = this.SourcePorts |> EndpointWriter.toRanges
-            destinationPortRange = this.DestinationPorts |> EndpointWriter.toRange
-            destinationPortRanges = this.DestinationPorts |> EndpointWriter.toRanges
-            sourceAddressPrefix = this.SourceAddresses |> EndpointWriter.toPrefix
-            sourceAddressPrefixes = this.SourceAddresses |> EndpointWriter.toPrefixes
-            destinationAddressPrefix = this.DestinationAddresses |> EndpointWriter.toPrefix
-            destinationAddressPrefixes = this.DestinationAddresses |> EndpointWriter.toPrefixes
-            access = this.Access.ArmValue
-            priority = this.Priority
-            direction = this.Direction.ArmValue
-        |}
+    /// Get any managed application security group resource IDs.
+    static member internal AllDependencies securityRule =
+        securityRule.SourceApplicationSecurityGroups
+        @ securityRule.DestinationApplicationSecurityGroups
+        |> List.choose (function
+            | Managed id -> Some id
+            | _ -> None)
+        |> Set.ofList
+        |> Set.union securityRule.Dependencies
+
+    member this.PropertiesModel = {|
+        description = this.Description |> Option.toObj
+        protocol = this.Protocol.ArmValue
+        sourcePortRange = this.SourcePorts |> EndpointWriter.toRange
+        sourcePortRanges = this.SourcePorts |> EndpointWriter.toRanges
+        sourceApplicationSecurityGroups = this.SourceApplicationSecurityGroups |> List.map LinkedResource.AsIdObject
+        destinationPortRange = this.DestinationPorts |> EndpointWriter.toRange
+        destinationPortRanges = this.DestinationPorts |> EndpointWriter.toRanges
+        sourceAddressPrefix = this.SourceAddresses |> EndpointWriter.toPrefix
+        sourceAddressPrefixes = this.SourceAddresses |> EndpointWriter.toPrefixes
+        destinationAddressPrefix = this.DestinationAddresses |> EndpointWriter.toPrefix
+        destinationAddressPrefixes = this.DestinationAddresses |> EndpointWriter.toPrefixes
+        destinationApplicationSecurityGroups =
+            this.DestinationApplicationSecurityGroups |> List.map LinkedResource.AsIdObject
+        access = this.Access.ArmValue
+        priority = this.Priority
+        direction = this.Direction.ArmValue
+    |}
 
     interface IArmResource with
-        member this.ResourceId = securityRules.resourceId (this.SecurityGroup / this.Name)
+        member this.ResourceId = securityRules.resourceId (this.SecurityGroup.Name / this.Name)
 
         member this.JsonModel =
-            let dependsOn = [ networkSecurityGroups.resourceId this.SecurityGroup ]
+            let dependsOn =
+                this.Dependencies |> LinkedResource.addToSetIfManaged this.SecurityGroup
 
-            {| securityRules.Create(this.SecurityGroup / this.Name, dependsOn = dependsOn) with
-                properties = this.PropertiesModel
+            {|
+                securityRules.Create(this.SecurityGroup.Name / this.Name, dependsOn = dependsOn) with
+                    properties = this.PropertiesModel
             |}
 
-type NetworkSecurityGroup =
-    {
-        Name: ResourceName
-        Location: Location
-        SecurityRules: SecurityRule list
-        Tags: Map<string, string>
-    }
+type NetworkSecurityGroup = {
+    Name: ResourceName
+    Location: Location
+    Dependencies: ResourceId Set
+    SecurityRules: SecurityRule list
+    Tags: Map<string, string>
+} with
 
     interface IArmResource with
         member this.ResourceId = networkSecurityGroups.resourceId this.Name
 
         member this.JsonModel =
-            {| networkSecurityGroups.Create(this.Name, this.Location, tags = this.Tags) with
-                properties =
-                    {|
+            let dependencies =
+                [
+                    this.Dependencies
+                    yield! this.SecurityRules |> List.map SecurityRule.AllDependencies
+                ]
+                |> Set.unionMany
+
+            {|
+                networkSecurityGroups.Create(this.Name, this.Location, dependsOn = dependencies, tags = this.Tags) with
+                    properties = {|
                         securityRules =
                             this.SecurityRules
-                            |> List.map (fun rule ->
-                                {|
-                                    name = rule.Name.Value
-                                    ``type`` = securityRules.Type
-                                    properties = rule.PropertiesModel
-                                |})
+                            |> List.map (fun rule -> {|
+                                name = rule.Name.Value
+                                ``type`` = securityRules.Type
+                                properties = rule.PropertiesModel
+                            |})
                     |}
             |}
+
+type ApplicationSecurityGroup = {
+    Name: ResourceName
+    Dependencies: ResourceId Set
+    Location: Location
+    Tags: Map<string, string>
+} with
+
+    interface IArmResource with
+        member this.ResourceId = networkSecurityGroups.resourceId this.Name
+
+        member this.JsonModel =
+            applicationSecurityGroups.Create(this.Name, this.Location, dependsOn = this.Dependencies, tags = this.Tags)

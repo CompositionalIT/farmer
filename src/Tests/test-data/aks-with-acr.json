@@ -5,7 +5,7 @@
   "parameters": {},
   "resources": [
     {
-      "apiVersion": "2018-11-30",
+      "apiVersion": "2023-01-31",
       "dependsOn": [],
       "location": "eastus",
       "name": "kubeletIdentity",
@@ -13,7 +13,7 @@
       "type": "Microsoft.ManagedIdentity/userAssignedIdentities"
     },
     {
-      "apiVersion": "2018-11-30",
+      "apiVersion": "2023-01-31",
       "dependsOn": [],
       "location": "eastus",
       "name": "clusterIdentity",
@@ -34,7 +34,7 @@
       "type": "Microsoft.ContainerRegistry/registries"
     },
     {
-      "apiVersion": "2021-03-01",
+      "apiVersion": "2024-02-01",
       "dependsOn": [
         "[resourceId('Microsoft.ContainerRegistry/registries', 'farmercontainerregistry1234')]",
         "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'clusterIdentity')]",
@@ -53,6 +53,7 @@
       "properties": {
         "agentPoolProfiles": [
           {
+            "availabilityZones": [],
             "count": 3,
             "mode": "System",
             "name": "nodepool1",
@@ -65,14 +66,18 @@
         "enableRBAC": false,
         "identityProfile": {
           "kubeletIdentity": {
-            "clientId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity'), '2018-11-30').clientId]",
-            "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity'), '2018-11-30').principalId]",
+            "clientId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity'), '2023-01-31').clientId]",
+            "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity'), '2023-01-31').principalId]",
             "resourceId": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity')]"
           }
         },
         "servicePrincipalProfile": {
           "clientId": "msi"
         }
+      },
+      "sku": {
+        "name": "Base",
+        "tier": "Free"
       },
       "type": "Microsoft.ContainerService/managedClusters"
     },
@@ -85,7 +90,7 @@
       "properties": {
         "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'clusterIdentity')).principalId]",
         "principalType": "ServicePrincipal",
-        "roleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'f1a07417-d97a-45cb-824c-7a7467783830')]"
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f1a07417-d97a-45cb-824c-7a7467783830')]"
       },
       "type": "Microsoft.Authorization/roleAssignments"
     },
@@ -99,7 +104,7 @@
       "properties": {
         "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity')).principalId]",
         "principalType": "ServicePrincipal",
-        "roleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '7f951dda-4ed3-4680-a7ca-43fe172d538d')]"
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')]"
       },
       "scope": "[resourceId('Microsoft.ContainerRegistry/registries', 'farmercontainerregistry1234')]",
       "type": "Microsoft.Authorization/roleAssignments"

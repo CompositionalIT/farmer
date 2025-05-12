@@ -6,24 +6,25 @@ open System.Reflection
 open Farmer
 
 module TemplateGeneration =
-    let processTemplate (template: ArmTemplate) =
-        {|
-            ``$schema`` = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
-            contentVersion = "1.0.0.0"
-            resources = template.Resources |> List.map (fun r -> r.JsonModel)
-            parameters =
-                template.Parameters
-                |> List.map (fun (SecureParameter p) -> p, {| ``type`` = "securestring" |})
-                |> Map.ofList
-            outputs =
-                template.Outputs
-                |> List.map (fun (k, v) -> k, {| ``type`` = "string"; value = v |})
-                |> Map.ofList
-        |}
+    let processTemplate (template: ArmTemplate) = {|
+        ``$schema`` = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
+        contentVersion = "1.0.0.0"
+        resources = template.Resources |> List.map _.JsonModel
+        parameters =
+            template.Parameters
+            |> List.map (fun (SecureParameter p) -> p, {| ``type`` = "securestring" |})
+            |> Map.ofList
+        outputs =
+            template.Outputs
+            |> List.map (fun (k, v) -> k, {| ``type`` = "string"; value = v |})
+            |> Map.ofList
+    |}
 
 let branding () =
     let version =
-        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+        Assembly
+            .GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
             .InformationalVersion
 
     printfn "=================================================="

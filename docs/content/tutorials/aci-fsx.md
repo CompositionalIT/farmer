@@ -85,5 +85,5 @@ arm {
 
 When the container group starts, it will execute the F# script, starting the service. This is very useful for gathering source and configuration from your local or internal environment and including it in a deployment. We are able to use this technique due to two unique features:
 
-* Farmer is an "embedded" DSL - rather than simply a friendly version of the ARM template language, it brings the full feature set of .NET when building a template. This makes reading a script from the file system, converting to base64, and embedding in the template a simple process.
+* Farmer is an "embedded" DSL - rather than simply a friendly version of the ARM template language, it brings the full feature set of .NET when building a template. This makes reading a script from the file system, converting it to base64, and embedding it in the template a simple process.
 * ARM templates are not executed locally like Azure CLI scripts - they are a specification for ARM to deploy the infrastructure on your behalf. Once the F# script on your local machine is embedded into the template, ARM is able to pass it to your infrastructure securely over Azure's control plane.

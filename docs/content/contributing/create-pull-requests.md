@@ -6,7 +6,7 @@ weight: 5
 
 > This article is not a detailed guide on how to create a pull request (PR). See [here](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/about-pull-requests) to learn more about how to work with pull requests on GitHub.
 
-The purpose of this article is to illustrate the main checklists you must go through before a PR will be considered for inclusion in Farmer. If you are new to Farmer, F# or GitHub - **don't worry**. The team will be happy to support you getting your feature over the line.
+The purpose of this article is to illustrate the main checklists you must go through before a PR will be considered for inclusion in Farmer. If you are new to Farmer, F# or GitHub - **don't worry**. The team will be happy to support you in getting your feature over the line.
 
 These are the following checks we'll normally put in place:
 
@@ -15,7 +15,7 @@ Except for small pull requests, create an issue to discuss the feature. The last
 #### 2. Create Documentation
 Every PR to Farmer **must** have some documentation with it. If you modify a resource and add a new keyword, it **must** be added to the appropriate docs page.
 #### 3. Write Unit Tests
-Every PR to Farmer **should** have at least one test associated with it. If no tests are added, you can expect at least a request for one or explanation as to why one is not necessary.
+Every PR to Farmer **should** have at least one test associated with it. If no tests are added, you can expect at least a request for one or an explanation as to why one is not necessary.
 #### 4. Write Release Notes
 Every PR to Farmer **must** include an entry to the `RELEASE_NOTES.md` file under the next release. Briefly explain the feature and ideally link to the PR number e.g.
 #### 5. Adhere to Coding Standards

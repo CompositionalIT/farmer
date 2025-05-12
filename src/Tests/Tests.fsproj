@@ -1,109 +1,115 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    <IsPackable>false</IsPackable>
-    <GenerateProgramFile>false</GenerateProgramFile>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <IsPackable>false</IsPackable>
+        <GenerateProgramFile>false</GenerateProgramFile>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <Compile Include="ServicePlan.fs" />
-    <Content Include="test-data\*.json" CopyToOutputDirectory="PreserveNewest" />
-    <Compile Include="Helpers.fs" />
-    <Compile Include="AppGateway.fs" />
-    <Compile Include="AppInsights.fs" />
-    <Compile Include="Alerts.fs" />
-    <Compile Include="AvailabilityTests.fs" />
-    <Compile Include="AzureFirewall.fs" />
-    <Compile Include="DiagnosticSettings.fs" />
-    <Compile Include="Disk.fs" />
-    <Compile Include="Common.fs" />
-    <Compile Include="Functions.fs" />
-    <Compile Include="LogicApps.fs" />
-    <Compile Include="LogAnalytics.fs" />
-    <Compile Include="Bastion.fs" />
-    <Compile Include="CommunicationServices.fs" />
-    <Compile Include="BingSearch.fs" />
-    <Compile Include="Cdn.fs" />
-    <Compile Include="ContainerApps.fs" />
-    <Compile Include="ContainerGroup.fs" />
-    <Compile Include="ContainerService.fs" />
-    <Compile Include="CognitiveServices.fs" />
-    <Compile Include="Dns.fs" />
-    <Compile Include="ExpressRoute.fs" />
-    <Compile Include="EventHub.fs" />
-    <Compile Include="Gallery.fs" />
-    <Compile Include="ImageTemplate.fs" />
-    <Compile Include="Network.fs" />
-    <Compile Include="LoadBalancer.fs" />
-    <Compile Include="NetworkSecurityGroup.fs" />
-    <Compile Include="OperationsManagement.fs" />
-    <Compile Include="PrivateLink.fs" />
-    <Compile Include="ResourceGroup.fs" />
-    <Compile Include="Storage.fs" />
-    <Compile Include="ServiceBus.fs" />
-    <Compile Include="IotHub.fs" />
-    <Compile Include="Template.fs" />
-    <Compile Include="AzCli.fs" />
-    <Compile Include="Cosmos.fs" />
-    <Compile Include="KeyVault.fs" />
-    <Compile Include="VirtualMachine.fs" />
-    <Compile Include="ContainerRegistry.fs" />
-    <Compile Include="PostgreSQL.fs" />
-    <Compile Include="Maps.fs" />
-    <Compile Include="Sql.fs" />
-    <Compile Include="SignalR.fs" />
-    <Compile Include="EventGrid.fs" />
-    <Compile Include="WebApp.fs" />
-    <Compile Include="StaticWebApp.fs" />
-    <Compile Include="VirtualNetworkGateway.fs" />
-    <Compile Include="Identity.fs" />
-    <Compile Include="DeploymentScript.fs" />
-    <Compile Include="Databricks.fs" />
-    <Compile Include="VirtualWan.fs" />
-    <Compile Include="VirtualHub.fs" />
-    <Compile Include="JsonRegression.fs" />
-    <Compile Include="Types.fs" />
-    <Compile Include="TrafficManager.fs" />
-    <Compile Include="Dashboards.fs" />
-    <Compile Include="DedicatedHosts.fs" />
-    <Compile Include="AllTests.fs" />
-  </ItemGroup>
+    <ItemGroup>
+        <Compile Include="ActionGroup.fs" />
+        <Compile Include="ServicePlan.fs" />
+        <Content Include="test-data\*.json" CopyToOutputDirectory="PreserveNewest" />
+        <Compile Include="Helpers.fs" />
+        <Compile Include="AppGateway.fs" />
+        <Compile Include="AppInsights.fs" />
+        <Compile Include="Alerts.fs" />
+        <Compile Include="AutoscaleSettings.fs" />
+        <Compile Include="AvailabilityTests.fs" />
+        <Compile Include="AzureFirewall.fs" />
+        <Compile Include="B2cTenant.fs" />
+        <Compile Include="DiagnosticSettings.fs" />
+        <Compile Include="Disk.fs" />
+        <Compile Include="Common.fs" />
+        <Compile Include="Functions.fs" />
+        <Compile Include="LogicApps.fs" />
+        <Compile Include="LogAnalytics.fs" />
+        <Compile Include="Bastion.fs" />
+        <Compile Include="CommunicationServices.fs" />
+        <Compile Include="BingSearch.fs" />
+        <Compile Include="Cdn.fs" />
+        <Compile Include="ContainerApps.fs" />
+        <Compile Include="ContainerGroup.fs" />
+        <Compile Include="ContainerService.fs" />
+        <Compile Include="CognitiveServices.fs" />
+        <Compile Include="Dns.fs" />
+        <Compile Include="DnsResolver.fs" />
+        <Compile Include="ExpressRoute.fs" />
+        <Compile Include="EventHub.fs" />
+        <Compile Include="Gallery.fs" />
+        <Compile Include="ImageTemplate.fs" />
+        <Compile Include="Network.fs" />
+        <Compile Include="LoadBalancer.fs" />
+        <Compile Include="NetworkSecurityGroup.fs" />
+        <Compile Include="OperationsManagement.fs" />
+        <Compile Include="PrivateLink.fs" />
+        <Compile Include="ResourceGroup.fs" />
+        <Compile Include="Storage.fs" />
+        <Compile Include="ServiceBus.fs" />
+        <Compile Include="IotHub.fs" />
+        <Compile Include="Template.fs" />
+        <Compile Include="AzCli.fs" />
+        <Compile Include="Cosmos.fs" />
+        <Compile Include="KeyVault.fs" />
+        <Compile Include="VirtualMachine.fs" />
+        <Compile Include="VmScaleSet.fs" />
+        <Compile Include="ContainerRegistry.fs" />
+        <Compile Include="PostgreSQL.fs" />
+        <Compile Include="Maps.fs" />
+        <Compile Include="Sql.fs" />
+        <Compile Include="SignalR.fs" />
+        <Compile Include="EventGrid.fs" />
+        <Compile Include="WebApp.fs" />
+        <Compile Include="StaticWebApp.fs" />
+        <Compile Include="VirtualNetworkGateway.fs" />
+        <Compile Include="Identity.fs" />
+        <Compile Include="DeploymentScript.fs" />
+        <Compile Include="Databricks.fs" />
+        <Compile Include="VirtualWan.fs" />
+        <Compile Include="VirtualHub.fs" />
+        <Compile Include="JsonRegression.fs" />
+        <Compile Include="Types.fs" />
+        <Compile Include="TrafficManager.fs" />
+        <Compile Include="Dashboards.fs" />
+        <Compile Include="RoleAssignment.fs" />
+        <Compile Include="DedicatedHosts.fs" />
+        <Compile Include="AllTests.fs" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="expecto" Version="9.0.4" />
-    <PackageReference Include="DiffPlex" Version="1.7.1" />
-    <PackageReference Include="Microsoft.Azure.Management.Cdn" Version="6.1.0" />
-    <PackageReference Include="Microsoft.Azure.Management.Dns" Version="3.0.1" />
-    <PackageReference Include="Microsoft.Azure.Management.CognitiveServices" Version="7.0.0" />
-    <PackageReference Include="Microsoft.Azure.Management.Compute" Version="35.2.0" />
-    <PackageReference Include="Microsoft.Azure.Management.ContainerInstance" Version="7.0.0" />
-    <PackageReference Include="Microsoft.Azure.Management.ContainerService" Version="1.1.0" />
-    <PackageReference Include="Microsoft.Azure.Management.DeviceProvisioningServices" Version="1.0.0" />
-    <PackageReference Include="Microsoft.Azure.Management.IotHub" Version="2.10.0-preview" />
-    <PackageReference Include="Microsoft.Azure.Management.Logic" Version="4.1.0" />
-    <PackageReference Include="Microsoft.Azure.Management.Maps" Version="1.0.2" />
-    <PackageReference Include="Microsoft.Azure.Management.Monitor" Version="0.25.3-preview" />
-    <PackageReference Include="Microsoft.Azure.Management.Network" Version="19.20.0-preview" />
-    <PackageReference Include="Microsoft.Azure.Management.OperationalInsights" Version="0.21.0-preview" />
-    <PackageReference Include="Microsoft.Azure.Management.ResourceManager" Version="3.10.1-preview" />
-    <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="2.1.0" />
-    <PackageReference Include="Microsoft.Azure.Management.SignalR" Version="1.0.1" />
-    <PackageReference Include="Microsoft.Azure.Management.Sql" Version="1.43.0-preview" />
-    <PackageReference Include="Microsoft.Azure.Management.Storage" Version="21.0.0" />
-    <PackageReference Include="Microsoft.Azure.Management.TrafficManager" Version="2.5.3" />
-    <PackageReference Include="Microsoft.Azure.Management.WebSites" Version="3.1.1" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
-    <PackageReference Include="coverlet.collector" Version="3.1.0">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.13.3" />
-    <PackageReference Update="FSharp.Core" Version="5.0.0" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="expecto" Version="9.0.4" />
+        <PackageReference Include="DiffPlex" Version="1.7.1" />
+        <PackageReference Include="Microsoft.Azure.Management.Cdn" Version="6.1.0" />
+        <PackageReference Include="Microsoft.Azure.Management.Dns" Version="3.0.1" />
+        <PackageReference Include="Microsoft.Azure.Management.CognitiveServices" Version="7.0.0" />
+        <PackageReference Include="Microsoft.Azure.Management.Compute" Version="35.2.0" />
+        <PackageReference Include="Microsoft.Azure.Management.ContainerInstance" Version="7.0.0" />
+        <PackageReference Include="Microsoft.Azure.Management.ContainerService" Version="1.1.0" />
+        <PackageReference Include="Microsoft.Azure.Management.DeviceProvisioningServices" Version="1.0.0" />
+        <PackageReference Include="Microsoft.Azure.Management.IotHub" Version="2.10.0-preview" />
+        <PackageReference Include="Microsoft.Azure.Management.Logic" Version="4.1.0" />
+        <PackageReference Include="Microsoft.Azure.Management.Maps" Version="1.0.2" />
+        <PackageReference Include="Microsoft.Azure.Management.Monitor" Version="0.25.3-preview" />
+        <PackageReference Include="Microsoft.Azure.Management.Network" Version="19.20.0-preview" />
+        <PackageReference Include="Microsoft.Azure.Management.OperationalInsights" Version="0.21.0-preview" />
+        <PackageReference Include="Microsoft.Azure.Management.ResourceManager" Version="3.10.1-preview" />
+        <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="5.0.0" />
+        <PackageReference Include="Microsoft.Azure.Management.SignalR" Version="1.0.1" />
+        <PackageReference Include="Microsoft.Azure.Management.Sql" Version="1.43.0-preview" />
+        <PackageReference Include="Microsoft.Azure.Management.Storage" Version="21.0.0" />
+        <PackageReference Include="Microsoft.Azure.Management.TrafficManager" Version="2.5.3" />
+        <PackageReference Include="Microsoft.Azure.Management.WebSites" Version="3.1.1" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
+        <PackageReference Include="coverlet.collector" Version="3.1.0">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.13.3" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Farmer\Farmer.fsproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\Farmer\Farmer.fsproj" />
+    </ItemGroup>
 
 </Project>

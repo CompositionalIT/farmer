@@ -10,31 +10,37 @@ The Network Security Group builder creates network security groups with rules fo
 
 * Network Security Groups (`Microsoft.Network/networkSecurityGroups`)
 * Security Rules (`Microsoft.Network/networkSecurityGroups/securityRules`)
+* Application Security Groups (`Microsoft.Network/networkSecurityGroups`)
 
 #### Builder Keywords
 
-| Applies To | Keyword | Purpose |
-|-|-|-|
-| nsg | name | Specifies the name of the network security group |
-| nsg | add_rules | Adds security rules to the network security group |
-| nsg | initial_rule_priority | The priority of the first rule, after which each rule gets an incrementally higher value. Default 100. |
-| nsg | priority_incr | This sets how much priority is increased per each rule. Default 100. |
-| securityRule | name | The name of the security rule |
-| securityRule | description | The description  of the security rule |
-| securityRule | services | The services port(s) and protocol(s) protected by this security rule |
-| securityRule | add_source | Specify access from any source protocol, address, and port |
-| securityRule | add_source_any | Specify access from any address and any port |
-| securityRule | add_source_address | Specify access from a specific address and any port |
-| securityRule | add_source_network | Specify access from a specific network and any port |
-| securityRule | add_source_tag | Specify access from a tagged source such as "Internet", "VirtualNetwork", or "AzureLoadBalancer" |
-| securityRule | add_destination | Specify access to any source protocol, address, and port |
-| securityRule | add_destination_any | Specify access to any address and any port |
-| securityRule | add_destination_address | Specify access to a specific address and any port |
-| securityRule | add_destination_network | Specify access from a specific network and any port |
-| securityRule | add_destination_tag | Specify access to a tagged destination such as "Internet", "VirtualNetwork", or "AzureLoadBalancer" |
-| securityRule | allow | Allows this traffic (the default) |
-| securityRule | deny | Denies this traffic |
-| securityRule | direction | Specify the direction of traffic controlled by the rule - inbound (the default) or outbound. |
+| Applies To               | Keyword                                    | Purpose                                                                                                |
+|--------------------------|--------------------------------------------|--------------------------------------------------------------------------------------------------------|
+| nsg                      | name                                       | Specifies the name of the network security group                                                       |
+| nsg                      | add_rules                                  | Adds security rules to the network security group                                                      |
+| nsg                      | initial_rule_priority                      | The priority of the first rule, after which each rule gets an incrementally higher value. Default 100. |
+| nsg                      | priority_incr                              | This sets how much priority is increased per each rule. Default 100.                                   |
+| securityRule             | name                                       | The name of the security rule                                                                          |
+| securityRule             | description                                | The description  of the security rule                                                                  |
+| securityRule             | services                                   | The services port(s) and protocol(s) protected by this security rule                                   |
+| securityRule             | add_source                                 | Specify access from any source protocol, address, and port                                             |
+| securityRule             | add_source_any                             | Specify access from any address and any port                                                           |
+| securityRule             | add_source_address                         | Specify access from a specific address and any port                                                    |
+| securityRule             | add_source_application_security_group      | Specify access from an application security group                                                      |
+| securityRule             | add_source_network                         | Specify access from a specific network and any port                                                    |
+| securityRule             | add_source_tag                             | Specify access from a tagged source such as "Internet", "VirtualNetwork", or "AzureLoadBalancer"       |
+| securityRule             | add_destination                            | Specify access to any source protocol, address, and port                                               |
+| securityRule             | add_destination_any                        | Specify access to any address and any port                                                             |
+| securityRule             | add_destination_address                    | Specify access to a specific address and any port                                                      |
+| securityRule             | add_destination_application_security_group | Specify access to an application security group                                                        |
+| securityRule             | add_destination_network                    | Specify access from a specific network and any port                                                    |
+| securityRule             | add_destination_tag                        | Specify access to a tagged destination such as "Internet", "VirtualNetwork", or "AzureLoadBalancer"    |
+| securityRule             | allow                                      | Allows this traffic (the default)                                                                      |
+| securityRule             | deny                                       | Denies this traffic                                                                                    |
+| securityRule             | direction                                  | Specify the direction of traffic controlled by the rule - inbound (the default) or outbound.           |
+| securityRule             | priority                                   | Explicitly specify the priority of a security rule.                                                    |
+| securityRule             | link_to_network_security_group             | Specify the nsg when creating a security rule for an existing security group.                          |
+| applicationSecurityGroup | name                                       | Name of the Application Security Group.                                                                |
 
 #### Basic Example
 
@@ -86,7 +92,7 @@ let webAccess = securityRule {
     add_destination_network webNet
 }
 
-// Create another rule for app servers - accessible only from network with the web servers
+// Create another rule for app servers - accessible only from the network with the web servers
 let appAccess= securityRule {
     name "app-servers"
     description "Internal app server access"
@@ -95,7 +101,7 @@ let appAccess= securityRule {
     add_destination_network appNet
 }
 
-// Create another rule for DB servers - accessible only from network with the app servers
+// Create another rule for DB servers - accessible only from the network with the app servers
 let dbAccess = securityRule {
     name "db-servers"
     description "Internal database server access"

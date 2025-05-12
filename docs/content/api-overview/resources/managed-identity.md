@@ -9,6 +9,7 @@ weight: 13
 Managed Identity is used to create an identity that resources can run under automatically. This is similar to a service principal except that there is no credential to manage and the authorization token is retrieved through a secure internal handshake between the resource and the identity service in Azure.
 
 * User Assigned Identity (`Microsoft.ManagedIdentity/userAssignedIdentities`)
+* Federated Identity Credential (`Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials`)
 
 Using a managed identity as opposed to e.g. connection strings brings several benefits:
 
@@ -22,7 +23,7 @@ Once created, the managed identity resource can be referenced by other resources
 * Enable a resource to run *as* that identity
 * Enable a resource to grant permissions *to* that identity
 
-For example, you may wish to run a Virtual Machine or an Web App under a identity that you create, and then to *grant permissions* to that identity to allow reading from a storage account. You can define the permissions completely independently of the Virtual Machine or Web App.
+For example, you may wish to run a Virtual Machine or a Web App under an identity that you create, and then *grant permissions* to that identity to allow reading from a storage account. You can define the permissions completely independently of the Virtual Machine or Web App.
 
 {{<mermaid align="left">}}
 graph LR
@@ -40,7 +41,7 @@ A -. request made in this identiy .->C
 #### Identity Types in Azure
 Identities come in two flavours in Azure: *System* and *User* assigned.
 * **System Identities** are available whenever you create a resource, such as a VM. Each resource has its own system identity, and they cannot be shared across resources.
-* **User Identities** are created *by you*; they exist idependently of any resources and thus can be shared across them. In Farmer, the `userAssignedIdentity` builder can be used for this. You also need to "link" a user identity to the resource that you wish to be able to "run as" it.
+* **User Identities** are created *by you*; they exist independently of any resources and thus can be shared across them. In Farmer, the `userAssignedIdentity` builder can be used for this. You also need to "link" a user identity to the resource that you wish to be able to "run as" it.
 
 > User Assigned Identities are themselves ARM resources and need to be added to your Farmer `arm {}` blocks!
 
@@ -61,7 +62,7 @@ C -.grants permissions .-> B
 {{< /mermaid >}}
 
 #### User Assigned Identity Builder
-The `userAssignedIdentity` builder constructs user assigned managed identities which can be created and then assigned
+The `userAssignedIdentity` builder constructs user assigned managed identities, which can be created and then assigned
 to one or more resources.
 
 | Keyword | Purpose |
@@ -159,3 +160,29 @@ let deployment = arm {
 ```
 
 In this example, notice that we explicitly add the `sharedIdentity` resource to the `arm {}` block.
+
+#### Example: Federated Identity Credentials
+
+A federated identity credential allows the exchange of an OpenID Connect (OIDC) token for an Azure Entra ID token. The audience, issuer, and subject of the OIDC token are registered as a federated identity credential so that Entra ID will issue the access token. Federated identity credentials are a foundation for enabling workload identity federation and remove the need to manage client secrets when connecting to Azure resources for an OIDC identity provider.
+
+The example below creates a user assigned identity and then adds a federated identity credential to associate that identity with pull requests from a GitHub repository. This can be used to enable GitHub Actions to access Azure infrastructure under this identity.
+
+```fsharp
+open Farmer.Builders
+
+arm {
+    add_resources [
+        userAssignedIdentity {
+            name "cicd-msi"
+            add_federated_identity_credentials [
+                federatedIdentityCredential {
+                    name "gh-actions-cred"
+                    audience EntraIdAudience
+                    issuer "https://token.actions.githubusercontent.com"
+                    subject "repo:compositionalit/farmer:pull_request"
+                }
+            ]
+        }
+    ]
+}
+```

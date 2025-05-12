@@ -15,10 +15,11 @@ The Event Grid is a simple but powerful builder that links events from Azure ser
 |  Keyword | Purpose |
 |-|-|
 | topic_name | The name of the topic that will be created. |
-| source | The source of the events. See below for the full list of builder configurations that are supported. |
+| source | Optional, defaults to the current resource group. The source of the events. See below for the full list of builder configurations that are supported. |
 | add_queue_subscriber | Adds a new storage queue subscriber. Requires the storage account config that will receive the events, the queue name and the list of events to subscribe to. |
-| add_webhook_subscriber| Adds a new web hook (HTTP) subscriber. Requires the web app config that will receive the event, associated URI local path and the list of events to subscribe to. Also contains an overload that takes in a Web App name and the full Uri of the web hook. |
-| add_eventhub_subscriber| Adds a new event hub subscriber. Requiresthe event hub builder config that will receive the events and the list of events to subscribe to. |
+| add_webhook_subscriber| Adds a new webhook (HTTP) subscriber. Requires the web app config that will receive the event, associated URI local path and the list of events to subscribe to. Also contains an overload that takes in a Web App name and the full Uri of the webhook. |
+| add_eventhub_subscriber| Adds a new event hub subscriber. Requires the event hub builder config that will receive the events and the list of events to subscribe to. |
+| add_function_subscriber| Adds a new Azure Functions subscriber. Requires the function app, the handler name and the list of events to subscribe to. |
 
 ### Supported Sources
 Farmer supports the following Event Grid sources using Farmer builders:

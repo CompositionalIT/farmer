@@ -6,73 +6,45 @@ open EventGrid
 open Farmer.Arm.EventGrid
 open System
 
-type SubscriptionEvent =
-    interface
-    end
+type SubscriptionEvent = interface end
 
-type ResourceGroupEvent =
-    interface
-    end
+type ResourceGroupEvent = interface end
 
-type StorageEvent =
-    interface
-    end
+type StorageEvent = interface end
 
-type AppServiceConfigurationEvent =
-    interface
-    end
+type AppServiceConfigurationEvent = interface end
 
-type EventHubEvent =
-    interface
-    end
+type EventHubEvent = interface end
 
-type IoTHubEvent =
-    interface
-    end
+type IoTHubEvent = interface end
 
-type ServiceBusEvent =
-    interface
-    end
+type ServiceBusEvent = interface end
 
-type ContainerRegistryEvent =
-    interface
-    end
+type ContainerRegistryEvent = interface end
 
-type MediaServicesEvent =
-    interface
-    end
+type MediaServicesEvent = interface end
 
-type MapsEvent =
-    interface
-    end
+type MapsEvent = interface end
 
-type EventGridTopicEvent =
-    interface
-    end
+type EventGridTopicEvent = interface end
 
-type EventGridDomainEvent =
-    interface
-    end
+type EventGridDomainEvent = interface end
 
-type KeyVaultEvent =
-    interface
-    end
+type KeyVaultEvent = interface end
 
-type AppServiceEvent =
-    interface
-    end
+type AppServiceEvent = interface end
 
-type AppServicePlanEvent =
-    interface
-    end
+type AppServicePlanEvent = interface end
 
-type SignalRServiceEvent =
-    interface
-    end
+type SignalRServiceEvent = interface end
 
-type MachineLearningEvent =
-    interface
-    end
+type MachineLearningEvent = interface end
+
+type EndpointBatchConfig = {
+    MaxEventsPerBatch: uint
+    PreferredBatchSizeInKilobytes: uint
+}
+
 
 module SystemEvents =
     let toEvent<'T> : string -> EventGridEvent<'T> = EventGridEvent
@@ -181,76 +153,104 @@ module SystemEvents =
         let ClientConnectionDisconnected =
             toEvent<SignalRServiceEvent> "Microsoft.SignalRService.ClientConnectionDisconnected"
 
-type EventGridConfig<'T> =
-    {
-        TopicName: ResourceName
-        Source: ResourceName * TopicType
-        Subscriptions: {| Name: ResourceName
-                          Destination: ResourceName
-                          Endpoint: EndpointType
-                          SystemEvents: EventGridEvent<'T> list |} list
-        Tags: Map<string, string>
-    }
+    module Resources =
+        let ResourceActionCancel =
+            toEvent<ResourceGroupEvent> "Microsoft.Resources.ResourceActionCancel"
+
+        let ResourceActionFailure =
+            toEvent<ResourceGroupEvent> "Microsoft.Resources.ResourceActionFailure"
+
+        let ResourceActionSuccess =
+            toEvent<ResourceGroupEvent> "Microsoft.Resources.ResourceActionSuccess"
+
+        let ResourceDeleteCancel =
+            toEvent<ResourceGroupEvent> "Microsoft.Resources.ResourceDeleteCancel"
+
+        let ResourceDeleteFailure =
+            toEvent<ResourceGroupEvent> "Microsoft.Resources.ResourceDeleteFailure"
+
+        let ResourceDeleteSuccess =
+            toEvent<ResourceGroupEvent> "Microsoft.Resources.ResourceDeleteSuccess"
+
+        let ResourceWriteCancel =
+            toEvent<ResourceGroupEvent> "Microsoft.Resources.ResourceWriteCancel"
+
+        let ResourceWriteFailure =
+            toEvent<ResourceGroupEvent> "Microsoft.Resources.ResourceWriteFailure"
+
+        let ResourceWriteSuccess =
+            toEvent<ResourceGroupEvent> "Microsoft.Resources.ResourceWriteSuccess"
+
+type EventGridConfig<'T> = {
+    TopicName: ResourceName
+    Source: ResourceName * TopicType
+    Subscriptions:
+        {|
+            Name: ResourceName
+            Destination: ResourceName
+            Endpoint: EndpointType
+            SystemEvents: EventGridEvent<'T> list
+        |} list
+    Tags: Map<string, string>
+} with
 
     interface IBuilder with
         member this.ResourceId = systemTopics.resourceId this.TopicName
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.TopicName
-                    Location = location
-                    Source = fst this.Source
-                    TopicType = snd this.Source
-                    Tags = this.Tags
-                }
+        member this.BuildResources location = [
+            {
+                Name = this.TopicName
+                Location = location
+                Source = fst this.Source
+                TopicType = snd this.Source
+                Tags = this.Tags
+            }
 
-                for sub in this.Subscriptions do
-                    {
-                        Name = sub.Name
-                        Topic = this.TopicName
-                        Destination = sub.Destination
-                        DestinationEndpoint = sub.Endpoint
-                        Events = sub.SystemEvents
-                    }
-            ]
+            for sub in this.Subscriptions do
+                {
+                    Name = sub.Name
+                    Topic = this.TopicName
+                    Destination = sub.Destination
+                    DestinationEndpoint = sub.Endpoint
+                    Events = sub.SystemEvents
+                }
+        ]
 
 type EventGridBuilder() =
-    static member private ChangeTopic<'TNew>(state: EventGridConfig<_>, source, topic) : EventGridConfig<'TNew> =
-        {
-            TopicName = state.TopicName
-            Source = source, topic
-            Subscriptions = []
-            Tags = Map.empty
-        }
+    static member private ChangeTopic<'TNew>(state: EventGridConfig<_>, source, topic) : EventGridConfig<'TNew> = {
+        TopicName = state.TopicName
+        Source = source, topic
+        Subscriptions = []
+        Tags = Map.empty
+    }
 
     static member private AddSub(state: EventGridConfig<'T>, name, destination: ResourceName, endpoint, events) =
         let name = destination.Value + "-" + name
 
-        { state with
-            Subscriptions =
-                {|
-                    Name = ResourceName name
-                    Destination = destination
-                    Endpoint = endpoint
-                    SystemEvents = events
-                |}
-                :: state.Subscriptions
+        {
+            state with
+                Subscriptions =
+                    {|
+                        Name = ResourceName name
+                        Destination = destination
+                        Endpoint = endpoint
+                        SystemEvents = events
+                    |}
+                    :: state.Subscriptions
         }
 
-    member _.Yield _ =
-        {
-            TopicName = ResourceName.Empty
-            Source = ResourceName.Empty, TopicType(ResourceType("", ""), "")
-            Subscriptions = []
-            Tags = Map.empty
-        }
+    member _.Yield _ = {
+        TopicName = ResourceName.Empty
+        Source = ResourceName("[resourceGroup().name]"), Topics.ResourceGroup
+        Subscriptions = []
+        Tags = Map.empty
+    }
 
     [<CustomOperation "topic_name">]
-    member _.Name(state: EventGridConfig<'T>, name) =
-        { state with
+    member _.Name(state: EventGridConfig<'T>, name) = {
+        state with
             TopicName = ResourceName name
-        }
+    }
 
     [<CustomOperation "source">]
     member _.Source(state: EventGridConfig<_>, source: StorageAccountConfig) =
@@ -290,6 +290,42 @@ type EventGridBuilder() =
             events
         )
 
+    [<CustomOperation "add_function_subscriber">]
+    member _.AddFunctionSubscription
+        (
+            state: EventGridConfig<'T>,
+            fnApp: FunctionsConfig,
+            fnName: ResourceName,
+            batchConfig: EndpointBatchConfig,
+            events
+        ) =
+        let endpoint = {
+            ResourceId =
+                Farmer.Arm.Web.siteFunctions.resourceId (fnApp.Name.ResourceName, fnName)
+                |> Managed
+            MaxEventsPerBatch = batchConfig.MaxEventsPerBatch
+            PreferredBatchSizeInKilobytes = batchConfig.PreferredBatchSizeInKilobytes
+        }
+
+        EventGridBuilder.AddSub(state, $"{fnName.Value}-fn", fnApp.Name.ResourceName, AzureFunction endpoint, events)
+
+    [<CustomOperation "add_function_subscriber">]
+    member _.AddFunctionSubscription
+        (state: EventGridConfig<'T>, fnResourceId: LinkedResource, batchConfig: EndpointBatchConfig, events)
+        =
+        let fnName =
+            match fnResourceId.ResourceId with
+            | { Type = t; Segments = [ handlerName ] } when t = Arm.Web.siteFunctions -> handlerName
+            | _ -> failwith "Invalid Azure function resourceId, create one with Web.siteFunctions"
+
+        let endpoint = {
+            ResourceId = fnResourceId
+            MaxEventsPerBatch = batchConfig.MaxEventsPerBatch
+            PreferredBatchSizeInKilobytes = batchConfig.PreferredBatchSizeInKilobytes
+        }
+
+        EventGridBuilder.AddSub(state, $"{fnName.Value}-fn", fnResourceId.Name, AzureFunction endpoint, events)
+
     [<CustomOperation "add_webhook_subscriber">]
     member _.AddWebSubscription(state: EventGridConfig<'T>, webAppName: ResourceName, webHookEndpoint: Uri, events) =
         EventGridBuilder.AddSub(
@@ -305,11 +341,8 @@ type EventGridBuilder() =
 
     [<CustomOperation "add_eventhub_subscriber">]
     member _.AddEventHubSubscription
-        (
-            state: EventGridConfig<'T>,
-            eventHub: EventHubConfig,
-            events: EventGridEvent<_> list
-        ) =
+        (state: EventGridConfig<'T>, eventHub: EventHubConfig, events: EventGridEvent<_> list)
+        =
         EventGridBuilder.AddSub(
             state,
             eventHub.Name.Value + "-eventhub",
@@ -320,12 +353,7 @@ type EventGridBuilder() =
 
     [<CustomOperation "add_servicebus_queue_subscriber">]
     member _.AddServiceBusQueueSubscription
-        (
-            state: EventGridConfig<'T>,
-            bus: ServiceBusConfig,
-            queue: ServiceBusQueueConfig,
-            events: EventGridEvent<_> list
-        ) =
+        (state: EventGridConfig<'T>, bus: ServiceBusConfig, queue: ServiceBusQueueConfig, events: EventGridEvent<_> list) =
         let endpoint =
             { Queue = queue.Name; Bus = bus.Name }
             |> ServiceBusEndpointType.Queue
@@ -336,12 +364,7 @@ type EventGridBuilder() =
 
     [<CustomOperation "add_servicebus_topic_subscriber">]
     member _.AddServiceBusTopicSubscription
-        (
-            state: EventGridConfig<'T>,
-            bus: ServiceBusConfig,
-            topic: ServiceBusTopicConfig,
-            events: EventGridEvent<_> list
-        ) =
+        (state: EventGridConfig<'T>, bus: ServiceBusConfig, topic: ServiceBusTopicConfig, events: EventGridEvent<_> list) =
         let endpoint =
             { Topic = topic.Name; Bus = bus.Name }
             |> ServiceBusEndpointType.Topic
@@ -351,10 +374,10 @@ type EventGridBuilder() =
         EventGridBuilder.AddSub(state, name, topic.Name, endpoint, events)
 
     [<CustomOperation "add_tags">]
-    member _.Tags(state: EventGridConfig<'T>, pairs) =
-        { state with
+    member _.Tags(state: EventGridConfig<'T>, pairs) = {
+        state with
             Tags = pairs |> List.fold (fun map (key, value) -> Map.add key value map) state.Tags
-        }
+    }
 
     [<CustomOperation "add_tag">]
     member this.Tag(state: EventGridConfig<'T>, key, value) = this.Tags(state, [ (key, value) ])

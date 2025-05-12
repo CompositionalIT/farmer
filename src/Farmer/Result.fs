@@ -24,6 +24,9 @@ module Result =
         | Ok s -> Some s
         | Error _ -> None
 
+    let defaultValue defaultValue =
+        toOption >> Option.defaultValue defaultValue
+
     let ignore result = Result.map ignore result
 
     let sequence results =
@@ -36,7 +39,7 @@ module Result =
             | Error result -> failures.Add result
 
         if failures.Count > 0 then
-            Error failures.[0]
+            Error failures[0]
         else
             Ok(successes.ToArray())
 

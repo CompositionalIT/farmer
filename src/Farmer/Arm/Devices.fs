@@ -23,97 +23,88 @@ type Sku =
     member this.Name =
         match this with
         | Free -> "F1"
-        | Paid (name, _) -> name
+        | Paid(name, _) -> name
 
     member this.Capacity =
         match this with
         | Free -> 1
-        | Paid (_, capacity) -> capacity
+        | Paid(_, capacity) -> capacity
 
-type DeliveryDetails =
-    {| Ttl: IsoDateTime option
-       LockDuration: IsoDateTime option
-       MaxDeliveryCount: int option |}
+type DeliveryDetails = {|
+    Ttl: IsoDateTime option
+    LockDuration: IsoDateTime option
+    MaxDeliveryCount: int option
+|}
 
-let serialize (d: DeliveryDetails) =
-    {|
-        ttlAsIso8601 = d.Ttl |> Option.map (fun f -> f.Value) |> Option.toObj
-        lockDurationAsIso8601 = d.LockDuration |> Option.map (fun f -> f.Value) |> Option.toObj
-        maxDeliveryCount = d.MaxDeliveryCount |> Option.toNullable
-    |}
+let serialize (d: DeliveryDetails) = {|
+    ttlAsIso8601 = d.Ttl |> Option.map _.Value |> Option.toObj
+    lockDurationAsIso8601 = d.LockDuration |> Option.map _.Value |> Option.toObj
+    maxDeliveryCount = d.MaxDeliveryCount |> Option.toNullable
+|}
 
-type iotHubs =
-    {
-        Name: ResourceName
-        Location: Location
-        Sku: Sku
-        RetentionDays: int option
-        PartitionCount: int option
-        DefaultTtl: IsoDateTime option
-        MaxDeliveryCount: int option
-        Feedback: DeliveryDetails option
-        FileNotifications: DeliveryDetails option
-        Tags: Map<string, string>
-    }
+type iotHubs = {
+    Name: ResourceName
+    Location: Location
+    Sku: Sku
+    RetentionDays: int option
+    PartitionCount: int option
+    DefaultTtl: IsoDateTime option
+    MaxDeliveryCount: int option
+    Feedback: DeliveryDetails option
+    FileNotifications: DeliveryDetails option
+    Tags: Map<string, string>
+} with
 
     interface IArmResource with
         member this.ResourceId = iotHubs.resourceId this.Name
 
-        member this.JsonModel =
-            {| iotHubs.Create(this.Name, this.Location, tags = this.Tags) with
-                properties =
-                    {|
-                        eventHubEndpoints =
-                            match this.RetentionDays, this.PartitionCount with
-                            | None, None -> null
-                            | _ ->
-                                box
-                                    {|
-                                        events =
-                                            {|
-                                                retentionTimeInDays = this.RetentionDays |> Option.toNullable
-                                                partitionCount = this.PartitionCount |> Option.toNullable
-                                            |}
-                                    |}
-                        cloudToDevice =
-                            match this with
-                            | {
-                                  DefaultTtl = None
-                                  MaxDeliveryCount = None
-                                  Feedback = None
-                              } -> null
-                            | _ ->
-                                box
-                                    {|
-                                        defaultTtlAsIso8601 =
-                                            this.DefaultTtl |> Option.map (fun v -> v.Value) |> Option.toObj
-                                        maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
-                                        feedback = this.Feedback |> Option.map (serialize >> box) |> Option.toObj
-                                    |}
-                        messagingEndpoints =
-                            this.FileNotifications
-                            |> Option.map (fun fileNotifications ->
-                                box
-                                    {|
-                                        fileNotifications = fileNotifications |> serialize
-                                    |})
-                            |> Option.toObj
-                    |}
-                sku =
-                    {|
-                        name = this.Sku.Name
-                        capacity = this.Sku.Capacity
-                    |}
-            |}
+        member this.JsonModel = {|
+            iotHubs.Create(this.Name, this.Location, tags = this.Tags) with
+                properties = {|
+                    eventHubEndpoints =
+                        match this.RetentionDays, this.PartitionCount with
+                        | None, None -> null
+                        | _ ->
+                            box {|
+                                events = {|
+                                    retentionTimeInDays = this.RetentionDays |> Option.toNullable
+                                    partitionCount = this.PartitionCount |> Option.toNullable
+                                |}
+                            |}
+                    cloudToDevice =
+                        match this with
+                        | {
+                              DefaultTtl = None
+                              MaxDeliveryCount = None
+                              Feedback = None
+                          } -> null
+                        | _ ->
+                            box {|
+                                defaultTtlAsIso8601 = this.DefaultTtl |> Option.map _.Value |> Option.toObj
+                                maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
+                                feedback = this.Feedback |> Option.map (serialize >> box) |> Option.toObj
+                            |}
+                    messagingEndpoints =
+                        this.FileNotifications
+                        |> Option.map (fun fileNotifications ->
+                            box {|
+                                fileNotifications = fileNotifications |> serialize
+                            |})
+                        |> Option.toObj
+                |}
+                sku = {|
+                    name = this.Sku.Name
+                    capacity = this.Sku.Capacity
+                |}
+        |}
 
-type ProvisioningServices =
-    {
-        Name: ResourceName
-        Location: Location
-        IotHubName: ResourceName
-        IotHubKey: ArmExpression
-        Tags: Map<string, string>
-    }
+type ProvisioningServices = {
+    Name: ResourceName
+    Location: Location
+    IotHubName: ResourceName
+    IotHubKey: ArmExpression
+    Tags: Map<string, string>
+} with
 
     member this.IotHubConnection =
         ArmExpression.create
@@ -124,18 +115,16 @@ type ProvisioningServices =
     interface IArmResource with
         member this.ResourceId = provisioningServices.resourceId this.Name
 
-        member this.JsonModel =
-            {| provisioningServices.Create(this.Name, this.Location, [ iotHubs.resourceId this.IotHubName ], this.Tags) with
+        member this.JsonModel = {|
+            provisioningServices.Create(this.Name, this.Location, [ iotHubs.resourceId this.IotHubName ], this.Tags) with
                 sku = {| name = "S1"; capacity = 1 |}
-                properties =
-                    {|
-                        iotHubs =
-                            [
-                                {|
-                                    connectionString = this.IotHubConnection.Eval()
-                                    location = this.Location.ArmValue
-                                    name = this.IotHubPath
-                                |}
-                            ]
-                    |}
-            |}
+                properties = {|
+                    iotHubs = [
+                        {|
+                            connectionString = this.IotHubConnection.Eval()
+                            location = this.Location.ArmValue
+                            name = this.IotHubPath
+                        |}
+                    ]
+                |}
+        |}

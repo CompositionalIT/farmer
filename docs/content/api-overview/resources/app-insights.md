@@ -19,7 +19,7 @@ The App Insights builder is used to create Application Insights accounts. Use th
 | name | Sets the name of the App Insights instance. |
 | disable_ip_masking | Disable IP masking. |
 | sampling_percentage | Define sampling percentage (0-100) |
-| log_analytics_workspace | Use a Log Analytics workspace as the backing store for this AI instance. You can supply either a Farmer-generate Log Analytics`WorkspaceConfig` instance that exists in the same resource group, or a fully-qualified Resource ID path to that instance. This will also switch the AI instance over to creating a "workspace enabled" AI instance. |
+| log_analytics_workspace | Use a Log Analytics workspace as the backing store for this AI instance. You can supply either a Farmer-generate Log Analytics`WorkspaceConfig` instance that exists in the same resource group, or a fully-qualified Resource ID path to that instance. This will also switch the AI instance over to create a "workspace enabled" AI instance. |
 
 #### Configuration Members
 

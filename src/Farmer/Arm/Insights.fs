@@ -14,24 +14,23 @@ let componentsWorkspace = createComponents "2020-02-02"
 /// The type of AI instance to create.
 type InstanceKind =
     | Classic
-    | Workspace of ResourceId
+    | Workspace of workspace: ResourceId
 
     member this.ResourceType =
         match this with
         | Classic -> components
         | Workspace _ -> componentsWorkspace
 
-type Components =
-    {
-        Name: ResourceName
-        Location: Location
-        LinkedWebsite: ResourceName option
-        DisableIpMasking: bool
-        SamplingPercentage: int
-        InstanceKind: InstanceKind
-        Tags: Map<string, string>
-        Dependencies: ResourceId Set
-    }
+type Components = {
+    Name: ResourceName
+    Location: Location
+    LinkedWebsite: ResourceName option
+    DisableIpMasking: bool
+    SamplingPercentage: int
+    InstanceKind: InstanceKind
+    Tags: Map<string, string>
+    Dependencies: ResourceId Set
+} with
 
     interface IArmResource with
         member this.ResourceId = components.resourceId this.Name
@@ -46,10 +45,10 @@ type Components =
                     )
                 | None -> this.Tags
 
-            {| this.InstanceKind.ResourceType.Create(this.Name, this.Location, this.Dependencies, tags) with
-                kind = "web"
-                properties =
-                    {|
+            {|
+                this.InstanceKind.ResourceType.Create(this.Name, this.Location, this.Dependencies, tags) with
+                    kind = "web"
+                    properties = {|
                         name = this.Name.Value
                         Application_Type = "web"
                         ApplicationId =

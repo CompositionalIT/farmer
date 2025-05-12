@@ -34,8 +34,8 @@ type ContainerRegistryConfig =
 
 The `IBuilder` interface has two members:
 
-1. `ResourceId` - a field that is the *identifying path* of the resource (including resource type, version, and name). It's used by Farmer when setting dependencies between multiple resources and for emitting the appropriate JSON. If you builder has several ARM resources, it should return the "main" resource in the builder that others would depend upon.
-2. `BuildResources` - a function takes the location that the resources should be deployed to, and should return the list of `IArmResource` resources that must be created - this is normally a relatively simple mapping. For more complex builders e.g. one which represent multiple `IArmResource` objects, your `BuildResources` function will emit a *list* of IArmResources.
+1. `ResourceId` - a field that is the *identifying path* of the resource (including resource type, version, and name). It's used by Farmer when setting dependencies between multiple resources and for emitting the appropriate JSON. If your builder has several ARM resources, it should return the "main" resource in the builder that others would depend upon.
+2. `BuildResources` - a function takes the location that the resources should be deployed to, and should return the list of `IArmResource` resources that must be created - this is normally a relatively simple mapping. For more complex builders e.g. one which represents multiple `IArmResource` objects, your `BuildResources` function will emit a *list* of IArmResources.
 
 > It's tempting to suggest simply applying `IBuilder` directly onto the `IArmResource`. You *could* probably do this, but the separation and clarity provided here is an important step, and gives freedom in the future to diverge the shapes of the builder and the underlying resource.
 

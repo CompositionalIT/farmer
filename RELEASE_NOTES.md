@@ -1,6 +1,182 @@
 Release Notes
 =============
 
+## 1.9.13
+* Subnets: Support for `disable_outbound_access`.
+* Public IP Addresses and Load Balancers: drop `Basic` SKU, support zones.
+
+## 1.9.12
+* AKS Cluster: Add link_to_kubelet_identity
+* VMSS overprovisioning controls
+
+## 1.9.11
+* VM extensions: support for auto-upgrades and initial version
+
+## 1.9.10
+* Application Gateways: Adds SSL Certificates
+* Network Security Groups: use ARM expressions in security rules
+* Gallery Applications: `source_media_link` can be an ARM expression
+
+## 1.9.9
+* Virtual Machines: support for Azure Linux 3.0
+* Virtual Machines: support for Standard SKU Public IP Address
+* Galleries: support for Gallery Applications to distribute applications for Virtual Machines and Virtual Machine Scale Sets
+
+## 1.9.8
+* AKS Cluster: support for node pool availability zones
+
+## 1.9.7
+* AKS Cluster: support for Sku and Tier. Support for pod subnet in agent pool config. Support for node pool autoscaling
+* CosmosDB: Add support for Gremlin Graphs
+* Virtual Machines: Support gallery references for VMs (`operating_system`)
+* Virtual Machines and VMSS: Support for security profile options (#1163)
+
+## 1.9.6
+- Network Interface: Support for adding Network Security Group (NSG) to Network Interface (NIC)
+
+## 1.9.5
+* Fix an issue with Access Policies that allows non-string sequences to be supplied for user / group lookups.
+* Virtual Network: Specify the route table for a subnet.
+
+## 1.9.4
+* Network Security Groups: Use a common protocol in security rules with multiple sources. Defaults to Any if sources use different protocols.
+
+## 1.9.3
+* Deployments: Default to resource group location rather than West Europe.
+* SQL Azure: Clean up Entra ID authentication support.
+* Web App: Support automatic creation of Workspace Based App Insights & Log Analytics.
+* Functions: Support automatic creation of Workspace Based App Insights & Log Analytics.
+* Az: Update `ad` commands to work with latest (breaking) structure.
+* PostgreSQL: Fix a number of issues around the introduction of Flexible Servers.
+
+
+## 1.9.2
+* Container Apps: Fix to container registry credential to not emit a secret for a managed identity.
+* Container Groups: followup to #ff78f202dc - expand DNS config validation for profile-less vnet.
+
+## 1.9.1
+* Managed Clusters (AKS): Support for workload identity, OIDC issuer, image cleaner, and Defender.
+* Managed Clusters (AKS): Default to use MSI for the service principal profile to align with CLI and Portal.
+* User Assigned Identities: Support for `depends_on`.
+
+## 1.9.0
+* PostgreSQL: Support for Flexible Servers.
+* Virtual Machines: Includes Ubuntu 24.04 LTS images.
+
+## 1.8.13
+* PostgreSQL: Use the correct ResourceId (used in e.g. depends_on calls)
+* Storage: add plural `add_blob_containers`, `add_public_containers`, `add_private_containers`, `add_file_shares`, `add_file_shares_with_quota` and `add_queues (string seq)`.
+* Storage: fix quadratic complexity in `add_queues (StorageQueueConfig seq)`.
+
+## 1.8.12
+* App Service: Automatic support for App Insights on Linux.
+* LoadBalancer: Linking BackendAddressPool IPs to subnets instead of vnets if configured.
+
+## 1.8.11
+* Service Bus: Added support for setting max message size.
+* Storage accounts: Added support for setting https traffic only.
+* WebApp: Add new Premium V3 SKUs: Entry level SKU: `P0V3`, and memory optimised SKUs: `P1MV3, P2MV3, P3MV3, P4MV3, P5MV3`.
+
+## 1.8.10
+* Functions: Added support for setting max scale out limit.
+
+## 1.8.9
+* Managed Identity: Support for federated identity credentials.
+
+## 1.8.8
+* Storage accounts: restrict_to_ips to support a list of IPs.
+* Virtual Machines: Adds [CBL Mariner 2.0](https://microsoft.github.io/CBL-Mariner/docs/) images.
+
+## 1.8.7
+* B2C Tenants: Support for creating B2C Tenants.
+
+## 1.8.6
+* Route Server: Custom name support for Route Server Public IP.
+
+## 1.8.5
+* Route Server: int64 support for `peerAsn` on BGP connection.
+
+## 1.8.4
+* Autoscale Settings: Adds support for defining autoscale settings for VM scale sets.
+
+## 1.8.3
+* Functions: Dotnet 8: Added missing DotNet80Isolated option to fully support functions
+
+## 1.8.2
+* Virtual Machines: Adds Ubuntu 20.04 ARM 64, 22.04 ARM 64, 23.04, 23.04 ARM 64, 23.10, 23.10 ARM 64
+* Virtual Machines: Adds ARM 64 VM sizes.
+* WebApps/Functions: Dotnet 8: Added runtime support for functions
+
+## 1.8.1
+* Bastion Hosts: Supports advanced settings for bastion hosts, such as native client tunneling.
+* Virtual Machines and Scale Sets: Support for deploying gallery applications to a VM or VM Scale Set.
+
+## 1.8.0
+* Load Balancer: Generate an IPv6 public IP address using the `ip_v6` option.
+* Network Security Groups: Support for [application security groups](https://learn.microsoft.com/azure/virtual-network/application-security-groups).
+* Subnets: Support for multiple prefixes as needed for dual-stack IPv6 and IPv4.
+* Virtual Machine Scale Sets: Support for VM Scale Sets.
+* Virtual Machines: Support for adding an additional 'ip_v6' IP configuration.
+* Virtual Machines: Assign VM to an application security group.
+
+## 1.7.31
+* Subnets: Support for `depends_on` when defining standalone subnets.
+
+## 1.7.30
+* Docker Images: Support parsing of tags with one or more colons in tag name.
+* Private DNS Zones: Support linking a Private DNS Zone to a Virtual Network to provide DNS resolution within the vnet.
+* DNS Zones: Enable tagging the DNS Zone resource.
+
+## 1.7.29
+* Bug fix - Add Container Group extensions object under properties block of Container Group
+
+## 1.7.28
+* Container Groups: Add support for extensions used by virtual kubelet
+
+## 1.7.27
+* Action Groups: Adds support for action groups to perform actions when alerts fire.
+* Functions: AzureWebJobsDashboard setting is only added for a V1 Function app
+* Functions: Add the correct netFrameworkVersion to the template based on the runtime version
+
+## 1.7.26
+* Container Apps: Add support for Dapr components
+* Route Servers: Support 'depends_on' for routeServerBGPConnection.
+* WebApps: When creating keyvault secrets for web app appsettings replace characters unsupported in keyvault secret names with `-`
+* Functions: Add the correct netFrameworkVersion to the template based on the runtime version
+
+## 1.7.25
+* Container Apps: Fix storage queue KEDA scaling rule authentication
+* Network Security Groups: Fix bug where a SecurityRule without a source throws a meaningful exception
+* Network Security Groups: Add rule to existing security group
+* Network Interface: Adds support for adding tags
+* Route server: Adds support for adding tags
+* SQL Azure: Adds support for AD admin
+* Storage Account Queues: Support for adding metadata
+
+## 1.7.24
+* Network Interface: Adds support for network interface creation.
+
+## 1.7.23
+* Route server: Adds support for route server creation.
+* Storage Accounts: Fixes scope of role assignments.
+
+## 1.7.22
+* AVS: Scripting subresource types.
+* EventGrid: ResourceGroup as a source and Azure Function as a target.
+
+## 1.7.21
+* Virtual Machines: Windows Server 2022 Datacenter.
+* WebApps: Default extension version updated from V3 to V4.
+
+## 1.7.20
+* Role Assignments: Unmanaged resouce role assignment scope.
+* SQL Azure: Use Capacity instead of SKU for DTU level of a pool.
+
+## 1.7.19
+* DNS: Adds private resolver and forwarding rulesets
+* PostgreSQL: Adds `FullyQualifiedDomainName` configuration member.
+* Virtual Machines: External diagnostics storage does not generate dependency
+
 ## 1.7.18
 * Disks: Create managed disks
 * Galleries: Create Galleries for sharing VM images.
@@ -99,7 +275,7 @@ Release Notes
 * App Insights: Add ConnectionString member.
 * Communication Services: **Breaking Changes**: Clean up and fix issues regarding naming and Location.
 * Communication Services: Add ConnectionString member.
-* Container Apps: Support for collections of env vars, fix ACR credentials linking 
+* Container Apps: Support for collections of env vars, fix ACR credentials linking
 * Deployments: Use vault-secrets from unmanaged resource groups
 * Event Hub: Don't create the `$Default` consumer group explicitly. It will automatically be created by Azure when the resource is created.
 * SignalR: Add ConnectionString member.

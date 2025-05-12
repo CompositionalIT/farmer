@@ -71,6 +71,9 @@ module LocationExtensions =
         static member NorwayEast = Location "NorwayEast"
         static member Global = Location "global"
 
+        static member ResourceGroup =
+            LocationExpression(ArmExpression.create "resourceGroup().location")
+
 [<AutoOpen>]
 module DataLocationExtensions =
     type DataLocation with
@@ -132,6 +135,12 @@ type TlsVersion =
     | Tls11
     | Tls12
 
+    member this.ArmValue =
+        match this with
+        | Tls10 -> "1.0"
+        | Tls11 -> "1.1"
+        | Tls12 -> "1.2"
+
 /// Represents an environment variable that can be set, typically on Docker container services.
 type EnvVar =
     /// Use for non-secret environment variables. These will be stored in cleartext in the ARM template.
@@ -151,6 +160,7 @@ type EnvVar =
 
 module Mb =
     let toBytes (mb: int<Mb>) = int64 mb * 1024L * 1024L
+    let toGb (mb: int<Mb>) = (mb / 1024<Mb>) * 1<Gb>
 
 module Route =
     type HopType =
@@ -207,6 +217,25 @@ module DedicatedHosts =
             | WindowsPerpetual -> "Windows_Server_Perpetual"
 
 module Vm =
+
+    type VmProxyAgentMode =
+        | Audit
+        | Enforce
+
+        member this.ArmValue =
+            match this with
+            | Audit -> "Audit"
+            | Enforce -> "Enforce"
+
+    type VmSecurityType =
+        | ConfidentialVM
+        | TrustedLaunch
+
+        member this.ArmValue =
+            match this with
+            | ConfidentialVM -> "ConfidentialVM"
+            | TrustedLaunch -> "TrustedLaunch"
+
     type VMSize =
         | Basic_A0
         | Basic_A1
@@ -279,6 +308,7 @@ module Vm =
         | Standard_D16d_v5
         | Standard_D16ds_v4
         | Standard_D16ds_v5
+        | Standard_D16ps_v5
         | Standard_D16s_v3
         | Standard_D16s_v4
         | Standard_D16s_v5
@@ -295,6 +325,7 @@ module Vm =
         | Standard_D2d_v5
         | Standard_D2ds_v4
         | Standard_D2ds_v5
+        | Standard_D2ps_v5
         | Standard_D2s_v3
         | Standard_D2s_v4
         | Standard_D2s_v5
@@ -311,6 +342,7 @@ module Vm =
         | Standard_D32d_v5
         | Standard_D32ds_v4
         | Standard_D32ds_v5
+        | Standard_D32ps_v5
         | Standard_D32s_v3
         | Standard_D32s_v4
         | Standard_D32s_v5
@@ -330,6 +362,7 @@ module Vm =
         | Standard_D48d_v5
         | Standard_D48ds_v4
         | Standard_D48ds_v5
+        | Standard_D48ps_v5
         | Standard_D48s_v3
         | Standard_D48s_v4
         | Standard_D48s_v5
@@ -341,6 +374,7 @@ module Vm =
         | Standard_D4d_v5
         | Standard_D4ds_v4
         | Standard_D4ds_v5
+        | Standard_D4ps_v5
         | Standard_D4s_v3
         | Standard_D4s_v4
         | Standard_D4s_v5
@@ -356,6 +390,7 @@ module Vm =
         | Standard_D64d_v5
         | Standard_D64ds_v4
         | Standard_D64ds_v5
+        | Standard_D64ps_v5
         | Standard_D64s_v3
         | Standard_D64s_v4
         | Standard_D64s_v5
@@ -370,6 +405,7 @@ module Vm =
         | Standard_D8d_v5
         | Standard_D8ds_v4
         | Standard_D8ds_v5
+        | Standard_D8ps_v5
         | Standard_D8s_v3
         | Standard_D8s_v4
         | Standard_D8s_v5
@@ -768,6 +804,14 @@ module Vm =
             | CustomImage c -> c
             | _ -> this.ToString()
 
+        /// The convention for compute SKU is that they are named starting with the tier,
+        /// followed by an underscore, then the rest of the VM hardware. This gets just the tier.
+        member this.Tier =
+            if isNull this.ArmValue then
+                null
+            else
+                this.ArmValue.Split('_') |> Array.head
+
     type Offer =
         | Offer of string
 
@@ -789,21 +833,34 @@ module Vm =
             match this with
             | ImageSku i -> i
 
-    type ImageDefinition =
-        {
-            Offer: Offer
-            Publisher: Publisher
-            Sku: VmImageSku
-            OS: OS
-        }
+    type ImageDefinition = {
+        Offer: Offer
+        Publisher: Publisher
+        Sku: VmImageSku
+        OS: OS
+    }
 
-    let makeVm os offer publisher sku =
-        {
-            Offer = Offer offer
-            Publisher = Publisher publisher
-            OS = os
-            Sku = ImageSku sku
-        }
+    type GalleryImageId =
+        | SharedGalleryImageId of gallery: ResourceName * image: ResourceName * version: string
+        | CommunityGalleryImageId of gallery: ResourceName * image: ResourceName * version: string
+
+        member this.ArmValue =
+            match this with
+            | SharedGalleryImageId(ResourceName gallery, ResourceName image, version) ->
+                $"/SharedGalleries/{gallery}/Images/{image}/Versions/{version}"
+            | CommunityGalleryImageId(ResourceName gallery, ResourceName image, version) ->
+                $"/CommunityGalleries/{gallery}/Images/{image}/Versions/{version}"
+
+    type ImageInfo =
+        | ImageDefinition of ImageDefinition
+        | GalleryImageRef of OS * GalleryImageId
+
+    let makeVm os offer publisher sku = {
+        Offer = Offer offer
+        Publisher = Publisher publisher
+        OS = os
+        Sku = ImageSku sku
+    }
 
     let makeWindowsVm = makeVm Windows "WindowsServer" "MicrosoftWindowsServer"
     let makeLinuxVm = makeVm Linux
@@ -819,15 +876,72 @@ module Vm =
     let UbuntuServer_2004LTS =
         makeLinuxVm "0001-com-ubuntu-server-focal" "canonical" "20_04-lts-gen2"
 
+    let UbuntuServer_2004LTSArm =
+        makeLinuxVm "0001-com-ubuntu-server-focal" "canonical" "20_04-lts-arm64"
+
     let UbuntuServer_2204LTS =
         makeLinuxVm "0001-com-ubuntu-server-jammy" "canonical" "22_04-lts-gen2"
 
+    let UbuntuServer_2204LTSArm =
+        makeLinuxVm "0001-com-ubuntu-server-jammy" "canonical" "22_04-lts-arm64"
+
+    let UbuntuServer_2304 =
+        makeLinuxVm "0001-com-ubuntu-server-lunar" "canonical" "23_04-gen2"
+
+    let UbuntuServer_2304Arm =
+        makeLinuxVm "0001-com-ubuntu-server-lunar" "canonical" "23_04-arm64"
+
+    let UbuntuServer_2310 =
+        makeLinuxVm "0001-com-ubuntu-server-mantic" "canonical" "23_10-gen2"
+
+    let UbuntuServer_2310Arm =
+        makeLinuxVm "0001-com-ubuntu-server-mantic" "canonical" "23_10-arm64"
+
+    let UbuntuServer_2404LTS = makeLinuxVm "ubuntu-24_04-lts" "canonical" "server"
+
+    let UbuntuServer_2404LTSArm =
+        makeLinuxVm "ubuntu-24_04-lts" "canonical" "server-arm64"
+
+    let Mariner_2 = makeLinuxVm "cbl-mariner" "MicrosoftCBLMariner" "cbl-mariner-2-gen2"
+
+    let Mariner_2Arm =
+        makeLinuxVm "cbl-mariner" "MicrosoftCBLMariner" "cbl-mariner-2-arm64"
+
+    let Mariner_2_Fips =
+        makeLinuxVm "cbl-mariner" "MicrosoftCBLMariner" "cbl-mariner-2-gen2-fips"
+
+    // Aliasing Azure Linux 2 to Mariner 2 since rebranding.
+    let AzureLinux_2 = Mariner_2
+
+    let AzureLinux_2Arm = Mariner_2Arm
+
+    let AzureLinux_2Fips = Mariner_2_Fips
+
+    let AzureLinux_3 =
+        makeLinuxVm "azure-linux-3" "MicrosoftCBLMariner" "azure-linux-3-gen2"
+
+    let AzureLinux_3Arm =
+        makeLinuxVm "azure-linux-3" "MicrosoftCBLMariner" "azure-linux-3-arm64"
+
+    let WindowsServer_2022DatacenterAzureEdition =
+        makeWindowsVm "2022-datacenter-azure-edition"
+
+    let WindowsServer_2022Datacenter = makeWindowsVm "2022-datacenter-g2"
     let WindowsServer_2019Datacenter = makeWindowsVm "2019-Datacenter"
     let WindowsServer_2016Datacenter = makeWindowsVm "2016-Datacenter"
     let WindowsServer_2012R2Datacenter = makeWindowsVm "2012-R2-Datacenter"
     let WindowsServer_2012Datacenter = makeWindowsVm "2012-Datacenter"
     let WindowsServer_2008R2SP1 = makeWindowsVm "2008-R2-SP1"
     let Windows10Pro = makeVm Windows "Windows-10" "MicrosoftWindowsDesktop" "20h2-pro"
+
+    type VmGalleryApplication = {
+        ConfigurationReference: string option
+        EnableAutomaticUpgrade: bool option
+        Order: int option
+        PackageReferenceId: ResourceId
+        Tags: string option
+        TreatFailureAsDeploymentFailure: bool option
+    }
 
     /// The type of disk to use.
     type DiskType =
@@ -843,12 +957,31 @@ module Vm =
             match this with
             | x -> x.ToString()
 
+    type DiskPerformanceTier =
+        | P1
+        | P2
+        | P3
+        | P4
+        | P6
+        | P10
+        | P15
+        | P20
+        | P30
+        | P40
+        | P50
+        | P60
+        | P70
+        | P80
+
+        member this.ArmValue =
+            match this with
+            | x -> x.ToString()
+
     /// Represents a disk in a VM.
-    type DiskInfo =
-        {
-            Size: int
-            DiskType: DiskType
-        }
+    type DiskInfo = {
+        Size: int
+        DiskType: DiskType
+    } with
 
         member this.IsUltraDisk =
             match this.DiskType with
@@ -858,7 +991,7 @@ module Vm =
     /// VM OS disks can be created by attaching an existing disk or from a gallery image.
     type OsDiskCreateOption =
         | AttachOsDisk of OS * ManagedDiskId: LinkedResource
-        | FromImage of ImageDefinition * DiskInfo
+        | FromImage of ImageInfo * DiskInfo
 
     /// VM data disks can be created by attaching an existing disk or generating an empty disk.
     type DataDiskCreateOption =
@@ -895,6 +1028,32 @@ module Vm =
             | Low -> "Low"
             | Regular -> "Regular"
             | Spot _ -> "Spot"
+
+module VmScaleSet =
+
+    /// Policy rule options for scaling in a VM scale set.
+    type ScaleInPolicyRule =
+        | Default
+        | NewestVM
+        | OldestVM
+
+        member this.ArmValue =
+            match this with
+            | Default -> "Default"
+            | NewestVM -> "NewestVM"
+            | OldestVM -> "OldestVM"
+
+    /// Upgrade mode for using VM scale set upgrade policies.
+    type UpgradeMode =
+        | Automatic
+        | Manual
+        | Rolling
+
+        member this.ArmValue =
+            match this with
+            | Automatic -> "Automatic"
+            | Manual -> "Manual"
+            | Rolling -> "Rolling"
 
 module Image =
     type Architecture =
@@ -978,25 +1137,25 @@ module internal Validation =
             Ok()
 
     let startsWith (message, predicate) entity (s: string) =
-        if not (predicate s.[0]) then
+        if not (predicate s[0]) then
             Error $"%s{entity} must start with %s{message}"
         else
             Ok()
 
     let endsWith (message, predicate) entity (s: string) =
-        if not (predicate s.[s.Length - 1]) then
+        if not (predicate s[s.Length - 1]) then
             Error $"%s{entity} must end with %s{message}"
         else
             Ok()
 
     let cannotStartWith (message, predicate) entity (s: string) =
-        if predicate s.[0] then
+        if predicate s[0] then
             Error $"%s{entity} cannot start with %s{message}"
         else
             Ok()
 
     let cannotEndWith (message, predicate) entity (s: string) =
-        if predicate s.[s.Length - 1] then
+        if predicate s[s.Length - 1] then
             Error $"%s{entity} cannot end with %s{message}"
         else
             Ok()
@@ -1040,6 +1199,8 @@ module internal Validation =
 
     let lettersNumbersDashOrDot =
         "alphanumeric characters, a dash (-) or a dot (.)", Char.IsLetterOrDigit <|> (snd dash) <|> (snd dot)
+
+    let numbersOrDot = "numeric characters or the dot (.)", Char.IsDigit <|> (snd dot)
 
     let validate entity inputValue rules =
         rules
@@ -1140,6 +1301,94 @@ module Insights =
         static member SQL_DB_DTU = MetricsName "dtu_consumption_percent"
         static member SQL_DB_Size = MetricsName "storage_percent"
 
+    [<RequireQualifiedAccess>]
+    type DimensionOperator =
+        | Equals
+        | NotEquals
+
+        member this.ArmValue =
+            match this with
+            | Equals -> "Equals"
+            | NotEquals -> "NotEquals"
+
+    [<RequireQualifiedAccess>]
+    type MetricTriggerOperator =
+        | Equals
+        | GreaterThan
+        | GreaterThanOrEqual
+        | LessThan
+        | LessThanOrEqual
+        | NotEquals
+
+        member this.ArmValue =
+            match this with
+            | Equals -> "Equals"
+            | GreaterThan -> "GreaterThan"
+            | GreaterThanOrEqual -> "GreaterThanOrEqual"
+            | LessThan -> "LessThan"
+            | LessThanOrEqual -> "LessThanOrEqual"
+            | NotEquals -> "NotEquals"
+
+    [<RequireQualifiedAccess>]
+    type MetricTriggerStatistic =
+        | Average
+        | Count
+        | Max
+        | Min
+        | Sum
+
+        member this.ArmValue =
+            match this with
+            | Average -> "Average"
+            | Count -> "Count"
+            | Max -> "Max"
+            | Min -> "Min"
+            | Sum -> "Sum"
+
+    [<RequireQualifiedAccess>]
+    type MetricTriggerTimeAggregation =
+        | Average
+        | Count
+        | Last
+        | Maximum
+        | Minimum
+        | Total
+
+        member this.ArmValue =
+            match this with
+            | Average -> "Average"
+            | Count -> "Count"
+            | Last -> "Last"
+            | Maximum -> "Maximum"
+            | Minimum -> "Minimum"
+            | Total -> "Total"
+
+    [<RequireQualifiedAccess>]
+    type ScaleActionDirection =
+        | Decrease
+        | Increase
+        | None
+
+        member this.ArmValue =
+            match this with
+            | Decrease -> "Decrease"
+            | Increase -> "Increase"
+            | None -> "None"
+
+    [<RequireQualifiedAccess>]
+    type ScaleActionType =
+        | ChangeCount
+        | ExactCount
+        | PercentChangeCount
+        | ServiceAllowedNextValue
+
+        member this.ArmValue =
+            match this with
+            | ChangeCount -> "ChangeCount"
+            | ExactCount -> "ExactCount"
+            | PercentChangeCount -> "PercentChangeCount"
+            | ServiceAllowedNextValue -> "ServiceAllowedNextValue"
+
 module Storage =
     open Validation
 
@@ -1165,6 +1414,8 @@ module Storage =
     type StorageResourceName =
         private
         | StorageResourceName of ResourceName
+
+        static member internal Empty = StorageResourceName ResourceName.Empty
 
         static member Create name =
             [
@@ -1312,23 +1563,21 @@ module Storage =
             | PUT -> "PUT"
             | PATCH -> "PATCH"
 
-    type CorsRule =
-        {
-            AllowedOrigins: AllOrSpecific<Uri>
-            AllowedMethods: HttpMethod NonEmptyList
-            MaxAgeInSeconds: int
-            ExposedHeaders: AllOrSpecific<string>
-            AllowedHeaders: AllOrSpecific<string>
-        }
+    type CorsRule = {
+        AllowedOrigins: AllOrSpecific<Uri>
+        AllowedMethods: HttpMethod NonEmptyList
+        MaxAgeInSeconds: int
+        ExposedHeaders: AllOrSpecific<string>
+        AllowedHeaders: AllOrSpecific<string>
+    } with
 
-        static member AllowAll =
-            {
-                AllowedOrigins = All
-                AllowedMethods = HttpMethod.All
-                MaxAgeInSeconds = 0
-                ExposedHeaders = All
-                AllowedHeaders = All
-            }
+        static member AllowAll = {
+            AllowedOrigins = All
+            AllowedMethods = HttpMethod.All
+            MaxAgeInSeconds = 0
+            ExposedHeaders = All
+            AllowedHeaders = All
+        }
 
         /// Creates a new CORS rule with
         static member create(?allowedOrigins, ?allowedMethods, ?maxAgeInSeconds, ?exposedHeaders, ?allowedHeaders) =
@@ -1351,11 +1600,10 @@ module Storage =
 
     type RestorePolicy = DeleteRetentionPolicy
 
-    type LastAccessTimeTrackingPolicy =
-        {
-            Enabled: bool
-            TrackingGranularityInDays: int
-        }
+    type LastAccessTimeTrackingPolicy = {
+        Enabled: bool
+        TrackingGranularityInDays: int
+    }
 
     type ChangeFeed = { Enabled: bool; RetentionInDays: int }
 
@@ -1380,16 +1628,14 @@ type public IPAddressCidr = { Address: Net.IPAddress; Prefix: int }
 module IPAddressCidr =
     let parse (s: string) : IPAddressCidr =
         match s.Split([| '/' |], StringSplitOptions.RemoveEmptyEntries) with
-        | [| ip; prefix |] ->
-            {
-                Address = Net.IPAddress.Parse(ip.Trim())
-                Prefix = int prefix
-            }
-        | [| ip |] ->
-            {
-                Address = Net.IPAddress.Parse(ip.Trim())
-                Prefix = 32
-            }
+        | [| ip; prefix |] -> {
+            Address = Net.IPAddress.Parse(ip.Trim())
+            Prefix = int prefix
+          }
+        | [| ip |] -> {
+            Address = Net.IPAddress.Parse(ip.Trim())
+            Prefix = 32
+          }
         | _ -> raise (ArgumentOutOfRangeException "Malformed CIDR, expecting an IP and prefix separated by '/'")
 
     let safeParse (s: string) : Result<IPAddressCidr, Exception> =
@@ -1437,43 +1683,40 @@ module IPAddressCidr =
         }
 
     /// Carve a subnet out of an address space.
-    let carveAddressSpace (addressSpace: IPAddressCidr) (subnetSizes: int list) =
-        [
-            let addressSpaceStart, addressSpaceEnd = addressSpace |> ipRangeNums
-            let mutable startAddress = addressSpaceStart |> ofNum
-            let mutable index = 0
+    let carveAddressSpace (addressSpace: IPAddressCidr) (subnetSizes: int list) = [
+        let addressSpaceStart, addressSpaceEnd = addressSpace |> ipRangeNums
+        let mutable startAddress = addressSpaceStart |> ofNum
+        let mutable index = 0
 
-            for size in subnetSizes do
-                index <- index + 1
+        for size in subnetSizes do
+            index <- index + 1
 
-                let cidr =
-                    {
-                        Address = startAddress
+            let cidr = {
+                Address = startAddress
+                Prefix = size
+            }
+
+            let first, last = cidr |> ipRangeNums
+            let overlapping = first < (startAddress |> num)
+
+            let last, cidr =
+                if overlapping then
+                    let cidr = {
+                        Address = ofNum (last + 1u)
                         Prefix = size
                     }
 
-                let first, last = cidr |> ipRangeNums
-                let overlapping = first < (startAddress |> num)
-
-                let last, cidr =
-                    if overlapping then
-                        let cidr =
-                            {
-                                Address = ofNum (last + 1u)
-                                Prefix = size
-                            }
-
-                        let _, last = cidr |> ipRangeNums
-                        last, cidr
-                    else
-                        last, cidr
-
-                if last <= addressSpaceEnd then
-                    startAddress <- (last + 1u) |> ofNum
-                    cidr
+                    let _, last = cidr |> ipRangeNums
+                    last, cidr
                 else
-                    raise (IndexOutOfRangeException $"Unable to create subnet {index} of /{size}")
-        ]
+                    last, cidr
+
+            if last <= addressSpaceEnd then
+                startAddress <- (last + 1u) |> ofNum
+                cidr
+            else
+                raise (IndexOutOfRangeException $"Unable to create subnet {index} of /{size}")
+    ]
 
     /// The first two addresses are the network address and gateway address
     /// so not assignable.
@@ -1520,9 +1763,15 @@ module WebApp =
         static member P1V2 = PremiumV2 "P1V2"
         static member P2V2 = PremiumV2 "P2V2"
         static member P3V2 = PremiumV2 "P3V2"
+        static member P0V3 = PremiumV3 "P0V3"
         static member P1V3 = PremiumV3 "P1V3"
         static member P2V3 = PremiumV3 "P2V3"
         static member P3V3 = PremiumV3 "P3V3"
+        static member P1MV3 = PremiumV3 "P1MV3"
+        static member P2MV3 = PremiumV3 "P2MV3"
+        static member P3MV3 = PremiumV3 "P3MV3"
+        static member P4MV3 = PremiumV3 "P4MV3"
+        static member P5MV3 = PremiumV3 "P5MV3"
         static member EP1 = ElasticPremium "EP1"
         static member EP2 = ElasticPremium "EP2"
         static member EP3 = ElasticPremium "EP3"
@@ -1554,25 +1803,22 @@ module WebApp =
         | Allow
         | Deny
 
-    type IpSecurityRestriction =
-        {
-            Name: string
-            IpAddressCidr: IPAddressCidr
-            Action: IpSecurityAction
+    type IpSecurityRestriction = {
+        Name: string
+        IpAddressCidr: IPAddressCidr
+        Action: IpSecurityAction
+    } with
+
+        static member Create name cidr action = {
+            Name = name
+            IpAddressCidr = cidr
+            Action = action
         }
 
-        static member Create name cidr action =
-            {
-                Name = name
-                IpAddressCidr = cidr
-                Action = action
-            }
-
-    type VirtualApplication =
-        {
-            PhysicalPath: string
-            PreloadEnabled: bool option
-        }
+    type VirtualApplication = {
+        PhysicalPath: string
+        PreloadEnabled: bool option
+    }
 
     module Extensions =
         /// The Microsoft.AspNetCore.AzureAppServices logging extension.
@@ -1691,6 +1937,36 @@ module GalleryValidation =
         member this.ResourceName =
             match this with
             | GalleryName name -> name
+
+    type GalleryApplicationName =
+        private
+        | GalleryApplicationName of ResourceName
+
+        static member Create name =
+            [ containsOnly lettersNumbersDashOrDot; nonEmptyLengthBetween 1 80 ]
+            |> validate "Gallery Application Name" name
+            |> Result.map (ResourceName >> GalleryApplicationName)
+
+        static member internal Empty = GalleryApplicationName ResourceName.Empty
+
+        member this.ResourceName =
+            match this with
+            | GalleryApplicationName name -> name
+
+    type GalleryApplicationVersionName =
+        private
+        | GalleryApplicationVersionName of ResourceName
+
+        static member Create name =
+            [ containsOnly numbersOrDot; isNonEmpty ]
+            |> validate "Gallery Application Version Name" name
+            |> Result.map (ResourceName >> GalleryApplicationVersionName)
+
+        static member internal Empty = GalleryApplicationVersionName ResourceName.Empty
+
+        member this.ResourceName =
+            match this with
+            | GalleryApplicationVersionName name -> name
 
 module Search =
     type HostingMode =
@@ -1841,12 +2117,12 @@ module Sql =
         member this.Edition =
             match this with
             | DTU d -> d.Edition
-            | VCore (v, _) -> v.Edition
+            | VCore(v, _) -> v.Edition
 
         member this.Name =
             match this with
             | DTU d -> d.Name
-            | VCore (v, _) -> v.Name
+            | VCore(v, _) -> v.Name
 
     type PoolSku =
         | BasicPool of int
@@ -1924,15 +2200,14 @@ module Sql =
             match this with
             | SqlAccountName name -> name
 
-    type GeoReplicationSettings =
-        {
-            /// Suffix name for server and database name
-            NameSuffix: string
-            /// Replication location, different from the original one
-            Location: Farmer.Location
-            /// Override database Skus
-            DbSku: DtuSku option
-        }
+    type GeoReplicationSettings = {
+        /// Suffix name for server and database name
+        NameSuffix: string
+        /// Replication location, different from the original one
+        Location: Location
+        /// Override database Skus
+        DbSku: DtuSku option
+    }
 
 /// Represents a role that can be granted to an identity.
 type RoleId =
@@ -1941,7 +2216,7 @@ type RoleId =
     member this.ArmValue =
         match this with
         | RoleId roleId ->
-            $"concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '{roleId.Id}')"
+            $"subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '{roleId.Id}')"
             |> ArmExpression.create
 
     member this.Name =
@@ -1995,11 +2270,10 @@ module Identity =
         member this.ClientId = this.CreateExpression "clientId"
 
     /// Represents an identity that can be assigned to a resource for impersonation.
-    type ManagedIdentity =
-        {
-            SystemAssigned: FeatureFlag
-            UserAssigned: UserAssignedIdentity list
-        }
+    type ManagedIdentity = {
+        SystemAssigned: FeatureFlag
+        UserAssigned: UserAssignedIdentity list
+    } with
 
         member this.Dependencies =
             this.UserAssigned
@@ -2008,22 +2282,20 @@ module Identity =
                 | UserAssignedIdentity rid -> Some rid
                 | LinkedUserAssignedIdentity _ -> None)
 
-        static member Empty =
-            {
-                SystemAssigned = Disabled
-                UserAssigned = []
-            }
+        static member Empty = {
+            SystemAssigned = Disabled
+            UserAssigned = []
+        }
 
-        static member (+)(a, b) =
-            {
-                SystemAssigned = (a.SystemAssigned.AsBoolean || b.SystemAssigned.AsBoolean) |> FeatureFlag.ofBool
-                UserAssigned = a.UserAssigned @ b.UserAssigned |> List.distinct
-            }
+        static member (+)(a, b) = {
+            SystemAssigned = (a.SystemAssigned.AsBoolean || b.SystemAssigned.AsBoolean) |> FeatureFlag.ofBool
+            UserAssigned = a.UserAssigned @ b.UserAssigned |> List.distinct
+        }
 
-        static member (+)(managedIdentity, userAssignedIdentity: UserAssignedIdentity) =
-            { managedIdentity with
+        static member (+)(managedIdentity, userAssignedIdentity: UserAssignedIdentity) = {
+            managedIdentity with
                 UserAssigned = userAssignedIdentity :: managedIdentity.UserAssigned
-            }
+        }
 
 open Identity
 
@@ -2034,36 +2306,39 @@ module Containers =
 
         member this.ImageTag =
             match this with
-            | PrivateImage (registry, container, version) ->
+            | PrivateImage(registry, container, version) ->
                 let version = version |> Option.defaultValue "latest"
                 $"{registry}/{container}:{version}"
-            | PublicImage (container, version) ->
+            | PublicImage(container, version) ->
                 let version = version |> Option.defaultValue "latest"
                 $"{container}:{version}"
 
         /// Parses an image tag into a DockerImage record.
         static member Parse(tag: string) =
-            match tag.Split([| ':' |], StringSplitOptions.RemoveEmptyEntries) with
-            | [| repo; version |] ->
+            let firstColon = tag.IndexOf ':'
+
+            if firstColon >= 0 && firstColon < tag.Length then
+                let repo, version = tag.Substring(0, firstColon), tag.Substring(firstColon + 1)
+
                 match repo.Split([| '/' |], StringSplitOptions.RemoveEmptyEntries) |> List.ofArray with
                 | first :: rest when (first.Contains ".") ->
                     DockerImage.PrivateImage(first, (rest |> String.concat "/"), Version = Some version)
                 | _ -> DockerImage.PublicImage(repo, Version = Some version)
-            | [| repo |] ->
+            else
+                let repo = tag
+
                 match repo.Split([| '/' |], StringSplitOptions.RemoveEmptyEntries) |> List.ofArray with
                 | first :: rest when (first.Contains ".") ->
                     DockerImage.PrivateImage(first, (rest |> String.concat "/"), None)
                 | _ -> DockerImage.PublicImage(repo, None)
-            | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of version segments: '{tag}'"
 
 /// Credential for accessing an image registry.
-type ImageRegistryCredential =
-    {
-        Server: string
-        Username: string
-        Password: SecureParameter
-        Identity: ManagedIdentity
-    }
+type ImageRegistryCredential = {
+    Server: string
+    Username: string
+    Password: SecureParameter
+    Identity: ManagedIdentity
+}
 
 [<RequireQualifiedAccess>]
 type ImageRegistryAuthentication =
@@ -2133,6 +2408,52 @@ module ContainerService =
             match this with
             | Kubenet -> "kubenet"
             | AzureCni -> "azure"
+
+    [<RequireQualifiedAccess>]
+    type Sku =
+        | Automatic
+        | Base
+
+        member this.ArmValue =
+            match this with
+            | Automatic -> "Automatic"
+            | Base -> "Base"
+
+    [<RequireQualifiedAccess>]
+    type Tier =
+        | Free
+        | Standard
+        | Premium
+
+        member this.ArmValue =
+            match this with
+            | Free -> "Free"
+            | Standard -> "Standard"
+            | Premium -> "Premium"
+
+    type ContainerServiceSku = { Name: Sku; Tier: Tier }
+
+module B2cTenant =
+    type Sku =
+        | PremiumP1
+        | PremiumP2
+        | Standard
+
+    /// Check official documentation for more details: https://learn.microsoft.com/en-us/azure/active-directory-b2c/data-residency#data-residency
+    type B2cDataResidency =
+        | UnitedStates
+        | Europe
+        | AsiaPacific
+        | Japan
+        | Australia
+
+        member this.Location =
+            match this with
+            | UnitedStates -> Location "United States"
+            | Europe -> Location "Europe"
+            | AsiaPacific -> Location "Asia Pacific"
+            | Japan -> Location "Japan"
+            | Australia -> Location "Australia"
 
 module Redis =
     type Sku =
@@ -2320,6 +2641,24 @@ module ExpressRoute =
 
         member this.Value = this.ToString()
 
+module RouteServer =
+    type Sku =
+        | Basic
+        | Standard
+
+    type HubRoutingPreference =
+        | ExpressRoute
+        | VPN
+        | ASPath
+        | Nothing
+
+        member x.ArmValue =
+            match x with
+            | ExpressRoute -> "ExpressRoute"
+            | VPN -> "VPN"
+            | ASPath -> "AS Path"
+            | Nothing -> "None"
+
 [<AutoOpen>]
 module PrivateIpAddress =
     type AllocationMethod =
@@ -2329,12 +2668,10 @@ module PrivateIpAddress =
 module LoadBalancer =
     [<RequireQualifiedAccess>]
     type Sku =
-        | Basic
         | Standard
 
         member this.ArmValue =
             match this with
-            | Basic -> "Basic"
             | Standard -> "Standard"
 
     [<RequireQualifiedAccess>]
@@ -2373,6 +2710,24 @@ module LoadBalancer =
             | HTTP -> "Http"
             | HTTPS -> "Https"
 
+[<RequireQualifiedAccess>]
+type ApplicationHealthExtensionProtocol =
+    | TCP
+    | HTTP of Path: string
+    | HTTPS of Path: string
+
+    member this.ArmValue =
+        match this with
+        | TCP -> "tcp"
+        | HTTP _ -> "http"
+        | HTTPS _ -> "https"
+
+    member this.RequestPath =
+        match this with
+        | TCP -> None
+        | HTTP path -> Some path
+        | HTTPS path -> Some path
+
 module ApplicationGateway =
     [<RequireQualifiedAccess>]
     type Tier =
@@ -2408,12 +2763,11 @@ module ApplicationGateway =
             | WAF_Medium -> "WAF_Medium"
             | WAF_v2 -> "WAF_v2"
 
-    type ApplicationGatewaySku =
-        {
-            Name: Sku
-            Capacity: int option
-            Tier: Tier
-        }
+    type ApplicationGatewaySku = {
+        Name: Sku
+        Capacity: int option
+        Tier: Tier
+    }
 
     [<RequireQualifiedAccess>]
     type BackendAddress =
@@ -2667,7 +3021,7 @@ module VirtualNetworkGateway =
 
         member this.ArmValue =
             match this with
-            | ExpressRoute _ -> "ExpressRoute"
+            | ExpressRoute -> "ExpressRoute"
             | IPsec -> "IPsec"
             | Vnet2Vnet -> "Vnet2Vnet"
 
@@ -2698,8 +3052,8 @@ module ServiceBus =
 
         member this.Name =
             match this with
-            | SqlFilter (name, _)
-            | CorrelationFilter (name, _, _) -> name
+            | SqlFilter(name, _)
+            | CorrelationFilter(name, _, _) -> name
 
         static member CreateCorrelationFilter(name, properties, ?correlationId) =
             CorrelationFilter(ResourceName name, correlationId, Map properties)
@@ -2747,6 +3101,8 @@ module CosmosDb =
         | Serverless
 
 module PostgreSQL =
+    open Vm
+
     type Sku =
         | Basic
         | GeneralPurpose
@@ -2758,11 +3114,159 @@ module PostgreSQL =
             | GeneralPurpose -> "GP"
             | MemoryOptimized -> "MO"
 
+    type FlexibleTier =
+        /// Workloads that don't need the full CPU continuously.
+        | Burstable of VMSize
+        /// Most business workloads that require balanced compute and memory with scalable I/O throughput. Examples include servers for hosting web and mobile apps and other enterprise applications.
+        | GeneralPurpose of VMSize
+        /// High-performance database workloads that require in-memory performance for faster transaction processing and higher concurrency. Examples include servers for processing real-time data and high-performance transactional or analytical apps.
+        | MemoryOptimized of VMSize
+
+        member this.VmSize =
+            match this with
+            | Burstable vmSize
+            | GeneralPurpose vmSize
+            | MemoryOptimized vmSize -> vmSize
+
+        member this.ArmValue =
+            match this with
+            | Burstable _ -> "Burstable"
+            | GeneralPurpose _ -> "GeneralPurpose"
+            | MemoryOptimized _ -> "MemoryOptimized"
+
+        /// 1 cores, max 640 IOPs & 2048 MB per core.
+        static member Burstable_B1ms = Burstable Standard_B1ms
+        /// 2 cores, max 1280 IOPs & 2048 MB per core.
+        static member Burstable_B2s = Burstable Standard_B2s
+        /// 2 cores, max 1920 IOPs & 4096 MB per core.
+        static member Burstable_B2ms = Burstable Standard_B2ms
+        /// 4 cores, max 2880 IOPs & 4096 MB per core.
+        static member Burstable_B4ms = Burstable Standard_B4ms
+        /// 8 cores, max 4320 IOPs & 4096 MB per core.
+        static member Burstable_B8ms = Burstable Standard_B8ms
+        /// 12 cores, max 4320 IOPs & 4096 MB per core.
+        static member Burstable_B12ms = Burstable Standard_B12ms
+        /// 16 cores, max 4320 IOPs & 4096 MB per core.
+        static member Burstable_B16ms = Burstable Standard_B16ms
+        /// 20 cores, max 4320 IOPs & 4096 MB per core.
+        static member Burstable_B20ms = Burstable Standard_B20ms
+        /// 2 cores, max 3200 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D2s_v3 = GeneralPurpose Standard_D2s_v3
+        /// 4 cores, max 6400 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D4s_v3 = GeneralPurpose Standard_D4s_v3
+        /// 8 cores, max 12800 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D8s_v3 = GeneralPurpose Standard_D8s_v3
+        /// 16 cores, max 25600 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D16s_v3 = GeneralPurpose Standard_D16s_v3
+        /// 32 cores, max 51200 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D32s_v3 = GeneralPurpose Standard_D32s_v3
+        /// 48 cores, max 76800 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D48s_v3 = GeneralPurpose Standard_D48s_v3
+        /// 64 cores, max 80000 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D64s_v3 = GeneralPurpose Standard_D64s_v3
+        /// 2 cores, max 3200 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D2ds_v4 = GeneralPurpose Standard_D2ds_v4
+        /// 4 cores, max 6400 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D4ds_v4 = GeneralPurpose Standard_D4ds_v4
+        /// 8 cores, max 12800 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D8ds_v4 = GeneralPurpose Standard_D8ds_v4
+        /// 16 cores, max 25600 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D16ds_v4 = GeneralPurpose Standard_D16ds_v4
+        /// 32 cores, max 51200 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D32ds_v4 = GeneralPurpose Standard_D32ds_v4
+        /// 48 cores, max 76800 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D48ds_v4 = GeneralPurpose Standard_D48ds_v4
+        /// 64 cores, max 80000 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D64ds_v4 = GeneralPurpose Standard_D64ds_v4
+        /// 2 cores, max 3750 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D2ds_v5 = GeneralPurpose Standard_D2ds_v5
+        /// 4 cores, max 6400 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D4ds_v5 = GeneralPurpose Standard_D4ds_v5
+        /// 8 cores, max 12800 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D8ds_v5 = GeneralPurpose Standard_D8ds_v5
+        /// 16 cores, max 25600 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D16ds_v5 = GeneralPurpose Standard_D16ds_v5
+        /// 32 cores, max 51200 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D32ds_v5 = GeneralPurpose Standard_D32ds_v5
+        /// 48 cores, max 76800 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D48ds_v5 = GeneralPurpose Standard_D48ds_v5
+        /// 64 cores, max 80000 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D64ds_v5 = GeneralPurpose Standard_D64ds_v5
+        /// 96 cores, max 80000 IOPs & 4096 MB per core.
+        static member GeneralPurpose_D96ds_v5 = GeneralPurpose Standard_D96ds_v5
+        /// 2 cores, max 3200 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E2s_v3 = MemoryOptimized Standard_E2s_v3
+        /// 4 cores, max 6400 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E4s_v3 = MemoryOptimized Standard_E4s_v3
+        /// 8 cores, max 12800 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E8s_v3 = MemoryOptimized Standard_E8s_v3
+        /// 16 cores, max 25600 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E16s_v3 = MemoryOptimized Standard_E16s_v3
+        /// 32 cores, max 32000 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E32s_v3 = MemoryOptimized Standard_E32s_v3
+        /// 48 cores, max 51200 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E48s_v3 = MemoryOptimized Standard_E48s_v3
+        /// 64 cores, max 76800 IOPs & 6912 MB per core.
+        static member MemoryOptimized_E64s_v3 = MemoryOptimized Standard_E64s_v3
+        /// 2 cores, max 3200 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E2ds_v4 = MemoryOptimized Standard_E2ds_v4
+        /// 4 cores, max 6400 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E4ds_v4 = MemoryOptimized Standard_E4ds_v4
+        /// 8 cores, max 12800 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E8ds_v4 = MemoryOptimized Standard_E8ds_v4
+        /// 16 cores, max 25600 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E16ds_v4 = MemoryOptimized Standard_E16ds_v4
+        /// 20 cores, max 32000 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E20ds_v4 = MemoryOptimized Standard_E20ds_v4
+        /// 32 cores, max 51200 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E32ds_v4 = MemoryOptimized Standard_E32ds_v4
+        /// 48 cores, max 76800 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E48ds_v4 = MemoryOptimized Standard_E48ds_v4
+        /// 64 cores, max 80000 IOPs & 6912 MB per core.
+        static member MemoryOptimized_E64ds_v4 = MemoryOptimized Standard_E64ds_v4
+        /// 2 cores, max 3750 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E2ds_v5 = MemoryOptimized Standard_E2ds_v5
+        /// 4 cores, max 6400 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E4ds_v5 = MemoryOptimized Standard_E4ds_v5
+        /// 8 cores, max 12800 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E8ds_v5 = MemoryOptimized Standard_E8ds_v5
+        /// 16 cores, max 25600 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E16ds_v5 = MemoryOptimized Standard_E16ds_v5
+        /// 20 cores, max 32000 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E20ds_v5 = MemoryOptimized Standard_E20ds_v5
+        /// 32 cores, max 51200 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E32ds_v5 = MemoryOptimized Standard_E32ds_v5
+        /// 48 cores, max 76800 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E48ds_v5 = MemoryOptimized Standard_E48ds_v5
+        /// 64 cores, max 80000 IOPs & 8192 MB per core.
+        static member MemoryOptimized_E64ds_v5 = MemoryOptimized Standard_E64ds_v5
+        /// 96 cores, max 80000 IOPs & 7168 MB per core.
+        static member MemoryOptimized_E96ds_v5 = MemoryOptimized Standard_E96ds_v5
+
     type Version =
         | VS_9_5
         | VS_9_6
         | VS_10
         | VS_11
+
+    type FlexibleVersion =
+        | V_11
+        | V_12
+        | V_13
+        | V_14
+        | V_15
+        | V_16
+        | Custom of string
+
+        member this.ArmValue =
+            match this with
+            | V_11 -> "11"
+            | V_12 -> "12"
+            | V_13 -> "13"
+            | V_14 -> "14"
+            | V_15 -> "15"
+            | V_16 -> "16"
+            | Custom v -> v
 
 module IotHub =
     type Sku =
@@ -2815,13 +3319,30 @@ module DataLake =
         | Commitment_5PB
 
 module Network =
+
+    type AddressVersion =
+        | IPv4
+        | IPv6
+
+        member this.ArmValue =
+            match this with
+            | IPv4 -> "IPv4"
+            | IPv6 -> "IPv6"
+
     type SubnetDelegationService =
         | SubnetDelegationService of string
 
         /// Microsoft.ApiManagement/service
         static member ApiManagementService = SubnetDelegationService "Microsoft.ApiManagement/service"
+        /// Microsoft.AVS/PrivateClouds
+        static member AVSPrivateCloud = SubnetDelegationService "Microsoft.AVS/PrivateClouds"
         /// Microsoft.AzureCosmosDB/clusters
         static member CosmosDBClusters = SubnetDelegationService "Microsoft.AzureCosmosDB/clusters"
+
+        /// Microsoft.BareMetal/AzureHostedService
+        static member BareMetalAzureHostedService =
+            SubnetDelegationService "Microsoft.BareMetal/AzureHostedService"
+
         /// Microsoft.BareMetal/AzureVMware
         static member BareMetalVMware = SubnetDelegationService "Microsoft.BareMetal/AzureVMware"
         /// Microsoft.BareMetal/CrayServers
@@ -2835,6 +3356,9 @@ module Network =
 
         /// Microsoft.Databricks/workspaces
         static member DatabricksWorkspaces = SubnetDelegationService "Microsoft.Databricks/workspaces"
+
+        /// Microsoft.Network/dnsResolvers
+        static member DnsResolvers = SubnetDelegationService "Microsoft.Network/dnsResolvers"
 
         /// Microsoft.MachineLearningServices/workspaces
         static member MachineLearningWorkspaces =
@@ -2876,6 +3400,27 @@ module Network =
         /// Microsoft.Web
         static member Web = EndpointServiceType "Microsoft.Web"
 
+    type BastionStandardSkuOptions = {
+        DisableCopyPaste: bool option
+        DnsName: string option
+        EnableFileCopy: bool option
+        EnableIpConnect: bool option
+        EnableKerberos: bool option
+        EnableShareableLink: bool option
+        EnableTunneling: bool option
+        ScaleUnits: int option
+    }
+
+    type BastionSku =
+        | Basic
+        | Standard of BastionStandardSkuOptions
+        | Developer
+
+        member this.ArmValue =
+            match this with
+            | Basic -> "Basic"
+            | Standard _ -> "Standard"
+            | Developer -> "Developer"
 
 module NetworkSecurity =
     type Operation =
@@ -2929,24 +3474,28 @@ module NetworkSecurity =
         member this.ArmValue =
             match this with
             | Port num -> num |> string
-            | Range (first, last) -> $"{first}-{last}"
+            | Range(first, last) -> $"{first}-{last}"
             | AnyPort -> "*"
 
     module Port =
         let ArmValue (port: Port) = port.ArmValue
 
     type Endpoint =
+        | ApplicationSecurityGroup of LinkedResource
         | Host of Net.IPAddress
         | Network of IPAddressCidr
         | Tag of string
         | AnyEndpoint
+        | Expression of ArmExpression
 
-        member this.ArmValue =
+        member this.ArmValue: obj =
             match this with
+            | ApplicationSecurityGroup asgId -> LinkedResource.AsIdObject asgId |> box
             | Host ip -> string ip
-            | Network cidr -> cidr |> IPAddressCidr.format
+            | Network cidr -> cidr |> IPAddressCidr.format |> box
             | Tag tag -> tag
             | AnyEndpoint -> "*"
+            | Expression expr -> expr.Eval()
 
     module Endpoint =
         let ArmValue (endpoint: Endpoint) = endpoint.ArmValue
@@ -2978,12 +3527,10 @@ module PublicIpAddress =
             | Static -> "Static"
 
     type Sku =
-        | Basic
         | Standard
 
         member this.ArmValue =
             match this with
-            | Basic -> "Basic"
             | Standard -> "Standard"
 
 module Cdn =
@@ -3189,21 +3736,18 @@ module DeliveryPolicy =
 
         member this.ArmValue =
             match this with
-            | Override t ->
-                {|
-                    Behaviour = "Override"
-                    CacheDuration = Some t
-                |}
-            | BypassCache ->
-                {|
-                    Behaviour = "BypassCache"
-                    CacheDuration = None
-                |}
-            | SetIfMissing t ->
-                {|
-                    Behaviour = "SetIfMissing"
-                    CacheDuration = Some t
-                |}
+            | Override t -> {|
+                Behaviour = "Override"
+                CacheDuration = Some t
+              |}
+            | BypassCache -> {|
+                Behaviour = "BypassCache"
+                CacheDuration = None
+              |}
+            | SetIfMissing t -> {|
+                Behaviour = "SetIfMissing"
+                CacheDuration = Some t
+              |}
 
     type QueryStringCacheBehavior =
         | Include
@@ -3258,24 +3802,22 @@ module Dns =
         | Public
         | Private
 
-    type SrvRecord =
-        {
-            Priority: int option
-            Weight: int option
-            Port: int option
-            Target: string option
-        }
+    type SrvRecord = {
+        Priority: int option
+        Weight: int option
+        Port: int option
+        Target: string option
+    }
 
-    type SoaRecord =
-        {
-            Host: string option
-            Email: string option
-            SerialNumber: int64 option
-            RefreshTime: int64 option
-            RetryTime: int64 option
-            ExpireTime: int64 option
-            MinimumTTL: int64 option
-        }
+    type SoaRecord = {
+        Host: string option
+        Email: string option
+        SerialNumber: int64 option
+        RefreshTime: int64 option
+        RetryTime: int64 option
+        ExpireTime: int64 option
+        MinimumTTL: int64 option
+    }
 
     [<RequireQualifiedAccess>]
     type NsRecords =
@@ -3328,15 +3870,14 @@ module TrafficManager =
 
         member this.ArmValue = this.ToString().ToUpperInvariant()
 
-    type MonitorConfig =
-        {
-            Protocol: MonitorProtocol
-            Port: int
-            Path: string
-            IntervalInSeconds: int<Seconds>
-            ToleratedNumberOfFailures: int
-            TimeoutInSeconds: int<Seconds>
-        }
+    type MonitorConfig = {
+        Protocol: MonitorProtocol
+        Port: int
+        Path: string
+        IntervalInSeconds: int<Seconds>
+        ToleratedNumberOfFailures: int
+        TimeoutInSeconds: int<Seconds>
+    }
 
     type EndpointTarget =
         | Website of ResourceName
@@ -3345,7 +3886,7 @@ module TrafficManager =
         member this.ArmValue =
             match this with
             | Website name -> name.Value
-            | External (target, _) -> target
+            | External(target, _) -> target
 
 module Serialization =
     open System.Text.Json
@@ -3354,7 +3895,7 @@ module Serialization =
     let jsonSerializerOptions =
         JsonSerializerOptions(
             WriteIndented = true,
-            IgnoreNullValues = true,
+            DefaultIgnoreCondition = Serialization.JsonIgnoreCondition.WhenWritingNull,
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
             PropertyNameCaseInsensitive = true
         )
@@ -3447,56 +3988,53 @@ module AvailabilityTest =
         /// Raw Visual Stuido WebTest XML
         | CustomWebtestXml of string
         /// URL of website that the test will ping
-        | WebsiteUrl of System.Uri
+        | WebsiteUrl of Uri
 
     /// Availability test sites, from where the webtest is run
     type TestSiteLocation =
-        | AvailabilityTestSite of Farmer.Location
+        | AvailabilityTestSite of Location
 
-        static member NorthCentralUS = Farmer.Location "us-il-ch1-azr" |> AvailabilityTestSite
-        static member WestEurope = Farmer.Location "emea-nl-ams-azr" |> AvailabilityTestSite
-        static member SoutheastAsia = Farmer.Location "apac-sg-sin-azr" |> AvailabilityTestSite
-        static member WestUS = Farmer.Location "us-ca-sjc-azr" |> AvailabilityTestSite
-        static member SouthCentralUS = Farmer.Location "us-tx-sn1-azr" |> AvailabilityTestSite
-        static member EastUS = Farmer.Location "us-va-ash-azr" |> AvailabilityTestSite
-        static member EastAsia = Farmer.Location "apac-hk-hkn-azr" |> AvailabilityTestSite
-        static member NorthEurope = Farmer.Location "emea-gb-db3-azr" |> AvailabilityTestSite
-        static member JapanEast = Farmer.Location "apac-jp-kaw-edge" |> AvailabilityTestSite
-        static member AustraliaEast = Farmer.Location "emea-au-syd-edge" |> AvailabilityTestSite
-        static member FranceCentralSouth = Farmer.Location "emea-ch-zrh-edge" |> AvailabilityTestSite
-        static member FranceCentral = Farmer.Location "emea-fr-pra-edge" |> AvailabilityTestSite
-        static member UKSouth = Farmer.Location "emea-ru-msa-edge" |> AvailabilityTestSite
-        static member UKWest = Farmer.Location "emea-se-sto-edge" |> AvailabilityTestSite
-        static member BrazilSouth = Farmer.Location "latam-br-gru-edge" |> AvailabilityTestSite
-        static member CentralUS = Farmer.Location "us-fl-mia-edge" |> AvailabilityTestSite
+        static member NorthCentralUS = Location "us-il-ch1-azr" |> AvailabilityTestSite
+        static member WestEurope = Location "emea-nl-ams-azr" |> AvailabilityTestSite
+        static member SoutheastAsia = Location "apac-sg-sin-azr" |> AvailabilityTestSite
+        static member WestUS = Location "us-ca-sjc-azr" |> AvailabilityTestSite
+        static member SouthCentralUS = Location "us-tx-sn1-azr" |> AvailabilityTestSite
+        static member EastUS = Location "us-va-ash-azr" |> AvailabilityTestSite
+        static member EastAsia = Location "apac-hk-hkn-azr" |> AvailabilityTestSite
+        static member NorthEurope = Location "emea-gb-db3-azr" |> AvailabilityTestSite
+        static member JapanEast = Location "apac-jp-kaw-edge" |> AvailabilityTestSite
+        static member AustraliaEast = Location "emea-au-syd-edge" |> AvailabilityTestSite
+        static member FranceCentralSouth = Location "emea-ch-zrh-edge" |> AvailabilityTestSite
+        static member FranceCentral = Location "emea-fr-pra-edge" |> AvailabilityTestSite
+        static member UKSouth = Location "emea-ru-msa-edge" |> AvailabilityTestSite
+        static member UKWest = Location "emea-se-sto-edge" |> AvailabilityTestSite
+        static member BrazilSouth = Location "latam-br-gru-edge" |> AvailabilityTestSite
+        static member CentralUS = Location "us-fl-mia-edge" |> AvailabilityTestSite
 
 module ContainerApp =
     //type SecretRef = SecretRef of string
-    type EventHubScaleRule =
-        {
-            ConsumerGroup: string
-            UnprocessedEventThreshold: int
-            CheckpointBlobContainerName: string
-            EventHubConnectionSecretRef: string
-            StorageConnectionSecretRef: string
-        }
+    type EventHubScaleRule = {
+        ConsumerGroup: string
+        UnprocessedEventThreshold: int
+        CheckpointBlobContainerName: string
+        EventHubConnectionSecretRef: string
+        StorageConnectionSecretRef: string
+    }
 
-    type ServiceBusScaleRule =
-        {
-            QueueName: string
-            MessageCount: int
-            SecretRef: string
-        }
+    type ServiceBusScaleRule = {
+        QueueName: string
+        MessageCount: int
+        SecretRef: string
+    }
 
     type HttpScaleRule = { ConcurrentRequests: int }
 
-    type StorageQueueScaleRule =
-        {
-            QueueName: string
-            QueueLength: int
-            StorageConnectionSecretRef: string
-            AccountName: string
-        }
+    type StorageQueueScaleRule = {
+        QueueName: string
+        QueueLength: int
+        StorageConnectionSecretRef: string
+        AccountName: string
+    }
 
     type UtilizationRule = { Utilization: int }
     type AverageValueRule = { AverageValue: int }
@@ -3566,51 +4104,45 @@ type LogCategory =
         match this with
         | LogCategory v -> v
 
-type RetentionPolicy =
-    {
-        Enabled: bool
-        RetentionPeriod: int<Days>
-    }
+type RetentionPolicy = {
+    Enabled: bool
+    RetentionPeriod: int<Days>
+} with
 
     static member Create(retentionPeriod, ?enabled) =
         match retentionPeriod with
         | OutOfBounds days ->
             raiseFarmer $"The retention period must be between 1 and 365 days. It is currently {days}."
-        | InBounds _ ->
-            {
-                Enabled = defaultArg enabled true
-                RetentionPeriod = retentionPeriod
-            }
+        | InBounds _ -> {
+            Enabled = defaultArg enabled true
+            RetentionPeriod = retentionPeriod
+          }
 
-type MetricSetting =
-    {
-        Category: string
-        TimeGrain: TimeSpan option
-        Enabled: bool
-        RetentionPolicy: RetentionPolicy option
+type MetricSetting = {
+    Category: string
+    TimeGrain: TimeSpan option
+    Enabled: bool
+    RetentionPolicy: RetentionPolicy option
+} with
+
+    static member Create(category, ?retentionPeriod, ?timeGrain) = {
+        Category = category
+        TimeGrain = timeGrain
+        Enabled = true
+        RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create(days, true))
     }
 
-    static member Create(category, ?retentionPeriod, ?timeGrain) =
-        {
-            Category = category
-            TimeGrain = timeGrain
-            Enabled = true
-            RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create(days, true))
-        }
+type LogSetting = {
+    Category: LogCategory
+    Enabled: bool
+    RetentionPolicy: RetentionPolicy option
+} with
 
-type LogSetting =
-    {
-        Category: LogCategory
-        Enabled: bool
-        RetentionPolicy: RetentionPolicy option
+    static member Create(category, ?retentionPeriod) = {
+        Category = category
+        Enabled = true
+        RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create(days, true))
     }
-
-    static member Create(category, ?retentionPeriod) =
-        {
-            Category = category
-            Enabled = true
-            RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create(days, true))
-        }
 
     static member Create(category, ?retentionPeriod) =
         LogSetting.Create(LogCategory category, ?retentionPeriod = retentionPeriod)

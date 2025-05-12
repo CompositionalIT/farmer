@@ -6,8 +6,9 @@ open Farmer
 open Farmer.Builders
 
 let homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+
 let pubKey =
-    [homeDir; ".ssh"; "id_rsa.pub"]
+    [ homeDir; ".ssh"; "id_rsa.pub" ]
     |> String.concat (string Path.DirectorySeparatorChar)
     |> File.ReadAllText
 
@@ -19,12 +20,11 @@ let vnetName = sprintf "env%0i-vnet"
 let aksName = sprintf "env%0i-aks"
 let aksDns = aksName
 
-let makeVnet (n:int) =
+let makeVnet (n: int) =
     vnet {
         name (vnetName n)
-        add_address_spaces [
-            "10.1.0.0/16"
-        ]
+        add_address_spaces [ "10.1.0.0/16" ]
+
         add_subnets [
             subnet {
                 name "default"
@@ -35,18 +35,19 @@ let makeVnet (n:int) =
                 prefix "10.1.30.0/25"
             }
         ]
-    } :> IBuilder
+    }
+    :> IBuilder
 
-let msi = userAssignedIdentity {
-    name "aks-user"
-}
+let msi = userAssignedIdentity { name "aks-user" }
 
-let makeAks (n:int) =
+let makeAks (n: int) =
     aks {
         name (aksName n)
+        tier Tier.Standard
         dns_prefix (aksDns n)
         enable_rbac
         add_identity msi
+
         add_agent_pools [
             agentPool {
                 name "linuxPool"
@@ -55,21 +56,20 @@ let makeAks (n:int) =
                 subnet aksSubnet
             }
         ]
-        network_profile (
-            azureCniNetworkProfile {
-                service_cidr "10.250.0.0/16"
-            }
-        )
+
+        network_profile (azureCniNetworkProfile { service_cidr "10.250.0.0/16" })
         linux_profile "aksuser" pubKey
         service_principal_client_id myAksUser
-    } :> IBuilder
+    }
+    :> IBuilder
 
-let vnets = [1..4] |> Seq.map makeVnet |> List.ofSeq
-let akses = [1..4] |> Seq.map makeAks |> List.ofSeq
+let vnets = [ 1..4 ] |> Seq.map makeVnet |> List.ofSeq
+let akses = [ 1..4 ] |> Seq.map makeAks |> List.ofSeq
 
 arm {
     location Location.EastUS
     add_resource msi
     add_resources akses
     add_resources vnets
-} |> Writer.quickWrite "aks-on-vnet"
+}
+|> Writer.quickWrite "aks-on-vnet"

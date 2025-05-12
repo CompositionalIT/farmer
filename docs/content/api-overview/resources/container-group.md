@@ -43,6 +43,7 @@ The Container Group builder (`containerGroup`) defines a Container Group.
 | dns_options | Specify DNS options (e.g. 'ndots:2') for the containers in a vnet-attached container group. |
 | dns_search_domains | Specify DNS search domains for the containers in a vnet-attached container group. |
 | depends_on | Specifies the resource or resource ID of resources that must exist before the container group is created. |
+| add_extensions | Sets the extensions used by virtual kubelet. |
 
 #### Container Instance Builder
 The Container Instance builder (`containerInstance`) is used to define one or more containers to add to the group.

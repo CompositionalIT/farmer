@@ -19,13 +19,14 @@ It supports most record types (except CAA) and has specific builders for every r
 * PTR Record (`Microsoft.Network/dnsZones/PTR`)
 * SOA Record (`Microsoft.Network/dnsZones/SOA`)
 * SRV Record (`Microsoft.Network/dnsZones/SRV`)
+* Private Zone Virtual Network Link (`Microsoft.Network/privateDnsZones/virtualNetworkLinks`)
 
 #### SOA records
 You can only have one SOA record and it is [always created alongside a DNS zone](https://docs.microsoft.com/en-us/azure/dns/dns-zones-records#soa-records), whether you specify it or not.
 
 You can use the builder provided by Farmer to edit any of its properties. You should **not**, however, edit the `host` as [this is set automatically by Azure](https://docs.microsoft.com/en-us/azure/dns/dns-operations-recordsets-portal#modify-soa-records).
 
-Ideally it just wouldn't be exposed, however [contrary to the official documentation](https://docs.microsoft.com/en-us/azure/templates/microsoft.network/dnszones/soa?tabs=json#soarecord-object) Azure rejects the ARM record if it is absent. For this reason if you wish to use the SOA builder it is recommended to first deploy your DNS Zone without it, copy the generated SOA host from the portal and then finally paste it into the Farmer builder's `host` parameter.
+Ideally, it just wouldn't be exposed, however [contrary to the official documentation](https://docs.microsoft.com/en-us/azure/templates/microsoft.network/dnszones/soa?tabs=json#soarecord-object) Azure rejects the ARM record if it is absent. For this reason, if you wish to use the SOA builder it is recommended to first deploy your DNS Zone without it, copy the generated SOA host from the portal and then finally paste it into the Farmer builder's `host` parameter.
 
 #### NS Records
 An NS record is automatically added to every DNS zone at the apex (@) containing the name of the Azure DNS servers assigned to the zone.
@@ -125,6 +126,15 @@ In addition, each record builder has its own custom keywords:
 | refresh_time | Sets the refresh time for the record in seconds |
 | retry_time | Sets the retry time for the record in seconds |
 | serial_number | Sets the serial number for the record |
+
+#### Private DNS Zone Virtual Network Link Keywords
+
+| Keyword                  | Purpose                                                                                        |
+|--------------------------|------------------------------------------------------------------------------------------------|
+| private_dns_zone         | Sets the DNS Zone to provide DNS resolution for a virtual network.                             |
+| link_to_private_dns_zone | Links to an existing DNS Zone to provide DNS resolution for a virtual network.                 |
+| registration_enabled     | Automatically create DNS records for virtual machines in the linked virtual network.           |
+| virtual_network_id       | The resource id of the virtual network the DNS Zone that will use the DNS Zone for resolution. |
 
 #### Configuration Members
 

@@ -9,7 +9,7 @@ type AppInsights =
     static member getInstrumentationKey(resourceId: ResourceId) =
         ArmExpression
             .reference(resourceId)
-            .Map(fun r -> r + ".InstrumentationKey")
+            .Map(sprintf "%s.InstrumentationKey")
             .WithOwner(resourceId)
 
     static member getInstrumentationKey(name: ResourceName, ?resourceGroup, ?resourceType) =
@@ -19,22 +19,21 @@ type AppInsights =
     static member getConnectionString(resourceId: ResourceId) =
         ArmExpression
             .reference(resourceId)
-            .Map(fun r -> r + ".ConnectionString")
+            .Map(sprintf "%s.ConnectionString")
             .WithOwner(resourceId)
 
     static member getConnectionString(name: ResourceName, ?resourceGroup, ?resourceType) =
         let resourceType = resourceType |> Option.defaultValue components
         AppInsights.getConnectionString (ResourceId.create (resourceType, name, ?group = resourceGroup))
 
-type AppInsightsConfig =
-    {
-        Name: ResourceName
-        DisableIpMasking: bool
-        SamplingPercentage: int
-        InstanceKind: InstanceKind
-        Dependencies: ResourceId Set
-        Tags: Map<string, string>
-    }
+type AppInsightsConfig = {
+    Name: ResourceName
+    DisableIpMasking: bool
+    SamplingPercentage: int
+    InstanceKind: InstanceKind
+    Dependencies: ResourceId Set
+    Tags: Map<string, string>
+} with
 
     /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
     member this.InstrumentationKey =
@@ -46,30 +45,28 @@ type AppInsightsConfig =
     interface IBuilder with
         member this.ResourceId = components.resourceId this.Name
 
-        member this.BuildResources location =
-            [
-                {
-                    Name = this.Name
-                    Location = location
-                    LinkedWebsite = None
-                    DisableIpMasking = this.DisableIpMasking
-                    SamplingPercentage = this.SamplingPercentage
-                    Dependencies = this.Dependencies
-                    InstanceKind = this.InstanceKind
-                    Tags = this.Tags
-                }
-            ]
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                Location = location
+                LinkedWebsite = None
+                DisableIpMasking = this.DisableIpMasking
+                SamplingPercentage = this.SamplingPercentage
+                Dependencies = this.Dependencies
+                InstanceKind = this.InstanceKind
+                Tags = this.Tags
+            }
+        ]
 
 type AppInsightsBuilder() =
-    member _.Yield _ =
-        {
-            Name = ResourceName.Empty
-            DisableIpMasking = false
-            SamplingPercentage = 100
-            Tags = Map.empty
-            Dependencies = Set.empty
-            InstanceKind = Classic
-        }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        DisableIpMasking = false
+        SamplingPercentage = 100
+        Tags = Map.empty
+        Dependencies = Set.empty
+        InstanceKind = Classic
+    }
 
     [<CustomOperation "name">]
     /// Sets the name of the App Insights instance.
@@ -81,18 +78,18 @@ type AppInsightsBuilder() =
 
     [<CustomOperation "sampling_percentage">]
     /// Sets the name of the App Insights instance.
-    member _.SamplingPercentage(state: AppInsightsConfig, samplingPercentage) =
-        { state with
+    member _.SamplingPercentage(state: AppInsightsConfig, samplingPercentage) = {
+        state with
             SamplingPercentage = samplingPercentage
-        }
+    }
 
     /// Links this AI instance to a Log Analytics workspace, using the newer 2020-02-02-preview App Insights version.
     [<CustomOperation "log_analytics_workspace">]
-    member _.Workspace(state: AppInsightsConfig, workspace: ResourceId) =
-        { state with
+    member _.Workspace(state: AppInsightsConfig, workspace: ResourceId) = {
+        state with
             InstanceKind = Workspace workspace
             Dependencies = state.Dependencies.Add workspace
-        }
+    }
 
     member this.Workspace(state: AppInsightsConfig, workspace: WorkspaceConfig) =
         this.Workspace(state, workspaces.resourceId workspace.Name)
@@ -106,15 +103,15 @@ type AppInsightsBuilder() =
         state
 
     interface ITaggable<AppInsightsConfig> with
-        member _.Add state tags =
-            { state with
+        member _.Add state tags = {
+            state with
                 Tags = state.Tags |> Map.merge tags
-            }
+        }
 
     interface IDependable<AppInsightsConfig> with
-        member _.Add state resources =
-            { state with
+        member _.Add state resources = {
+            state with
                 Dependencies = state.Dependencies + resources
-            }
+        }
 
 let appInsights = AppInsightsBuilder()
