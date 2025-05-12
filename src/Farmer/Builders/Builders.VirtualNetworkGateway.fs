@@ -48,11 +48,11 @@ type VNetGatewayConfig = {
             if this.GatewayPublicIpName = ResourceName.Empty then
                 { // No public IP set, so generate one named after the gateway
                     Name = ResourceName $"{this.Name.Value}-ip"
-                    AvailabilityZone = None
+                    AvailabilityZones = []
                     AllocationMethod = AllocationMethod.Dynamic
                     AddressVersion = Network.AddressVersion.IPv4
                     Location = location
-                    Sku = PublicIpAddress.Sku.Basic
+                    Sku = Sku.Standard
                     DomainNameLabel = None
                     Tags = this.Tags
                 }

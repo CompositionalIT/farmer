@@ -28,7 +28,7 @@ type BastionConfig = {
                     // IP Address
                     {
                         Name = publicIpName
-                        AvailabilityZone = None
+                        AvailabilityZones = []
                         Location = location
                         AllocationMethod = AllocationMethod.Static
                         AddressVersion = Network.AddressVersion.IPv4

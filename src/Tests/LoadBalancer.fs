@@ -14,24 +14,8 @@ let client =
 
 let tests =
     testList "Load Balancers" [
-        test "Empty basic load balancer" {
-            let lb = loadBalancer { name "lb" }
-
-            let resource =
-                arm { add_resource lb }
-                |> findAzureResources<Microsoft.Azure.Management.Network.Models.LoadBalancer>
-                    client.SerializationSettings
-                |> List.head
-
-            Expect.equal resource.Name "lb" "Name did not match"
-            Expect.equal resource.Sku.Name "Basic" "Incorrect sku"
-        }
-
         test "Empty standard load balancer" {
-            let lb = loadBalancer {
-                name "lb"
-                sku Sku.Standard
-            }
+            let lb = loadBalancer { name "lb" }
 
             let resource =
                 arm { add_resource lb }
@@ -108,6 +92,7 @@ let tests =
                 frontend {
                     name "lb-frontend"
                     public_ip "lb-pip"
+                    add_availability_zones [ "1"; "2"; "3" ]
                 }
             ]
 
@@ -175,6 +160,25 @@ let tests =
                 "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', 'lb', 'lb-backend')]"
 
             Expect.equal rule.BackendAddressPool.Id backendResourceId "Incorrect backend address pool for rule"
+
+            let frontend =
+                let deployment = arm { add_resource (completeLoadBalancer ()) }
+                let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+                jobj.SelectToken("resources[?(@.name=='lb')].properties.frontendIpConfigurations[0]")
+
+            Expect.isNotNull frontend "Should have one frontend IP configuration"
+            let zones = frontend["zones"]
+            Expect.isNull zones "Frontend should not have zones when using public IP."
+
+            let frontendPip =
+                let deployment = arm { add_resource (completeLoadBalancer ()) }
+                let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+                jobj.SelectToken("resources[?(@.name=='lb-pip')]")
+
+            Expect.isNotNull frontendPip "Should have a frontend IP"
+            let zones = frontendPip["zones"]
+            Expect.isNotNull zones "Frontend public IP should have zones."
+            Expect.containsAll [ "1"; "2"; "3" ] (zones |> Seq.map (string)) "Incorrect zones for frontend public IP"
         }
 
         test "Complete load balancer backend pool" {

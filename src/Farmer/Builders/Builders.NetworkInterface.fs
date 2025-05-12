@@ -71,6 +71,7 @@ type NetworkInterfaceConfig = {
                         VirtualNetwork = Some(vnetId)
                         RouteTable = None
                         NetworkSecurityGroup = None
+                        DefaultOutboundAccess = None
                         Delegations = []
                         NatGateway = None
                         ServiceEndpoints = []

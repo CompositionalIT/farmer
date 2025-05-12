@@ -719,7 +719,7 @@
               "type": "Microsoft.Network/networkInterfaces"
             },
             {
-              "apiVersion": "2020-07-01",
+              "apiVersion": "2024-05-01",
               "dependsOn": [],
               "location": "uksouth",
               "name": "farmervm-vnet",
@@ -743,14 +743,14 @@
               "type": "Microsoft.Network/virtualNetworks"
             },
             {
-              "apiVersion": "2018-11-01",
+              "apiVersion": "2024-05-01",
               "location": "uksouth",
               "name": "farmervm-ip",
               "properties": {
-                "publicIPAllocationMethod": "Dynamic"
+                "publicIPAllocationMethod": "Static"
               },
               "sku": {
-                "name": "Basic"
+                "name": "Standard"
               },
               "tags": {},
               "type": "Microsoft.Network/publicIPAddresses"

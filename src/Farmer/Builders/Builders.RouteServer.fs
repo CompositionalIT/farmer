@@ -69,7 +69,7 @@ type RouteServerConfig = {
             //public ip
             {
                 PublicIpAddress.Name = publicIpName
-                AvailabilityZone = None
+                AvailabilityZones = []
                 Location = location
                 Sku = PublicIpAddress.Sku.Standard
                 AllocationMethod = PublicIpAddress.AllocationMethod.Static
@@ -85,6 +85,7 @@ type RouteServerConfig = {
                 VirtualNetwork = Some(vnetId)
                 RouteTable = None
                 NetworkSecurityGroup = None
+                DefaultOutboundAccess = None
                 Delegations = []
                 NatGateway = None
                 ServiceEndpoints = []

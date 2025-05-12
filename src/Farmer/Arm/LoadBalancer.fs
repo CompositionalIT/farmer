@@ -4,16 +4,16 @@ open Farmer
 open Farmer.LoadBalancer
 open Farmer.PublicIpAddress
 
-let loadBalancers = ResourceType("Microsoft.Network/loadBalancers", "2020-11-01")
+let loadBalancers = ResourceType("Microsoft.Network/loadBalancers", "2024-05-01")
 
 let loadBalancerFrontendIPConfigurations =
-    ResourceType("Microsoft.Network/loadBalancers/frontendIPConfigurations", "2020-11-01")
+    ResourceType("Microsoft.Network/loadBalancers/frontendIPConfigurations", "2024-05-01")
 
 let loadBalancerBackendAddressPools =
-    ResourceType("Microsoft.Network/loadBalancers/backendAddressPools", "2020-11-01")
+    ResourceType("Microsoft.Network/loadBalancers/backendAddressPools", "2024-05-01")
 
 let loadBalancerProbes =
-    ResourceType("Microsoft.Network/loadBalancers/probes", "2020-11-01")
+    ResourceType("Microsoft.Network/loadBalancers/probes", "2024-05-01")
 
 type LoadBalancer = {
     Name: ResourceName
@@ -26,6 +26,7 @@ type LoadBalancer = {
             AddressVersion: Network.AddressVersion
             PublicIp: ResourceId option
             Subnet: ResourceId option
+            Zones: string seq
         |} list
     BackendAddressPools: ResourceName list
     LoadBalancingRules:
@@ -87,6 +88,13 @@ type LoadBalancer = {
                                         |> Option.map (fun subnetId -> {| id = subnetId.Eval() |})
                                         |> Option.defaultValue Unchecked.defaultof<_>
                                 |}
+                                zones = // Zones are specified on the frontend only for internal load balancers
+                                    if
+                                        frontend.Subnet.IsNone || isNull frontend.Zones || Seq.isEmpty frontend.Zones
+                                    then
+                                        null
+                                    else
+                                        ResizeArray(frontend.Zones)
                             |})
                     backendAddressPools =
                         this.BackendAddressPools |> List.map (fun backend -> {| name = backend.Value |})
@@ -196,7 +204,7 @@ type BackendAddressPool = {
                                         | Some(Managed subnetId) -> {| id = subnetId.Eval() |}
                                         | Some(Unmanaged subnetId) -> {| id = subnetId.Eval() |}
                                         | None -> Unchecked.defaultof<_>
-                                    vnet =
+                                    virtualNetwork =
                                         match addr.Subnet with
                                         | None ->
                                             match addr.VirtualNetwork with
