@@ -40,17 +40,17 @@ let fullContainerAppDeployment =
 
         add_registry_credentials [ registry containerRegistryDomain containerRegistryName managedIdentity ]
 
-                        add_containers
-                            [
-                                container {
-                                    set_probe Liveness ProbeProtocol.HTTPS "/api/healthcheck" 443
-                                    name "http"
-                                    private_docker_image containerRegistryDomain "http" version
-                                    cpu_cores 0.25<VCores>
-                                    memory 0.5<Gb>
-                                    ephemeral_storage 1.<Gb>
-                                }
-                            ]
+        add_containers
+            [
+                container {
+                    set_probe Liveness ProbeProtocol.HTTPS "/api/healthcheck" 443
+                    name "http"
+                    private_docker_image containerRegistryDomain "http" version
+                    cpu_cores 0.25<VCores>
+                    memory 0.5<Gb>
+                    ephemeral_storage 1.<Gb>
+                }
+            ]
 
         replicas 1 5
         add_env_variable "ServiceBusQueueName" "wishrequests"
@@ -466,25 +466,25 @@ let tests =
                     | (:? ManagedEnvironment as c) -> Some c
                     | _ -> None)
 
-                Expect.isSome managedEnvironment.AppInsightsInstrumentationKey "Dapr AI key not set"
-            }
+            Expect.isSome managedEnvironment.AppInsightsInstrumentationKey "Dapr AI key not set"
+        }
+            
+        test "Supports Health Probes" {
+            let apps =
+                fullContainerAppDeployment.Template.Resources
+                |> List.choose (function
+                    | (:? ContainerApp as c) -> Some c
+                    | _ -> None)
 
-            test "Supports Health Probes" {
-                let apps =
-                    fullContainerAppDeployment.Template.Resources
-                    |> List.choose (function
-                        | (:? ContainerApp as c) -> Some c
-                        | _ -> None)
+            let probe =
+                apps
+                |> List.pick (fun app ->
+                    app.Containers
+                    |> List.tryFind (fun c -> not c.Probes.IsEmpty)
+                    |> Option.map (fun c -> c.Probes[Liveness]))
 
-                let probe =
-                    apps
-                    |> List.pick (fun app ->
-                        app.Containers
-                        |> List.tryFind (fun c -> not c.Probes.IsEmpty)
-                        |> Option.map (fun c -> c.Probes[Liveness]))
-
-                Expect.isGreaterThanOrEqual probe.Protocol ProbeProtocol.HTTPS "Incorrect probe protocol"
-                Expect.isGreaterThanOrEqual (probe.Route.ToString()) "/api/healthcheck" "Incorrect probe route"
-                Expect.isGreaterThanOrEqual probe.Port 443 "Incorrect probe port"
-            }
-        ]
+            Expect.isGreaterThanOrEqual probe.Protocol ProbeProtocol.HTTPS "Incorrect probe protocol"
+            Expect.isGreaterThanOrEqual (probe.Route.ToString()) "/api/healthcheck" "Incorrect probe route"
+            Expect.isGreaterThanOrEqual probe.Port 443 "Incorrect probe port"
+        }
+    ]
