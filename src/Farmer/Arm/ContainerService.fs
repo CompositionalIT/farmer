@@ -187,7 +187,7 @@ type ManagedCluster = {
             OsDiskSize: int<Gb>
             OsType: OS
             VmSize: VMSize
-            AvailabilityZones: string list
+            AvailabilityZones: ZoneSelection
             VirtualNetworkName: ResourceName option
             SubnetName: ResourceName option
             PodSubnetName: ResourceName option
@@ -300,7 +300,7 @@ type ManagedCluster = {
                                 osDiskSizeGB = agent.OsDiskSize
                                 osType = string agent.OsType
                                 vmSize = agent.VmSize.ArmValue
-                                availabilityZones = agent.AvailabilityZones
+                                availabilityZones = agent.AvailabilityZones.ArmValue
                                 vnetSubnetID =
                                     match agent.VirtualNetworkName, agent.SubnetName with
                                     | Some vnet, Some subnet -> subnets.resourceId(vnet, subnet).Eval()
