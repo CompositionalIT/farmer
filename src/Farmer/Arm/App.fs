@@ -25,6 +25,7 @@ type HealthProbe =
     | Readiness
     | Startup
 
+
 type ProbeMap =
     Map<
         HealthProbe,
@@ -353,16 +354,22 @@ type ContainerApp = {
                                             | vms -> vms
                                     probes = [
                                         for probe in container.Probes do
-                                            [
-                                                "type", box (probe.Key.ToString().ToLower())
-                                                (match probe.Value.Protocol with
-                                                 | ProbeProtocol.TCP -> "tcpSocket"
-                                                 | ProbeProtocol.HTTPS -> "httpGet"),
+                                            let endpoint = 
                                                 box {|
                                                     path = probe.Value.Route
                                                     port = probe.Value.Port
                                                 |}
-                                            ]
+                                            {|
+                                                ``type``= box (probe.Key.ToString().ToLower())
+                                                tcpSocket =
+                                                    match probe.Value.Protocol with
+                                                    | ProbeProtocol.TCP -> endpoint
+                                                    | _ -> null
+                                                httpGet =
+                                                    match probe.Value.Protocol with
+                                                    | ProbeProtocol.HTTPS -> endpoint
+                                                    | _ -> null
+                                            |}
                                     ]
                                 |}
                         |]
