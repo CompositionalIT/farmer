@@ -19,7 +19,7 @@ type AgentPoolConfig = {
     OsDiskSize: int<Gb>
     OsType: OS
     VmSize: VMSize
-    AvailabilityZones: string list
+    AvailabilityZones: ZoneSelection
     VirtualNetworkName: ResourceName option
     SubnetName: ResourceName option
     PodSubnetName: ResourceName option
@@ -43,7 +43,7 @@ type AgentPoolConfig = {
         SubnetName = None
         PodSubnetName = None
         VmSize = Standard_DS2_v2
-        AvailabilityZones = []
+        AvailabilityZones = NoZone
         AutoscaleSetting = None
         ScaleDownMode = None
         MinCount = None
@@ -286,10 +286,27 @@ type AgentPoolBuilder() =
     member _.OsType(state: AgentPoolConfig, os) = { state with OsType = os }
 
     [<CustomOperation "add_availability_zones">]
-    member _.AddAvailabilityZone(state: AgentPoolConfig, availabilityZones: string list) = {
+    member _.AddAvailabilityZone(state: AgentPoolConfig, availabilityZones: string seq) = {
         state with
-            AvailabilityZones = state.AvailabilityZones @ availabilityZones
+            AvailabilityZones =
+                match state.AvailabilityZones with
+                | NoZone
+                | ZoneExpression _ -> availabilityZones
+                | ExplicitZones zones -> zones |> Seq.append availabilityZones |> Set.ofSeq |> Set.toSeq
+                |> ExplicitZones
     }
+
+    /// Automatically select zones for the agent pool's VM scale set.
+    [<CustomOperation "pick_zones">]
+    member _.PickZones(state: AgentPoolConfig, num: int) = {
+        state with
+            AvailabilityZones =
+                ArmExpression.pickZones (virtualMachineScaleSets, numZones = num)
+                |> ZoneSelection.ZoneExpression
+    }
+
+    [<CustomOperation "pick_zones">]
+    member this.PickZones(state: AgentPoolConfig) = this.PickZones(state, 3)
 
     /// Sets the name of a virtual network subnet where this AKS cluster should be attached.
     [<CustomOperation "subnet">]

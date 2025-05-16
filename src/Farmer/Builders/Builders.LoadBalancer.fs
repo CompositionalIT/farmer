@@ -16,7 +16,7 @@ type FrontendIpConfig = {
     AddressVersion: AddressVersion
     PublicIp: LinkedResource option
     Subnet: LinkedResource option
-    Zones: string seq
+    Zones: ZoneSelection
 } with
 
     static member BuildResource frontend = {|
@@ -56,7 +56,7 @@ type FrontendIpBuilder() =
         AddressVersion = AddressVersion.IPv4
         PublicIp = None
         Subnet = None
-        Zones = []
+        Zones = NoZone
     }
 
     /// Sets the name of the frontend IP configuration.
@@ -106,9 +106,24 @@ type FrontendIpBuilder() =
 
     /// Adds availability zones for the frontend, and therefore, the load balancer itself.
     [<CustomOperation "add_availability_zones">]
-    member _.AddAvailabilityZones(state: FrontendIpConfig, zones: string seq) = {
+    member _.AddAvailabilityZones(state: FrontendIpConfig, zones: string seq) =
+        let existingZones =
+            match state.Zones with
+            | ExplicitZones existing -> existing
+            | ZoneExpression _
+            | NoZone -> []
+
+        {
+            state with
+                Zones = Seq.append existingZones zones |> Set.ofSeq |> Set.toSeq |> ExplicitZones
+        }
+
+    /// Adds availability zones in regions where they are available.
+    [<CustomOperation "pick_zones">]
+    member _.PickZones(state: FrontendIpConfig) = {
         state with
-            Zones = Seq.append state.Zones zones |> Set.ofSeq
+            // Doesn't work with 'loadBalancers' so use the response for 'publicIpAddresses'
+            Zones = ArmExpression.pickZones (publicIPAddresses, numZones = 3) |> ZoneExpression
     }
 
 let frontend = FrontendIpBuilder()

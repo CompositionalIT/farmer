@@ -240,7 +240,11 @@ type VmConfig = {
                     Sku = PublicIpAddress.Sku.Standard
                     DomainNameLabel = this.DomainNamePrefix
                     Tags = this.Tags
-                    AvailabilityZones = this.AvailabilityZone |> Option.toList
+                    AvailabilityZones =
+                        this.AvailabilityZone
+                        |> Option.toList
+                        |> List.toSeq
+                        |> ZoneSelection.ExplicitZones
                   }
                 | None -> ()
 

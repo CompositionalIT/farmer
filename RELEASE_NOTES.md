@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.14
+* VMSS, AKS, Azure Firewall, Managed Clusters (AKS): Adds `pick_zones` to let ARM select the availability zones.
+
 ## 1.9.13
 * Subnets: Support for `disable_outbound_access`.
 * Public IP Addresses and Load Balancers: drop `Basic` SKU, support zones.

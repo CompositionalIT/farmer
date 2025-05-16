@@ -26,7 +26,7 @@ type LoadBalancer = {
             AddressVersion: Network.AddressVersion
             PublicIp: ResourceId option
             Subnet: ResourceId option
-            Zones: string seq
+            Zones: ZoneSelection
         |} list
     BackendAddressPools: ResourceName list
     LoadBalancingRules:
@@ -89,12 +89,10 @@ type LoadBalancer = {
                                         |> Option.defaultValue Unchecked.defaultof<_>
                                 |}
                                 zones = // Zones are specified on the frontend only for internal load balancers
-                                    if
-                                        frontend.Subnet.IsNone || isNull frontend.Zones || Seq.isEmpty frontend.Zones
-                                    then
+                                    if frontend.Subnet.IsNone then
                                         null
                                     else
-                                        ResizeArray(frontend.Zones)
+                                        frontend.Zones.ArmValue
                             |})
                     backendAddressPools =
                         this.BackendAddressPools |> List.map (fun backend -> {| name = backend.Value |})

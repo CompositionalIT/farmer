@@ -630,7 +630,7 @@ type VirtualMachineScaleSet = {
     Name: ResourceName
     Location: Location
     Dependencies: ResourceId Set
-    AvailabilityZones: string list
+    AvailabilityZones: ZoneSelection
     ZoneBalance: bool option
     DiagnosticsEnabled: bool option
     Size: VMSize
@@ -760,11 +760,7 @@ type VirtualMachineScaleSet = {
                         scaleInPolicy = this.ScaleInPolicy.ArmJson
                         upgradePolicy = this.UpgradePolicy.ArmJson
                     |}
-                    zones =
-                        if this.AvailabilityZones.Length > 0 then
-                            Seq.ofList this.AvailabilityZones
-                        else
-                            null
+                    zones = this.AvailabilityZones.ArmValue
             |}
 
 type Host = {

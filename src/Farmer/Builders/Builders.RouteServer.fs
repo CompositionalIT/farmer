@@ -69,7 +69,7 @@ type RouteServerConfig = {
             //public ip
             {
                 PublicIpAddress.Name = publicIpName
-                AvailabilityZones = []
+                AvailabilityZones = NoZone
                 Location = location
                 Sku = PublicIpAddress.Sku.Standard
                 AllocationMethod = PublicIpAddress.AllocationMethod.Static

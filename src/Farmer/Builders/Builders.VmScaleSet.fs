@@ -57,7 +57,7 @@ type VmScaleSetConfig = {
     Vm: VmConfig option
     AutomaticRepairsPolicy: ScaleSetAutomaticRepairsPolicy option
     Autoscale: AutoscaleSettings option
-    AvailabilityZones: string list
+    AvailabilityZones: ZoneSelection
     Capacity: int option
     Overprovision: bool option
     RunExtensionsOnOverprovisionedVMs: bool option
@@ -367,7 +367,7 @@ type VirtualMachineScaleSetBuilder() =
         Autoscale = None
         Overprovision = None
         RunExtensionsOnOverprovisionedVMs = None
-        AvailabilityZones = []
+        AvailabilityZones = NoZone
         HealthProbeId = None
         LoadBalancerBackendAddressPools = []
         Extensions = []
@@ -449,8 +449,24 @@ type VirtualMachineScaleSetBuilder() =
     [<CustomOperation "add_availability_zones">]
     member _.AddAvailabilityZone(state: VmScaleSetConfig, zones: string list) = {
         state with
-            AvailabilityZones = state.AvailabilityZones @ zones
+            AvailabilityZones =
+                match state.AvailabilityZones with
+                | ExplicitZones existingZones -> existingZones |> Seq.append zones |> Set.ofSeq |> Set.toSeq
+                | NoZone
+                | ZoneExpression _ -> zones
+                |> ExplicitZones
     }
+
+    [<CustomOperation "pick_zones">]
+    member _.PickZones(state: VmScaleSetConfig, num: int) = {
+        state with
+            AvailabilityZones =
+                ArmExpression.pickZones (virtualMachineScaleSets, numZones = num)
+                |> ZoneSelection.ZoneExpression
+    }
+
+    [<CustomOperation "pick_zones">]
+    member this.PickZones(state: VmScaleSetConfig) = this.PickZones(state, 3)
 
     /// Add extensions.
     [<CustomOperation "add_extensions">]

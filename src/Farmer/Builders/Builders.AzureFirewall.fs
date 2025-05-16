@@ -22,7 +22,7 @@ type AzureFirewallConfig = {
     VirtualHub: LinkedResource option
     HubIPAddressSpace: HubIPAddressSpace option
     Sku: Sku
-    AvailabilityZones: string list
+    AvailabilityZones: ZoneSelection
     Dependencies: ResourceId Set
 } with
 
@@ -71,7 +71,7 @@ type AzureFirewallBuilder() =
         FirewallPolicy = None
         VirtualHub = None
         HubIPAddressSpace = None
-        AvailabilityZones = List.empty
+        AvailabilityZones = NoZone
         Dependencies = Set.empty
     }
 
@@ -133,7 +133,18 @@ type AzureFirewallBuilder() =
     }
 
     [<CustomOperation "availability_zones">]
-    member _.AvailabilityZones(state: AzureFirewallConfig, zones) = { state with AvailabilityZones = zones }
+    member _.AvailabilityZones(state: AzureFirewallConfig, zones: string seq) = {
+        state with
+            AvailabilityZones = ExplicitZones zones
+    }
+
+    [<CustomOperation "pick_zones">]
+    member _.PickZones(state: AzureFirewallConfig) = {
+        state with
+            AvailabilityZones =
+                ArmExpression.pickZones (azureFirewalls, numZones = 3)
+                |> ZoneSelection.ZoneExpression
+    }
 
     member _.Run(state: AzureFirewallConfig) =
         let stateIBuilder = state :> IBuilder
