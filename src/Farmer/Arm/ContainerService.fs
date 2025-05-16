@@ -214,7 +214,6 @@ type ManagedCluster = {
         {|
             NetworkPlugin: ContainerService.NetworkPlugin option
             DnsServiceIP: System.Net.IPAddress option
-            DockerBridgeCidr: IPAddressCidr option
             LoadBalancerSku: LoadBalancer.Sku option
             ServiceCidr: IPAddressCidr option
         |} option
@@ -344,10 +343,6 @@ type ManagedCluster = {
                             match this.NetworkProfile with
                             | Some networkProfile -> {|
                                 dnsServiceIP = networkProfile.DnsServiceIP |> Option.map string |> Option.toObj
-                                dockerBridgeCidr =
-                                    networkProfile.DockerBridgeCidr
-                                    |> Option.map IPAddressCidr.format
-                                    |> Option.toObj
                                 loadBalancerSku =
                                     networkProfile.LoadBalancerSku
                                     |> Option.map (fun sku -> sku.ArmValue)

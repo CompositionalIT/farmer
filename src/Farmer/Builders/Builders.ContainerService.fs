@@ -59,8 +59,6 @@ type NetworkProfileConfig = {
     NetworkPlugin: ContainerService.NetworkPlugin option
     /// If no address is specified, this will use the 2nd address in the service address CIDR
     DnsServiceIP: System.Net.IPAddress option
-    /// Usually the default 172.17.0.1/16 is acceptable.
-    DockerBridgeCidr: IPAddressCidr option
     /// Load balancer SKU (defaults to basic)
     LoadBalancerSku: LoadBalancer.Sku option
     /// Private IP address CIDR for services in the cluster which should not overlap with the vnet
@@ -216,7 +214,6 @@ type AksConfig = {
                             | None ->
                                 netProfile.ServiceCidr
                                 |> Option.map (IPAddressCidr.addresses >> Seq.skip 2 >> Seq.head)
-                        DockerBridgeCidr = netProfile.DockerBridgeCidr
                         LoadBalancerSku = netProfile.LoadBalancerSku
                         ServiceCidr = netProfile.ServiceCidr
                     |})
@@ -378,7 +375,6 @@ type KubenetBuilder() =
         NetworkPlugin = Some ContainerService.NetworkPlugin.Kubenet
         LoadBalancerSku = None
         DnsServiceIP = None
-        DockerBridgeCidr = None
         ServiceCidr = None
     }
 
@@ -392,7 +388,6 @@ type AzureCniBuilder() =
         NetworkPlugin = Some ContainerService.NetworkPlugin.AzureCni
         LoadBalancerSku = None
         DnsServiceIP = None
-        DockerBridgeCidr = IPAddressCidr.parse "172.17.0.1/16" |> Some
         ServiceCidr = IPAddressCidr.parse "10.224.0.0/16" |> Some
     }
 
@@ -404,13 +399,6 @@ type AzureCniBuilder() =
                 | None ->
                     config.ServiceCidr
                     |> Option.map (IPAddressCidr.addresses >> Seq.skip 2 >> Seq.head)
-    }
-
-    /// Sets the docker bridge CIDR to a network other than the default 17.17.0.1/16.
-    [<CustomOperation "docker_bridge">]
-    member _.DockerBridge(state: NetworkProfileConfig, dockerBridge) = {
-        state with
-            DockerBridgeCidr = IPAddressCidr.parse dockerBridge |> Some
     }
 
     /// Sets the DNS service IP - must be within the service CIDR, default is the second address in the service CIDR.
