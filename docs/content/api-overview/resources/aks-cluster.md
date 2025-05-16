@@ -79,7 +79,6 @@ The CNI builder (`azureCniNetworkProfile`) creates Azure CNI network profiles on
 
 | Keyword | Purpose |
 |-|-|
-| docker_bridge | Sets the docker bridge CIDR to a network other than the default 17.17.0.1/16. |
 | dns_service | Sets the DNS service IP - must be within the service CIDR, default is the second address in the service CIDR. |
 | service_cidr | Sets the service cidr to a network other than the default 10.224.0.0/16. |
 | load_balancer_sku | SKU for the Load Balancer - defaults to 'Standard' |
