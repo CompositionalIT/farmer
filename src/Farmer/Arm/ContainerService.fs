@@ -195,6 +195,7 @@ type ManagedCluster = {
             ScaleDownMode: ScaleDownMode option
             MinCount: int option
             MaxCount: int option
+            NodeTaints: string list option
         |} list
     DnsPrefix: string
     EnableRBAC: bool
@@ -315,6 +316,7 @@ type ManagedCluster = {
                                     | _ -> null
                                 minCount = agent.MinCount |> Option.toNullable
                                 maxCount = agent.MaxCount |> Option.toNullable
+                                nodeTaints = agent.NodeTaints
                             |})
                         dnsPrefix = this.DnsPrefix
                         enableRBAC = this.EnableRBAC

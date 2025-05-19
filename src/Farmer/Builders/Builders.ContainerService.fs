@@ -27,6 +27,7 @@ type AgentPoolConfig = {
     ScaleDownMode: ScaleDownMode option
     MinCount: int option
     MaxCount: int option
+    NodeTaints: string list
 } with
 
     static member Default = {
@@ -48,6 +49,7 @@ type AgentPoolConfig = {
         ScaleDownMode = None
         MinCount = None
         MaxCount = None
+        NodeTaints = []
     }
 
 type ApiServerAccessProfileConfig = {
@@ -191,6 +193,10 @@ type AksConfig = {
                         ScaleDownMode = agentPool.ScaleDownMode
                         MinCount = agentPool.MinCount
                         MaxCount = agentPool.MaxCount
+                        NodeTaints =
+                            match agentPool.NodeTaints with
+                            | [] -> None
+                            | _ -> Some agentPool.NodeTaints
                     |})
                 ApiServerAccessProfile =
                     this.ApiServerAccessProfile
@@ -336,6 +342,10 @@ type AgentPoolBuilder() =
         state with
             AutoscaleSetting = Some Enabled
     }
+
+    /// Set Node Taints on agent pool
+    [<CustomOperation "node_taints">]
+    member _.NodeTaints(state: AgentPoolConfig, taints) = { state with NodeTaints = taints }
 
     [<CustomOperation "autoscale_scale_down_mode">]
     member _.ScaleDownMode(state: AgentPoolConfig, scaleDownMode) = {
