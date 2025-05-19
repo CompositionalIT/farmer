@@ -47,25 +47,26 @@ The AKS builder (`aks`) constructs AKS clusters.
 #### Agent Pool Builder keywords
 The Agent Pool builder (`agentPool`) constructs agent pools in the AKS cluster.
 
-| Keyword                   | Purpose                                                                                          |
-|---------------------------|--------------------------------------------------------------------------------------------------|
-| name                      | Sets the name of the agent pool.                                                                 |
-| count                     | Sets the count of VM's in the agent pool.                                                        |
-| user_mode                 | Sets the agent pool to user mode.                                                                |
-| disk_size                 | Sets the disk size for the VM's in the agent pool.                                               |
-| enable_fips               | Uses a FIPS compliant OS image for VM's in the agent pool.                                       |
-| max_pods                  | Sets the maximum number of pods in the agent pool.                                               |
-| os_type                   | Sets the OS type of the VM's in the agent pool.                                                  |
-| pod_subnet                | Sets the name of a virtual network subnet where this AKS cluster should be attached.             |
-| subnet                    | Sets the name of a virtual network subnet where this AKS cluster should be attached.             |
-| vm_size                   | Sets the size of the VM's in the agent pool.                                                     |
-| add_availability_zones    | Sets the Azure availability zones for the VM's in the agent pool.                                |
-| pick_zones                | Picks availability zones within a region.                                                        |
-| vnet                      | Sets the name of a virtual network in the same region where this AKS cluster should be attached. |
-| enable_autoscale          | Enables node pool autoscale                                                                      |
-| autoscale_scale_down_mode | Optional. Use with enable_autoscaling. Options are Delete and Deallocate                         |
-| autoscale_min_count       | Use with enable_autoscaling. Minimum node count in node pool                                     |
-| autoscale_max_count       | Use with enable_autoscaling. Maximum node count in node pool                                     |
+| Keyword                   | Purpose                                                                                                |
+|---------------------------|--------------------------------------------------------------------------------------------------------|
+| name                      | Sets the name of the agent pool.                                                                       |
+| count                     | Sets the count of VM's in the agent pool.                                                              |
+| user_mode                 | Sets the agent pool to user mode.                                                                      |
+| disk_size                 | Sets the disk size for the VM's in the agent pool.                                                     |
+| enable_fips               | Uses a FIPS compliant OS image for VM's in the agent pool.                                             |
+| max_pods                  | Sets the maximum number of pods in the agent pool.                                                     |
+| os_type                   | Sets the OS type of the VM's in the agent pool.                                                        |
+| pod_subnet                | Sets the name of a virtual network subnet where this AKS cluster should be attached.                   |
+| subnet                    | Sets the name of a virtual network subnet where this AKS cluster should be attached.                   |
+| vm_size                   | Sets the size of the VM's in the agent pool.                                                           |
+| add_availability_zones    | Sets the Azure availability zones for the VM's in the agent pool.                                      |
+| pick_zones                | Picks availability zones within a region.                                                              |
+| vnet                      | Sets the name of a virtual network in the same region where this AKS cluster should be attached.       |
+| enable_autoscale          | Enables node pool autoscale                                                                            |
+| autoscale_scale_down_mode | Optional. Use with enable_autoscaling. Options are Delete and Deallocate                               |
+| autoscale_min_count       | Use with enable_autoscaling. Minimum node count in node pool                                           |
+| autoscale_max_count       | Use with enable_autoscaling. Maximum node count in node pool                                           |
+| node_taints               | Constrain a pod to run on particular nodes by attaching the pods to a set of nodes using node affinity |
 
 #### Kubenet Builder
 The Kubenet builder (`kubenetNetworkProfile`) creates Kubenet network profiles on the AKS cluster.
