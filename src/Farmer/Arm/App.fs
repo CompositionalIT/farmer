@@ -354,13 +354,14 @@ type ContainerApp = {
                                             | vms -> vms
                                     probes = [
                                         for probe in container.Probes do
-                                            let endpoint = 
+                                            let endpoint =
                                                 box {|
                                                     path = probe.Value.Route
                                                     port = probe.Value.Port
                                                 |}
+
                                             {|
-                                                ``type``= box (probe.Key.ToString().ToLower())
+                                                ``type`` = box (probe.Key.ToString().ToLower())
                                                 tcpSocket =
                                                     match probe.Value.Protocol with
                                                     | ProbeProtocol.TCP -> endpoint
