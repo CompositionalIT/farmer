@@ -40,17 +40,16 @@ let fullContainerAppDeployment =
 
         add_registry_credentials [ registry containerRegistryDomain containerRegistryName managedIdentity ]
 
-        add_containers
-            [
-                container {
-                    set_probe Liveness ProbeProtocol.HTTPS "/api/healthcheck" 443
-                    name "http"
-                    private_docker_image containerRegistryDomain "http" version
-                    cpu_cores 0.25<VCores>
-                    memory 0.5<Gb>
-                    ephemeral_storage 1.<Gb>
-                }
-            ]
+        add_containers [
+            container {
+                set_probe Liveness ProbeProtocol.HTTPS "/api/healthcheck" 443
+                name "http"
+                private_docker_image containerRegistryDomain "http" version
+                cpu_cores 0.25<VCores>
+                memory 0.5<Gb>
+                ephemeral_storage 1.<Gb>
+            }
+        ]
 
         replicas 1 5
         add_env_variable "ServiceBusQueueName" "wishrequests"
@@ -468,7 +467,7 @@ let tests =
 
             Expect.isSome managedEnvironment.AppInsightsInstrumentationKey "Dapr AI key not set"
         }
-            
+
         test "Supports Health Probes" {
             let apps =
                 fullContainerAppDeployment.Template.Resources
