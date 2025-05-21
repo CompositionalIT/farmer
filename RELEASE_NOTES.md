@@ -1,6 +1,8 @@
 Release Notes
 =============
 
+* Add health probes for Azure Container Apps
+
 ## 1.9.14
 * VMSS, AKS, Azure Firewall, Managed Clusters (AKS): Adds `pick_zones` to let ARM select the availability zones.
 * AKS: Remove deprecated `docker_bridge` from Container Services (AKS).
