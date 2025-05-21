@@ -482,8 +482,8 @@ let tests =
                     |> List.tryFind (fun c -> not c.Probes.IsEmpty)
                     |> Option.map (fun c -> c.Probes[Liveness]))
 
-            Expect.isGreaterThanOrEqual probe.Protocol ProbeProtocol.HTTPS "Incorrect probe protocol"
-            Expect.isGreaterThanOrEqual (probe.Route.ToString()) "/api/healthcheck" "Incorrect probe route"
-            Expect.isGreaterThanOrEqual probe.Port 443 "Incorrect probe port"
+            Expect.equal probe.Protocol ProbeProtocol.HTTPS "Incorrect probe protocol"
+            Expect.equal (probe.Route.ToString()) "/api/healthcheck" "Incorrect probe route"
+            Expect.equal probe.Port 443 "Incorrect probe port"
         }
     ]
