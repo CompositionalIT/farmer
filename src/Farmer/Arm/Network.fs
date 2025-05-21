@@ -254,7 +254,7 @@ type RouteServerBGPConnection = {
 
 type PublicIpAddress = {
     Name: ResourceName
-    AvailabilityZones: string seq
+    AvailabilityZones: ZoneSelection
     Location: Location
     Sku: PublicIpAddress.Sku
     AllocationMethod: PublicIpAddress.AllocationMethod
@@ -280,11 +280,7 @@ type PublicIpAddress = {
                         | Some label -> box {| domainNameLabel = label.ToLower() |}
                         | None -> null
                 |}
-                zones =
-                    if Seq.isEmpty this.AvailabilityZones then
-                        null
-                    else
-                        this.AvailabilityZones |> ResizeArray
+                zones = this.AvailabilityZones.ArmValue
         |}
 
 /// If using the IPs in the frontend of a cross-region laod balancer, public IPs and prefixes must be in

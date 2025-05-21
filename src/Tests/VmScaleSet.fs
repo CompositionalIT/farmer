@@ -15,6 +15,7 @@ let tests =
                     vmss {
                         name "my-scale-set"
                         capacity 3
+                        pick_zones
 
                         vm_profile (
                             vm {
@@ -89,6 +90,14 @@ let tests =
                 (vmProfile.SelectToken("osProfile.computerNamePrefix").ToString())
                 "my-scale-set"
                 "VMSS OS profile has incorrect computer name prefix"
+
+            let zones = vmss["zones"]
+            Expect.isNotNull zones "VMSS should have 'zones'"
+
+            Expect.equal
+                (vmss["zones"].ToString())
+                "[pickZones('Microsoft.Compute', 'virtualMachineScaleSets', resourceGroup().location, 3)]"
+                "Incorrect syntax for 'pickZones'"
         }
         test "Create a basic scale set using a gallery image" {
             let deployment = arm {

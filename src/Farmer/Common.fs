@@ -923,6 +923,9 @@ module Vm =
     let AzureLinux_3Arm =
         makeLinuxVm "azure-linux-3" "MicrosoftCBLMariner" "azure-linux-3-arm64"
 
+    let AzureLinux_3Fips =
+        makeLinuxVm "azure-linux-3" "MicrosoftCBLMariner" "azure-linux-3-gen2-fips"
+
     let WindowsServer_2022DatacenterAzureEdition =
         makeWindowsVm "2022-datacenter-azure-edition"
 

@@ -99,7 +99,7 @@ let tests =
             add_backend_pools [
                 backendAddressPool {
                     name "lb-backend"
-                    link_to_subnet "my-subnet"
+                    link_to_subnet "my-vnet/my-subnet"
                     link_to_vnet "my-vnet"
                     add_ip_addresses [ "10.0.1.4"; "10.0.1.5" ]
                 }
@@ -178,7 +178,7 @@ let tests =
             Expect.isNotNull frontendPip "Should have a frontend IP"
             let zones = frontendPip["zones"]
             Expect.isNotNull zones "Frontend public IP should have zones."
-            Expect.containsAll [ "1"; "2"; "3" ] (zones |> Seq.map (string)) "Incorrect zones for frontend public IP"
+            Expect.containsAll (zones |> Seq.map string) [ "1"; "2"; "3" ] "Incorrect zones for frontend public IP"
         }
 
         test "Complete load balancer backend pool" {

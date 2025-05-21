@@ -187,7 +187,7 @@ type ManagedCluster = {
             OsDiskSize: int<Gb>
             OsType: OS
             VmSize: VMSize
-            AvailabilityZones: string list
+            AvailabilityZones: ZoneSelection
             VirtualNetworkName: ResourceName option
             SubnetName: ResourceName option
             PodSubnetName: ResourceName option
@@ -214,7 +214,6 @@ type ManagedCluster = {
         {|
             NetworkPlugin: ContainerService.NetworkPlugin option
             DnsServiceIP: System.Net.IPAddress option
-            DockerBridgeCidr: IPAddressCidr option
             LoadBalancerSku: LoadBalancer.Sku option
             ServiceCidr: IPAddressCidr option
         |} option
@@ -300,7 +299,7 @@ type ManagedCluster = {
                                 osDiskSizeGB = agent.OsDiskSize
                                 osType = string agent.OsType
                                 vmSize = agent.VmSize.ArmValue
-                                availabilityZones = agent.AvailabilityZones
+                                availabilityZones = agent.AvailabilityZones.ArmValue
                                 vnetSubnetID =
                                     match agent.VirtualNetworkName, agent.SubnetName with
                                     | Some vnet, Some subnet -> subnets.resourceId(vnet, subnet).Eval()
@@ -344,10 +343,6 @@ type ManagedCluster = {
                             match this.NetworkProfile with
                             | Some networkProfile -> {|
                                 dnsServiceIP = networkProfile.DnsServiceIP |> Option.map string |> Option.toObj
-                                dockerBridgeCidr =
-                                    networkProfile.DockerBridgeCidr
-                                    |> Option.map IPAddressCidr.format
-                                    |> Option.toObj
                                 loadBalancerSku =
                                     networkProfile.LoadBalancerSku
                                     |> Option.map (fun sku -> sku.ArmValue)
