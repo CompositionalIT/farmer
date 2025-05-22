@@ -117,6 +117,7 @@ let fullContainerAppDeployment =
                     QueueName = "wishrequests"
                     MessageCount = 5
                     SecretRef = "servicebusconnectionkey"
+                    Namespace = "servicebus"
                 }
             }
             containerApp {
