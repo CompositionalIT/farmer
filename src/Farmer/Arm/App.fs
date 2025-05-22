@@ -19,12 +19,10 @@ let daprComponents =
 open Farmer.ContainerAppValidation
 open Farmer.Identity
 
-
 type HealthProbe =
     | Liveness
     | Readiness
     | Startup
-
 
 type ProbeMap =
     Map<
