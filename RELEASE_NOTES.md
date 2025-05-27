@@ -2,7 +2,8 @@ Release Notes
 =============
 
 ## 1.9.15
-* Add health probes for Azure Container Apps
+* Container Apps: Adds health probes.
+* AKS: Add node_taints parameter to agent pool config.
 
 ## 1.9.14
 * VMSS, AKS, Azure Firewall, Managed Clusters (AKS): Adds `pick_zones` to let ARM select the availability zones.
