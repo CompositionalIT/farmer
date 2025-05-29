@@ -140,7 +140,7 @@ type AksConfig = {
     SecurityProfile: SecurityProfileSettings option
     ServicePrincipalClientID: string
     WindowsProfileAdminUserName: string option
-    NodeResourceGroup: string option
+    NodeResourceGroup: ResourceName option
 } with
 
     member private this.ResourceId = managedClusters.resourceId this.Name

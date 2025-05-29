@@ -415,7 +415,7 @@ let tests =
             let myAks = aks {
                 name "aks-cluster"
                 dns_prefix "testaks"
-                node_resource_group "MC_aks-cluster"
+                node_resource_group (ResourceName "MC_aks-cluster")
 
                 add_agent_pools [
                     agentPool {

@@ -229,7 +229,7 @@ type ManagedCluster = {
         ClientId: string
         ClientSecret: SecureParameter option
     |}
-    NodeResourceGroup: string option
+    NodeResourceGroup: ResourceName option
 } with
 
     interface IParameters with
@@ -406,6 +406,6 @@ type ManagedCluster = {
                                 adminPassword = winProfile.AdminPassword.ArmExpression.Eval()
                               |}
                             | None -> Unchecked.defaultof<_>
-                        nodeResourceGroup = this.NodeResourceGroup
+                        nodeResourceGroup = this.NodeResourceGroup |> Option.map (fun rg -> rg.Value)
                     |}
             |}
