@@ -140,6 +140,7 @@ type AksConfig = {
     SecurityProfile: SecurityProfileSettings option
     ServicePrincipalClientID: string
     WindowsProfileAdminUserName: string option
+    NodeResourceGroup: string option
 } with
 
     member private this.ResourceId = managedClusters.resourceId this.Name
@@ -238,6 +239,7 @@ type AksConfig = {
                         AdminUserName = username
                         AdminPassword = SecureParameter $"admin-password-for-{this.Name.Value}"
                     |})
+                NodeResourceGroup = this.NodeResourceGroup
             }
         ]
 
@@ -465,6 +467,7 @@ type AksBuilder() =
         SecurityProfile = None
         ServicePrincipalClientID = "msi"
         WindowsProfileAdminUserName = None
+        NodeResourceGroup = None
     }
 
     member _.Run(config: AksConfig) =
@@ -484,6 +487,11 @@ type AksBuilder() =
         state with
             Sku = { state.Sku with Name = skuName }
     }
+
+    /// Sets the name of the AKS node resource group
+    [<CustomOperation "node_resource_group">]
+    member _.NodeResourceGroup(state: AksConfig, name) =
+        { state with NodeResourceGroup = Some(name) }
 
     /// Sets the tier of the load balancer (default is 'Free').
     [<CustomOperation "tier">]

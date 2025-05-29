@@ -39,6 +39,7 @@ The AKS builder (`aks`) constructs AKS clusters.
 | windows_username                    | Sets the windows admin username for the AKS cluster.                                                                                                        |
 | add_api_server_authorized_ip_ranges | Adds IP address CIDR ranges to be allowed Kubernetes API access.                                                                                            |
 | addon                               | A list with the configuration of all addons on the cluster (AciConnectorLinux, HttpApplicationRouting, KubeDashboard, IngressApplicationGateway, OmsAgent). |
+| node_resource_group                 | Name for the resource group where your AKS resources are stored                                                                                             |
 
 ##### Configuration Members
 

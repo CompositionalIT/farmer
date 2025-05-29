@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.16
+* AKS: add node_resource_group parameter to aks config
+
 ## 1.9.15
 * Container Apps: Adds health probes.
 * AKS: Add node_taints parameter to agent pool config.
