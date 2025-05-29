@@ -232,28 +232,6 @@ let tests =
             Expect.hasLength aks.AgentPoolProfiles 1 ""
             Expect.equal aks.AgentPoolProfiles.[0].Name "linuxpool" ""
         }
-        test "AKS with private API must use a standard load balancer." {
-            Expect.throws
-                (fun () ->
-                    let _ = aks {
-                        name "k8s-cluster"
-                        service_principal_client_id "some-spn-client-id"
-                        dns_prefix "testaks"
-
-                        add_agent_pools [
-                            agentPool {
-                                name "linuxPool"
-                                count 3
-                            }
-                        ]
-
-                        network_profile (kubenetNetworkProfile { load_balancer_sku LoadBalancer.Sku.Basic })
-                        enable_private_cluster true
-                    }
-
-                    ())
-                "Should throw validation exception when trying to use a private cluster on a basic LB"
-        }
         test "AKS API accessible to limited IP range." {
             let myAks = aks {
                 name "k8s-cluster"
@@ -408,6 +386,30 @@ let tests =
                 kubeletIdentityClientId
                 "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity'), '2023-01-31').clientId]"
                 "Incorrect kubelet identity reference."
+        }
+        test "Basic AKS cluster with node taints" {
+            let myAks = aks {
+                name "aks-cluster"
+                dns_prefix "testaks"
+
+                add_agent_pools [
+                    agentPool {
+                        name "linuxPool"
+                        count 3
+                        node_taints [ "CriticalAddonsOnly=true:NoSchedule" ]
+                    }
+                ]
+            }
+
+            let template = arm { add_resource myAks }
+            let json = template.Template |> Writer.toJson
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+            let firstNodeTaint =
+                jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.agentPoolProfiles[0].nodeTaints[0]")
+                |> string
+
+            Expect.equal firstNodeTaint "CriticalAddonsOnly=true:NoSchedule" "Incorrect nodeTaint value"
         }
         test "Basic AKS cluster with addons" {
             let myAppGateway = appGateway { name "app-gw" }

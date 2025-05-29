@@ -653,6 +653,7 @@ let tests =
                                 name "my-services"
                                 prefix "10.100.12.0/24"
                                 nat_gateway (natGateways.resourceId "my-nat-gateway")
+                                default_outbound_access false
                             }
                         ]
                     }
@@ -685,6 +686,15 @@ let tests =
                 jobj.SelectToken "resources[?(@.type=='Microsoft.Network/publicIPAddresses')]"
 
             Expect.isNotNull publicIp "Public IP should have been generated for the NAT gateway."
+
+            let subnet =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks')].properties.subnets[0]"
+
+            Expect.isNotNull subnet "Subnet resource not generated."
+            let defaultOutbound = subnet.SelectToken "properties.defaultOutboundAccess"
+            Expect.isNotNull defaultOutbound "defaultOutboundAccess should be emitted"
+            Expect.isFalse (defaultOutbound.ToObject<bool>()) "defaultOutboundAccess should be false"
+
         }
         test "Creates route table with two routes" {
             let deployment = arm {

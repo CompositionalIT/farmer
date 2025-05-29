@@ -17,6 +17,7 @@ type SubnetConfig = {
     VirtualNetwork: LinkedResource option
     RouteTable: LinkedResource option
     NetworkSecurityGroup: LinkedResource option
+    DefaultOutboundAccess: bool option
     Delegations: SubnetDelegationService list
     NatGateway: LinkedResource option
     ServiceEndpoints: (EndpointServiceType * Location list) list
@@ -32,6 +33,7 @@ type SubnetConfig = {
         VirtualNetwork = this.VirtualNetwork
         RouteTable = this.RouteTable
         NetworkSecurityGroup = this.NetworkSecurityGroup
+        DefaultOutboundAccess = this.DefaultOutboundAccess
         Delegations =
             this.Delegations
             |> List.map (fun (SubnetDelegationService(delegation)) -> {
@@ -63,6 +65,7 @@ type SubnetBuilder() =
         VirtualNetwork = None
         RouteTable = None
         NetworkSecurityGroup = None
+        DefaultOutboundAccess = None
         Delegations = []
         NatGateway = None
         ServiceEndpoints = []
@@ -270,6 +273,14 @@ type SubnetBuilder() =
             PrivateLinkServiceNetworkPolicies = Some flag
     }
 
+    /// Set to false to disable default outbound access on the vnet, requiring VMs to
+    /// use their own public IP, a NAT Gateway, or a Load Balancer for outbound access.
+    [<CustomOperation "default_outbound_access">]
+    member _.DefaultOutboundAccess(state: SubnetConfig, defaultOutboundAccess) = {
+        state with
+            DefaultOutboundAccess = Some defaultOutboundAccess
+    }
+
     interface IDependable<SubnetConfig> with
         member _.Add state newDeps = {
             state with
@@ -284,6 +295,7 @@ type SubnetBuildSpec = {
     Size: int
     NetworkSecurityGroup: LinkedResource option
     RouteTable: LinkedResource option
+    DefaultOutboundAccess: bool option
     Delegations: SubnetDelegationService list
     NatGateway: LinkedResource option
     ServiceEndpoints: (EndpointServiceType * Location list) list
@@ -298,6 +310,7 @@ let buildSubnet name size = {
     Size = size
     NetworkSecurityGroup = None
     RouteTable = None
+    DefaultOutboundAccess = None
     Delegations = []
     NatGateway = None
     ServiceEndpoints = []
@@ -312,6 +325,7 @@ let buildSubnetDelegations name size delegations = {
     Size = size
     NetworkSecurityGroup = None
     RouteTable = None
+    DefaultOutboundAccess = None
     Delegations = delegations
     NatGateway = None
     ServiceEndpoints = []
@@ -325,6 +339,7 @@ let buildSubnetAllowPrivateEndpoints name size = {
     Size = size
     NetworkSecurityGroup = None
     RouteTable = None
+    DefaultOutboundAccess = None
     Delegations = []
     NatGateway = None
     ServiceEndpoints = []
@@ -339,6 +354,7 @@ type SubnetSpecBuilder() =
         Size = 24
         NetworkSecurityGroup = None
         RouteTable = None
+        DefaultOutboundAccess = None
         Delegations = []
         NatGateway = None
         ServiceEndpoints = []
@@ -490,6 +506,14 @@ type SubnetSpecBuilder() =
             PrivateLinkServiceNetworkPolicies = Some flag
     }
 
+    /// Set to false to disable default outbound access on the vnet, requiring VMs to
+    /// use their own public IP, a NAT Gateway, or a Load Balancer for outbound access.
+    [<CustomOperation "default_outbound_access">]
+    member _.DefaultOutboundAccess(state: SubnetBuildSpec, defaultOutboundAccess) = {
+        state with
+            DefaultOutboundAccess = Some defaultOutboundAccess
+    }
+
 let subnetSpec = SubnetSpecBuilder()
 
 /// A specification building an address space and subnets.
@@ -531,6 +555,7 @@ type AddressSpaceBuilder() =
             Size = size
             NetworkSecurityGroup = nsg
             RouteTable = rt
+            DefaultOutboundAccess = None
             Delegations = delegations |> Option.defaultValue []
             NatGateway = None
             ServiceEndpoints = serviceEndpoints |> Option.defaultValue []
@@ -741,6 +766,7 @@ type VirtualNetworkBuilder() =
                         VirtualNetwork = Some(Managed(virtualNetworks.resourceId state.Name))
                         NetworkSecurityGroup = nsg
                         RouteTable = rt
+                        DefaultOutboundAccess = None
                         Delegations = delegations
                         NatGateway = natGateway
                         ServiceEndpoints = serviceEndpoints

@@ -928,6 +928,9 @@ module Vm =
     let AzureLinux_3Arm =
         makeLinuxVm "azure-linux-3" "MicrosoftCBLMariner" "azure-linux-3-arm64"
 
+    let AzureLinux_3Fips =
+        makeLinuxVm "azure-linux-3" "MicrosoftCBLMariner" "azure-linux-3-gen2-fips"
+
     let WindowsServer_2022DatacenterAzureEdition =
         makeWindowsVm "2022-datacenter-azure-edition"
 
@@ -2673,12 +2676,10 @@ module PrivateIpAddress =
 module LoadBalancer =
     [<RequireQualifiedAccess>]
     type Sku =
-        | Basic
         | Standard
 
         member this.ArmValue =
             match this with
-            | Basic -> "Basic"
             | Standard -> "Standard"
 
     [<RequireQualifiedAccess>]
@@ -3534,12 +3535,10 @@ module PublicIpAddress =
             | Static -> "Static"
 
     type Sku =
-        | Basic
         | Standard
 
         member this.ArmValue =
             match this with
-            | Basic -> "Basic"
             | Standard -> "Standard"
 
 module Cdn =
@@ -4066,6 +4065,11 @@ module ContainerApp =
         | HTTP1
         | HTTP2
         | Auto
+
+    [<RequireQualifiedAccess>]
+    type ProbeProtocol =
+        | TCP
+        | HTTPS
 
     type IngressMode =
         | External of port: uint16 * Transport option

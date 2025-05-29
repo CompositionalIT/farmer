@@ -19,7 +19,7 @@ type AgentPoolConfig = {
     OsDiskSize: int<Gb>
     OsType: OS
     VmSize: VMSize
-    AvailabilityZones: string list
+    AvailabilityZones: ZoneSelection
     VirtualNetworkName: ResourceName option
     SubnetName: ResourceName option
     PodSubnetName: ResourceName option
@@ -27,6 +27,7 @@ type AgentPoolConfig = {
     ScaleDownMode: ScaleDownMode option
     MinCount: int option
     MaxCount: int option
+    NodeTaints: string list
 } with
 
     static member Default = {
@@ -43,11 +44,12 @@ type AgentPoolConfig = {
         SubnetName = None
         PodSubnetName = None
         VmSize = Standard_DS2_v2
-        AvailabilityZones = []
+        AvailabilityZones = NoZone
         AutoscaleSetting = None
         ScaleDownMode = None
         MinCount = None
         MaxCount = None
+        NodeTaints = []
     }
 
 type ApiServerAccessProfileConfig = {
@@ -59,8 +61,6 @@ type NetworkProfileConfig = {
     NetworkPlugin: ContainerService.NetworkPlugin option
     /// If no address is specified, this will use the 2nd address in the service address CIDR
     DnsServiceIP: System.Net.IPAddress option
-    /// Usually the default 172.17.0.1/16 is acceptable.
-    DockerBridgeCidr: IPAddressCidr option
     /// Load balancer SKU (defaults to basic)
     LoadBalancerSku: LoadBalancer.Sku option
     /// Private IP address CIDR for services in the cluster which should not overlap with the vnet
@@ -193,6 +193,10 @@ type AksConfig = {
                         ScaleDownMode = agentPool.ScaleDownMode
                         MinCount = agentPool.MinCount
                         MaxCount = agentPool.MaxCount
+                        NodeTaints =
+                            match agentPool.NodeTaints with
+                            | [] -> None
+                            | _ -> Some agentPool.NodeTaints
                     |})
                 ApiServerAccessProfile =
                     this.ApiServerAccessProfile
@@ -216,7 +220,6 @@ type AksConfig = {
                             | None ->
                                 netProfile.ServiceCidr
                                 |> Option.map (IPAddressCidr.addresses >> Seq.skip 2 >> Seq.head)
-                        DockerBridgeCidr = netProfile.DockerBridgeCidr
                         LoadBalancerSku = netProfile.LoadBalancerSku
                         ServiceCidr = netProfile.ServiceCidr
                     |})
@@ -286,10 +289,27 @@ type AgentPoolBuilder() =
     member _.OsType(state: AgentPoolConfig, os) = { state with OsType = os }
 
     [<CustomOperation "add_availability_zones">]
-    member _.AddAvailabilityZone(state: AgentPoolConfig, availabilityZones: string list) = {
+    member _.AddAvailabilityZone(state: AgentPoolConfig, availabilityZones: string seq) = {
         state with
-            AvailabilityZones = state.AvailabilityZones @ availabilityZones
+            AvailabilityZones =
+                match state.AvailabilityZones with
+                | NoZone
+                | ZoneExpression _ -> availabilityZones
+                | ExplicitZones zones -> zones |> Seq.append availabilityZones |> Set.ofSeq |> Set.toSeq
+                |> ExplicitZones
     }
+
+    /// Automatically select zones for the agent pool's VM scale set.
+    [<CustomOperation "pick_zones">]
+    member _.PickZones(state: AgentPoolConfig, num: int) = {
+        state with
+            AvailabilityZones =
+                ArmExpression.pickZones (virtualMachineScaleSets, numZones = num)
+                |> ZoneSelection.ZoneExpression
+    }
+
+    [<CustomOperation "pick_zones">]
+    member this.PickZones(state: AgentPoolConfig) = this.PickZones(state, 3)
 
     /// Sets the name of a virtual network subnet where this AKS cluster should be attached.
     [<CustomOperation "subnet">]
@@ -322,6 +342,10 @@ type AgentPoolBuilder() =
         state with
             AutoscaleSetting = Some Enabled
     }
+
+    /// Set Node Taints on agent pool
+    [<CustomOperation "node_taints">]
+    member _.NodeTaints(state: AgentPoolConfig, taints) = { state with NodeTaints = taints }
 
     [<CustomOperation "autoscale_scale_down_mode">]
     member _.ScaleDownMode(state: AgentPoolConfig, scaleDownMode) = {
@@ -361,7 +385,6 @@ type KubenetBuilder() =
         NetworkPlugin = Some ContainerService.NetworkPlugin.Kubenet
         LoadBalancerSku = None
         DnsServiceIP = None
-        DockerBridgeCidr = None
         ServiceCidr = None
     }
 
@@ -375,7 +398,6 @@ type AzureCniBuilder() =
         NetworkPlugin = Some ContainerService.NetworkPlugin.AzureCni
         LoadBalancerSku = None
         DnsServiceIP = None
-        DockerBridgeCidr = IPAddressCidr.parse "172.17.0.1/16" |> Some
         ServiceCidr = IPAddressCidr.parse "10.224.0.0/16" |> Some
     }
 
@@ -387,13 +409,6 @@ type AzureCniBuilder() =
                 | None ->
                     config.ServiceCidr
                     |> Option.map (IPAddressCidr.addresses >> Seq.skip 2 >> Seq.head)
-    }
-
-    /// Sets the docker bridge CIDR to a network other than the default 17.17.0.1/16.
-    [<CustomOperation "docker_bridge">]
-    member _.DockerBridge(state: NetworkProfileConfig, dockerBridge) = {
-        state with
-            DockerBridgeCidr = IPAddressCidr.parse dockerBridge |> Some
     }
 
     /// Sets the DNS service IP - must be within the service CIDR, default is the second address in the service CIDR.
@@ -417,11 +432,10 @@ let makeLinuxProfile user sshKeys = user, sshKeys
 
 /// Match on type of load balancer for an AKS config's network profile.
 /// The default if nothing is specified is a Standard LB.
-let private (|BasicLoadBalancer|StandardLoadBalancer|) =
+let private (|StandardLoadBalancer|) =
     function
     | Some netProfile ->
         match netProfile.LoadBalancerSku with
-        | Some LoadBalancer.Sku.Basic -> BasicLoadBalancer
         | _ -> StandardLoadBalancer
     | _ -> StandardLoadBalancer
 
@@ -454,11 +468,6 @@ type AksBuilder() =
     }
 
     member _.Run(config: AksConfig) =
-        match config.NetworkProfile, config.ApiServerAccessProfile with
-        | BasicLoadBalancer, PrivateClusterEnabled ->
-            invalidArg "sku" "Private cluster requires a standard SKU load balancer."
-        | _ -> ()
-
         if String.IsNullOrWhiteSpace config.ServicePrincipalClientID then
             raiseFarmer
                 "Missing ServicePrincipalClientID on ManagedCluster - specify 'service_principal_use_msi' or 'service_principal_client_id' to assign one."

@@ -28,19 +28,19 @@ let networkProfiles =
     ResourceType("Microsoft.Network/networkProfiles", "2020-04-01")
 
 let publicIPAddresses =
-    ResourceType("Microsoft.Network/publicIPAddresses", "2018-11-01")
+    ResourceType("Microsoft.Network/publicIPAddresses", "2024-05-01")
 
 let publicIPPrefixes =
-    ResourceType("Microsoft.Network/publicIPPrefixes", "2021-08-01")
+    ResourceType("Microsoft.Network/publicIPPrefixes", "2024-05-01")
 
 let serviceEndpointPolicies =
     ResourceType("Microsoft.Network/serviceEndpointPolicies", "2020-07-01")
 
 let subnets =
-    ResourceType("Microsoft.Network/virtualNetworks/subnets", "2020-07-01")
+    ResourceType("Microsoft.Network/virtualNetworks/subnets", "2024-05-01")
 
 let virtualNetworks =
-    ResourceType("Microsoft.Network/virtualNetworks", "2020-07-01")
+    ResourceType("Microsoft.Network/virtualNetworks", "2024-05-01")
 
 let virtualNetworkGateways =
     ResourceType("Microsoft.Network/virtualNetworkGateways", "2020-05-01")
@@ -254,7 +254,7 @@ type RouteServerBGPConnection = {
 
 type PublicIpAddress = {
     Name: ResourceName
-    AvailabilityZone: string option
+    AvailabilityZones: ZoneSelection
     Location: Location
     Sku: PublicIpAddress.Sku
     AllocationMethod: PublicIpAddress.AllocationMethod
@@ -280,7 +280,7 @@ type PublicIpAddress = {
                         | Some label -> box {| domainNameLabel = label.ToLower() |}
                         | None -> null
                 |}
-                zones = this.AvailabilityZone |> Option.map ResizeArray |> Option.toObj
+                zones = this.AvailabilityZones.ArmValue
         |}
 
 /// If using the IPs in the frontend of a cross-region laod balancer, public IPs and prefixes must be in
@@ -329,6 +329,7 @@ type Subnet = {
     VirtualNetwork: LinkedResource option
     RouteTable: LinkedResource option
     NetworkSecurityGroup: LinkedResource option
+    DefaultOutboundAccess: bool option
     Delegations: SubnetDelegation list
     NatGateway: LinkedResource option
     ServiceEndpoints: (Network.EndpointServiceType * Location list) list
@@ -362,6 +363,7 @@ type Subnet = {
                     id = nsg.ResourceId.ArmExpression.Eval()
                 |})
                 |> Option.defaultValue Unchecked.defaultof<_>
+            defaultOutboundAccess = this.DefaultOutboundAccess |> Option.toNullable
             delegations =
                 this.Delegations
                 |> List.map (fun delegation -> {|

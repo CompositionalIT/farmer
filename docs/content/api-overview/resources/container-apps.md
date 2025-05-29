@@ -89,6 +89,7 @@ The Container builder (`container`) is used to define one or more containers for
 | cpu_cores | Specifies the CPU cores allocated to the container (maximum 2.0). |
 | memory | Specifies the memory in gigabytes allocated to the container (maximum 4.0). |
 | add_volume_mount | Adds a volume mount on a container from a volume in the container app. |
+| set_probe | Adds a health probe of the given type, with the given protocol, at the given route, with the given port |
 
 #### Dapr Component Builder
 The Dapr Component builder (`daprComponent`) is used to define one or more dapr components for a container environment.
