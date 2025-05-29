@@ -490,8 +490,10 @@ type AksBuilder() =
 
     /// Sets the name of the AKS node resource group
     [<CustomOperation "node_resource_group">]
-    member _.NodeResourceGroup(state: AksConfig, name) =
-        { state with NodeResourceGroup = Some(name) }
+    member _.NodeResourceGroup(state: AksConfig, name) = {
+        state with
+            NodeResourceGroup = Some(name)
+    }
 
     /// Sets the tier of the load balancer (default is 'Free').
     [<CustomOperation "tier">]
