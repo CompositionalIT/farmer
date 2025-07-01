@@ -131,6 +131,7 @@ type AksConfig = {
     DependencyExpressions: ArmExpression Set
     DnsPrefix: string
     EnableRBAC: bool
+    KubernetesVersion: KubernetesVersion option
     Identity: ManagedIdentity
     IdentityProfile: ManagedClusterIdentityProfile option
     ApiServerAccessProfile: ApiServerAccessProfileConfig option
@@ -166,6 +167,7 @@ type AksConfig = {
                     else
                         this.DnsPrefix
                 EnableRBAC = this.EnableRBAC
+                KubernetesVersion = this.KubernetesVersion
                 Identity = this.Identity
                 IdentityProfile = this.IdentityProfile
                 AgentPoolProfiles =
@@ -458,6 +460,7 @@ type AksBuilder() =
         AgentPools = []
         DnsPrefix = ""
         EnableRBAC = false
+        KubernetesVersion = None
         Identity = ManagedIdentity.Empty
         IdentityProfile = None
         ApiServerAccessProfile = None
@@ -527,6 +530,20 @@ type AksBuilder() =
             state with
                 Dependencies = state.Dependencies + newDeps
         }
+
+    [<CustomOperation "kubernetes_version">]
+    member _.KubernetesVersion(state: AksConfig, version: KubernetesVersion) = {
+        state with
+            KubernetesVersion = Some version
+    }
+
+    member _.KubernetesVersion(state: AksConfig, version: string) =
+        match KubernetesVersion.Create version with
+        | Error err -> raiseFarmer $"Invalid Kubernetes version '{version}' specified: {err}"
+        | Ok version -> {
+            state with
+                KubernetesVersion = Some version
+          }
 
     [<CustomOperation "depends_on_expression">]
     member _.DependencyExpressions(state: AksConfig, dependencyExpr: ArmExpression) = {

@@ -23,6 +23,7 @@ The AKS builder (`aks`) constructs AKS clusters.
 | enable_image_cleaner                | Enables a service to periodically purge images that are no longer used.                                                                                     |
 | enable_private_cluster              | Restricts the cluster's Kubernetes API to only be accessible from private networks.                                                                         |
 | enable_rbac                         | Enable Kubernetes Role-Based Access Control.                                                                                                                |
+| kubernetes_version                  | Sets the Kubernetes version of the AKS cluster.                                                                                                              |
 | enable_workload_identity            | Enables workload identity to assign a pod to a managed identity. Requires OIDC, so enables that as well.                                                    |
 | oidc_issuer                         | Enables or disables the OIDC issuer service for issuing tokens for federated identity.                                                                      |
 | add_agent_pools                     | Adds agent pools to the AKS cluster.                                                                                                                        |
