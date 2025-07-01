@@ -451,7 +451,7 @@ let tests =
                 jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.kubernetesVersion")
                 |> string
 
-            Expect.equal kubernetesVersion "1.31" "Incorrect nodeResourceGroup value"
+            Expect.equal kubernetesVersion "1.31" "Incorrect kubernetes version value"
 
             let myNextAks = aks {
                 name "next-aks-cluster"
