@@ -603,6 +603,8 @@ type Certificate =
         SiteId: LinkedResource
         ServicePlanId: LinkedResource
         DomainName: string
+        KeyVaultId: string option
+        KeyVaultSecretName: string option
     }
 
     member this.ResourceName = ResourceName this.DomainName
@@ -637,6 +639,8 @@ type Certificate =
                     {|
                         serverFarmId = this.ServicePlanId.ResourceId.Eval()
                         canonicalName = this.DomainName
+                        keyVaultId = this.KeyVaultId
+                        keyVaultSecretName = this.KeyVaultSecretName
                     |}
             |}
 

@@ -1228,6 +1228,112 @@ let tests =
                     $"hostnameBinding should have a {innerExpectedSslState} Ssl state inside the resourceGroupDeployment template"
             }
 
+            test "Supports secure custom domains with custom certificate from Key Vault" {
+                let webappName = "test"
+                let thumbprint = ArmExpression.literal "1111583E8FABEF4C0BEF694CBC41C28FB81CD111"
+
+                let keyVaultId = "keyVaultId"
+                let keyVaultSecretName = "keyVaultSecretName"
+
+                let keyVaultCustomCertificateOptions: KeyVaultCustomCertificateOptions
+                    = {
+                        thumbprint = thumbprint
+                        keyVaultCertificate = {
+                            keyVaultId = keyVaultId
+                            keyVaultSecretName = keyVaultSecretName
+                        }
+                    }
+
+                let domainConfig = SecureDomain("customDomain.io", CustomCertificateFromKeyVault keyVaultCustomCertificateOptions)
+
+                let resources =
+                    webApp {
+                        name webappName
+                        custom_domain domainConfig
+                    }
+                    |> getResources
+
+                let wa = resources |> getResource<Web.Site> |> List.head
+                let nested = resources |> getResource<ResourceGroupDeployment>
+                let expectedDomainName = "customDomain.io"
+
+                // Testing HostnameBinding
+                let hostnameBinding =
+                    nested.[0].Resources |> getResource<Web.HostNameBinding> |> List.head
+
+                let expectedSslState = None
+                let exepectedSiteId = (Managed(Arm.Web.sites.resourceId wa.Name))
+
+                Expect.equal
+                    hostnameBinding.DomainName
+                    expectedDomainName
+                    $"HostnameBinding domain name should have {expectedDomainName}"
+
+                Expect.equal
+                    hostnameBinding.SslState
+                    expectedSslState
+                    $"HostnameBinding should have a {expectedSslState} Ssl state"
+
+                Expect.equal
+                    hostnameBinding.SiteId
+                    exepectedSiteId
+                    $"HostnameBinding SiteId should be {exepectedSiteId}"
+
+                // Testing certificate
+                let cert = nested.[1].Resources |> getResource<Web.Certificate> |> List.head
+
+                Expect.equal
+                    cert.KeyVaultId.Value
+                    keyVaultId
+                    $"Certificate should be in KeyVault {keyVaultId}"
+
+                Expect.equal
+                    cert.KeyVaultSecretName.Value
+                    keyVaultSecretName
+                    $"Certificate should be in KeyVault secret {keyVaultSecretName}"
+
+                // Testing certificate
+                let cert = nested.[1].Resources |> getResource<Web.Certificate> |> List.head
+
+                Expect.equal
+                    cert.DomainName
+                    expectedDomainName
+                    $"Certificate domain name should have {expectedDomainName}"
+
+                // Testing hostname/certificate link.
+                let bindingDeployment = nested.[2]
+
+                let innerResource =
+                    bindingDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
+
+                let innerExpectedSslState = Some(SslState.SniBased thumbprint)
+
+                Expect.stringStarts
+                    bindingDeployment.DeploymentName.Value
+                    "[concat"
+                    "resourceGroupDeployment name should start as a valid ARM expression"
+
+                Expect.stringEnds
+                    bindingDeployment.DeploymentName.Value
+                    ")]"
+                    "resourceGroupDeployment stage should end as a valid ARM expression"
+
+                Expect.equal
+                    bindingDeployment.Resources.Length
+                    1
+                    "resourceGroupDeployment stage should only contain one resource"
+
+                Expect.equal
+                    bindingDeployment.Dependencies.Count
+                    1
+                    "resourceGroupDeployment stage should only contain one dependencies"
+
+                Expect.equal
+                    innerResource.SslState
+                    innerExpectedSslState
+                    $"hostnameBinding should have a {innerExpectedSslState} Ssl state inside the resourceGroupDeployment template"
+            }
+
             test "Supports secure custom domains with app service managed certificate" {
                 let webappName = "test"
 

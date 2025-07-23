@@ -914,13 +914,20 @@ type WebAppConfig =
 
                     match customDomain with
                     | SecureDomain (customDomain, certOptions) ->
-                        let cert =
-                            {
+                        let cert = {
                                 Location = location
                                 SiteId = Managed this.ResourceId
                                 ServicePlanId = Managed this.ServicePlanId
                                 DomainName = customDomain
-                            }
+                                KeyVaultId = 
+                                  match certOptions with
+                                  | CustomCertificateFromKeyVault kvCert -> Some(kvCert.keyVaultCertificate.keyVaultId)
+                                  | _ -> None
+                                KeyVaultSecretName = 
+                                  match certOptions with
+                                  | CustomCertificateFromKeyVault kvCert -> Some(kvCert.keyVaultCertificate.keyVaultSecretName)
+                                  | _ -> None
+                           }
 
                         // Get the resource group which contains the app service plan
                         let aspRgName =
@@ -963,6 +970,8 @@ type WebAppConfig =
                                             match certOptions with
                                             | AppManagedCertificate ->
                                                 Some(SniBased(cert.GetThumbprintReference aspRgName))
+                                            | CustomCertificateFromKeyVault kvCert ->
+                                                Some(SniBased(kvCert.thumbprint))
                                             | CustomCertificate thumbprint -> Some(SniBased thumbprint)
                                     }
 
