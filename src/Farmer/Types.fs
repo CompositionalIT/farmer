@@ -369,17 +369,12 @@ type KeyVaultCertificate = {
     keyVaultId: string
     keyVaultSecretName: string
 }
-
-type KeyVaultCustomCertificateOptions = {
-    thumbprint: ArmExpression
-    keyVaultCertificate: KeyVaultCertificate
-}
     
 //Choose whether you'd like an auto generated app service managed certificate or if you have your own custom certificate of
 type CertificateOptions =
     | AppManagedCertificate
     | CustomCertificate of thumbprint: ArmExpression
-    | CustomCertificateFromKeyVault of keyVaultCertificate: KeyVaultCustomCertificateOptions
+    | CustomCertificateFromKeyVault of keyVaultCertificate: KeyVaultCertificate
 
 type DomainConfig =
     | SecureDomain of domain: string * cert: CertificateOptions

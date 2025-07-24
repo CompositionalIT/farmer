@@ -607,7 +607,9 @@ type Certificate =
         KeyVaultSecretName: string option
     }
 
-    member this.ResourceName = ResourceName this.DomainName
+    // Use the domain name for the certificate resource name if this is an azure managed cert, else it needs to be the keyvault secret name to avoid conflicts when using the same keyvault cert across multiple apps.
+    // This hack ensures only one cert is created per resource group when using a keyvault certificate, even if you have multiple farmer web apps.
+    member this.ResourceName = if this.KeyVaultSecretName.IsSome then ResourceName this.KeyVaultSecretName.Value else ResourceName this.DomainName
     member this.Thumbprint = this.GetThumbprintReference None
 
     member this.GetThumbprintReference certificateResourceGroup =
@@ -638,7 +640,7 @@ type Certificate =
                 properties =
                     {|
                         serverFarmId = this.ServicePlanId.ResourceId.Eval()
-                        canonicalName = this.DomainName
+                        canonicalName = if this.KeyVaultId.IsSome then None else Some(this.DomainName)
                         keyVaultId = this.KeyVaultId
                         keyVaultSecretName = this.KeyVaultSecretName
                     |}

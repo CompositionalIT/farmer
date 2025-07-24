@@ -921,11 +921,11 @@ type WebAppConfig =
                                 DomainName = customDomain
                                 KeyVaultId = 
                                   match certOptions with
-                                  | CustomCertificateFromKeyVault kvCert -> Some(kvCert.keyVaultCertificate.keyVaultId)
+                                  | CustomCertificateFromKeyVault kvCert -> Some(kvCert.keyVaultId)
                                   | _ -> None
                                 KeyVaultSecretName = 
                                   match certOptions with
-                                  | CustomCertificateFromKeyVault kvCert -> Some(kvCert.keyVaultCertificate.keyVaultSecretName)
+                                  | CustomCertificateFromKeyVault kvCert -> Some(kvCert.keyVaultSecretName)
                                   | _ -> None
                            }
 
@@ -971,7 +971,7 @@ type WebAppConfig =
                                             | AppManagedCertificate ->
                                                 Some(SniBased(cert.GetThumbprintReference aspRgName))
                                             | CustomCertificateFromKeyVault kvCert ->
-                                                Some(SniBased(kvCert.thumbprint))
+                                                Some(SniBased(cert.GetThumbprintReference aspRgName))
                                             | CustomCertificate thumbprint -> Some(SniBased thumbprint)
                                     }
 
