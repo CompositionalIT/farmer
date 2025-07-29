@@ -370,10 +370,10 @@ type ContainerApp = {
                                                 value = null
                                                 secretref = env.Key
                                               |}
-                                            | EnvValueSecretReference ref -> {|
+                                            | EnvValueSecretReference secretRef -> {|
                                                 name = env.Key
                                                 value = null
-                                                secretref = ref
+                                                secretref = secretRef
                                               |}
                                     |]
                                     resources =

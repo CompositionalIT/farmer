@@ -97,10 +97,10 @@ type DeploymentScript = {
                                     value = null
                                     secureValue = v.ArmExpression.Eval()
                                   |}
-                                | EnvValueSecretReference ref -> {|
+                                | EnvValueSecretReference secretRef -> {|
                                     name = key
                                     value = null
-                                    secureValue = ref
+                                    secureValue = secretRef
                                   |}
                         ]
                         forceUpdateTag = this.ForceUpdateTag |> Option.toNullable
