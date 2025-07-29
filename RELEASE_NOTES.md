@@ -1,8 +1,11 @@
 Release Notes
 =============
 
-## 1.9.16
+## 1.9.17
 * Container Apps: Adds `add_key_vault_secret` allowing Container App secrets to reference secrets stored in Azure Key Vault.
+
+## 1.9.16
+* AKS: add node_resource_group parameter to aks config
 
 ## 1.9.15
 * Container Apps: Adds health probes.
