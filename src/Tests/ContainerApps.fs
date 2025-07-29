@@ -312,24 +312,81 @@ let tests =
             Expect.hasLength secrets 4 "Expecting 4 secrets"
             Expect.equal (secrets.[0]["name"] |> string) "myregistry" "Incorrect name for registry password secret"
             Expect.equal (secrets[1]["name"] |> string) "servicebusconnectionkey" "Incorrect Name for secret name"
-            Expect.equal (secrets[1]["value"] |> string) "[parameters('servicebusconnectionkey')]" "Incorrect Name for secret value"
-            Expect.equal (secrets[2]["name"] |> string) secretUserAssigned "Incorrect Name for KeyVault Secret Reference"
-            Expect.equal (secrets[2]["keyVaultUrl"] |> string) $"[reference(resourceId('Microsoft.KeyVault/vaults/secrets', '{keyVaultName}', '{secretUserAssigned}'), '2022-07-01').secretUri]" "Incorrect Url for KeyVault Secret Reference"
-            Expect.equal (secrets[2]["identity"] |> string) $"[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', '{identityName}')]" "Incorrect identity for KeyVault Secret Reference"
 
-            let containerEnvVars = httpContainerApp.SelectToken("properties.template.containers[0].env")
+            Expect.equal
+                (secrets[1]["value"] |> string)
+                "[parameters('servicebusconnectionkey')]"
+                "Incorrect Name for secret value"
+
+            Expect.equal
+                (secrets[2]["name"] |> string)
+                secretUserAssigned
+                "Incorrect Name for KeyVault Secret Reference"
+
+            Expect.equal
+                (secrets[2]["keyVaultUrl"] |> string)
+                $"[reference(resourceId('Microsoft.KeyVault/vaults/secrets', '{keyVaultName}', '{secretUserAssigned}'), '2022-07-01').secretUri]"
+                "Incorrect Url for KeyVault Secret Reference"
+
+            Expect.equal
+                (secrets[2]["identity"] |> string)
+                $"[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', '{identityName}')]"
+                "Incorrect identity for KeyVault Secret Reference"
+
+            let containerEnvVars =
+                httpContainerApp.SelectToken("properties.template.containers[0].env")
 
             Expect.hasLength containerEnvVars 5 "Expecting 5 environment variables"
-            Expect.equal (containerEnvVars[0]["name"] |> string) "APPINSIGHTS_INSTRUMENTATIONKEY" "Incorrect name for container app env var"
-            Expect.equal (containerEnvVars[0]["value"] |> string) "[reference(resourceId('Microsoft.Insights/components', 'appinsights'), '2020-02-02').InstrumentationKey]" "Incorrect value for container app env var"
-            Expect.equal (containerEnvVars[1]["name"] |> string) "ServiceBusQueueName" "Incorrect name for container app env var"
-            Expect.equal (containerEnvVars[1]["value"] |> string) "wishrequests" "Incorrect value for container app env var"
-            Expect.equal (containerEnvVars[2]["name"] |> string) "servicebusconnectionkey" "Incorrect name for container app env var"
-            Expect.equal (containerEnvVars[2]["secretref"] |> string) "servicebusconnectionkey" "Incorrect secretRef for container app env var"
-            Expect.equal (containerEnvVars[3]["name"] |> string) secretUserAssigned "Incorrect name for container app env var"
-            Expect.equal (containerEnvVars[3]["secretref"] |> string) secretUserAssigned "Incorrect secretRef for container app env var"
-            Expect.equal (containerEnvVars[4]["name"] |> string) secretSystemAssigned "Incorrect name for container app env var"
-            Expect.equal (containerEnvVars[4]["secretref"] |> string) secretSystemAssigned "Incorrect secretRef for container app env var"
+
+            Expect.equal
+                (containerEnvVars[0]["name"] |> string)
+                "APPINSIGHTS_INSTRUMENTATIONKEY"
+                "Incorrect name for container app env var"
+
+            Expect.equal
+                (containerEnvVars[0]["value"] |> string)
+                "[reference(resourceId('Microsoft.Insights/components', 'appinsights'), '2020-02-02').InstrumentationKey]"
+                "Incorrect value for container app env var"
+
+            Expect.equal
+                (containerEnvVars[1]["name"] |> string)
+                "ServiceBusQueueName"
+                "Incorrect name for container app env var"
+
+            Expect.equal
+                (containerEnvVars[1]["value"] |> string)
+                "wishrequests"
+                "Incorrect value for container app env var"
+
+            Expect.equal
+                (containerEnvVars[2]["name"] |> string)
+                "servicebusconnectionkey"
+                "Incorrect name for container app env var"
+
+            Expect.equal
+                (containerEnvVars[2]["secretref"] |> string)
+                "servicebusconnectionkey"
+                "Incorrect secretRef for container app env var"
+
+            Expect.equal
+                (containerEnvVars[3]["name"] |> string)
+                secretUserAssigned
+                "Incorrect name for container app env var"
+
+            Expect.equal
+                (containerEnvVars[3]["secretref"] |> string)
+                secretUserAssigned
+                "Incorrect secretRef for container app env var"
+
+            Expect.equal
+                (containerEnvVars[4]["name"] |> string)
+                secretSystemAssigned
+                "Incorrect name for container app env var"
+
+            Expect.equal
+                (containerEnvVars[4]["secretref"] |> string)
+                secretSystemAssigned
+                "Incorrect secretRef for container app env var"
 
             Expect.equal
                 (httpContainerApp.SelectToken("properties.managedEnvironmentId") |> string)

@@ -1,4 +1,4 @@
-﻿namespace Farmer
+namespace Farmer
 
 open System
 
@@ -160,8 +160,7 @@ type EnvVar =
     static member createSecureExpression (name: string) (armExpression: ArmExpression) =
         name, SecureEnvExpression armExpression
 
-    static member createSecretReference (name: string) (paramName: string) =
-        name, EnvValueSecretReference paramName
+    static member createSecretReference (name: string) (paramName: string) = name, EnvValueSecretReference paramName
 
 module Mb =
     let toBytes (mb: int<Mb>) = int64 mb * 1024L * 1024L

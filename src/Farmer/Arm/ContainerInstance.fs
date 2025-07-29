@@ -315,10 +315,10 @@ type ContainerGroup = {
                                             value = null
                                             secureValue = value.ArmExpression.Eval()
                                           |}
-                                        | EnvValueSecretReference ref -> {|
+                                        | EnvValueSecretReference secretRef -> {|
                                             name = key
                                             value = null
-                                            secureValue = ref
+                                            secureValue = secretRef
                                           |}
                                 ]
                                 livenessProbe = ContainerProbe.JsonModel container.LivenessProbe

@@ -46,22 +46,27 @@ module Vaults =
                 secrets.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                     properties = {|
                         value =
-                            let defaultArm =
-                                {|
-                                  name = this.Name.Value
-                                  value = None
-                                  keyVaultUrl = None
-                                  identity = None
-                                |}
+                            let defaultArm = {|
+                                name = this.Name.Value
+                                value = None
+                                keyVaultUrl = None
+                                identity = None
+                            |}
+
                             match this.Value with
-                            | ParameterSecret secureParameter -> {| defaultArm with value = Some(secureParameter.ArmExpression.Eval()) |}
-                            | ExpressionSecret armExpression -> {| defaultArm with value = Some(armExpression.Eval()) |}
-                            | KeyVaultSecretReference (url, identity) ->
-                                {|
-                                  defaultArm with
-                                    keyVaultUrl = Some (url.Eval())
-                                    identity = Some (identity.Eval())
-                                |}
+                            | ParameterSecret secureParameter -> {|
+                                defaultArm with
+                                    value = Some(secureParameter.ArmExpression.Eval())
+                              |}
+                            | ExpressionSecret armExpression -> {|
+                                defaultArm with
+                                    value = Some(armExpression.Eval())
+                              |}
+                            | KeyVaultSecretReference(url, identity) -> {|
+                                defaultArm with
+                                    keyVaultUrl = Some(url.Eval())
+                                    identity = Some(identity.Eval())
+                              |}
 
                         contentType = this.ContentType |> Option.toObj
                         attributes = {|
