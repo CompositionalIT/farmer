@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.17
+* AKS: add ability to specify `kubernetes_version` parameter
+
 ## 1.9.16
 * AKS: add node_resource_group parameter to aks config
 

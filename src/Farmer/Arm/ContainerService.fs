@@ -169,6 +169,47 @@ type ScaleDownMode =
     | Delete
     | Deallocate
 
+type KubernetesVersion = {
+    Major: int
+    Minor: int
+    //Latest patch version selected if not specified
+    Patch: int option
+} with
+
+    static member Create(version: string) =
+        let parts = version.Split('.')
+
+        match parts with
+        | [| majorString; minorString |] ->
+            match System.Int32.TryParse(majorString), System.Int32.TryParse(minorString) with
+            | (false, _), _ -> Result.Error $"Invalid major version: {majorString}."
+            | _, (false, _) -> Result.Error $"Invalid minor version: {minorString}."
+            | (true, major), (true, minor) ->
+                {
+                    Major = major
+                    Minor = minor
+                    Patch = None
+                }
+                |> Result.Ok
+        | [| major; minor; patch |] ->
+            match System.Int32.TryParse(major), System.Int32.TryParse(minor), System.Int32.TryParse(patch) with
+            | (false, _), _, _ -> Result.Error $"Invalid major version: {major}."
+            | _, (false, _), _ -> Result.Error $"Invalid minor version: {minor}."
+            | _, _, (false, _) -> Result.Error $"Invalid patch version: {patch}."
+            | (true, major), (true, minor), (true, patch) ->
+                {
+                    Major = major
+                    Minor = minor
+                    Patch = Some patch
+                }
+                |> Result.Ok
+        | _ -> Result.Error $"Invalid Kubernetes version format: {version}. Expected format is 'major.minor[.patch]'."
+
+    member this.Value =
+        match this.Patch with
+        | Some patch -> $"%i{this.Major}.%i{this.Minor}.%i{patch}"
+        | None -> $"%i{this.Major}.%i{this.Minor}"
+
 type ManagedCluster = {
     Name: ResourceName
     Sku: ContainerServiceSku
@@ -199,6 +240,7 @@ type ManagedCluster = {
         |} list
     DnsPrefix: string
     EnableRBAC: bool
+    KubernetesVersion: KubernetesVersion option
     Identity: ManagedIdentity
     IdentityProfile: ManagedClusterIdentityProfile option
     ApiServerAccessProfile:
@@ -321,6 +363,10 @@ type ManagedCluster = {
                             |})
                         dnsPrefix = this.DnsPrefix
                         enableRBAC = this.EnableRBAC
+                        kubernetesVersion =
+                            match this.KubernetesVersion with
+                            | Some version -> version.Value
+                            | None -> null
                         identityProfile =
                             match this.IdentityProfile with
                             | Some identityProfile -> identityProfile.ToArmJson

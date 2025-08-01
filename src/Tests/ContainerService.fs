@@ -1,6 +1,7 @@
 module ContainerService
 
 open Expecto
+open Farmer.Arm
 open Farmer.Arm.ContainerService.AddonProfiles
 open Farmer.Arm.RoleAssignment
 open Farmer.Builders
@@ -435,6 +436,80 @@ let tests =
                 |> string
 
             Expect.equal nodeResourceGroup "MC_aks-cluster" "Incorrect nodeResourceGroup value"
+        }
+        test "Basic AKS cluster with specific version" {
+            let myAks = aks {
+                name "aks-cluster"
+                kubernetes_version "1.31"
+            }
+
+            let template = arm { add_resource myAks }
+            let json = template.Template |> Writer.toJson
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+            let kubernetesVersion =
+                jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.kubernetesVersion")
+                |> string
+
+            Expect.equal kubernetesVersion "1.31" "Incorrect kubernetes version value"
+
+            let myNextAks = aks {
+                name "next-aks-cluster"
+
+                kubernetes_version {
+                    Major = 1
+                    Minor = 31
+                    Patch = Some 8
+                }
+            }
+
+            let nextTemplate = arm { add_resource myNextAks }
+            let nextJson = nextTemplate.Template |> Writer.toJson
+            let nextJobj = Newtonsoft.Json.Linq.JObject.Parse(nextJson)
+
+            let nextKubernetesVersion =
+                nextJobj.SelectToken("resources[?(@.name=='next-aks-cluster')].properties.kubernetesVersion")
+                |> string
+
+            Expect.equal nextKubernetesVersion "1.31.8" "Incorrect kubernetes version for next AKS cluster."
+        }
+        test "KubernetesVersion Parsing" {
+            Expect.equal
+                (KubernetesVersion.Create "1.31")
+                (Ok { Major = 1; Minor = 31; Patch = None })
+                "KubernetesVersion.Create should parse version correctly."
+
+            Expect.equal
+                (KubernetesVersion.Create "1.31.7")
+                (Ok {
+                    Major = 1
+                    Minor = 31
+                    Patch = Some 7
+                })
+                "KubernetesVersion.Create should parse version correctly."
+
+            Expect.isError
+                (KubernetesVersion.Create "")
+                "KubernetesVersion.Create should return error for empty string."
+
+            Expect.isError
+                (KubernetesVersion.Create "1")
+                "KubernetesVersion.Create should return error for version without minor version."
+
+            Expect.isError
+                (KubernetesVersion.Create "major.minor.patch")
+                "KubernetesVersion.Create should return error for non-numeric version."
+
+            try
+                let myAks = aks {
+                    name "aks-cluster"
+                    kubernetes_version "1"
+                }
+
+                failwith "Able to create AKS with invalid Kubernetes version."
+            with
+            | :? FarmerException -> ()
+            | ex -> failwithf "Expected FarmerException, but got: %s" (ex.Message)
         }
         test "Basic AKS cluster with addons" {
             let myAppGateway = appGateway { name "app-gw" }
