@@ -277,8 +277,6 @@ let tests =
         test "Full container environment containerApp" {
             let httpContainerApp = jobj.SelectToken("resources[?(@.name=='http')]")
 
-            printfn $"{httpContainerApp}"
-
             Expect.equal
                 (httpContainerApp.["type"] |> string)
                 "Microsoft.App/containerApps"
