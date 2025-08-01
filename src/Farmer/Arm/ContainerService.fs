@@ -6,6 +6,34 @@ open Farmer.Identity
 open Farmer.ContainerService
 open Farmer.Vm
 
+let private createDataCollectionRuleAssociation =
+    ResourceType("Microsoft.ContainerService/managedClusters/providers/dataCollectionRuleAssociations", "2022-06-01")
+
+type DataCollectionRuleAssociation = {
+    Name: ResourceName
+    Cluster: ResourceId
+    Location: Location
+    RuleId: ResourceId
+    Description: string option
+    Dependencies: ResourceId Set
+} with
+
+    interface IArmResource with
+        member this.ResourceId =
+            createDataCollectionRuleAssociation.resourceId (ResourceName this.Name.Value)
+
+        member this.JsonModel =
+            let depends = this.Dependencies + Set [ this.RuleId; this.Cluster ]
+
+            {|
+                createDataCollectionRuleAssociation.Create(ResourceName this.Name.Value, dependsOn = depends) with
+                    location = this.Location.ArmValue
+                    properties = {|
+                        description = this.Description
+                        dataCollectionRuleId = this.RuleId.Eval()
+                    |}
+            |}
+
 let managedClusters =
     ResourceType("Microsoft.ContainerService/managedClusters", "2024-02-01")
 
@@ -144,6 +172,23 @@ type ManagedClusterIdentityProfile = {
 
 type OidcIssuerProfile = { Enabled: FeatureFlag }
 
+type KubeStateMetrics = {
+    MetricLabelsAllowList: string option
+    MetricAnnotationsAllowList: string option
+} with
+
+    static member Default = {
+        MetricLabelsAllowList = None
+        MetricAnnotationsAllowList = None
+    }
+
+type AzureMonitorProfile = {
+    Metrics: {|
+        Enabled: FeatureFlag
+        KubeStateMetrics: KubeStateMetrics option
+    |}
+}
+
 type SecurityProfileSettings = {
     Defender:
         {|
@@ -261,6 +306,7 @@ type ManagedCluster = {
             ServiceCidr: IPAddressCidr option
         |} option
     OidcIssuerProfile: OidcIssuerProfile option
+    AzureMonitorProfile: AzureMonitorProfile option
     SecurityProfile: SecurityProfileSettings option
     WindowsProfile:
         {|
@@ -408,6 +454,20 @@ type ManagedCluster = {
                             match this.OidcIssuerProfile with
                             | None -> Unchecked.defaultof<_>
                             | Some oidc -> {| enabled = oidc.Enabled.AsBoolean |}
+                        azureMonitorProfile =
+                            match this.AzureMonitorProfile with
+                            | None -> Unchecked.defaultof<_>
+                            | Some monitorProfile -> {|
+                                metrics = {|
+                                    enabled = monitorProfile.Metrics.Enabled.AsBoolean
+                                    kubeStateMetrics =
+                                        monitorProfile.Metrics.KubeStateMetrics
+                                        |> Option.map (fun kubeStateMetrics -> {|
+                                            metricLabelsAllowList = kubeStateMetrics.MetricLabelsAllowList
+                                            metricAnnotationsAllowList = kubeStateMetrics.MetricAnnotationsAllowList
+                                        |})
+                                |}
+                              |}
                         securityProfile =
                             match this.SecurityProfile with
                             | None -> Unchecked.defaultof<_>

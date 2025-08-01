@@ -138,6 +138,7 @@ type AksConfig = {
     LinuxProfile: (string * string list) option
     NetworkProfile: NetworkProfileConfig option
     OidcIssuerProfile: OidcIssuerProfile option
+    AzureMonitorProfile: AzureMonitorProfile option
     SecurityProfile: SecurityProfileSettings option
     ServicePrincipalClientID: string
     WindowsProfileAdminUserName: string option
@@ -234,6 +235,7 @@ type AksConfig = {
                         | _ -> Some(SecureParameter $"client-secret-for-{this.Name.Value}")
                 |}
                 OidcIssuerProfile = this.OidcIssuerProfile
+                AzureMonitorProfile = this.AzureMonitorProfile
                 SecurityProfile = this.SecurityProfile
                 WindowsProfile =
                     this.WindowsProfileAdminUserName
@@ -467,6 +469,7 @@ type AksBuilder() =
         LinuxProfile = None
         NetworkProfile = None
         OidcIssuerProfile = None
+        AzureMonitorProfile = None
         SecurityProfile = None
         ServicePrincipalClientID = "msi"
         WindowsProfileAdminUserName = None
@@ -691,6 +694,19 @@ type AksBuilder() =
     member _.OidcIssuer(state: AksConfig, featureFlag) = {
         state with
             OidcIssuerProfile = Some { Enabled = featureFlag }
+    }
+
+    /// Enables Azure Monitor for AKS cluster
+    [<CustomOperation "enable_azure_monitor">]
+    member _.EnableAzureMonitor(state: AksConfig, kubeStateMetrics) = {
+        state with
+            AzureMonitorProfile =
+                Some {
+                    Metrics = {|
+                        Enabled = Enabled
+                        KubeStateMetrics = kubeStateMetrics
+                    |}
+                }
     }
 
     /// Enables Workload Identity for the AKS cluster.
