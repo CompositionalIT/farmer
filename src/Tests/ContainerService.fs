@@ -3,6 +3,7 @@ module ContainerService
 open Expecto
 open Farmer.Arm
 open Farmer.Arm.ContainerService.AddonProfiles
+open Farmer.Arm.ContainerService
 open Farmer.Arm.RoleAssignment
 open Farmer.Builders
 open Farmer
@@ -583,5 +584,52 @@ let tests =
                 appGatewayIngress
                 expectedAppGateway
                 "Unexpected value for addonProfiles.ingressApplicationGateway."
+        }
+
+        test "Simple AKS cluster with Azure Monitor enabled and metrics labels allow list specified" {
+            let myAks = aks {
+                name "k8s-cluster"
+                dns_prefix "testaks"
+
+                add_agent_pools [
+                    agentPool {
+                        name "linuxPool"
+                        count 3
+                    }
+                ]
+
+                linux_profile "aksuser" "public-key-here"
+                service_principal_client_id "some-spn-client-id"
+
+                enable_azure_monitor (
+                    Some(
+                        {
+                            MetricLabelsAllowList = Some "app"
+                            MetricAnnotationsAllowList = None
+                        }
+                    )
+                )
+            }
+
+            let template = arm { add_resource myAks }
+            let json = template.Template |> Writer.toJson
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+            let enableAzureMonitor =
+                jobj.SelectToken("resources[?(@.name=='k8s-cluster')].properties.azureMonitorProfile.metrics.enabled")
+                |> string
+
+            let metricLabelsAllowList =
+                jobj.SelectToken(
+                    "resources[?(@.name=='k8s-cluster')].properties.azureMonitorProfile.metrics.kubeStateMetrics.metricLabelsAllowList"
+                )
+                |> string
+
+            Expect.equal enableAzureMonitor "True" "Incorrect azureMonitorProfile.metrics.enabled value"
+
+            Expect.equal
+                metricLabelsAllowList
+                "app"
+                "azureMonitorProfile.metrics.kubeStateMetrics.metricLabelsAllowList should be 'app' when specified"
         }
     ]
