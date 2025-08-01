@@ -57,6 +57,7 @@ The Container Apps builder (`containerApp`) is used to define one or more contai
 | add_secret_parameters | Adds application secrets to the entire container app. This is passed as secure parameters to the template, and environment variables are automatically created which reference the secret. |
 | add_secret_expression | As per `add_secret_parameter`, but the value is sourced from an ARM expression instead of as a parameter. Useful for e.g. storage keys etc. |
 | add_secret_expressions | As per `add_secret_parameters`, but the values are sourced from ARM expressions instead of as parameters. Useful for e.g. storage keys etc. |
+| add_key_vault_secret | Adds a container app secret that references a KeyVault secret using the KeyVault URL. Environment variables are automatically created which reference the secret. |
 | add_env_variable | Adds a static, plain text environment variable. |
 | add_env_variables | Adds static, plain text environment variables. |
 | add_volumes | Adds volumes to a container app so they are accessible to containers. |

@@ -545,6 +545,39 @@ type ContainerAppBuilder() =
     member this.AddSecretExpressions(state: ContainerAppConfig, xs: #seq<_>) =
         xs |> Seq.fold (fun s (k, e) -> this.AddSecretExpression(s, k, e)) state
 
+    /// Adds a container app secret that references a KeyVault secret using the KeyVault URL as an ArmExpression.
+    /// Overloaded function allows for passing environment variable name different from secret.
+    [<CustomOperation "add_key_vault_secret">]
+    member this.AddKeyVaultSecret
+        (state: ContainerAppConfig, key, envVarName, keyVaultUrl: ArmExpression, ?identity: ArmExpression)
+        =
+        let key = (ContainerAppSettingKey.Create key).OkValue
+
+        let identityExpression =
+            identity
+            |> Option.defaultWith (fun () ->
+                if state.Identity.SystemAssigned = Enabled then
+                    ArmExpression.literal "system"
+                else
+                    raiseFarmer
+                        "You must either pass a user-assigned identity or enable system identity on the Container App in order to reference a Key Vault secret.")
+
+        let newDeps =
+            [ keyVaultUrl.Owner; identityExpression.Owner ] |> Seq.choose id |> Set.ofSeq
+
+        {
+            state with
+                Secrets = state.Secrets.Add(key, (KeyVaultSecretReference(keyVaultUrl, identityExpression)))
+                EnvironmentVariables = state.EnvironmentVariables.Add(EnvVar.createSecretReference envVarName key.Value)
+                Dependencies = state.Dependencies + newDeps
+        }
+
+    /// Adds a container app secret that references a KeyVault secret using the KeyVault URL as an ArmExpression.
+    member this.AddKeyVaultSecret
+        (state: ContainerAppConfig, key, keyVaultUrl: ArmExpression, ?identity: ArmExpression)
+        =
+        this.AddKeyVaultSecret(state, key, key, keyVaultUrl, ?identity = identity)
+
 
     /// Adds a public environment variable to the Azure Container App environment variables.
     [<CustomOperation "add_env_variable">]

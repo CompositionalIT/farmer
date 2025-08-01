@@ -490,15 +490,10 @@ type ObjectId =
         match this with
         | ObjectId id -> id
 
-/// Represents a secret to be captured either via an ARM expression or a secure parameter.
 type SecretValue =
+    | KeyVaultSecretReference of keyVaultUrl: ArmExpression * identity: ArmExpression
     | ParameterSecret of SecureParameter
     | ExpressionSecret of ArmExpression
-
-    member this.Value =
-        match this with
-        | ParameterSecret secureParameter -> secureParameter.ArmExpression.Eval()
-        | ExpressionSecret armExpression -> armExpression.Eval()
 
 type Setting =
     | ParameterSetting of SecureParameter
