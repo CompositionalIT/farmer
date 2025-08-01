@@ -212,3 +212,45 @@ type AlertData = {
                         actions = this.Actions
                     |}
             |}
+
+let createPrometheusRuleGroup =
+    ResourceType("Microsoft.AlertsManagement/prometheusRuleGroups", "2023-04-01")
+
+type PrometheusRule = {
+    Record: string
+    Expression: string
+    Labels: Map<string, string> option
+}
+
+type PrometheusRuleGroup = {
+    Name: ResourceName
+    Location: Location
+    ClusterId: ResourceId
+    AzureMonitorWorkspaceId: ResourceId
+    Interval: string
+    Rules: PrometheusRule list
+    Dependencies: ResourceId Set
+} with
+
+    interface IArmResource with
+        member this.ResourceId = createPrometheusRuleGroup.resourceId this.Name
+
+        member this.JsonModel = {|
+            createPrometheusRuleGroup.Create(this.Name, dependsOn = this.Dependencies + Set [ this.ClusterId ]) with
+                location = this.Location.ArmValue
+                properties = {|
+                    clusterResourceId = this.ClusterId.Eval()
+                    scopes = [ this.AzureMonitorWorkspaceId.Eval() ]
+                    interval = this.Interval
+                    rules =
+                        this.Rules
+                        |> List.map (fun r -> {|
+                            record = r.Record
+                            expression = r.Expression
+                            labels =
+                                r.Labels
+                                |> Option.map (Map.toList >> dict)
+                                |> Option.defaultValue Unchecked.defaultof<_>
+                        |})
+                |}
+        |}
