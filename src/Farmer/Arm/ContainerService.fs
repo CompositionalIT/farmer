@@ -6,34 +6,6 @@ open Farmer.Identity
 open Farmer.ContainerService
 open Farmer.Vm
 
-let private createDataCollectionRuleAssociation =
-    ResourceType("Microsoft.ContainerService/managedClusters/providers/dataCollectionRuleAssociations", "2022-06-01")
-
-type DataCollectionRuleAssociation = {
-    Name: ResourceName
-    Cluster: ResourceId
-    Location: Location
-    RuleId: ResourceId
-    Description: string option
-    Dependencies: ResourceId Set
-} with
-
-    interface IArmResource with
-        member this.ResourceId =
-            createDataCollectionRuleAssociation.resourceId (ResourceName this.Name.Value)
-
-        member this.JsonModel =
-            let depends = this.Dependencies + Set [ this.RuleId; this.Cluster ]
-
-            {|
-                createDataCollectionRuleAssociation.Create(ResourceName this.Name.Value, dependsOn = depends) with
-                    location = this.Location.ArmValue
-                    properties = {|
-                        description = this.Description
-                        dataCollectionRuleId = this.RuleId.Eval()
-                    |}
-            |}
-
 let managedClusters =
     ResourceType("Microsoft.ContainerService/managedClusters", "2024-02-01")
 
