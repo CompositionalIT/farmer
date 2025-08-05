@@ -83,7 +83,7 @@ let tests =
             let ruleAssociation = dataCollectionRuleAssociation {
                 name "myRuleAssociation"
                 associated_resource ((myAks :> IBuilder).ResourceId)
-                rule_id ruleId
+                rule_id expectedRuleId
             }
 
             let template = arm { add_resources [ myAks; ruleAssociation ] }
