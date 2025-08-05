@@ -95,6 +95,6 @@ let tests =
                     .SelectToken("resources[?(@.name=='myRuleAssociation')].properties.dataCollectionRuleId")
                     .ToString()
 
-            Expect.equal ruleId expectedRuleId "Expected matching rule Id"
+            Expect.equal ruleId (expectedRuleId.Eval()) "Expected matching rule Id"
         }
     ]
