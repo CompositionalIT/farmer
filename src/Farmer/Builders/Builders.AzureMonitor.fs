@@ -52,6 +52,7 @@ type DataCollectionRuleConfig = {
     DataSources: DataSourceConfig.DataSource option
     Destinations: DestinationsConfig.Destinations option
     Tags: Map<string, string>
+    Dependencies: ResourceId Set
 } with
 
     interface IBuilder with
@@ -67,6 +68,7 @@ type DataCollectionRuleConfig = {
                 DataSources = this.DataSources
                 Destinations = this.Destinations
                 Tags = this.Tags
+                Dependencies = this.Dependencies
             }
         ]
 
@@ -74,12 +76,12 @@ type DataCollectionRuleBuilder() =
     member _.Yield _ = {
         Name = ResourceName.Empty
         OsType = Linux
-        Location = Location.WestEurope
         Endpoint = ResourceId.Empty
         DataFlows = None
         DataSources = None
         Destinations = None
         Tags = Map.empty
+        Dependencies = Set.empty
     }
 
     [<CustomOperation "name">]
@@ -114,5 +116,11 @@ type DataCollectionRuleBuilder() =
             state with
                 Tags = state.Tags |> Map.merge tags
         }
-    
+
+    interface IDependable<DataCollectionRuleConfig> with
+        member _.Add state newDeps = {
+            state with
+                Dependencies = state.Dependencies + newDeps
+        }
+
 let dataCollectionRule = DataCollectionRuleBuilder()

@@ -18,7 +18,7 @@ type DataCollectionEndpoint = {
 
         member this.JsonModel = {|
             dataCollectionEndpoints.Create(this.Name, this.Location, tags = this.Tags) with
-                kind = this.OsType
+                kind = string this.OsType
         |}
 
 let dataCollectionRules =
@@ -71,21 +71,13 @@ type Stream =
         | CustomStream name -> name
 
 type DataFlow = {
-    BuiltInTransform: string
-    CaptureOverflow: bool
     Destinations: string list
-    OutputStream: string
     Streams: Stream list
-    TransformKql: string
 } with
 
     member this.ToArmJson = {|
-        builtInTransform = this.BuiltInTransform
-        captureOverflow = this.CaptureOverflow
         destinations = this.Destinations
-        outputStream = this.OutputStream
         streams = this.Streams |> List.map Stream.Print
-        transformKql = this.TransformKql
     |}
 
 module DestinationsConfig =
@@ -100,7 +92,7 @@ module DestinationsConfig =
         }
 
         member this.ToArmJson = {|
-            name = this.Name
+            name = this.Name.Value
             accountResourceId = this.AccountResourceId.Eval()
         |}
 
@@ -126,30 +118,34 @@ type DataCollectionRule = {
     DataSources: DataSourceConfig.DataSource option
     Destinations: DestinationsConfig.Destinations option
     Tags: Map<string, string>
+    Dependencies: Set<ResourceId>
 } with
 
     interface IArmResource with
         member this.ResourceId = dataCollectionRules.resourceId this.Name
 
-        member this.JsonModel = {|
-            dataCollectionRules.Create(this.Name, this.Location, tags = this.Tags) with
-                kind = this.OsType
-                properties = {|
-                    dataCollectionEndpointId = this.Endpoint.Eval()
-                    dataFlows =
-                        this.DataFlows
-                        |> Option.map (List.map (fun flow -> flow.ToArmJson))
-                        |> Option.defaultValue Unchecked.defaultof<_>
-                    dataSources =
-                        this.DataSources
-                        |> Option.map DataSourceConfig.ToArmJson
-                        |> Option.defaultValue Unchecked.defaultof<_>
-                    destinations =
-                        this.Destinations
-                        |> Option.map DestinationsConfig.ToArmJson
-                        |> Option.defaultValue Unchecked.defaultof<_>
-                |}
-        |}
+        member this.JsonModel =
+            let dependencies = [ this.Endpoint ] @ (List.ofSeq this.Dependencies)
+
+            {|
+                dataCollectionRules.Create(this.Name, this.Location, dependencies, this.Tags) with
+                    kind = string this.OsType
+                    properties = {|
+                        dataCollectionEndpointId = this.Endpoint.Eval()
+                        dataFlows =
+                            this.DataFlows
+                            |> Option.map (List.map (fun flow -> flow.ToArmJson))
+                            |> Option.defaultValue Unchecked.defaultof<_>
+                        dataSources =
+                            this.DataSources
+                            |> Option.map DataSourceConfig.ToArmJson
+                            |> Option.defaultValue Unchecked.defaultof<_>
+                        destinations =
+                            this.Destinations
+                            |> Option.map DestinationsConfig.ToArmJson
+                            |> Option.defaultValue Unchecked.defaultof<_>
+                    |}
+            |}
 
 
 let dataCollectionRuleAssociations (resourceType: ResourceType) =
