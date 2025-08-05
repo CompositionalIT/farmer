@@ -124,3 +124,61 @@ type DataCollectionRuleBuilder() =
         }
 
 let dataCollectionRule = DataCollectionRuleBuilder()
+
+type DataCollectionRuleAssociationConfig = {
+    Name: ResourceName
+    AssociatedResource: ResourceId
+    RuleId: ResourceId
+    Description: string option
+    Dependencies: ResourceId Set
+} with
+
+    interface IBuilder with
+        member this.ResourceId =
+            dataCollectionRuleAssociations(this.AssociatedResource.Type).resourceId this.Name
+
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                AssociatedResource = this.AssociatedResource
+                Location = location
+                RuleId = this.RuleId
+                Description = this.Description
+                Dependencies = this.Dependencies
+            }
+        ]
+
+type DataCollectionRuleAssociationBuilder() =
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        AssociatedResource = ResourceId.Empty
+        RuleId = ResourceId.Empty
+        Description = None
+        Dependencies = Set.empty
+    }
+
+    [<CustomOperation "name">]
+    member _.Name(state: DataCollectionRuleAssociationConfig, name) = { state with Name = ResourceName name }
+
+    [<CustomOperation "associated_resource">]
+    member _.AssociatedResource(state: DataCollectionRuleAssociationConfig, associationResource) = {
+        state with
+            AssociatedResource = associationResource
+    }
+
+    [<CustomOperation "rule_id">]
+    member _.RuleId(state: DataCollectionRuleAssociationConfig, ruleId) = { state with RuleId = ruleId }
+
+    [<CustomOperation "description">]
+    member _.Description(state: DataCollectionRuleAssociationConfig, description) = {
+        state with
+            Description = Some description
+    }
+
+    interface IDependable<DataCollectionRuleConfig> with
+        member _.Add state newDeps = {
+            state with
+                Dependencies = state.Dependencies + newDeps
+        }
+
+let dataCollectionRuleAssociation = DataCollectionRuleAssociationBuilder()

@@ -149,26 +149,31 @@ type DataCollectionRule = {
 
 
 let dataCollectionRuleAssociations (resourceType: ResourceType) =
-    ResourceType($"{resourceType.Type}/providers/dataCollectionRuleAssociations", "2022-06-01")
+    ResourceType($"{resourceType.Type}/providers/dataCollectionRuleAssociations", "2023-03-11")
 
 type DataCollectionRuleAssociation = {
     Name: ResourceName
-    LinkedResource: ResourceId
+    AssociatedResource: ResourceId
     Location: Location
     RuleId: ResourceId
     Description: string option
+    Dependencies: Set<ResourceId>
 } with
 
     interface IArmResource with
         member this.ResourceId =
-            dataCollectionRuleAssociations(this.LinkedResource.Type).resourceId (this.Name)
+            dataCollectionRuleAssociations(this.AssociatedResource.Type)
+                .resourceId (this.Name)
 
-        member this.JsonModel = {|
-            dataCollectionRuleAssociations(this.LinkedResource.Type)
-                .Create(this.Name, this.Location) with
-                properties = {|
-                    description = this.Description
-                    dataCollectionRuleId = this.RuleId.Eval()
-                |}
-                dependsOn = [ this.LinkedResource, this.RuleId ]
-        |}
+        member this.JsonModel =
+            let dependencies =
+                [ this.AssociatedResource; this.RuleId ] @ (List.ofSeq this.Dependencies)
+
+            {|
+                dataCollectionRuleAssociations(this.AssociatedResource.Type)
+                    .Create(this.Name, this.Location, dependencies) with
+                    properties = {|
+                        description = this.Description
+                        dataCollectionRuleId = this.RuleId.Eval()
+                    |}
+            |}

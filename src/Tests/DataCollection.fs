@@ -71,4 +71,30 @@ let tests =
 
             Expect.equal isLinux "Linux" "Expected Linux OS type"
         }
+
+        test "Create data collection rule association with aks resource" {
+            let myAks = aks {
+                name "myAks"
+                service_principal_use_msi
+            }
+
+            let ruleId = dataCollectionRules.resourceId "myRule"
+
+            let ruleAssociation = dataCollectionRuleAssociation {
+                name "myRuleAssociation"
+                associated_resource ((myAks :> IBuilder).ResourceId)
+                rule_id ruleId
+            }
+
+            let template = arm { add_resources [ myAks; ruleAssociation ] }
+            let jsn = template.Template |> Writer.toJson
+            let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+            let ruleId =
+                jobj
+                    .SelectToken("resources[?(@.name=='myRuleAssociation')].properties.dataCollectionRuleId")
+                    .ToString()
+
+            Expect.equal ruleId (ruleId) "Expected matching rule Id"
+        }
     ]
