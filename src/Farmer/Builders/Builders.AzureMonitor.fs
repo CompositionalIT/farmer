@@ -36,13 +36,13 @@ type DataCollectionEndpointBuilder() =
     [<CustomOperation "os_type">]
     member _.OsType(state: DataCollectionEndpointConfig, osType) = { state with OsType = osType }
 
-    interface ITaggable<PrometheusRuleGroupConfig> with
+    interface ITaggable<DataCollectionEndpointConfig> with
         member _.Add state tags = {
             state with
                 Tags = state.Tags |> Map.merge tags
         }
 
-let dataCollectionEndpointBuilder = DataCollectionEndpointBuilder()
+let dataCollectionEndpoint = DataCollectionEndpointBuilder()
 
 type DataCollectionRuleConfig = {
     Name: ResourceName
@@ -109,8 +109,10 @@ type DataCollectionRuleBuilder() =
             DataSources = Some dataSources
     }
 
-    interface ITaggable<PrometheusRuleGroupConfig> with
+    interface ITaggable<DataCollectionRuleConfig> with
         member _.Add state tags = {
             state with
                 Tags = state.Tags |> Map.merge tags
         }
+    
+let dataCollectionRule = DataCollectionRuleBuilder()
