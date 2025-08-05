@@ -78,7 +78,7 @@ let tests =
                 service_principal_use_msi
             }
 
-            let ruleId = dataCollectionRules.resourceId "myRule"
+            let expectedRuleId = dataCollectionRules.resourceId "myRule"
 
             let ruleAssociation = dataCollectionRuleAssociation {
                 name "myRuleAssociation"
@@ -95,6 +95,6 @@ let tests =
                     .SelectToken("resources[?(@.name=='myRuleAssociation')].properties.dataCollectionRuleId")
                     .ToString()
 
-            Expect.equal ruleId (ruleId) "Expected matching rule Id"
+            Expect.equal ruleId expectedRuleId "Expected matching rule Id"
         }
     ]
