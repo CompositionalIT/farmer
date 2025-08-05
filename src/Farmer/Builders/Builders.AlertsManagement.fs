@@ -1,10 +1,8 @@
 [<AutoOpen>]
 module Farmer.Builders.AlertsManagement
 
-open System
 open Farmer
 open Farmer.Arm
-open Farmer.Arm.AlertsManagement
 
 type PrometheusRuleConfig = {
     Record: string option
@@ -18,7 +16,7 @@ type PrometheusRuleConfig = {
     ResolveConfiguration: ResolveConfiguration option
 }
 
-type PromethusRuleBuilder() =
+type PrometheusRuleBuilder() =
     member _.Yield _ = {
         Record = None
         Expression = ""

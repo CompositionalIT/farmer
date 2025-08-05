@@ -1,7 +1,116 @@
 [<AutoOpen>]
 module Farmer.Builders.AzureMonitor
 
-open System
 open Farmer
 open Farmer.Arm
 open Farmer.Arm.Monitor
+
+type DataCollectionEndpointConfig = {
+    Name: ResourceName
+    OsType: OS
+    Tags: Map<string, string>
+} with
+
+    interface IBuilder with
+        member this.ResourceId = dataCollectionEndpoints.resourceId this.Name
+
+        member this.BuildResources location = [
+            {
+                DataCollectionEndpoint.Name = this.Name
+                OsType = this.OsType
+                Location = location
+                Tags = this.Tags
+            }
+        ]
+
+type DataCollectionEndpointBuilder() =
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        OsType = Linux
+        Tags = Map.empty
+    }
+
+    [<CustomOperation "name">]
+    member _.Name(state: DataCollectionEndpointConfig, name) = { state with Name = ResourceName name }
+
+    [<CustomOperation "os_type">]
+    member _.OsType(state: DataCollectionEndpointConfig, osType) = { state with OsType = osType }
+
+    interface ITaggable<PrometheusRuleGroupConfig> with
+        member _.Add state tags = {
+            state with
+                Tags = state.Tags |> Map.merge tags
+        }
+
+let dataCollectionEndpointBuilder = DataCollectionEndpointBuilder()
+
+type DataCollectionRuleConfig = {
+    Name: ResourceName
+    OsType: OS
+    Endpoint: ResourceId
+    DataFlows: (DataFlow list) option
+    DataSources: DataSourceConfig.DataSource option
+    Destinations: DestinationsConfig.Destinations option
+    Tags: Map<string, string>
+} with
+
+    interface IBuilder with
+        member this.ResourceId = dataCollectionRules.resourceId this.Name
+
+        member this.BuildResources location = [
+            {
+                Name = this.Name
+                OsType = this.OsType
+                Location = location
+                Endpoint = this.Endpoint
+                DataFlows = this.DataFlows
+                DataSources = this.DataSources
+                Destinations = this.Destinations
+                Tags = this.Tags
+            }
+        ]
+
+type DataCollectionRuleBuilder() =
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        OsType = Linux
+        Location = Location.WestEurope
+        Endpoint = ResourceId.Empty
+        DataFlows = None
+        DataSources = None
+        Destinations = None
+        Tags = Map.empty
+    }
+
+    [<CustomOperation "name">]
+    member _.Name(state: DataCollectionRuleConfig, name) = { state with Name = ResourceName name }
+
+    [<CustomOperation "os_type">]
+    member _.OsType(state: DataCollectionRuleConfig, osType) = { state with OsType = osType }
+
+    [<CustomOperation "endpoint">]
+    member _.Endpoint(state: DataCollectionRuleConfig, endpoint) = { state with Endpoint = endpoint }
+
+    [<CustomOperation "data_flows">]
+    member _.DataFlows(state: DataCollectionRuleConfig, dataFlows) = {
+        state with
+            DataFlows = Some dataFlows
+    }
+
+    [<CustomOperation "destinations">]
+    member _.Destinations(state: DataCollectionRuleConfig, destinations) = {
+        state with
+            Destinations = Some destinations
+    }
+
+    [<CustomOperation "data_sources">]
+    member _.DataSources(state: DataCollectionRuleConfig, dataSources) = {
+        state with
+            DataSources = Some dataSources
+    }
+
+    interface ITaggable<PrometheusRuleGroupConfig> with
+        member _.Add state tags = {
+            state with
+                Tags = state.Tags |> Map.merge tags
+        }

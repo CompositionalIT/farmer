@@ -3,31 +3,26 @@ module Farmer.Arm.Monitor
 
 open Farmer
 
-let private dataCollectionEndpoints =
-    ResourceType("Microsoft.Insights/dataCollectionEndpoints", "2022-06-01")
+let dataCollectionEndpoints =
+    ResourceType("Microsoft.Insights/dataCollectionEndpoints", "2023-03-11")
 
 type DataCollectionEndpoint = {
     Name: ResourceName
     OsType: OS
     Location: Location
+    Tags: Map<string, string>
 } with
 
     interface IArmResource with
         member this.ResourceId = dataCollectionEndpoints.resourceId this.Name
 
         member this.JsonModel = {|
-            dataCollectionEndpoints.Create(this.Name) with
+            dataCollectionEndpoints.Create(this.Name, this.Location, tags = this.Tags) with
                 kind = this.OsType
-                location = this.Location
         |}
 
-let private dataCollectionRules =
-    ResourceType("Microsoft.Insights/dataCollectionRules", "2022-06-01")
-
-type MonitoringAccount = {
-    AccountResourceId: ResourceId
-    Name: ResourceName
-}
+let dataCollectionRules =
+    ResourceType("Microsoft.Insights/dataCollectionRules", "2023-03-11'")
 
 module DataSourceConfig =
     type PrometheusForwarder = {
@@ -51,63 +46,118 @@ module DataSourceConfig =
 
         static member Default = { PrometheusForwarder = None }
 
-    let toArmJson (config: DataSource) = {|
+    let ToArmJson (config: DataSource) = {|
         prometheusForwarder =
             (match config.PrometheusForwarder with
              | Some forwarders -> forwarders |> List.map (fun f -> f.ToArmJson)
              | None -> Unchecked.defaultof<_>)
     |}
 
+type Stream =
+    | Event
+    | InsightsMetrics
+    | Perf
+    | Syslog
+    | WindowsEvent
+    | CustomStream of string
+
+    static member Print(stream: Stream) =
+        match stream with
+        | Event -> "Microsoft-Event"
+        | InsightsMetrics -> "Microsoft-InsightsMetrics"
+        | Perf -> "Microsoft-Perf"
+        | Syslog -> "Microsoft-Syslog"
+        | WindowsEvent -> "Microsoft-WindowsEvent"
+        | CustomStream name -> name
+
+type DataFlow = {
+    BuiltInTransform: string
+    CaptureOverflow: bool
+    Destinations: string list
+    OutputStream: string
+    Streams: Stream list
+    TransformKql: string
+} with
+
+    member this.ToArmJson = {|
+        builtInTransform = this.BuiltInTransform
+        captureOverflow = this.CaptureOverflow
+        destinations = this.Destinations
+        outputStream = this.OutputStream
+        streams = this.Streams |> List.map Stream.Print
+        transformKql = this.TransformKql
+    |}
+
+module DestinationsConfig =
+    type MonitoringAccount = {
+        AccountResourceId: ResourceId
+        Name: ResourceName
+    } with
+
+        static member Default = {
+            AccountResourceId = ResourceId.Empty
+            Name = ResourceName.Empty
+        }
+
+        member this.ToArmJson = {|
+            name = this.Name
+            accountResourceId = this.AccountResourceId.Eval()
+        |}
+
+    type Destinations = {
+        MonitoringAccounts: (MonitoringAccount list) option
+    } with
+
+        static member Default = { MonitoringAccounts = None }
+
+    let ToArmJson (destinations: Destinations) = {|
+        monitoringAccounts =
+            destinations.MonitoringAccounts
+            |> Option.map (List.map (fun d -> d.ToArmJson))
+            |> Option.defaultValue Unchecked.defaultof<_>
+    |}
 
 type DataCollectionRule = {
     Name: ResourceName
     OsType: OS
     Location: Location
     Endpoint: ResourceId
-    MonitoringAccounts: MonitoringAccount list
-    Streams: string list
-    MetricLabelsAllowList: string option
-    MetricAnnotationsAllowList: string option
+    DataFlows: (DataFlow list) option
     DataSources: DataSourceConfig.DataSource option
+    Destinations: DestinationsConfig.Destinations option
+    Tags: Map<string, string>
 } with
 
     interface IArmResource with
         member this.ResourceId = dataCollectionRules.resourceId this.Name
 
         member this.JsonModel = {|
-            dataCollectionRules.Create(this.Name) with
+            dataCollectionRules.Create(this.Name, this.Location, tags = this.Tags) with
                 kind = this.OsType
-                location = this.Location.ArmValue
                 properties = {|
                     dataCollectionEndpointId = this.Endpoint.Eval()
-                    dataFlows = [
-                        {|
-                            destinations = (this.MonitoringAccounts |> List.map (fun d -> d.Name))
-                            streams = this.Streams
-                        |}
-                    ]
+                    dataFlows =
+                        this.DataFlows
+                        |> Option.map (List.map (fun flow -> flow.ToArmJson))
+                        |> Option.defaultValue Unchecked.defaultof<_>
                     dataSources =
                         this.DataSources
-                        |> Option.map DataSourceConfig.toArmJson
+                        |> Option.map DataSourceConfig.ToArmJson
                         |> Option.defaultValue Unchecked.defaultof<_>
-                    destinations = {|
-                        monitoringAccounts =
-                            this.MonitoringAccounts
-                            |> List.map (fun d -> {|
-                                name = d.Name
-                                accountResourceId = d.AccountResourceId.Eval()
-                            |})
-                    |}
+                    destinations =
+                        this.Destinations
+                        |> Option.map DestinationsConfig.ToArmJson
+                        |> Option.defaultValue Unchecked.defaultof<_>
                 |}
         |}
 
 
-let private dataCollectionRuleAssociations (resourceType: ResourceType) =
+let dataCollectionRuleAssociations (resourceType: ResourceType) =
     ResourceType($"{resourceType.Type}/providers/dataCollectionRuleAssociations", "2022-06-01")
 
 type DataCollectionRuleAssociation = {
     Name: ResourceName
-    AssociationResourceId: ResourceId
+    LinkedResource: ResourceId
     Location: Location
     RuleId: ResourceId
     Description: string option
@@ -115,16 +165,14 @@ type DataCollectionRuleAssociation = {
 
     interface IArmResource with
         member this.ResourceId =
-            dataCollectionRuleAssociations(this.AssociationResourceId.Type)
-                .resourceId (ResourceName this.Name.Value)
+            dataCollectionRuleAssociations(this.LinkedResource.Type).resourceId (this.Name)
 
         member this.JsonModel = {|
-            dataCollectionRuleAssociations(this.AssociationResourceId.Type)
-                .Create(ResourceName this.Name.Value) with
-                location = this.Location.ArmValue
+            dataCollectionRuleAssociations(this.LinkedResource.Type)
+                .Create(this.Name, this.Location) with
                 properties = {|
                     description = this.Description
                     dataCollectionRuleId = this.RuleId.Eval()
                 |}
-                dependsOn = [ this.AssociationResourceId, this.RuleId ]
+                dependsOn = [ this.LinkedResource, this.RuleId ]
         |}
