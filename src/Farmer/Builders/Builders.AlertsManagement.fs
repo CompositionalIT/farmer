@@ -24,7 +24,7 @@ type PrometheusRuleBuilder() =
 
     member _.Yield _ = {
         Record = None
-        Expression = ""
+        Expression = System.String.Empty
         Labels = None
         Enabled = None
         Alert = None
@@ -45,6 +45,9 @@ type PrometheusRuleBuilder() =
     [<CustomOperation "enable_rule">]
     member _.EnableRule(state: PrometheusRuleConfig) = { state with Enabled = Some Enabled }
 
+    [<CustomOperation "disable_rule">]
+    member _.DisableRule(state: PrometheusRuleConfig) = { state with Enabled = Some Disabled }
+
     [<CustomOperation "alert">]
     member _.Alert(state: PrometheusRuleConfig, alert) = { state with Alert = alert }
 
@@ -64,13 +67,14 @@ let prometheusRule = PrometheusRuleBuilder()
 
 type PrometheusRuleGroupConfig = {
     Name: ResourceName
-    Description: string
-    ClusterName: ResourceName
+    Description: string option
+    ClusterName: ResourceName option
     Tags: Map<string, string>
     Enabled: FeatureFlag option
-    Interval: string option
+    Interval: IsoDateTime option
     Rules: PrometheusRuleConfig list
     Scopes: ResourceId Set
+    MonitorWorkspaceId: ResourceId
 } with
 
     interface IBuilder with
@@ -98,20 +102,32 @@ type PrometheusRuleGroupConfig = {
                     })
                 Scopes = this.Scopes
                 ClusterName = this.ClusterName
+                MonitorWorkspaceId = this.MonitorWorkspaceId
             }
         ]
 
 type PrometheusRuleGroupBuilder() =
     member _.Yield _ = {
         Name = ResourceName.Empty
-        ClusterName = ResourceName.Empty
+        ClusterName = None
         Interval = None
         Rules = []
         Tags = Map.empty
         Scopes = Set.empty
-        Description = System.String.Empty
+        Description = None
         Enabled = None
+        MonitorWorkspaceId = ResourceId.Empty
     }
+
+    member _.Run(config: PrometheusRuleGroupConfig) =
+        if config.Rules.IsEmpty then
+            raiseFarmer "Missing rules on prometheus rule group - please specify at least one rule"
+
+        if config.MonitorWorkspaceId = ResourceId.Empty then
+            raiseFarmer
+                "Missing Azure Monitor Workspace Id on prometheus rule group - please specify a valid Monitor Workspace Id"
+
+        config
 
     [<CustomOperation "name">]
     member _.Name(state: PrometheusRuleGroupConfig, name) = { state with Name = ResourceName name }
@@ -123,7 +139,7 @@ type PrometheusRuleGroupBuilder() =
     member _.ClusterName(state: PrometheusRuleGroupConfig, cluster) = { state with ClusterName = cluster }
 
     [<CustomOperation "interval">]
-    member _.Interval(state: PrometheusRuleGroupConfig, interval) = { state with Interval = interval }
+    member _.Interval(state: PrometheusRuleGroupConfig, interval) = { state with Interval = Some interval }
 
     [<CustomOperation "add_rules">]
     member _.AddRules(state: PrometheusRuleGroupConfig, rules) = {
@@ -133,6 +149,15 @@ type PrometheusRuleGroupBuilder() =
 
     [<CustomOperation "enable_rule_group">]
     member _.EnableRuleGroup(state: PrometheusRuleGroupConfig) = { state with Enabled = Some Enabled }
+
+    [<CustomOperation "disable_rule_group">]
+    member _.DisableRuleGroup(state: PrometheusRuleGroupConfig) = { state with Enabled = Some Disabled }
+
+    [<CustomOperation "azure_monitor_workspace_id">]
+    member _.AzureMonitorWorkspaceId(state: PrometheusRuleGroupConfig, workspaceId) = {
+        state with
+            MonitorWorkspaceId = workspaceId
+    }
 
     interface ITaggable<PrometheusRuleGroupConfig> with
         member _.Add state tags = {

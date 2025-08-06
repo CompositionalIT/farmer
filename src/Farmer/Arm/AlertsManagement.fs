@@ -4,7 +4,7 @@ module Farmer.Arm.AlertsManagement
 open Farmer
 
 let prometheusRuleGroups =
-    ResourceType("Microsoft.AlertsManagement/prometheusRuleGroups", "2023-04-01")
+    ResourceType("Microsoft.AlertsManagement/prometheusRuleGroups", "2023-03-01")
 
 type Action = {
     ActionGroupId: ResourceId
@@ -61,10 +61,7 @@ type PrometheusRule = {
             |> Option.map (Map.toList >> dict)
             |> Option.defaultValue Unchecked.defaultof<_>
         alert = rule.Alert |> Option.defaultValue Unchecked.defaultof<_>
-        enabled =
-            rule.Enabled
-            |> Option.map (fun enabled -> enabled.AsBoolean)
-            |> Option.defaultValue Unchecked.defaultof<_>
+        enabled = rule.Enabled |> Option.map (fun e -> e.AsBoolean)
         severity =
             rule.Severity
             |> Option.map (fun severity ->
@@ -83,29 +80,38 @@ type PrometheusRule = {
 type PrometheusRuleGroup = {
     Name: ResourceName
     Location: Location
-    Description: string
-    ClusterName: ResourceName
+    Description: string option
+    ClusterName: ResourceName option
     Tags: Map<string, string>
     Enabled: FeatureFlag option
-    Interval: string option
+    Interval: IsoDateTime option
+    MonitorWorkspaceId: ResourceId
     Rules: PrometheusRule list
+    /// This api-version is currently limited to creating with one scope in addition to the Monitor Workspace.
     Scopes: ResourceId Set
 } with
 
     interface IArmResource with
         member this.ResourceId = prometheusRuleGroups.resourceId this.Name
 
-        member this.JsonModel = {|
-            prometheusRuleGroups.Create(this.Name, this.Location, tags = this.Tags) with
-                properties = {|
-                    clusterName = this.ClusterName.Value
-                    description = this.Description
-                    enabled =
-                        this.Enabled
-                        |> Option.map (fun enabled -> enabled.AsBoolean)
-                        |> Option.defaultValue Unchecked.defaultof<_>
-                    interval = this.Interval |> Option.defaultValue Unchecked.defaultof<_>
-                    scopes = this.Scopes |> Set.map (fun s -> s.Eval())
-                    rules = this.Rules |> List.map (fun r -> r |> PrometheusRule.ToArmJson)
-                |}
-        |}
+        member this.JsonModel =
+            let scopes = [ this.MonitorWorkspaceId ] @ (List.ofSeq this.Scopes)
+
+            {|
+                prometheusRuleGroups.Create(this.Name, this.Location, tags = this.Tags) with
+                    properties = {|
+                        clusterName =
+                            this.ClusterName
+                            |> Option.map (fun name -> name.Value)
+                            |> Option.defaultValue Unchecked.defaultof<_>
+                        description = this.Description
+                        enabled = this.Enabled |> Option.map (fun e -> e.AsBoolean)
+                        interval =
+                            this.Interval
+                            |> Option.map (fun interval ->
+                                match interval with
+                                | IsoDateTime x -> x)
+                        scopes = scopes |> List.map (fun scope -> scope.Eval())
+                        rules = this.Rules |> List.map (fun r -> r |> PrometheusRule.ToArmJson)
+                    |}
+            |}
