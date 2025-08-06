@@ -2,7 +2,6 @@ Release Notes
 =============
 
 ## 1.9.17
-* Container Apps: Adds `add_key_vault_secret` allowing Container App secrets to reference secrets stored in Azure Key Vault.
 * AKS: add ability to specify `kubernetes_version` parameter
 
 ## 1.9.16
