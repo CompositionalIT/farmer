@@ -601,13 +601,11 @@ let tests =
                 linux_profile "aksuser" "public-key-here"
                 service_principal_client_id "some-spn-client-id"
 
-                enable_azure_monitor (
-                    Some(
-                        {
-                            MetricLabelsAllowList = Some "app"
-                            MetricAnnotationsAllowList = None
-                        }
-                    )
+                add_kube_state_metrics (
+                    {
+                        MetricLabelsAllowList = Some "app"
+                        MetricAnnotationsAllowList = None
+                    }
                 )
             }
 

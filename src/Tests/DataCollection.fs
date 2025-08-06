@@ -19,20 +19,28 @@ let tests =
             let jsn = template.Template |> Writer.toJson
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
+            let name = jobj.SelectToken("resources[?(@.name=='myEndpoint')].name").ToString()
             let kind = jobj.SelectToken("resources[?(@.name=='myEndpoint')].kind").ToString()
 
+
             Expect.equal kind "Linux" "Expected Linux OS type"
+            Expect.equal name "myEndpoint" "Expected endpoint name"
         }
 
         test "Create data collection rule with prometheus forwarder" {
+            let myEndpoint = dataCollectionEndpoint {
+                name "myEndpoint"
+                os_type OS.Linux
+            }
+
             let rule = dataCollectionRule {
                 name "myRule"
                 os_type OS.Linux
-                endpoint (dataCollectionEndpoints.resourceId "myEndpoint")
+                endpoint (myEndpoint :> IBuilder).ResourceId
 
                 data_flows [
                     {
-                        Streams = [ Stream.InsightsMetrics ]
+                        Streams = [ (CustomStream "Microsoft-PrometheusMetrics") ]
                         Destinations = [ "Account1" ]
                     }
                 ]
@@ -60,20 +68,64 @@ let tests =
             let jsn = template.Template |> Writer.toJson
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
-            printfn "Data Collection Rule JSON: %s" jsn
-
             let isLinux = jobj.SelectToken("resources[?(@.name=='myRule')].kind").ToString()
 
+            let actualEndpoint =
+                jobj
+                    .SelectToken("resources[?(@.name=='myRule')].properties.dataCollectionEndpointId")
+                    .ToString()
+
+            let actualDependsOn =
+                jobj.SelectToken("resources[?(@.name=='myRule')].dependsOn[0]").ToString()
+
+            let actualDataFlows =
+                jobj
+                    .SelectToken("resources[?(@.name=='myRule')].properties.dataFlows")
+                    .ToString()
+
+            let actualDataSources =
+                jobj
+                    .SelectToken("resources[?(@.name=='myRule')].properties.dataSources")
+                    .ToString()
+
+            let actualDestinations =
+                jobj
+                    .SelectToken("resources[?(@.name=='myRule')].properties.destinations")
+                    .ToString()
+
+            let actualPrometheusForwarder =
+                jobj
+                    .SelectToken("resources[?(@.name=='myRule')].properties.dataSources.prometheusForwarder")
+                    .ToString()
+
             Expect.equal isLinux "Linux" "Expected Linux OS type"
+            Expect.equal actualEndpoint ((myEndpoint :> IBuilder).ResourceId.Eval()) "Expected matching endpoint Id"
+
+            Expect.equal
+                actualDependsOn
+                ((dataCollectionEndpoints.resourceId "myEndpoint").Eval())
+                "Expected matching endpoint dependency"
+
+            Expect.isNotNull actualDataFlows "Expected data flows to be present"
+            Expect.isNotNull actualDataSources "Expected data sources to be present"
+            Expect.isNotNull actualDestinations "Expected destinations to be present"
+            Expect.isNotNull actualPrometheusForwarder "Expected Prometheus forwarder to be present"
         }
 
         test "Create data collection rule association with aks resource" {
             let myAks = aks {
                 name "myAks"
                 service_principal_use_msi
+                enable_azure_monitor
             }
 
-            let expectedRuleId = dataCollectionRules.resourceId "myRule"
+            let myRule = dataCollectionRule {
+                name "myRule"
+                os_type OS.Linux
+                endpoint (dataCollectionEndpoints.resourceId "myEndpoint")
+            }
+
+            let expectedRuleId = (myRule :> IBuilder).ResourceId
 
             let ruleAssociation = dataCollectionRuleAssociation {
                 name "myRuleAssociation"
@@ -85,11 +137,28 @@ let tests =
             let jsn = template.Template |> Writer.toJson
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
-            let ruleId =
+            let actualRuleId =
                 jobj
                     .SelectToken("resources[?(@.name=='myRuleAssociation')].properties.dataCollectionRuleId")
                     .ToString()
 
-            Expect.equal ruleId (expectedRuleId.Eval()) "Expected matching rule Id"
+            let actualDependsOn =
+                jobj
+                    .SelectToken("resources[?(@.name=='myRuleAssociation')].dependsOn")
+                    .ToString()
+
+            let actualDataCollectionRuleId =
+                jobj
+                    .SelectToken("resources[?(@.name=='myRuleAssociation')].properties.dataCollectionRuleId")
+                    .ToString()
+
+            Expect.equal actualRuleId (expectedRuleId.Eval()) "Expected matching rule Id"
+
+            Expect.isTrue
+                (actualDependsOn.Contains((myAks :> IBuilder).ResourceId.Eval()))
+                "Expected associated aks resource to be in dependencies"
+
+            Expect.isTrue (actualDependsOn.Contains(expectedRuleId.Eval())) "Expected rule Id to be in dependencies"
+            Expect.equal actualDataCollectionRuleId (expectedRuleId.Eval()) "Expected matching data collection rule Id"
         }
     ]

@@ -698,13 +698,26 @@ type AksBuilder() =
 
     /// Enables Azure Monitor for AKS cluster
     [<CustomOperation "enable_azure_monitor">]
-    member _.EnableAzureMonitor(state: AksConfig, kubeStateMetrics) = {
+    member _.EnableAzureMonitor(state: AksConfig) = {
         state with
             AzureMonitorProfile =
                 Some {
                     Metrics = {|
                         Enabled = Enabled
-                        KubeStateMetrics = kubeStateMetrics
+                        KubeStateMetrics = None
+                    |}
+                }
+    }
+
+    /// Enables Azure Monitor for AKS cluster with custom metrics.
+    [<CustomOperation "add_kube_state_metrics">]
+    member _.AddKubeStateMetrics(state: AksConfig, kubeStateMetrics) = {
+        state with
+            AzureMonitorProfile =
+                Some {
+                    Metrics = {|
+                        Enabled = Enabled
+                        KubeStateMetrics = Some kubeStateMetrics
                     |}
                 }
     }

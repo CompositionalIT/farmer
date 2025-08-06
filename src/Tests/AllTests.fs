@@ -83,6 +83,8 @@ let allTests =
             Alerts.tests
             ServicePlan.tests
             ActionGroup.tests
+            DataCollection.tests
+            PrometheusRuleGroup.tests
         ]
         testList "Control" [
             if Build.isCiMaster || Build.isFarmerEndToEnd then

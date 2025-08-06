@@ -144,7 +144,7 @@ type DataCollectionRule = {
 
 
 let dataCollectionRuleAssociations (resourceType: ResourceType) =
-    ResourceType($"{resourceType.Type}/providers/dataCollectionRuleAssociations", "2023-03-11")
+    ResourceType($"{resourceType.Type}/providers/dataCollectionRuleAssociations", "2022-06-01")
 
 type DataCollectionRuleAssociation = {
     Name: ResourceName
