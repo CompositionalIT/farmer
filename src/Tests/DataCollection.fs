@@ -8,7 +8,7 @@ open System
 
 let tests =
 
-    testList "DataCollection" [
+    testList "Data Collection" [
         test "Create data collection endpoint" {
             let myEndpoint = dataCollectionEndpoint {
                 name "myEndpoint"

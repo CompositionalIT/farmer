@@ -10,7 +10,7 @@ type PrometheusRuleConfig = {
     Labels: Map<string, string> option
     Enabled: FeatureFlag option
     Alert: string option
-    Severity: int option
+    Severity: AlertSeverity option
     Annotation: Map<string, string> option
     Actions: (Action list) option
     ResolveConfiguration: ResolveConfiguration option
@@ -68,7 +68,7 @@ type PrometheusRuleGroupConfig = {
     Tags: Map<string, string>
     Enabled: FeatureFlag option
     Interval: string option
-    Rules: PrometheusRule list
+    Rules: PrometheusRuleConfig list
     Scopes: ResourceId Set
 } with
 
@@ -80,12 +80,24 @@ type PrometheusRuleGroupConfig = {
                 Name = this.Name
                 Location = location
                 Description = this.Description
-                ClusterName = this.ClusterName
                 Tags = this.Tags
                 Enabled = this.Enabled
                 Interval = this.Interval
-                Rules = this.Rules
+                Rules =
+                    this.Rules
+                    |> List.map (fun rule -> {
+                        PrometheusRule.Record = rule.Record
+                        Expression = rule.Expression
+                        Labels = rule.Labels
+                        Enabled = rule.Enabled
+                        Alert = rule.Alert
+                        Severity = rule.Severity
+                        Annotation = rule.Annotation
+                        Actions = rule.Actions
+                        ResolveConfiguration = rule.ResolveConfiguration
+                    })
                 Scopes = this.Scopes
+                ClusterName = this.ClusterName
             }
         ]
 

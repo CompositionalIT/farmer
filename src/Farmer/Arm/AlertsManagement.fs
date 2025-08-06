@@ -33,7 +33,7 @@ type PrometheusRule = {
     Labels: Map<string, string> option
     Enabled: FeatureFlag option
     Alert: string option
-    Severity: int option
+    Severity: AlertSeverity option
     Annotation: Map<string, string> option
     Actions: (Action list) option
     ResolveConfiguration: ResolveConfiguration option
@@ -67,7 +67,15 @@ type PrometheusRule = {
             rule.Enabled
             |> Option.map (fun enabled -> enabled.AsBoolean)
             |> Option.defaultValue Unchecked.defaultof<_>
-        severity = rule.Severity |> Option.defaultValue Unchecked.defaultof<_>
+        severity =
+            rule.Severity
+            |> Option.map (fun severity ->
+                match severity with
+                | AlertSeverity.Critical -> 0
+                | AlertSeverity.Error -> 1
+                | AlertSeverity.Warning -> 2
+                | AlertSeverity.Informational -> 3
+                | AlertSeverity.Verbose -> 4)
         resolveConfiguration =
             rule.ResolveConfiguration
             |> Option.map (fun config -> config.ToArmJson)
@@ -100,6 +108,6 @@ type PrometheusRuleGroup = {
                         |> Option.defaultValue Unchecked.defaultof<_>
                     interval = this.Interval |> Option.defaultValue Unchecked.defaultof<_>
                     scopes = this.Scopes |> Set.map (fun s -> s.Eval())
-                    rules = this.Rules |> List.map (fun r -> PrometheusRule.ToArmJson)
+                    rules = this.Rules |> List.map (fun r -> r |> PrometheusRule.ToArmJson)
                 |}
         |}
