@@ -11,12 +11,17 @@ type PrometheusRuleConfig = {
     Enabled: FeatureFlag option
     Alert: string option
     Severity: AlertSeverity option
-    Annotation: Map<string, string> option
     Actions: (Action list) option
     ResolveConfiguration: ResolveConfiguration option
 }
 
 type PrometheusRuleBuilder() =
+    member _.Run(config: PrometheusRuleConfig) =
+        if System.String.IsNullOrWhiteSpace(config.Expression) then
+            raiseFarmer "Missing Expression on Premethus Rule - please specify 'expression'"
+
+        config
+
     member _.Yield _ = {
         Record = None
         Expression = ""
@@ -24,7 +29,6 @@ type PrometheusRuleBuilder() =
         Enabled = None
         Alert = None
         Severity = None
-        Annotation = None
         Actions = None
         ResolveConfiguration = None
     }
@@ -47,9 +51,6 @@ type PrometheusRuleBuilder() =
     [<CustomOperation "severity">]
     member _.Severity(state: PrometheusRuleConfig, severity) = { state with Severity = severity }
 
-    [<CustomOperation "annotation">]
-    member _.Annotation(state: PrometheusRuleConfig, annotation) = { state with Annotation = annotation }
-
     [<CustomOperation "actions">]
     member _.Actions(state: PrometheusRuleConfig, actions) = { state with Actions = actions }
 
@@ -63,7 +64,7 @@ let prometheusRule = PrometheusRuleBuilder()
 
 type PrometheusRuleGroupConfig = {
     Name: ResourceName
-    Description: string option
+    Description: string
     ClusterName: ResourceName
     Tags: Map<string, string>
     Enabled: FeatureFlag option
@@ -92,7 +93,6 @@ type PrometheusRuleGroupConfig = {
                         Enabled = rule.Enabled
                         Alert = rule.Alert
                         Severity = rule.Severity
-                        Annotation = rule.Annotation
                         Actions = rule.Actions
                         ResolveConfiguration = rule.ResolveConfiguration
                     })
@@ -109,7 +109,7 @@ type PrometheusRuleGroupBuilder() =
         Rules = []
         Tags = Map.empty
         Scopes = Set.empty
-        Description = None
+        Description = System.String.Empty
         Enabled = None
     }
 
@@ -117,7 +117,7 @@ type PrometheusRuleGroupBuilder() =
     member _.Name(state: PrometheusRuleGroupConfig, name) = { state with Name = ResourceName name }
 
     [<CustomOperation "description">]
-    member _.Description(state: PrometheusRuleGroupConfig, desc) = { state with Description = Some desc }
+    member _.Description(state: PrometheusRuleGroupConfig, desc) = { state with Description = desc }
 
     [<CustomOperation "cluster_name">]
     member _.ClusterName(state: PrometheusRuleGroupConfig, cluster) = { state with ClusterName = cluster }

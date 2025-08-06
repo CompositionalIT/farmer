@@ -26,4 +26,10 @@ let tests =
 
             Expect.isNotNull actualRules "Expected rules is not null"
         }
+
+        test "Prometheus rule without expression throws" {
+            Expect.throws
+                (fun _ -> prometheusRule { record (Some "myRecord") } |> ignore)
+                (sprintf "Should have thrown an exception for not specifying Prometheus rule expression")
+        }
     ]

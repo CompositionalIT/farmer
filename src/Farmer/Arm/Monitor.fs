@@ -24,20 +24,15 @@ type DataCollectionEndpoint = {
 let dataCollectionRules =
     ResourceType("Microsoft.Insights/dataCollectionRules", "2023-03-11'")
 
-module DataSourceConfig =
+module DataSources =
     type PrometheusForwarder = {
         Name: string
         Streams: string list
-        LabelIncludeFilter: obj option
     } with
 
         member this.ToArmJson = {|
             name = this.Name
             streams = this.Streams
-            labelIncludeFilter =
-                match this.LabelIncludeFilter with
-                | Some filter -> filter
-                | None -> Unchecked.defaultof<_>
         |}
 
     type DataSource = {
@@ -80,7 +75,7 @@ type DataFlow = {
         streams = this.Streams |> List.map Stream.Print
     |}
 
-module DestinationsConfig =
+module Destinations =
     type MonitoringAccount = {
         AccountResourceId: ResourceId
         Name: ResourceName
@@ -96,13 +91,13 @@ module DestinationsConfig =
             accountResourceId = this.AccountResourceId.Eval()
         |}
 
-    type Destinations = {
+    type Destination = {
         MonitoringAccounts: (MonitoringAccount list) option
     } with
 
         static member Default = { MonitoringAccounts = None }
 
-    let ToArmJson (destinations: Destinations) = {|
+    let ToArmJson (destinations: Destination) = {|
         monitoringAccounts =
             destinations.MonitoringAccounts
             |> Option.map (List.map (fun d -> d.ToArmJson))
@@ -115,8 +110,8 @@ type DataCollectionRule = {
     Location: Location
     Endpoint: ResourceId
     DataFlows: (DataFlow list) option
-    DataSources: DataSourceConfig.DataSource option
-    Destinations: DestinationsConfig.Destinations option
+    DataSources: DataSources.DataSource option
+    Destinations: Destinations.Destination option
     Tags: Map<string, string>
     Dependencies: Set<ResourceId>
 } with
@@ -138,11 +133,11 @@ type DataCollectionRule = {
                             |> Option.defaultValue Unchecked.defaultof<_>
                         dataSources =
                             this.DataSources
-                            |> Option.map DataSourceConfig.ToArmJson
+                            |> Option.map DataSources.ToArmJson
                             |> Option.defaultValue Unchecked.defaultof<_>
                         destinations =
                             this.Destinations
-                            |> Option.map DestinationsConfig.ToArmJson
+                            |> Option.map Destinations.ToArmJson
                             |> Option.defaultValue Unchecked.defaultof<_>
                     |}
             |}
@@ -156,7 +151,7 @@ type DataCollectionRuleAssociation = {
     AssociatedResource: ResourceId
     Location: Location
     RuleId: ResourceId
-    Description: string option
+    Description: string
     Dependencies: Set<ResourceId>
 } with
 

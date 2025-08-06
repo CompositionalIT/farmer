@@ -34,7 +34,6 @@ type PrometheusRule = {
     Enabled: FeatureFlag option
     Alert: string option
     Severity: AlertSeverity option
-    Annotation: Map<string, string> option
     Actions: (Action list) option
     ResolveConfiguration: ResolveConfiguration option
 } with
@@ -46,7 +45,6 @@ type PrometheusRule = {
         Enabled = None
         Alert = None
         Severity = None
-        Annotation = None
         Actions = None
         ResolveConfiguration = None
     }
@@ -85,7 +83,7 @@ type PrometheusRule = {
 type PrometheusRuleGroup = {
     Name: ResourceName
     Location: Location
-    Description: string option
+    Description: string
     ClusterName: ResourceName
     Tags: Map<string, string>
     Enabled: FeatureFlag option
@@ -101,7 +99,7 @@ type PrometheusRuleGroup = {
             prometheusRuleGroups.Create(this.Name, this.Location, tags = this.Tags) with
                 properties = {|
                     clusterName = this.ClusterName.Value
-                    description = this.Description |> Option.defaultValue Unchecked.defaultof<_>
+                    description = this.Description
                     enabled =
                         this.Enabled
                         |> Option.map (fun enabled -> enabled.AsBoolean)

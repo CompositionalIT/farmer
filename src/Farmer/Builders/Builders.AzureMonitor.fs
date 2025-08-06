@@ -4,6 +4,8 @@ module Farmer.Builders.AzureMonitor
 open Farmer
 open Farmer.Arm
 open Farmer.Arm.Monitor
+open Farmer.Arm.Monitor.DataSources
+open Farmer.Arm.Monitor.Destinations
 
 type DataCollectionEndpointConfig = {
     Name: ResourceName
@@ -44,13 +46,39 @@ type DataCollectionEndpointBuilder() =
 
 let dataCollectionEndpoint = DataCollectionEndpointBuilder()
 
+type DataSourceConfig =
+    | PrometheusForwarder of PrometheusForwarder list
+
+    static member BuildConfig(dataSources: DataSourceConfig list) : DataSources.DataSource = {
+        PrometheusForwarder =
+            dataSources
+            |> List.tryFind (function
+                | PrometheusForwarder _ -> true)
+            |> function
+                | Some(PrometheusForwarder forwarders) -> Some forwarders
+                | None -> None
+    }
+
+type DestinationConfig =
+    | MonitoringAccounts of MonitoringAccount list
+
+    static member BuildConfig(destinations: DestinationConfig list) : Destinations.Destination = {
+        MonitoringAccounts =
+            destinations
+            |> List.tryFind (function
+                | MonitoringAccounts _ -> true)
+            |> function
+                | Some(MonitoringAccounts accounts) -> Some accounts
+                | None -> None
+    }
+
 type DataCollectionRuleConfig = {
     Name: ResourceName
     OsType: OS
     Endpoint: ResourceId
     DataFlows: (DataFlow list) option
-    DataSources: DataSourceConfig.DataSource option
-    Destinations: DestinationsConfig.Destinations option
+    DataSources: DataSourceConfig list
+    Destinations: DestinationConfig list
     Tags: Map<string, string>
     Dependencies: ResourceId Set
 } with
@@ -65,8 +93,14 @@ type DataCollectionRuleConfig = {
                 Location = location
                 Endpoint = this.Endpoint
                 DataFlows = this.DataFlows
-                DataSources = this.DataSources
-                Destinations = this.Destinations
+                DataSources =
+                    match this.DataSources with
+                    | [] -> None
+                    | dataSources -> dataSources |> DataSourceConfig.BuildConfig |> Some
+                Destinations =
+                    match this.Destinations with
+                    | [] -> None
+                    | destinations -> destinations |> DestinationConfig.BuildConfig |> Some
                 Tags = this.Tags
                 Dependencies = this.Dependencies
             }
@@ -78,8 +112,8 @@ type DataCollectionRuleBuilder() =
         OsType = Linux
         Endpoint = ResourceId.Empty
         DataFlows = None
-        DataSources = None
-        Destinations = None
+        DataSources = []
+        Destinations = []
         Tags = Map.empty
         Dependencies = Set.empty
     }
@@ -102,14 +136,11 @@ type DataCollectionRuleBuilder() =
     [<CustomOperation "destinations">]
     member _.Destinations(state: DataCollectionRuleConfig, destinations) = {
         state with
-            Destinations = Some destinations
+            Destinations = destinations
     }
 
     [<CustomOperation "data_sources">]
-    member _.DataSources(state: DataCollectionRuleConfig, dataSources) = {
-        state with
-            DataSources = Some dataSources
-    }
+    member _.DataSources(state: DataCollectionRuleConfig, dataSources) = { state with DataSources = dataSources }
 
     interface ITaggable<DataCollectionRuleConfig> with
         member _.Add state tags = {
@@ -129,7 +160,7 @@ type DataCollectionRuleAssociationConfig = {
     Name: ResourceName
     AssociatedResource: ResourceId
     RuleId: ResourceId
-    Description: string option
+    Description: string
     Dependencies: ResourceId Set
 } with
 
@@ -153,7 +184,7 @@ type DataCollectionRuleAssociationBuilder() =
         Name = ResourceName.Empty
         AssociatedResource = ResourceId.Empty
         RuleId = ResourceId.Empty
-        Description = None
+        Description = System.String.Empty
         Dependencies = Set.empty
     }
 
@@ -172,7 +203,7 @@ type DataCollectionRuleAssociationBuilder() =
     [<CustomOperation "description">]
     member _.Description(state: DataCollectionRuleAssociationConfig, description) = {
         state with
-            Description = Some description
+            Description = description
     }
 
     interface IDependable<DataCollectionRuleConfig> with

@@ -37,35 +37,30 @@ let tests =
                     }
                 ]
 
-                data_sources {
-                    PrometheusForwarder =
-                        Some(
-                            [
-                                {
-                                    Name = "PrometheusForwarder"
-                                    Streams = [ "Microsoft-PrometheusMetrics" ]
-                                    LabelIncludeFilter = None
-                                }
-                            ]
-                        )
-                }
+                data_sources [
+                    PrometheusForwarder [
+                        {
+                            Name = "PrometheusForwarder"
+                            Streams = [ "Microsoft-PrometheusMetrics" ]
+                        }
+                    ]
+                ]
 
-                destinations {
-                    MonitoringAccounts =
-                        Some(
-                            [
-                                {
-                                    AccountResourceId = dataCollectionEndpoints.resourceId "myAccount"
-                                    Name = ResourceName "myAccount"
-                                }
-                            ]
-                        )
-                }
+                destinations [
+                    MonitoringAccounts [
+                        {
+                            AccountResourceId = dataCollectionEndpoints.resourceId "myAccount"
+                            Name = ResourceName "myAccount"
+                        }
+                    ]
+                ]
             }
 
             let template = arm { add_resources [ rule ] }
             let jsn = template.Template |> Writer.toJson
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+            printfn "Data Collection Rule JSON: %s" jsn
 
             let isLinux = jobj.SelectToken("resources[?(@.name=='myRule')].kind").ToString()
 
