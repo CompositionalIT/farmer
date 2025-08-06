@@ -600,6 +600,34 @@ let tests =
 
                 linux_profile "aksuser" "public-key-here"
                 service_principal_client_id "some-spn-client-id"
+                enable_azure_monitor
+            }
+
+            let template = arm { add_resource myAks }
+            let json = template.Template |> Writer.toJson
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+            let enableAzureMonitor =
+                jobj.SelectToken("resources[?(@.name=='k8s-cluster')].properties.azureMonitorProfile.metrics.enabled")
+                |> string
+
+            Expect.equal enableAzureMonitor "True" "Incorrect azureMonitorProfile.metrics.enabled value"
+        }
+
+        test "Simple AKS cluster with Azure Monitor enabled and metrics labels allow list specified" {
+            let myAks = aks {
+                name "k8s-cluster"
+                dns_prefix "testaks"
+
+                add_agent_pools [
+                    agentPool {
+                        name "linuxPool"
+                        count 3
+                    }
+                ]
+
+                linux_profile "aksuser" "public-key-here"
+                service_principal_client_id "some-spn-client-id"
 
                 add_kube_state_metrics (
                     {
