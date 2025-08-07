@@ -6,7 +6,6 @@ open Farmer.ExpressRoute
 open Farmer.Network
 open Farmer.Route
 open Farmer.RouteServer
-open Farmer.Storage
 open Farmer.VirtualNetworkGateway
 
 let connections = ResourceType("Microsoft.Network/connections", "2020-04-01")
@@ -163,7 +162,7 @@ type RouteTable = {
 type RouteServer = {
     Name: ResourceName
     Location: Location
-    Sku: RouteServer.Sku
+    Sku: Sku
     AllowBranchToBranchTraffic: FeatureFlag
     HubRoutingPreference: HubRoutingPreference
     Tags: Map<string, string>
