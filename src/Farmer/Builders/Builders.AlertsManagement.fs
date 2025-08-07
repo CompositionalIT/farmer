@@ -13,6 +13,7 @@ type PrometheusRuleConfig = {
     Severity: AlertSeverity option
     Actions: (Action list) option
     ResolveConfiguration: ResolveConfiguration option
+    For: IsoDateTime option
 }
 
 type PrometheusRuleBuilder() =
@@ -31,6 +32,7 @@ type PrometheusRuleBuilder() =
         Severity = None
         Actions = None
         ResolveConfiguration = None
+        For = None
     }
 
     /// Sets the record for the Prometheus rule.
@@ -72,6 +74,11 @@ type PrometheusRuleBuilder() =
             ResolveConfiguration = Some resolveConfiguration
     }
 
+    /// Sets the value for `for` property, which is the amount of time the alert must be active before firing.
+    [<CustomOperation "set_for">]
+    member _.SetFor(state: PrometheusRuleConfig, forValue) = { state with For = Some forValue }
+
+
 let prometheusRule = PrometheusRuleBuilder()
 
 type PrometheusRuleGroupConfig = {
@@ -108,6 +115,7 @@ type PrometheusRuleGroupConfig = {
                         Severity = rule.Severity
                         Actions = rule.Actions
                         ResolveConfiguration = rule.ResolveConfiguration
+                        For = rule.For
                     })
                 Scopes = this.Scopes
                 ClusterName = this.ClusterName

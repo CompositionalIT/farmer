@@ -346,4 +346,36 @@ let tests =
             Expect.isTrue (isAutoResolved = "true") "Expected autoResolved to be true"
             Expect.isTrue (actualTimeToResolve = "PT1H") "Expected time to resolve to be PT1H"
         }
+
+        test "Set for property for rule in prometheus rule group" {
+            let myRule1 = prometheusRule {
+                expression "up == 1"
+                set_for (IsoDateTime "PT5M")
+            }
+
+            let monitoringAccountType =
+                ResourceType("Microsoft.Monitor/accounts", "2025-05-03-preview")
+
+            let monitorAccountId =
+                ResourceId.create (monitoringAccountType, ResourceName "monitorAccount")
+
+            let myGroup = prometheusRuleGroup {
+                name "myGroup"
+                add_rules [ myRule1 ]
+                azure_monitor_workspace_id monitorAccountId
+                enable_rule_group
+                cluster_name (ResourceName "myCluster")
+            }
+
+            let template = arm { add_resources [ myGroup ] }
+            let jsn = template.Template |> Writer.toJson
+            let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+            let actualForTime =
+                jobj
+                    .SelectToken("resources[?(@.name=='myGroup')].properties.rules[0].for")
+                    .ToString()
+
+            Expect.isTrue (actualForTime = "PT5M") "Expected for time to be PT5M"
+        }
     ]

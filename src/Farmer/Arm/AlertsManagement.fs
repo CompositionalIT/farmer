@@ -39,6 +39,8 @@ type PrometheusRule = {
     Severity: AlertSeverity option
     Actions: (Action list) option
     ResolveConfiguration: ResolveConfiguration option
+    /// Amount of time alert must be active before firing.
+    For: IsoDateTime option
 } with
 
     static member Default = {
@@ -50,6 +52,7 @@ type PrometheusRule = {
         Severity = None
         Actions = None
         ResolveConfiguration = None
+        For = None
     }
 
     static member ToArmJson(rule: PrometheusRule) = {|
@@ -77,6 +80,11 @@ type PrometheusRule = {
         resolveConfiguration =
             rule.ResolveConfiguration
             |> Option.map (fun config -> config.ToArmJson)
+            |> Option.defaultValue Unchecked.defaultof<_>
+        ``for`` =
+            rule.For
+            |> Option.map (function
+                | IsoDateTime x -> x)
             |> Option.defaultValue Unchecked.defaultof<_>
     |}
 

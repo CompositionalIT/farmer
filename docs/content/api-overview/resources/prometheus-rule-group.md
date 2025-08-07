@@ -39,6 +39,7 @@ The Prometheus Rule builder (`prometheusRule`) creates Prometheus Rule for the P
 | severity | Specifies the severity of alerts fired by Prometheus Rule.  |
 | actions | Specifies actions that are performed when the alert rule becomes active.  |
 | resolve_configuration | Defines configuration for resolving alerts  |
+| set_for | Specifies how long the alert should be active before firing.  |
 
 #### Basic Example
 
