@@ -29,6 +29,7 @@ The Action Group builder (`actionGroup`) constructs Action Groups.
 | add_sms_receivers | Adds SMS Receivers. |
 | add_email_receivers | Adds Email Receivers. |
 | add_webhook_receivers | Adds Webhook Receivers. |
+| add_incident_receivers | Adds Incident Receivers. |
 
 More detailed documentation: https://learn.microsoft.com/en-us/azure/templates/microsoft.insights/actiongroups?pivots=deployment-language-arm-template#property-values-1
 
@@ -115,6 +116,17 @@ let myWebhookReceiver =
         serviceUri=myUri
     )
 
+let myIncidentReceiver =
+    IncidentReceiver.Create(
+        name = "...",
+        connection = {
+            Id = Guid.NewGuid()
+            Name = "MyIncidentConnection"
+        },
+        mappings = ([ "incidentId", "incidentIdValue"; "title", "titleValue" ] |> Map.ofList),
+        incidentManagementService = Icm
+    )
+
 let myActionGroup = actionGroup {
     name "My Action Group"
     short_name "ag1"
@@ -130,5 +142,6 @@ let myActionGroup = actionGroup {
     add_sms_receivers [ mySmsReceiver ]
     add_email_receivers [ myEmailReceiver ]
     add_webhook_receivers [ myWebhookReceiver ]
+    add_incident_receivers [ myIncidentReceiver ]
 }
 ```

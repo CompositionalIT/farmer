@@ -5,6 +5,7 @@ Release Notes
 * Data Collection: Adds `dataCollectionRule`, `dataCollectionEndpoint`, `dataCollectionRuleAssociation` builders for Azure Monitor
 * Prometheus Group Rules: Adds `prometheusRuleGroup` builder for prometheus metrics in Azure Monitor
 * Container Service: add ability to specify `enable_azure_monitor` parameter
+* Action Group: adds ability to create Incident Receivers in action group with `add_incident_receivers`
 
 ## 1.9.17
 * Container Apps: Adds `add_key_vault_secret` allowing Container App secrets to reference secrets stored in Azure Key Vault.
