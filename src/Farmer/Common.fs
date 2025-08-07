@@ -2948,6 +2948,16 @@ module ApplicationGateway =
             | TemporaryRedirect -> "TemporaryRedirect"
             | PermanentRedirect -> "PermanentRedirect"
 
+module NatGateway =
+    [<RequireQualifiedAccess>]
+    type Sku =
+        | Standard
+        | StandardV2
+
+        member this.ArmValue =
+            match this with
+            | Standard -> "Standard"
+            | StandardV2 -> "StandardV2"
 
 module VirtualNetworkGateway =
     [<RequireQualifiedAccess>]
@@ -3531,10 +3541,12 @@ module PublicIpAddress =
 
     type Sku =
         | Standard
+        | StandardV2
 
         member this.ArmValue =
             match this with
             | Standard -> "Standard"
+            | StandardV2 -> "StandardV2"
 
 module Cdn =
     type Sku =

@@ -743,7 +743,7 @@
               "type": "Microsoft.Network/virtualNetworks"
             },
             {
-              "apiVersion": "2024-05-01",
+              "apiVersion": "2024-07-01",
               "location": "uksouth",
               "name": "farmervm-ip",
               "properties": {
