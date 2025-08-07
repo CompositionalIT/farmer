@@ -8,14 +8,14 @@ let tests =
     testList "Prometheus Rule Group" [
         test "Create prometheus rule group with rules" {
             let myRule1 = prometheusRule {
-                record (Some "myRecord")
+                record ("myRecord")
                 expression "up == 1"
             }
 
             let myRule2 = prometheusRule {
-                record (Some "myRecord1")
+                record ("myRecord1")
                 expression "up == 1"
-                labels (Some(Map [ "workload_type", "deployment" ]))
+                labels ((Map [ "workload_type", "deployment" ]))
             }
 
             let monitoringAccountType =
@@ -59,7 +59,7 @@ let tests =
 
         test "Create prometheus rule group with rules and set interval" {
             let myRule1 = prometheusRule {
-                record (Some "myRecord")
+                record ("myRecord")
                 expression "up == 1"
             }
 
@@ -90,13 +90,13 @@ let tests =
 
         test "Prometheus rule without expression throws" {
             Expect.throws
-                (fun _ -> prometheusRule { record (Some "myRecord") } |> ignore)
+                (fun _ -> prometheusRule { record ("myRecord") } |> ignore)
                 (sprintf "Should have thrown an exception for not specifying Prometheus rule expression")
         }
 
         test "Prometheus rule group without monitoring workspace id throws" {
             let myRule = prometheusRule {
-                record (Some "myRecord")
+                record ("myRecord")
                 expression "up == 1"
             }
 
@@ -129,7 +129,7 @@ let tests =
 
         test "Enable prometheus rule group" {
             let myRule1 = prometheusRule {
-                record (Some "myRecord")
+                record ("myRecord")
                 expression "up == 1"
             }
 
@@ -161,7 +161,7 @@ let tests =
 
         test "Edit cluster name for prometheus rule group" {
             let myRule1 = prometheusRule {
-                record (Some "myRecord")
+                record ("myRecord")
                 expression "up == 1"
             }
 
@@ -176,7 +176,7 @@ let tests =
                 add_rules [ myRule1 ]
                 azure_monitor_workspace_id monitorAccountId
                 enable_rule_group
-                cluster_name (Some(ResourceName "myCluster"))
+                cluster_name (ResourceName "myCluster")
             }
 
             let template = arm { add_resources [ myGroup ] }

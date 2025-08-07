@@ -87,7 +87,7 @@ type PrometheusRuleGroup = {
     Interval: IsoDateTime option
     MonitorWorkspaceId: ResourceId
     Rules: PrometheusRule list
-    /// This api-version is currently limited to creating with one scope in addition to the Monitor Workspace.
+    /// This api version currently limits creation to one scope in addition to the Monitor Workspace.
     Scopes: ResourceId Set
 } with
 
@@ -95,7 +95,7 @@ type PrometheusRuleGroup = {
         member this.ResourceId = prometheusRuleGroups.resourceId this.Name
 
         member this.JsonModel =
-            let scopes = [ this.MonitorWorkspaceId ] @ (List.ofSeq this.Scopes)
+            let scopes = (Set [ this.MonitorWorkspaceId ]) |> Set.union this.Scopes
 
             {|
                 prometheusRuleGroups.Create(this.Name, this.Location, tags = this.Tags) with
@@ -111,7 +111,7 @@ type PrometheusRuleGroup = {
                             |> Option.map (fun interval ->
                                 match interval with
                                 | IsoDateTime x -> x)
-                        scopes = scopes |> List.map (fun scope -> scope.Eval())
+                        scopes = scopes |> Set.map (fun scope -> scope.Eval())
                         rules = this.Rules |> List.map (fun r -> r |> PrometheusRule.ToArmJson)
                     |}
             |}

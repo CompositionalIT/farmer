@@ -18,7 +18,7 @@ type PrometheusRuleConfig = {
 type PrometheusRuleBuilder() =
     member _.Run(config: PrometheusRuleConfig) =
         if System.String.IsNullOrWhiteSpace(config.Expression) then
-            raiseFarmer "Missing Expression on Premethus Rule - please specify 'expression'"
+            raiseFarmer "Missing Expression on Prometheus Rule - please specify 'expression'"
 
         config
 
@@ -33,34 +33,43 @@ type PrometheusRuleBuilder() =
         ResolveConfiguration = None
     }
 
+    /// Sets the record for the Prometheus rule.
     [<CustomOperation "record">]
-    member _.Record(state: PrometheusRuleConfig, record) = { state with Record = record }
+    member _.Record(state: PrometheusRuleConfig, record) = { state with Record = Some record }
 
+    /// Sets the expression for the Prometheus rule, this is a required field.
     [<CustomOperation "expression">]
     member _.Expression(state: PrometheusRuleConfig, expression) = { state with Expression = expression }
 
+    /// Sets the labels for the Prometheus rule.
     [<CustomOperation "labels">]
-    member _.Labels(state: PrometheusRuleConfig, labels) = { state with Labels = labels }
+    member _.Labels(state: PrometheusRuleConfig, labels) = { state with Labels = Some labels }
 
+    /// Enables the Prometheus rule.
     [<CustomOperation "enable_rule">]
     member _.EnableRule(state: PrometheusRuleConfig) = { state with Enabled = Some Enabled }
 
+    /// Disables the Prometheus rule.
     [<CustomOperation "disable_rule">]
     member _.DisableRule(state: PrometheusRuleConfig) = { state with Enabled = Some Disabled }
 
+    /// Sets the alert for the Prometheus rule, optional. If set, will trigger when rule expression is true.
     [<CustomOperation "alert">]
-    member _.Alert(state: PrometheusRuleConfig, alert) = { state with Alert = alert }
+    member _.Alert(state: PrometheusRuleConfig, alert) = { state with Alert = Some alert }
 
+    /// Sets the severity for Prometheus rule, 0 - 4 with 0 being highest severity.
     [<CustomOperation "severity">]
-    member _.Severity(state: PrometheusRuleConfig, severity) = { state with Severity = severity }
+    member _.Severity(state: PrometheusRuleConfig, severity) = { state with Severity = Some severity }
 
+    /// Sets actions for Prometheus rule, optional. If set, will be executed when rule expression is true.
     [<CustomOperation "actions">]
-    member _.Actions(state: PrometheusRuleConfig, actions) = { state with Actions = actions }
+    member _.Actions(state: PrometheusRuleConfig, actions) = { state with Actions = Some actions }
 
+    /// Sets resolve configuration for Prometheus rule, optional. If set, will be used to resolve the alert.
     [<CustomOperation "resolve_configuration">]
     member _.ResolveConfiguration(state: PrometheusRuleConfig, resolveConfiguration) = {
         state with
-            ResolveConfiguration = resolveConfiguration
+            ResolveConfiguration = Some resolveConfiguration
     }
 
 let prometheusRule = PrometheusRuleBuilder()
@@ -135,28 +144,42 @@ type PrometheusRuleGroupBuilder() =
     [<CustomOperation "description">]
     member _.Description(state: PrometheusRuleGroupConfig, desc) = { state with Description = desc }
 
+    /// Sets the cluster name for the Prometheus rule group, defaults to resource id from monitoring workspace if None.
     [<CustomOperation "cluster_name">]
-    member _.ClusterName(state: PrometheusRuleGroupConfig, cluster) = { state with ClusterName = cluster }
+    member _.ClusterName(state: PrometheusRuleGroupConfig, clusterName) = {
+        state with
+            ClusterName = Some clusterName
+    }
 
     [<CustomOperation "interval">]
     member _.Interval(state: PrometheusRuleGroupConfig, interval) = { state with Interval = Some interval }
 
+    /// Add rules to the Prometheus rule group.
     [<CustomOperation "add_rules">]
     member _.AddRules(state: PrometheusRuleGroupConfig, rules) = {
         state with
             Rules = state.Rules @ rules
     }
 
+    /// Enables the Prometheus rule group.
     [<CustomOperation "enable_rule_group">]
     member _.EnableRuleGroup(state: PrometheusRuleGroupConfig) = { state with Enabled = Some Enabled }
 
+    /// Disables the Prometheus rule group.
     [<CustomOperation "disable_rule_group">]
     member _.DisableRuleGroup(state: PrometheusRuleGroupConfig) = { state with Enabled = Some Disabled }
 
+    /// Sets the Azure Monitor Workspace Id for the Prometheus rule group, required.
     [<CustomOperation "azure_monitor_workspace_id">]
     member _.AzureMonitorWorkspaceId(state: PrometheusRuleGroupConfig, workspaceId) = {
         state with
             MonitorWorkspaceId = workspaceId
+    }
+
+    [<CustomOperation "scopes">]
+    member _.Scopes(state: PrometheusRuleGroupConfig, scopes) = {
+        state with
+            Scopes = state.Scopes + scopes
     }
 
     interface ITaggable<PrometheusRuleGroupConfig> with

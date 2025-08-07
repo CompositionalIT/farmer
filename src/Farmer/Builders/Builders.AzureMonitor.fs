@@ -121,24 +121,29 @@ type DataCollectionRuleBuilder() =
     [<CustomOperation "name">]
     member _.Name(state: DataCollectionRuleConfig, name) = { state with Name = ResourceName name }
 
+    /// Sets the kind for the data collection rule (Windows or Linux).
     [<CustomOperation "os_type">]
     member _.OsType(state: DataCollectionRuleConfig, osType) = { state with OsType = osType }
 
+    /// Sets the endpoint for the data collection rule.
     [<CustomOperation "endpoint">]
     member _.Endpoint(state: DataCollectionRuleConfig, endpoint) = { state with Endpoint = endpoint }
 
+    /// Sets the data flows for the data collection rule.
     [<CustomOperation "data_flows">]
     member _.DataFlows(state: DataCollectionRuleConfig, dataFlows) = {
         state with
             DataFlows = Some dataFlows
     }
 
+    /// Sets the destinations for the data collection rule.
     [<CustomOperation "destinations">]
     member _.Destinations(state: DataCollectionRuleConfig, destinations) = {
         state with
             Destinations = destinations
     }
 
+    /// Sets the data sources for the data collection rule.
     [<CustomOperation "data_sources">]
     member _.DataSources(state: DataCollectionRuleConfig, dataSources) = { state with DataSources = dataSources }
 
@@ -188,15 +193,26 @@ type DataCollectionRuleAssociationBuilder() =
         Dependencies = Set.empty
     }
 
+    member _.Run(config: DataCollectionRuleAssociationConfig) =
+        if config.AssociatedResource = ResourceId.Empty then
+            raiseFarmer "Associated resource must be specified for data collection rule association."
+
+        if config.RuleId = ResourceId.Empty then
+            raiseFarmer "Rule id must be specified for data collection rule association."
+
+        config
+
     [<CustomOperation "name">]
     member _.Name(state: DataCollectionRuleAssociationConfig, name) = { state with Name = ResourceName name }
 
+    /// Sets resource id of the resource to associate with the data collection rule.
     [<CustomOperation "associated_resource">]
     member _.AssociatedResource(state: DataCollectionRuleAssociationConfig, associationResource) = {
         state with
             AssociatedResource = associationResource
     }
 
+    /// Sets the rule id for the data collection rule association.
     [<CustomOperation "rule_id">]
     member _.RuleId(state: DataCollectionRuleAssociationConfig, ruleId) = { state with RuleId = ruleId }
 

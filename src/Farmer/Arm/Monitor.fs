@@ -48,6 +48,7 @@ module DataSources =
              | None -> Unchecked.defaultof<_>)
     |}
 
+/// Represents some of the preset streams that ccan be used for data flow in a data collection rule.
 type Stream =
     | Event
     | InsightsMetrics
