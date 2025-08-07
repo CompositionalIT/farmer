@@ -19,6 +19,7 @@ type ActionGroupConfig = {
     SMSReceivers: SMSReceiver list
     EmailReceivers: EmailReceiver list
     WebhookReceivers: WebhookReceiver list
+    IncidentReceivers: IncidentReceiver list
 } with
 
     member this.ActionGroupId = $"[resourceId('{actionGroups.Type}', '{this.Name.Value}')]"
@@ -43,6 +44,7 @@ type ActionGroupConfig = {
                 SMSReceivers = this.SMSReceivers
                 EmailReceivers = this.EmailReceivers
                 WebhookReceivers = this.WebhookReceivers
+                IncidentReceivers = this.IncidentReceivers
             }
 
             [ actionGroup ]
@@ -63,6 +65,7 @@ type ActionGroupBuilder() =
         SMSReceivers = List.empty
         EmailReceivers = List.empty
         WebhookReceivers = List.empty
+        IncidentReceivers = List.empty
     }
 
     /// Sets the name of the action group.
@@ -158,6 +161,13 @@ type ActionGroupBuilder() =
     member _.WebhookReceivers(state: ActionGroupConfig, webhookReceivers) = {
         state with
             WebhookReceivers = (webhookReceivers @ state.WebhookReceivers)
+    }
+
+    /// Add Incident Receivers.
+    [<CustomOperation "add_incident_receivers">]
+    member _.IncidentReceivers(state: ActionGroupConfig, incidentReceivers) = {
+        state with
+            IncidentReceivers = (incidentReceivers @ state.IncidentReceivers)
     }
 
 let actionGroup = ActionGroupBuilder()
