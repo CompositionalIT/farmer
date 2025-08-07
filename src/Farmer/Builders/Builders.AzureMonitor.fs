@@ -118,6 +118,12 @@ type DataCollectionRuleBuilder() =
         Dependencies = Set.empty
     }
 
+    member _.Run(config: DataCollectionRuleConfig) =
+        if config.Endpoint = ResourceId.Empty then
+            raiseFarmer "An `endpoint` must be specified for data collection rule."
+
+        config
+
     [<CustomOperation "name">]
     member _.Name(state: DataCollectionRuleConfig, name) = { state with Name = ResourceName name }
 

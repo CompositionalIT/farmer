@@ -112,6 +112,17 @@ let tests =
             Expect.isNotNull actualPrometheusForwarder "Expected Prometheus forwarder to be present"
         }
 
+        test "Create data collection rule without endpoint throws" {
+            Expect.throws
+                (fun _ ->
+                    dataCollectionRule {
+                        name "myRule"
+                        os_type OS.Linux
+                    }
+                    |> ignore)
+                "An `endpoint` must be specified for data collection rule."
+        }
+
         test "Create data collection rule association with aks resource" {
             let myAks = aks {
                 name "myAks"
