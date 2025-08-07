@@ -1,7 +1,10 @@
 Release Notes
 =============
 
-## 1.9.17
+## 1.9.19
+* NAT Gateways: set the SKU of NAT Gateway to deploy.
+
+## 1.9.18
 * AKS: add ability to specify `kubernetes_version` parameter
 
 ## 1.9.16

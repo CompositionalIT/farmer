@@ -130,7 +130,7 @@
       "type": "Microsoft.Network/virtualNetworks"
     },
     {
-      "apiVersion": "2024-05-01",
+      "apiVersion": "2024-07-01",
       "location": "northeurope",
       "name": "isaacsVM-ip",
       "properties": {
