@@ -586,7 +586,7 @@ let tests =
                 "Unexpected value for addonProfiles.ingressApplicationGateway."
         }
 
-        test "Simple AKS cluster with Azure Monitor enabled and metrics labels allow list specified" {
+        test "Simple AKS cluster with Azure Monitor enabled" {
             let myAks = aks {
                 name "k8s-cluster"
                 dns_prefix "testaks"
