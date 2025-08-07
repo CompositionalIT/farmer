@@ -19,12 +19,15 @@ type Action = {
 
 type ResolveConfiguration = {
     AutoResolved: bool
-    TimeToResolve: string
+    TimeToResolve: IsoDateTime
 } with
 
     member internal this.ToArmJson = {|
         autoResolved = this.AutoResolved
-        timeToResolve = this.TimeToResolve
+        timeToResolve =
+            this.TimeToResolve
+            |> (function
+            | IsoDateTime x -> x)
     |}
 
 type PrometheusRule = {

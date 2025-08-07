@@ -3,6 +3,7 @@ module PrometheusRuleGroup
 open Expecto
 open Farmer
 open Farmer.Builders
+open Farmer.Arm.InsightsAlerts
 
 let tests =
     testList "Prometheus Rule Group" [
@@ -189,5 +190,160 @@ let tests =
                     .ToString()
 
             Expect.isTrue (actualClusterName = "myCluster") "Expected cluster name to be myCluster"
+        }
+
+        test "Set severity for rule in prometheus rule group" {
+            let myRule1 = prometheusRule {
+                expression "up == 1"
+                severity AlertSeverity.Error
+            }
+
+            let monitoringAccountType =
+                ResourceType("Microsoft.Monitor/accounts", "2025-05-03-preview")
+
+            let monitorAccountId =
+                ResourceId.create (monitoringAccountType, ResourceName "monitorAccount")
+
+            let myGroup = prometheusRuleGroup {
+                name "myGroup"
+                add_rules [ myRule1 ]
+                azure_monitor_workspace_id monitorAccountId
+                enable_rule_group
+                cluster_name (ResourceName "myCluster")
+            }
+
+            let template = arm { add_resources [ myGroup ] }
+            let jsn = template.Template |> Writer.toJson
+            let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+            let actualSeverity =
+                jobj
+                    .SelectToken("resources[?(@.name=='myGroup')].properties.rules[0].severity")
+                    .ToString()
+
+            Expect.isTrue (actualSeverity = "1") "Expected alert severity to be Error (1)"
+        }
+
+        test "Set alert for rule in prometheus rule group" {
+            let myRule1 = prometheusRule {
+                expression "up == 1"
+                alert "testAlert"
+            }
+
+            let monitoringAccountType =
+                ResourceType("Microsoft.Monitor/accounts", "2025-05-03-preview")
+
+            let monitorAccountId =
+                ResourceId.create (monitoringAccountType, ResourceName "monitorAccount")
+
+            let myGroup = prometheusRuleGroup {
+                name "myGroup"
+                add_rules [ myRule1 ]
+                azure_monitor_workspace_id monitorAccountId
+                enable_rule_group
+                cluster_name (ResourceName "myCluster")
+            }
+
+            let template = arm { add_resources [ myGroup ] }
+            let jsn = template.Template |> Writer.toJson
+            let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+            let actualAlert =
+                jobj
+                    .SelectToken("resources[?(@.name=='myGroup')].properties.rules[0].alert")
+                    .ToString()
+
+            Expect.isTrue (actualAlert = "testAlert") "Expected alert to be testAlert"
+        }
+
+        test "Set actions for rule in prometheus rule group" {
+            let myRule1 = prometheusRule {
+                expression "up == 1"
+
+                actions [
+                    {
+                        ActionGroupId =
+                            ResourceId.create (
+                                ResourceType("Microsoft.Insights/actionGroups", "2020-10-01"),
+                                ResourceName "myActionGroup"
+                            )
+                        ActionProperties = None
+                    }
+                ]
+            }
+
+            let monitoringAccountType =
+                ResourceType("Microsoft.Monitor/accounts", "2025-05-03-preview")
+
+            let monitorAccountId =
+                ResourceId.create (monitoringAccountType, ResourceName "monitorAccount")
+
+            let myGroup = prometheusRuleGroup {
+                name "myGroup"
+                add_rules [ myRule1 ]
+                azure_monitor_workspace_id monitorAccountId
+                enable_rule_group
+                cluster_name (ResourceName "myCluster")
+            }
+
+            let template = arm { add_resources [ myGroup ] }
+            let jsn = template.Template |> Writer.toJson
+            let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+            let actualActionGroupId =
+                jobj
+                    .SelectToken("resources[?(@.name=='myGroup')].properties.rules[0].actions[0].actionGroupId")
+                    .ToString()
+
+            Expect.isNotNull actualActionGroupId "Expected action group id to exist"
+        }
+
+        test "Set resolve configuration for rule in prometheus rule group" {
+            let myRule1 = prometheusRule {
+                expression "up == 1"
+
+                resolve_configuration (
+                    {
+                        AutoResolved = true
+                        TimeToResolve = IsoDateTime "PT1H"
+                    }
+                )
+            }
+
+            let monitoringAccountType =
+                ResourceType("Microsoft.Monitor/accounts", "2025-05-03-preview")
+
+            let monitorAccountId =
+                ResourceId.create (monitoringAccountType, ResourceName "monitorAccount")
+
+            let myGroup = prometheusRuleGroup {
+                name "myGroup"
+                add_rules [ myRule1 ]
+                azure_monitor_workspace_id monitorAccountId
+                enable_rule_group
+                cluster_name (ResourceName "myCluster")
+            }
+
+            let template = arm { add_resources [ myGroup ] }
+            let jsn = template.Template |> Writer.toJson
+            let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+            let isAutoResolved =
+                jobj
+                    .SelectToken(
+                        "resources[?(@.name=='myGroup')].properties.rules[0].resolveConfiguration.autoResolved"
+                    )
+                    .ToString()
+                    .ToLower()
+
+            let actualTimeToResolve =
+                jobj
+                    .SelectToken(
+                        "resources[?(@.name=='myGroup')].properties.rules[0].resolveConfiguration.timeToResolve"
+                    )
+                    .ToString()
+
+            Expect.isTrue (isAutoResolved = "true") "Expected autoResolved to be true"
+            Expect.isTrue (actualTimeToResolve = "PT1H") "Expected time to resolve to be PT1H"
         }
     ]

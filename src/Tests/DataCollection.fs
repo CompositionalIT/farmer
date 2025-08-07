@@ -161,4 +161,42 @@ let tests =
             Expect.isTrue (actualDependsOn.Contains(expectedRuleId.Eval())) "Expected rule Id to be in dependencies"
             Expect.equal actualDataCollectionRuleId (expectedRuleId.Eval()) "Expected matching data collection rule Id"
         }
+
+        test "Create data collection rule association should throw if no rule id is specified" {
+            let myAks = aks {
+                name "myAks"
+                service_principal_use_msi
+                enable_azure_monitor
+            }
+
+            Expect.throws
+                (fun _ ->
+                    dataCollectionRuleAssociation {
+                        name "myRuleAssociation"
+                        associated_resource ((myAks :> IBuilder).ResourceId)
+                    }
+                    |> ignore)
+                (sprintf
+                    "Should have thrown an exception for not specifying rule id for data collection rule association")
+        }
+
+        test "Create data collection rule association should throw if no associated resource id is specified" {
+            let myRule = dataCollectionRule {
+                name "myRule"
+                os_type OS.Linux
+                endpoint (dataCollectionEndpoints.resourceId "myEndpoint")
+            }
+
+            let expectedRuleId = (myRule :> IBuilder).ResourceId
+
+            Expect.throws
+                (fun _ ->
+                    dataCollectionRuleAssociation {
+                        name "myRuleAssociation"
+                        rule_id expectedRuleId
+                    }
+                    |> ignore)
+                (sprintf
+                    "Should have thrown an exception for not specifying associated resource id for data collection rule")
+        }
     ]
