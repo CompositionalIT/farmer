@@ -19,7 +19,9 @@ The AKS builder (`aks`) constructs AKS clusters.
 | sku                                 | Specifies the SKU of the AKS cluster - default is 'Base'.                                                                                                   |
 | tier                                | Specifies the tier of the AKS cluster - default is 'Free'.                                                                                                  |
 | dns_prefix                          | Sets the DNS prefix of the AKS cluster.                                                                                                                     |
-| enable_defender                     | Enables Defender for the containers running in the cluster.                                                                                                 |
+| enable_defender                     | Enables Defender for the containers running in the cluster.                
+| enable_azure_monitor                     | Enables Azure Monitor for AKS, does not set the `KubeStateMetrics`       
+| add_kube_state_metrics                     | Enables Azure Monitor for AKS and sets custom metrics for AKS (`KubeStateMetrics`)                                                                         |
 | enable_image_cleaner                | Enables a service to periodically purge images that are no longer used.                                                                                     |
 | enable_private_cluster              | Restricts the cluster's Kubernetes API to only be accessible from private networks.                                                                         |
 | enable_rbac                         | Enable Kubernetes Role-Based Access Control.                                                                                                                |

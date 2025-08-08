@@ -144,6 +144,23 @@ type ManagedClusterIdentityProfile = {
 
 type OidcIssuerProfile = { Enabled: FeatureFlag }
 
+type KubeStateMetrics = {
+    MetricLabelsAllowList: string option
+    MetricAnnotationsAllowList: string option
+} with
+
+    static member Default = {
+        MetricLabelsAllowList = None
+        MetricAnnotationsAllowList = None
+    }
+
+type AzureMonitorProfile = {
+    Metrics: {|
+        Enabled: FeatureFlag
+        KubeStateMetrics: KubeStateMetrics option
+    |}
+}
+
 type SecurityProfileSettings = {
     Defender:
         {|
@@ -261,6 +278,7 @@ type ManagedCluster = {
             ServiceCidr: IPAddressCidr option
         |} option
     OidcIssuerProfile: OidcIssuerProfile option
+    AzureMonitorProfile: AzureMonitorProfile option
     SecurityProfile: SecurityProfileSettings option
     WindowsProfile:
         {|
@@ -408,6 +426,20 @@ type ManagedCluster = {
                             match this.OidcIssuerProfile with
                             | None -> Unchecked.defaultof<_>
                             | Some oidc -> {| enabled = oidc.Enabled.AsBoolean |}
+                        azureMonitorProfile =
+                            match this.AzureMonitorProfile with
+                            | None -> Unchecked.defaultof<_>
+                            | Some monitorProfile -> {|
+                                metrics = {|
+                                    enabled = monitorProfile.Metrics.Enabled.AsBoolean
+                                    kubeStateMetrics =
+                                        monitorProfile.Metrics.KubeStateMetrics
+                                        |> Option.map (fun kubeStateMetrics -> {|
+                                            metricLabelsAllowList = kubeStateMetrics.MetricLabelsAllowList
+                                            metricAnnotationsAllowList = kubeStateMetrics.MetricAnnotationsAllowList
+                                        |})
+                                |}
+                              |}
                         securityProfile =
                             match this.SecurityProfile with
                             | None -> Unchecked.defaultof<_>

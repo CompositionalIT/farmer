@@ -33,6 +33,7 @@
         <Compile Include="ContainerGroup.fs" />
         <Compile Include="ContainerService.fs" />
         <Compile Include="CognitiveServices.fs" />
+        <Compile Include="DataCollection.fs" />
         <Compile Include="Dns.fs" />
         <Compile Include="DnsResolver.fs" />
         <Compile Include="ExpressRoute.fs" />
@@ -44,6 +45,7 @@
         <Compile Include="NetworkSecurityGroup.fs" />
         <Compile Include="OperationsManagement.fs" />
         <Compile Include="PrivateLink.fs" />
+        <Compile Include="PrometheusRuleGroup.fs" />
         <Compile Include="ResourceGroup.fs" />
         <Compile Include="Storage.fs" />
         <Compile Include="ServiceBus.fs" />
