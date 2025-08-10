@@ -279,13 +279,13 @@ type ActionGroup = {
                         incidentReceivers =
                             this.IncidentReceivers
                             |> List.map (fun r -> {|
-                                Name = r.Name
-                                Connection = {|
+                                name = r.Name
+                                connection = {|
                                     Id = r.Connection.Id
                                     Name = r.Connection.Name
                                 |}
-                                Mappings = r.Mappings |> Map.toList |> dict
-                                IncidentManagementService =
+                                mappings = r.Mappings |> Map.toList |> dict
+                                incidentManagementService =
                                     match r.IncidentManagementService with
                                     | Icm -> "Icm"
                             |})
