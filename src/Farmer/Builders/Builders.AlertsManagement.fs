@@ -8,7 +8,7 @@ type PrometheusRuleConfig = {
     Record: string option
     Expression: string
     Labels: Map<string, string> option
-    Enabled: FeatureFlag option
+    Enabled: FeatureFlag
     Alert: string option
     Severity: AlertSeverity option
     Actions: (Action list) option
@@ -27,7 +27,7 @@ type PrometheusRuleBuilder() =
         Record = None
         Expression = System.String.Empty
         Labels = None
-        Enabled = None
+        Enabled = Enabled
         Alert = None
         Severity = None
         Actions = None
@@ -49,11 +49,11 @@ type PrometheusRuleBuilder() =
 
     /// Enables the Prometheus rule.
     [<CustomOperation "enable_rule">]
-    member _.EnableRule(state: PrometheusRuleConfig) = { state with Enabled = Some Enabled }
+    member _.EnableRule(state: PrometheusRuleConfig) = { state with Enabled = Enabled }
 
     /// Disables the Prometheus rule.
     [<CustomOperation "disable_rule">]
-    member _.DisableRule(state: PrometheusRuleConfig) = { state with Enabled = Some Disabled }
+    member _.DisableRule(state: PrometheusRuleConfig) = { state with Enabled = Disabled }
 
     /// Sets the alert for the Prometheus rule, optional. If set, will trigger when rule expression is true.
     [<CustomOperation "alert">]
@@ -86,7 +86,7 @@ type PrometheusRuleGroupConfig = {
     Description: string option
     ClusterName: ResourceName option
     Tags: Map<string, string>
-    Enabled: FeatureFlag option
+    Enabled: FeatureFlag
     Interval: IsoDateTime option
     Rules: PrometheusRuleConfig list
     Scopes: ResourceId Set
@@ -132,7 +132,7 @@ type PrometheusRuleGroupBuilder() =
         Tags = Map.empty
         Scopes = Set.empty
         Description = None
-        Enabled = None
+        Enabled = Enabled
         MonitorWorkspaceId = ResourceId.Empty
     }
 
@@ -171,11 +171,11 @@ type PrometheusRuleGroupBuilder() =
 
     /// Enables the Prometheus rule group.
     [<CustomOperation "enable_rule_group">]
-    member _.EnableRuleGroup(state: PrometheusRuleGroupConfig) = { state with Enabled = Some Enabled }
+    member _.EnableRuleGroup(state: PrometheusRuleGroupConfig) = { state with Enabled = Enabled }
 
     /// Disables the Prometheus rule group.
     [<CustomOperation "disable_rule_group">]
-    member _.DisableRuleGroup(state: PrometheusRuleGroupConfig) = { state with Enabled = Some Disabled }
+    member _.DisableRuleGroup(state: PrometheusRuleGroupConfig) = { state with Enabled = Disabled }
 
     /// Sets the Azure Monitor Workspace Id for the Prometheus rule group, required.
     [<CustomOperation "azure_monitor_workspace_id">]

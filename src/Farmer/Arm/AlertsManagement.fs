@@ -34,7 +34,7 @@ type PrometheusRule = {
     Record: string option
     Expression: string
     Labels: Map<string, string> option
-    Enabled: FeatureFlag option
+    Enabled: FeatureFlag
     Alert: string option
     Severity: AlertSeverity option
     Actions: (Action list) option
@@ -47,7 +47,7 @@ type PrometheusRule = {
         Record = None
         Expression = ""
         Labels = None
-        Enabled = None
+        Enabled = Enabled
         Alert = None
         Severity = None
         Actions = None
@@ -58,7 +58,7 @@ type PrometheusRule = {
     static member ToArmJson(rule: PrometheusRule) = {|
         actions =
             rule.Actions
-            |> Option.map (fun actions -> actions |> List.map (fun action -> action.ToArmJson))
+            |> Option.map (List.map _.ToArmJson)
             |> Option.defaultValue Unchecked.defaultof<_>
         record = rule.Record |> Option.defaultValue Unchecked.defaultof<_>
         expression = rule.Expression
@@ -67,7 +67,7 @@ type PrometheusRule = {
             |> Option.map (Map.toList >> dict)
             |> Option.defaultValue Unchecked.defaultof<_>
         alert = rule.Alert |> Option.defaultValue Unchecked.defaultof<_>
-        enabled = rule.Enabled |> Option.map (fun e -> e.AsBoolean)
+        enabled = rule.Enabled.AsBoolean
         severity =
             rule.Severity
             |> Option.map (fun severity ->
@@ -79,7 +79,7 @@ type PrometheusRule = {
                 | AlertSeverity.Verbose -> 4)
         resolveConfiguration =
             rule.ResolveConfiguration
-            |> Option.map (fun config -> config.ToArmJson)
+            |> Option.map _.ToArmJson
             |> Option.defaultValue Unchecked.defaultof<_>
         ``for`` =
             rule.For
@@ -94,7 +94,7 @@ type PrometheusRuleGroup = {
     Description: string option
     ClusterName: ResourceName option
     Tags: Map<string, string>
-    Enabled: FeatureFlag option
+    Enabled: FeatureFlag
     Interval: IsoDateTime option
     MonitorWorkspaceId: ResourceId
     Rules: PrometheusRule list
@@ -116,13 +116,12 @@ type PrometheusRuleGroup = {
                             |> Option.map (fun name -> name.Value)
                             |> Option.defaultValue Unchecked.defaultof<_>
                         description = this.Description
-                        enabled = this.Enabled |> Option.map (fun e -> e.AsBoolean)
+                        enabled = this.Enabled.AsBoolean
                         interval =
                             this.Interval
-                            |> Option.map (fun interval ->
-                                match interval with
+                            |> Option.map (function
                                 | IsoDateTime x -> x)
-                        scopes = scopes |> Set.map (fun scope -> scope.Eval())
-                        rules = this.Rules |> List.map (fun r -> r |> PrometheusRule.ToArmJson)
+                        scopes = scopes |> Set.map _.Eval()
+                        rules = this.Rules |> List.map PrometheusRule.ToArmJson
                     |}
             |}

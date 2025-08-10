@@ -228,20 +228,20 @@ type IncidentManagementService = | Icm
 
 type IncidentReceiver = {
     /// The name of the incident receiver. Names must be unique across all receivers within an action group.
-    name: string
+    Name: string
     /// The connection string for the incident management service.
-    connection: IncidentServiceConnection
+    Connection: IncidentServiceConnection
     /// Field mappings for the incident serice
-    mappings: Map<string, string>
+    Mappings: Map<string, string>
     /// incident management service type
-    incidentManagementService: IncidentManagementService
+    IncidentManagementService: IncidentManagementService
 } with
 
     static member Create(name, connection, mappings, incidentManagementService) = {
-        name = name
-        connection = connection
-        mappings = mappings
-        incidentManagementService = incidentManagementService
+        Name = name
+        Connection = connection
+        Mappings = mappings
+        IncidentManagementService = incidentManagementService
     }
 
 type ActionGroup = {
@@ -279,14 +279,14 @@ type ActionGroup = {
                         incidentReceivers =
                             this.IncidentReceivers
                             |> List.map (fun r -> {|
-                                name = r.name
-                                connection = {|
-                                    id = r.connection.Id
-                                    name = r.connection.Name
+                                Name = r.Name
+                                Connection = {|
+                                    Id = r.Connection.Id
+                                    Name = r.Connection.Name
                                 |}
-                                mappings = r.mappings |> Map.toList |> dict
-                                incidentManagementService =
-                                    match r.incidentManagementService with
+                                Mappings = r.Mappings |> Map.toList |> dict
+                                IncidentManagementService =
+                                    match r.IncidentManagementService with
                                     | Icm -> "Icm"
                             |})
                         automationRunbookReceivers =
