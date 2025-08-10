@@ -228,7 +228,7 @@ type DataCollectionRuleAssociationBuilder() =
             Description = description
     }
 
-    interface IDependable<DataCollectionRuleConfig> with
+    interface IDependable<DataCollectionRuleAssociationConfig> with
         member _.Add state newDeps = {
             state with
                 Dependencies = state.Dependencies + newDeps

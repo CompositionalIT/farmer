@@ -22,7 +22,7 @@ type DataCollectionEndpoint = {
         |}
 
 let dataCollectionRules =
-    ResourceType("Microsoft.Insights/dataCollectionRules", "2023-03-11'")
+    ResourceType("Microsoft.Insights/dataCollectionRules", "2023-03-11")
 
 module DataSources =
     type PrometheusForwarder = {
