@@ -158,7 +158,8 @@ type DataCollectionRuleAssociation = {
 
     interface IArmResource with
         member this.ResourceId =
-            dataCollectionRuleAssociations(this.AssociatedResource.Type).resourceId (this.Name)
+            dataCollectionRuleAssociations(this.AssociatedResource.Type)
+                .resourceId (this.Name)
 
         member this.JsonModel =
             let dependencies =
