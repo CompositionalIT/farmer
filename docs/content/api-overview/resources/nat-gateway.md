@@ -14,10 +14,11 @@ addresses or prefixes of groups of addresses can be specified.
 
 #### Builder Keywords
 
-| Applies To | Keyword | Purpose |
-|-|-|-|
-| natGateway | name | Name of the NAT Gateway resource |
+| Applies To | Keyword      | Purpose                                                                                            |
+|-|--------------|----------------------------------------------------------------------------------------------------|
+| natGateway | name         | Name of the NAT Gateway resource                                                                   |
 | natGateway | idle_timeout | Timeout after which connections that have seen no traffic will be disconnected to free SNAT ports. |
+| natGateway | sku          | Set the SKU of NAT Gateway to deploy                                                               |
 
 #### Example
 
@@ -32,6 +33,7 @@ arm {
     add_resources [
         natGateway {
             name "my-nat-gateway"
+            sku NatGateway.Sku.Standard
         }
         vnet {
             name "my-net"
