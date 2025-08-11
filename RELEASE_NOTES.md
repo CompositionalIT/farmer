@@ -2,7 +2,11 @@ Release Notes
 =============
 
 ## 1.9.19
-* NAT Gateways: set the SKU of NAT Gateway to deploy.
+* Data Collection: Adds `dataCollectionRule`, `dataCollectionEndpoint`, `dataCollectionRuleAssociation` builders for Azure Monitor
+* Prometheus Group Rules: Adds `prometheusRuleGroup` builder for prometheus metrics in Azure Monitor
+* Container Service: add ability to specify `enable_azure_monitor` parameter
+* Action Group: adds ability to create Incident Receivers in action group with `add_incident_receivers`
+* NAT Gateways: enables setting the `sku` for the NAT Gateway and the generated Public IP Address resource.
 
 ## 1.9.18
 * AKS: add ability to specify `kubernetes_version` parameter

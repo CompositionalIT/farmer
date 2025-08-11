@@ -83,6 +83,8 @@ let allTests =
             Alerts.tests
             ServicePlan.tests
             ActionGroup.tests
+            DataCollection.tests
+            PrometheusRuleGroup.tests
         ]
         testList "Control" [
             // Temporarily disabling end to end tests while transitioning to new subscription.

@@ -73,6 +73,7 @@
         <Compile Include="Arm/ManagedIdentity.fs" />
         <Compile Include="Arm/LogAnalytics.fs" />
         <Compile Include="Arm\Alert.fs" />
+        <Compile Include="Arm\AlertsManagement.fs" />
         <Compile Include="Arm/Storage.fs" />
         <Compile Include="Arm/Cache.fs" />
         <Compile Include="Arm/Cdn.fs" />
@@ -107,6 +108,7 @@
         <Compile Include="Arm/App.fs" />
         <Compile Include="Arm/Web.fs" />
         <Compile Include="Arm/Maps.fs" />
+        <Compile Include="Arm/Monitor.fs" />
         <Compile Include="Arm/SignalR.fs" />
         <Compile Include="Arm/EventGrid.fs" />
         <Compile Include="Arm/NetworkSecurityGroup.fs" />
@@ -126,6 +128,8 @@
         <Compile Include="Builders/Extensions.fs" />
         <Compile Include="Builders\Builders.ActionGroup.fs" />
         <Compile Include="Builders\Builders.AutoscaleSettings.fs" />
+        <Compile Include="Builders/Builders.AlertsManagement.fs" />
+        <Compile Include="Builders/Builders.AzureMonitor.fs" />
         <Compile Include="Builders\Builders.B2cTenant.fs" />
         <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
         <Compile Include="Builders/Builders.ResourceGroup.fs" />
