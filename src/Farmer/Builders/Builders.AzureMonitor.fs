@@ -179,11 +179,10 @@ type DataCollectionRuleAssociationConfig = {
         member this.ResourceId =
             dataCollectionRuleAssociations(this.AssociatedResource.Type).resourceId this.Name
 
-        member this.BuildResources location = [
+        member this.BuildResources _ = [
             {
-                Name = this.Name
+                DataCollectionRuleAssociation.Name = this.Name
                 AssociatedResource = this.AssociatedResource
-                Location = location
                 RuleId = this.RuleId
                 Description = this.Description
                 Dependencies = this.Dependencies
