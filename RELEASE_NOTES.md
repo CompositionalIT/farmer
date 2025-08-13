@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-## 1.9.19
+## 1.9.20
 * Fixes bug in data collection association by removing location field
 
 ## 1.9.18
