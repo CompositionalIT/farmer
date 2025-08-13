@@ -4,7 +4,7 @@ Release Notes
 ## 1.9.20
 * Fixes bug in data collection association by removing location field
 
-## 1.9.18
+## 1.9.19
 * Data Collection: Adds `dataCollectionRule`, `dataCollectionEndpoint`, `
 RuleAssociation` builders for Azure Monitor
 * Prometheus Group Rules: Adds `prometheusRuleGroup` builder for prometheus metrics in Azure Monitor
