@@ -145,12 +145,11 @@ type DataCollectionRule = {
 
 
 let dataCollectionRuleAssociations (resourceType: ResourceType) =
-    ResourceType($"{resourceType.Type}/providers/dataCollectionRuleAssociations", "2022-06-01")
+    ResourceType($"{resourceType.Type}/providers/dataCollectionRuleAssociations", "2023-03-11")
 
 type DataCollectionRuleAssociation = {
     Name: ResourceName
     AssociatedResource: ResourceId
-    Location: Location
     RuleId: ResourceId
     Description: string
     Dependencies: Set<ResourceId>
@@ -167,7 +166,7 @@ type DataCollectionRuleAssociation = {
 
             {|
                 dataCollectionRuleAssociations(this.AssociatedResource.Type)
-                    .Create(this.Name, this.Location, dependencies) with
+                    .Create(this.Name, dependsOn = dependencies) with
                     properties = {|
                         description = this.Description
                         dataCollectionRuleId = this.RuleId.Eval()

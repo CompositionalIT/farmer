@@ -153,6 +153,14 @@ let tests =
                     .SelectToken("resources[?(@.name=='myRuleAssociation')].properties.dataCollectionRuleId")
                     .ToString()
 
+            Expect.throws
+                (fun _ ->
+                    jobj
+                        .SelectToken("resources[?(@.name=='myRuleAssociation')].location")
+                        .ToString()
+                    |> ignore)
+                "Location should not be present in data collection rule association."
+
             let actualDependsOn =
                 jobj
                     .SelectToken("resources[?(@.name=='myRuleAssociation')].dependsOn")
