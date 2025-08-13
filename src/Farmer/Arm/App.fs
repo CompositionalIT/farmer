@@ -5,7 +5,7 @@ open System
 open Farmer.ContainerApp
 open Farmer
 
-let containerApps = ResourceType("Microsoft.App/containerApps", "2023-05-01")
+let containerApps = ResourceType("Microsoft.App/containerApps", "2022-03-01")
 
 let managedEnvironments =
     ResourceType("Microsoft.App/managedEnvironments", "2022-03-01")
@@ -138,28 +138,11 @@ type DaprComponent = {
                     |]
                     scopes = this.Scopes
                     secrets = [|
-                        for secret in this.Secrets ->
-                            let defaultArm = {|
+                        for secret in this.Secrets do
+                            {|
                                 name = secret.Key
-                                value = None
-                                keyVaultUrl = None
-                                identity = None
+                                value = secret.Value.Value
                             |}
-
-                            match secret.Value with
-                            | ParameterSecret secureParameter -> {|
-                                defaultArm with
-                                    value = Some(secureParameter.ArmExpression.Eval())
-                              |}
-                            | ExpressionSecret armExpression -> {|
-                                defaultArm with
-                                    value = Some(armExpression.Eval())
-                              |}
-                            | KeyVaultSecretReference(url, identity) -> {|
-                                defaultArm with
-                                    keyVaultUrl = Some(url.Eval())
-                                    identity = Some(identity.Eval())
-                              |}
                     |]
                     secretStoreComponent = this.SecretStoreComponent |> Option.map _.Value |> Option.toObj
                     version = this.Version
@@ -206,7 +189,6 @@ type ContainerApp = {
                 match secret.Value with
                 | ParameterSecret sp -> sp
                 | ExpressionSecret _ -> ()
-                | KeyVaultSecretReference _ -> ()
             for credential in this.ImageRegistryCredentials do
                 match credential with
                 | ImageRegistryAuthentication.Credential credential -> credential.Password
@@ -238,46 +220,23 @@ type ContainerApp = {
                                     match cred with
                                     | ImageRegistryAuthentication.Credential cred -> {|
                                         name = cred.Username
-                                        value = Some(cred.Password.ArmExpression.Eval())
-                                        keyVaultUrl = None
-                                        identity = None
+                                        value = cred.Password.ArmExpression.Eval()
                                       |}
                                     | ImageRegistryAuthentication.ListCredentials resourceId -> {|
                                         name = buildPasswordRef resourceId
                                         value =
-                                            Some(
-                                                ArmExpression
-                                                    .create(
-                                                        $"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').passwords[0].value"
-                                                    )
-                                                    .Eval()
-                                            )
-                                        keyVaultUrl = None
-                                        identity = None
+                                            ArmExpression
+                                                .create(
+                                                    $"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').passwords[0].value"
+                                                )
+                                                .Eval()
                                       |}
                                     | ImageRegistryAuthentication.ManagedIdentityCredential cred -> ()
                                 for setting in this.Secrets do
-                                    let defaultArm = {|
+                                    {|
                                         name = setting.Key.Value
-                                        value = None
-                                        keyVaultUrl = None
-                                        identity = None
+                                        value = setting.Value.Value
                                     |}
-
-                                    match setting.Value with
-                                    | ParameterSecret secureParameter -> {|
-                                        defaultArm with
-                                            value = Some(secureParameter.ArmExpression.Eval())
-                                      |}
-                                    | ExpressionSecret armExpression -> {|
-                                        defaultArm with
-                                            value = Some(armExpression.Eval())
-                                      |}
-                                    | KeyVaultSecretReference(url, identity) -> {|
-                                        defaultArm with
-                                            keyVaultUrl = Some(url.Eval())
-                                            identity = Some(identity.Eval())
-                                      |}
                             |]
                             activeRevisionsMode =
                                 match this.ActiveRevisionsMode with
@@ -369,11 +328,6 @@ type ContainerApp = {
                                                 name = env.Key
                                                 value = null
                                                 secretref = env.Key
-                                              |}
-                                            | EnvValueSecretReference secretRef -> {|
-                                                name = env.Key
-                                                value = null
-                                                secretref = secretRef
                                               |}
                                     |]
                                     resources =

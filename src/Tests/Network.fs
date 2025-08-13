@@ -696,6 +696,40 @@ let tests =
             Expect.isFalse (defaultOutbound.ToObject<bool>()) "defaultOutboundAccess should be false"
 
         }
+        test "Creates V2 NAT gateway" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    natGateway {
+                        name "my-nat-gateway-v2"
+                        sku NatGateway.Sku.StandardV2
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+
+            let natGateway =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.Network/natGateways')]"
+
+            Expect.isNotNull natGateway "NAT Gateway is missing from template."
+
+            Expect.equal
+                (string <| natGateway.SelectToken "sku.name")
+                "StandardV2"
+                "Incorrect SKU generated for NAT Gateway"
+
+            let publicIp =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.Network/publicIPAddresses')]"
+
+            Expect.isNotNull publicIp "Public IP is missing from template."
+
+            Expect.equal
+                (string <| publicIp.SelectToken "sku.name")
+                "StandardV2"
+                "Incorrect SKU generated for Public IP"
+        }
         test "Creates route table with two routes" {
             let deployment = arm {
                 location Location.EastUS

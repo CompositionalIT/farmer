@@ -87,8 +87,9 @@ let allTests =
             PrometheusRuleGroup.tests
         ]
         testList "Control" [
-            if Build.isCiMaster || Build.isFarmerEndToEnd then
-                AzCli.endToEndTests
+            // Temporarily disabling end to end tests while transitioning to new subscription.
+            //if Build.isCiMaster || Build.isFarmerEndToEnd then
+            //    AzCli.endToEndTests
             Common.tests
             Identity.tests
             Template.tests

@@ -2,17 +2,16 @@ Release Notes
 =============
 
 ## 1.9.20
-* Fixes bug in data collection association by removing location field
+* Data Collection: Fixes bug in data collection association by removing location field.
 
 ## 1.9.19
-* Data Collection: Adds `dataCollectionRule`, `dataCollectionEndpoint`, `
-RuleAssociation` builders for Azure Monitor
+* Data Collection: Adds `dataCollectionRule`, `dataCollectionEndpoint`, `dataCollectionRuleAssociation` builders for Azure Monitor
 * Prometheus Group Rules: Adds `prometheusRuleGroup` builder for prometheus metrics in Azure Monitor
 * Container Service: add ability to specify `enable_azure_monitor` parameter
 * Action Group: adds ability to create Incident Receivers in action group with `add_incident_receivers`
+* NAT Gateways: enables setting the `sku` for the NAT Gateway and the generated Public IP Address resource.
 
-## 1.9.17
-* Container Apps: Adds `add_key_vault_secret` allowing Container App secrets to reference secrets stored in Azure Key Vault.
+## 1.9.18
 * AKS: add ability to specify `kubernetes_version` parameter
 
 ## 1.9.16

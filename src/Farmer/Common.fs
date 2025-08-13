@@ -1,4 +1,4 @@
-namespace Farmer
+﻿namespace Farmer
 
 open System
 
@@ -149,8 +149,6 @@ type EnvVar =
     | SecureEnvValue of SecureParameter
     /// Use for secret environment variables that get their value from an ARM Expression. These will be an ARM expression in the template, but value used in a secure context.
     | SecureEnvExpression of ArmExpression
-    /// Use for secret environment variables that reference a Container App Secret.
-    | EnvValueSecretReference of string
 
     static member create (name: string) (value: string) = name, EnvValue value
 
@@ -159,8 +157,6 @@ type EnvVar =
 
     static member createSecureExpression (name: string) (armExpression: ArmExpression) =
         name, SecureEnvExpression armExpression
-
-    static member createSecretReference (name: string) (paramName: string) = name, EnvValueSecretReference paramName
 
 module Mb =
     let toBytes (mb: int<Mb>) = int64 mb * 1024L * 1024L
@@ -2952,6 +2948,16 @@ module ApplicationGateway =
             | TemporaryRedirect -> "TemporaryRedirect"
             | PermanentRedirect -> "PermanentRedirect"
 
+module NatGateway =
+    [<RequireQualifiedAccess>]
+    type Sku =
+        | Standard
+        | StandardV2
+
+        member this.ArmValue =
+            match this with
+            | Standard -> "Standard"
+            | StandardV2 -> "StandardV2"
 
 module VirtualNetworkGateway =
     [<RequireQualifiedAccess>]
@@ -3535,10 +3541,12 @@ module PublicIpAddress =
 
     type Sku =
         | Standard
+        | StandardV2
 
         member this.ArmValue =
             match this with
             | Standard -> "Standard"
+            | StandardV2 -> "StandardV2"
 
 module Cdn =
     type Sku =
