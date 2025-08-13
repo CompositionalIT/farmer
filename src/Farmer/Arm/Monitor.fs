@@ -157,14 +157,16 @@ type DataCollectionRuleAssociation = {
 
     interface IArmResource with
         member this.ResourceId =
-            dataCollectionRuleAssociations(this.AssociatedResource.Type).resourceId (this.Name)
+            dataCollectionRuleAssociations(this.AssociatedResource.Type)
+                .resourceId (this.Name)
 
         member this.JsonModel =
             let dependencies =
                 [ this.AssociatedResource; this.RuleId ] @ (List.ofSeq this.Dependencies)
 
             {|
-                dataCollectionRuleAssociations(this.AssociatedResource.Type).Create(this.Name, dependsOn = dependencies) with
+                dataCollectionRuleAssociations(this.AssociatedResource.Type)
+                    .Create(this.Name, dependsOn = dependencies) with
                     properties = {|
                         description = this.Description
                         dataCollectionRuleId = this.RuleId.Eval()
