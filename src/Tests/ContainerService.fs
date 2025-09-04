@@ -658,4 +658,30 @@ let tests =
                 "app"
                 "azureMonitorProfile.metrics.kubeStateMetrics.metricLabelsAllowList should be 'app' when specified"
         }
+
+        test "Basic AKS cluster with osSKU" {
+            let myAks = aks {
+                name "aks-cluster"
+                dns_prefix "testaks"
+
+                add_agent_pools [
+                    agentPool {
+                        name "linuxPool"
+                        count 3
+                        node_taints [ "CriticalAddonsOnly=true:NoSchedule" ]
+                        os_sku "AzureLinux"
+                    }
+                ]
+            }
+
+            let template = arm { add_resource myAks }
+            let json = template.Template |> Writer.toJson
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+            let osSKU =
+                jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.agentPoolProfiles[0].osSKU")
+                |> string
+
+            Expect.equal osSKU "AzureLinux" "Incorrect osSKU value"
+        }
     ]

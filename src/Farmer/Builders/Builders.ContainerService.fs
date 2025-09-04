@@ -18,6 +18,7 @@ type AgentPoolConfig = {
     Mode: AgentPoolMode
     OsDiskSize: int<Gb>
     OsType: OS
+    OsSKU: string option
     VmSize: VMSize
     AvailabilityZones: ZoneSelection
     VirtualNetworkName: ResourceName option
@@ -40,6 +41,7 @@ type AgentPoolConfig = {
         Mode = System
         OsDiskSize = 0<Gb>
         OsType = OS.Linux
+        OsSKU = None
         VirtualNetworkName = None
         SubnetName = None
         PodSubnetName = None
@@ -188,6 +190,7 @@ type AksConfig = {
                         Mode = agentPool.Mode
                         OsDiskSize = agentPool.OsDiskSize
                         OsType = agentPool.OsType
+                        OsSKU = agentPool.OsSKU
                         SubnetName = agentPool.SubnetName
                         PodSubnetName = agentPool.PodSubnetName
                         VmSize = agentPool.VmSize
@@ -274,6 +277,9 @@ type AgentPoolBuilder() =
         state with
             EnableFIPS = Some featureFlag
     }
+
+    [<CustomOperation "os_sku">]
+    member _.osSKU(state: AgentPoolConfig, sku) = { state with OsSKU = Some sku }
 
     /// Sets the agent pool to user mode.
     [<CustomOperation "user_mode">]
