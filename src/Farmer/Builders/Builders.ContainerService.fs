@@ -68,6 +68,16 @@ type NetworkProfileConfig = {
     ServiceCidr: IPAddressCidr option
 }
 
+type AutoUpgradeConfig = {
+    AutoUpgradeChannel: AutoUpgradeChannel
+    NodeOSUpgradeChannel: NodeOSUpgradeChannel
+} with
+
+    static member BuildConfig(config: AutoUpgradeConfig) : AutoUpgradeProfiles.AutoUpgradeProfile = {
+        AutoUpgradeChannel = config.AutoUpgradeChannel
+        NodeOSUpgradeChannel = config.NodeOSUpgradeChannel
+    }
+
 type AddonConfig =
     | AciConnectorLinux of FeatureFlag
     | HttpApplicationRouting of FeatureFlag
@@ -131,6 +141,7 @@ type AksConfig = {
     DependencyExpressions: ArmExpression Set
     DnsPrefix: string
     EnableRBAC: bool
+    AutoUpgradeProfiles: AutoUpgradeConfig option
     KubernetesVersion: KubernetesVersion option
     Identity: ManagedIdentity
     IdentityProfile: ManagedClusterIdentityProfile option
@@ -168,6 +179,10 @@ type AksConfig = {
                     else
                         this.DnsPrefix
                 EnableRBAC = this.EnableRBAC
+                AutoUpgradeProfile =
+                    match this.AutoUpgradeProfiles with
+                    | None -> None
+                    | Some config -> config |> AutoUpgradeConfig.BuildConfig |> Some
                 KubernetesVersion = this.KubernetesVersion
                 Identity = this.Identity
                 IdentityProfile = this.IdentityProfile
@@ -462,6 +477,7 @@ type AksBuilder() =
         AgentPools = []
         DnsPrefix = ""
         EnableRBAC = false
+        AutoUpgradeProfiles = None
         KubernetesVersion = None
         Identity = ManagedIdentity.Empty
         IdentityProfile = None
@@ -533,6 +549,12 @@ type AksBuilder() =
             state with
                 Dependencies = state.Dependencies + newDeps
         }
+
+    [<CustomOperation "auto_upgrade_profile">]
+    member _.AutoUpgradeChannel(state: AksConfig, channel: AutoUpgradeConfig) = {
+        state with
+            AutoUpgradeProfiles = Some channel
+    }
 
     [<CustomOperation "kubernetes_version">]
     member _.KubernetesVersion(state: AksConfig, version: KubernetesVersion) = {

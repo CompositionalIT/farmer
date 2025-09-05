@@ -9,6 +9,21 @@ open Farmer.Vm
 let managedClusters =
     ResourceType("Microsoft.ContainerService/managedClusters", "2024-02-01")
 
+module AutoUpgradeProfiles =
+    type AutoUpgradeProfile = {
+        AutoUpgradeChannel: AutoUpgradeChannel
+        NodeOSUpgradeChannel: NodeOSUpgradeChannel
+    } with
+        static member Default = {
+            AutoUpgradeChannel = AutoUpgradeChannel.Stable
+            NodeOSUpgradeChannel = NodeOSUpgradeChannel.NodeImage
+        }
+
+    let toArmJson (config: AutoUpgradeProfile) = {|
+        upgradeChannel = config.AutoUpgradeChannel.ArmValue
+        nodeOSUpgradeChannel = config.NodeOSUpgradeChannel.ArmValue
+    |}
+
 module AddonProfiles =
     type AciConnectorLinux = {
         Status: FeatureFlag
@@ -192,7 +207,6 @@ type KubernetesVersion = {
     //Latest patch version selected if not specified
     Patch: int option
 } with
-
     static member Create(version: string) =
         let parts = version.Split('.')
 
@@ -258,6 +272,7 @@ type ManagedCluster = {
     DnsPrefix: string
     EnableRBAC: bool
     KubernetesVersion: KubernetesVersion option
+    AutoUpgradeProfile: AutoUpgradeProfiles.AutoUpgradeProfile option
     Identity: ManagedIdentity
     IdentityProfile: ManagedClusterIdentityProfile option
     ApiServerAccessProfile:
@@ -385,6 +400,9 @@ type ManagedCluster = {
                             match this.KubernetesVersion with
                             | Some version -> version.Value
                             | None -> null
+                        autoUpgradeProfile = 
+                            this.AutoUpgradeProfile 
+                            |> Option.map AutoUpgradeProfiles.toArmJson
                         identityProfile =
                             match this.IdentityProfile with
                             | Some identityProfile -> identityProfile.ToArmJson

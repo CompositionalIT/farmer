@@ -2436,6 +2436,30 @@ module ContainerService =
 
     type ContainerServiceSku = { Name: Sku; Tier: Tier }
 
+    [<RequireQualifiedAccess>]
+    type AutoUpgradeChannel =
+        | Patch
+        | Stable
+        | Rapid
+
+        member this.ArmValue =
+            match this with
+            | Patch -> "patch"
+            | Stable -> "stable"
+            | Rapid -> "rapid"
+
+    [<RequireQualifiedAccess>]
+    type NodeOSUpgradeChannel =
+        | NodeImage
+        | SecurityPatch
+        | Unmanaged
+
+        member this.ArmValue =
+            match this with
+            | NodeImage -> "NodeImage"
+            | SecurityPatch -> "SecurityPatch"
+            | Unmanaged -> "Unmanaged"
+
 module B2cTenant =
     type Sku =
         | PremiumP1
