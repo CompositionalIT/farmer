@@ -14,6 +14,7 @@ module AutoUpgradeProfiles =
         AutoUpgradeChannel: AutoUpgradeChannel
         NodeOSUpgradeChannel: NodeOSUpgradeChannel
     } with
+
         static member Default = {
             AutoUpgradeChannel = AutoUpgradeChannel.Stable
             NodeOSUpgradeChannel = NodeOSUpgradeChannel.NodeImage
@@ -207,6 +208,7 @@ type KubernetesVersion = {
     //Latest patch version selected if not specified
     Patch: int option
 } with
+
     static member Create(version: string) =
         let parts = version.Split('.')
 
@@ -400,9 +402,7 @@ type ManagedCluster = {
                             match this.KubernetesVersion with
                             | Some version -> version.Value
                             | None -> null
-                        autoUpgradeProfile = 
-                            this.AutoUpgradeProfile 
-                            |> Option.map AutoUpgradeProfiles.toArmJson
+                        autoUpgradeProfile = this.AutoUpgradeProfile |> Option.map AutoUpgradeProfiles.toArmJson
                         identityProfile =
                             match this.IdentityProfile with
                             | Some identityProfile -> identityProfile.ToArmJson
