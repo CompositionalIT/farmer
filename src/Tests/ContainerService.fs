@@ -681,8 +681,6 @@ let tests =
             let json = template.Template |> Writer.toJson
             let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
 
-            failwithf "%A" json
-
             let autoUpgradeChannel =
                 jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.autoUpgradeProfile.upgradeChannel")
                 |> string
