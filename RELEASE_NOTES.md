@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.21
+* AKS Cluster: Added os_sku option for agentPool config
+
 ## 1.9.20
 * Data Collection: Fixes bug in data collection association by removing location field.
 

@@ -60,6 +60,7 @@ The Agent Pool builder (`agentPool`) constructs agent pools in the AKS cluster.
 | enable_fips               | Uses a FIPS compliant OS image for VM's in the agent pool.                                             |
 | max_pods                  | Sets the maximum number of pods in the agent pool.                                                     |
 | os_type                   | Sets the OS type of the VM's in the agent pool.                                                        |
+| os_sku                    | Sets the OS sku of the VM's in the agent pool.                                                         |
 | pod_subnet                | Sets the name of a virtual network subnet where this AKS cluster should be attached.                   |
 | subnet                    | Sets the name of a virtual network subnet where this AKS cluster should be attached.                   |
 | vm_size                   | Sets the size of the VM's in the agent pool.                                                           |
