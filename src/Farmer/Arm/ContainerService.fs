@@ -260,6 +260,7 @@ type ManagedCluster = {
             Mode: AgentPoolMode
             OsDiskSize: int<Gb>
             OsType: OS
+            OsSKU: string option
             VmSize: VMSize
             AvailabilityZones: ZoneSelection
             VirtualNetworkName: ResourceName option
@@ -377,6 +378,7 @@ type ManagedCluster = {
                                 mode = agent.Mode |> string
                                 osDiskSizeGB = agent.OsDiskSize
                                 osType = string agent.OsType
+                                osSKU = agent.OsSKU
                                 vmSize = agent.VmSize.ArmValue
                                 availabilityZones = agent.AvailabilityZones.ArmValue
                                 vnetSubnetID =
