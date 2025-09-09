@@ -24,8 +24,9 @@ let allTests =
             AppGateway.tests
             AppInsights.tests
             AppInsightsAvailability.tests
-            if Build.isCiMaster then
-                AzCli.tests
+            // Temporarily disabling end to end tests while transitioning to new subscription.
+            //if Build.isCiMaster then
+            //    AzCli.tests
             AutoscaleSettings.tests
             AzureFirewall.tests
             B2cTenant.tests
