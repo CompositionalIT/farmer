@@ -2,6 +2,7 @@ Release Notes
 =============
 
 ## 1.9.21
+* AKS Cluster: Added auto_upgrade_profile option for managed clusters
 * AKS Cluster: Added os_sku option for agentPool config
 
 ## 1.9.20

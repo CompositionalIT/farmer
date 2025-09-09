@@ -658,7 +658,35 @@ let tests =
                 "app"
                 "azureMonitorProfile.metrics.kubeStateMetrics.metricLabelsAllowList should be 'app' when specified"
         }
+        test "Basic AKS cluster with auto upgrade channel" {
+            let autoUpgradeConfig = {
+                AutoUpgradeChannel = ContainerService.AutoUpgradeChannel.Stable
+                NodeOSUpgradeChannel = ContainerService.NodeOSUpgradeChannel.NodeImage
+            }
 
+            let myAks = aks {
+                name "aks-cluster"
+                dns_prefix "testaks"
+                auto_upgrade_profile autoUpgradeConfig
+
+                add_agent_pools [
+                    agentPool {
+                        name "linuxPool"
+                        count 3
+                    }
+                ]
+            }
+
+            let template = arm { add_resource myAks }
+            let json = template.Template |> Writer.toJson
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+            let autoUpgradeChannel =
+                jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.autoUpgradeProfile.upgradeChannel")
+                |> string
+
+            Expect.equal autoUpgradeChannel "stable" "Incorrect autoUpgradeChannel value"
+        }
         test "Basic AKS cluster with osSKU" {
             let myAks = aks {
                 name "aks-cluster"

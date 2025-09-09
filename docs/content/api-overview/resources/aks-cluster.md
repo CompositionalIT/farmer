@@ -19,13 +19,13 @@ The AKS builder (`aks`) constructs AKS clusters.
 | sku                                 | Specifies the SKU of the AKS cluster - default is 'Base'.                                                                                                   |
 | tier                                | Specifies the tier of the AKS cluster - default is 'Free'.                                                                                                  |
 | dns_prefix                          | Sets the DNS prefix of the AKS cluster.                                                                                                                     |
-| enable_defender                     | Enables Defender for the containers running in the cluster.                
-| enable_azure_monitor                     | Enables Azure Monitor for AKS, does not set the `KubeStateMetrics`       
-| add_kube_state_metrics                     | Enables Azure Monitor for AKS and sets custom metrics for AKS (`KubeStateMetrics`)                                                                         |
+| enable_defender                     | Enables Defender for the containers running in the cluster.                                                                                                 |
+| enable_azure_monitor                | Enables Azure Monitor for AKS, does not set the `KubeStateMetrics`                                                                                          |
+| add_kube_state_metrics              | Enables Azure Monitor for AKS and sets custom metrics for AKS (`KubeStateMetrics`)                                                                          |
 | enable_image_cleaner                | Enables a service to periodically purge images that are no longer used.                                                                                     |
 | enable_private_cluster              | Restricts the cluster's Kubernetes API to only be accessible from private networks.                                                                         |
 | enable_rbac                         | Enable Kubernetes Role-Based Access Control.                                                                                                                |
-| kubernetes_version                  | Sets the Kubernetes version of the AKS cluster.                                                                                                              |
+| kubernetes_version                  | Sets the Kubernetes version of the AKS cluster.                                                                                                             |
 | enable_workload_identity            | Enables workload identity to assign a pod to a managed identity. Requires OIDC, so enables that as well.                                                    |
 | oidc_issuer                         | Enables or disables the OIDC issuer service for issuing tokens for federated identity.                                                                      |
 | add_agent_pools                     | Adds agent pools to the AKS cluster.                                                                                                                        |
@@ -43,6 +43,7 @@ The AKS builder (`aks`) constructs AKS clusters.
 | add_api_server_authorized_ip_ranges | Adds IP address CIDR ranges to be allowed Kubernetes API access.                                                                                            |
 | addon                               | A list with the configuration of all addons on the cluster (AciConnectorLinux, HttpApplicationRouting, KubeDashboard, IngressApplicationGateway, OmsAgent). |
 | node_resource_group                 | Name for the resource group where your AKS resources are stored                                                                                             |
+| auto_upgrade_profile                | Configuration options for managing automatic node and aks cluster upgrades                                                                                  |
 
 ##### Configuration Members
 
