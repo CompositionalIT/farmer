@@ -13,37 +13,37 @@ The AKS Cluster builder is used to create AKS clusters.
 #### AKS Builder Keywords
 The AKS builder (`aks`) constructs AKS clusters.
 
-| Keyword                             | Purpose                                                                                                                                                     |
-|-------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| name                                | Sets the name of the AKS cluster.                                                                                                                           |
-| sku                                 | Specifies the SKU of the AKS cluster - default is 'Base'.                                                                                                   |
-| tier                                | Specifies the tier of the AKS cluster - default is 'Free'.                                                                                                  |
-| dns_prefix                          | Sets the DNS prefix of the AKS cluster.                                                                                                                     |
-| enable_defender                     | Enables Defender for the containers running in the cluster.                                                                                                 |
-| enable_azure_monitor                | Enables Azure Monitor for AKS, does not set the `KubeStateMetrics`                                                                                          |
-| add_kube_state_metrics              | Enables Azure Monitor for AKS and sets custom metrics for AKS (`KubeStateMetrics`)                                                                          |
-| enable_image_cleaner                | Enables a service to periodically purge images that are no longer used.                                                                                     |
-| enable_private_cluster              | Restricts the cluster's Kubernetes API to only be accessible from private networks.                                                                         |
-| enable_rbac                         | Enable Kubernetes Role-Based Access Control.                                                                                                                |
-| kubernetes_version                  | Sets the Kubernetes version of the AKS cluster.                                                                                                             |
-| enable_workload_identity            | Enables workload identity to assign a pod to a managed identity. Requires OIDC, so enables that as well.                                                    |
-| oidc_issuer                         | Enables or disables the OIDC issuer service for issuing tokens for federated identity.                                                                      |
-| add_agent_pools                     | Adds agent pools to the AKS cluster.                                                                                                                        |
-| add_agent_pool                      | Adds an agent pool to the AKS cluster.                                                                                                                      |
-| add_identity                        | Adds a managed identity to the the AKS cluster.                                                                                                             |
-| link_to_identity                    | Links an existing managed identity to the container group.                                                                                                  |
-| system_identity                     | Activates the system identity of the AKS cluster.                                                                                                           |
-| kubelet_identity                    | Assigns a user assigned identity to the kubelet user that pulls container images.                                                                           |
-| link_to_kubelet_identity            | Links an existing managed identity to the kublet user that pulls container images.                                                                          |
-| network_profile                     | Sets the network profile for the AKS cluster.                                                                                                               |
-| linux_profile                       | Sets the linux profile for the AKS cluster.                                                                                                                 |
-| service_principal_client_id         | Sets the client id of the service principal for the AKS cluster.                                                                                            |
-| service_principal_use_msi           | Enables the AKS cluster to use the managed identity service principal instead of an external client secret.                                                 |
-| windows_username                    | Sets the windows admin username for the AKS cluster.                                                                                                        |
-| add_api_server_authorized_ip_ranges | Adds IP address CIDR ranges to be allowed Kubernetes API access.                                                                                            |
-| addon                               | A list with the configuration of all addons on the cluster (AciConnectorLinux, HttpApplicationRouting, KubeDashboard, IngressApplicationGateway, OmsAgent). |
-| node_resource_group                 | Name for the resource group where your AKS resources are stored                                                                                             |
-| auto_upgrade_profile                | Configuration options for managing automatic node and aks cluster upgrades                                                                                  |
+| Keyword                             | Purpose                                                                                                                                                                                     |
+|-------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| name                                | Sets the name of the AKS cluster.                                                                                                                                                           |
+| sku                                 | Specifies the SKU of the AKS cluster - default is 'Base'.                                                                                                                                   |
+| tier                                | Specifies the tier of the AKS cluster - default is 'Free'.                                                                                                                                  |
+| dns_prefix                          | Sets the DNS prefix of the AKS cluster.                                                                                                                                                     |
+| enable_defender                     | Enables Defender for the containers running in the cluster.                                                                                                                                 |
+| enable_azure_monitor                | Enables Azure Monitor for AKS, does not set the `KubeStateMetrics`                                                                                                                          |
+| add_kube_state_metrics              | Enables Azure Monitor for AKS and sets custom metrics for AKS (`KubeStateMetrics`)                                                                                                          |
+| enable_image_cleaner                | Enables a service to periodically purge images that are no longer used.                                                                                                                     |
+| enable_private_cluster              | Restricts the cluster's Kubernetes API to only be accessible from private networks.                                                                                                         |
+| enable_rbac                         | Enable Kubernetes Role-Based Access Control.                                                                                                                                                |
+| kubernetes_version                  | Sets the Kubernetes version of the AKS cluster.                                                                                                                                             |
+| enable_workload_identity            | Enables workload identity to assign a pod to a managed identity. Requires OIDC, so enables that as well.                                                                                    |
+| oidc_issuer                         | Enables or disables the OIDC issuer service for issuing tokens for federated identity.                                                                                                      |
+| add_agent_pools                     | Adds agent pools to the AKS cluster.                                                                                                                                                        |
+| add_agent_pool                      | Adds an agent pool to the AKS cluster.                                                                                                                                                      |
+| add_identity                        | Adds a managed identity to the the AKS cluster.                                                                                                                                             |
+| link_to_identity                    | Links an existing managed identity to the container group.                                                                                                                                  |
+| system_identity                     | Activates the system identity of the AKS cluster.                                                                                                                                           |
+| kubelet_identity                    | Assigns a user assigned identity to the kubelet user that pulls container images.                                                                                                           |
+| link_to_kubelet_identity            | Links an existing managed identity to the kublet user that pulls container images.                                                                                                          |
+| network_profile                     | Sets the network profile for the AKS cluster.                                                                                                                                               |
+| linux_profile                       | Sets the linux profile for the AKS cluster.                                                                                                                                                 |
+| service_principal_client_id         | Sets the client id of the service principal for the AKS cluster.                                                                                                                            |
+| service_principal_use_msi           | Enables the AKS cluster to use the managed identity service principal instead of an external client secret.                                                                                 |
+| windows_username                    | Sets the windows admin username for the AKS cluster.                                                                                                                                        |
+| add_api_server_authorized_ip_ranges | Adds IP address CIDR ranges to be allowed Kubernetes API access.                                                                                                                            |
+| addon                               | A list with the configuration of all addons on the cluster (AciConnectorLinux, HttpApplicationRouting, KubeDashboard, IngressApplicationGateway, OmsAgent, AzureKeyvaultSecretsProvider).   |
+| node_resource_group                 | Name for the resource group where your AKS resources are stored                                                                                                                             |
+| auto_upgrade_profile                | Configuration options for managing automatic node and aks cluster upgrades                                                                                                                  |
 
 ##### Configuration Members
 

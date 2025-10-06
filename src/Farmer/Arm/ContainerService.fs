@@ -85,12 +85,35 @@ module AddonProfiles =
                   |}
         |}
 
+    type AzureKeyvaultSecretsProvider = {
+        Status: FeatureFlag
+        EnableSecretRotation: bool option
+        RotationPollInterval: string option
+    } with
+
+        member internal this.ToArmJson = {|
+            enabled = this.Status.AsBoolean
+            config =
+                match this.Status with
+                | Disabled -> Unchecked.defaultof<_>
+                | Enabled -> {|
+                    enableSecretRotation = 
+                        this.EnableSecretRotation 
+                        |> Option.map string 
+                        |> Option.defaultValue "false"
+                    rotationPollInterval = 
+                        this.RotationPollInterval 
+                        |> Option.defaultValue "2m"
+                |}
+        |}
+
     type AddonProfileConfig = {
         AciConnectorLinux: AciConnectorLinux option
         HttpApplicationRouting: HttpApplicationRouting option
         IngressApplicationGateway: IngressApplicationGateway option
         KubeDashboard: KubeDashboard option
         OmsAgent: OmsAgent option
+        AzureKeyvaultSecretsProvider: AzureKeyvaultSecretsProvider option
     } with
 
         static member Default = {
@@ -99,6 +122,7 @@ module AddonProfiles =
             IngressApplicationGateway = None
             KubeDashboard = None
             OmsAgent = None
+            AzureKeyvaultSecretsProvider = None
         }
 
     let toArmJson (config: AddonProfileConfig) = {|
@@ -122,6 +146,10 @@ module AddonProfiles =
             match config.OmsAgent with
             | None -> Unchecked.defaultof<_>
             | Some oms -> oms.ToArmJson
+        azureKeyvaultSecretsProvider =
+            match config.AzureKeyvaultSecretsProvider with
+            | None -> Unchecked.defaultof<_>
+            | Some secretsProvider -> secretsProvider.ToArmJson
     |}
 
 type AgentPoolMode =
