@@ -97,14 +97,9 @@ module AddonProfiles =
                 match this.Status with
                 | Disabled -> Unchecked.defaultof<_>
                 | Enabled -> {|
-                    enableSecretRotation = 
-                        this.EnableSecretRotation 
-                        |> Option.map string 
-                        |> Option.defaultValue "false"
-                    rotationPollInterval = 
-                        this.RotationPollInterval 
-                        |> Option.defaultValue "2m"
-                |}
+                    enableSecretRotation = this.EnableSecretRotation |> Option.map string |> Option.defaultValue "false"
+                    rotationPollInterval = this.RotationPollInterval |> Option.defaultValue "2m"
+                  |}
         |}
 
     type AddonProfileConfig = {
