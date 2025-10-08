@@ -378,11 +378,10 @@ type CommonWebConfig = {
             | PremiumV3 _ -> ()
             | ElasticPremium _ -> ()
             | Isolated _ -> ()
+            | Basic _ -> ()
             | Shared as other ->
                 raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
             | Free as other ->
-                raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
-            | Basic _ as other ->
                 raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
             | Dynamic as other ->
                 raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
