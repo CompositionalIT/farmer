@@ -529,6 +529,11 @@ let tests =
                         ApplicationGatewayId = (myAppGateway :> IBuilder).ResourceId
                         Identity = Some appGatewayMsi.UserAssignedIdentity
                     }
+                    AzureKeyvaultSecretsProvider {
+                        Status = Enabled
+                        EnableSecretRotation = Some true
+                        RotationPollInterval = Some "2m"
+                    }
                 ]
             }
 
@@ -584,6 +589,26 @@ let tests =
                 appGatewayIngress
                 expectedAppGateway
                 "Unexpected value for addonProfiles.ingressApplicationGateway."
+
+            let expectedAzureKeyvaultSecretsProvider =
+                """{
+  "config": {
+    "enableSecretRotation": "True",
+    "rotationPollInterval": "2m"
+  },
+  "enabled": true
+}"""
+
+            let azureKeyvaultSecretsProvider =
+                jobj.SelectToken(
+                    "resources[?(@.name=='aks-cluster')].properties.addonProfiles.azureKeyvaultSecretsProvider"
+                )
+                |> string
+
+            Expect.equal
+                azureKeyvaultSecretsProvider
+                expectedAzureKeyvaultSecretsProvider
+                "Unexpected value for addonProfiles.azureKeyvaultSecretsProvider."
         }
 
         test "Simple AKS cluster with Azure Monitor enabled" {
