@@ -6,7 +6,7 @@ open Farmer
 open System
 
 let actionGroups =
-    Farmer.ResourceType("microsoft.insights/actionGroups", "2022-06-01")
+    Farmer.ResourceType("microsoft.insights/actionGroups", "2025-09-01-preview")
 
 type ActionGroupLocation =
     | ActionGroupLocation of string
