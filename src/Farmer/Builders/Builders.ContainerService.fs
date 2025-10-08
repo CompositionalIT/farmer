@@ -86,6 +86,7 @@ type AddonConfig =
     | IngressApplicationGateway of IngressApplicationGateway
     | KubeDashboard of FeatureFlag
     | OmsAgent of OmsAgent
+    | AzureKeyvaultSecretsProvider of AzureKeyvaultSecretsProvider
 
     static member BuildConfig(addons: AddonConfig list) : AddonProfileConfig = {
         // TODO: Clean up with active pattern
@@ -131,6 +132,14 @@ type AddonConfig =
                 | _ -> false)
             |> function
                 | Some(OmsAgent oms) -> Some oms
+                | _ -> None
+        AzureKeyvaultSecretsProvider =
+            addons
+            |> List.tryFind (function
+                | AzureKeyvaultSecretsProvider _ -> true
+                | _ -> false)
+            |> function
+                | Some(AzureKeyvaultSecretsProvider secretsProvider) -> Some secretsProvider
                 | _ -> None
     }
 

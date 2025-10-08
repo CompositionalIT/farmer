@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.22
+* AKS Cluster: Added support for Azure Key Vault provider for Secrets Store CSI Driver
+
 ## 1.9.21
 * AKS Cluster: Added auto_upgrade_profile option for managed clusters
 * AKS Cluster: Added os_sku option for agentPool config
