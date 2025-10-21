@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.23
+* Actions Groups: Bump API version to `2025-09-01-preview`.
+
 ## 1.9.22
 * AKS Cluster: Added support for Azure Key Vault provider for Secrets Store CSI Driver
 
