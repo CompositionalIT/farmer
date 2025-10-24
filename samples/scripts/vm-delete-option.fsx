@@ -4,24 +4,23 @@
 
 open Farmer
 open Farmer.Builders
-open Farmer.Vm
 
 let myVm = vm {
     name "my-vm"
     username "azureuser"
-    vm_size Standard_B2s
-    operating_system UbuntuServer_2204LTS
-    os_disk 128 StandardSSD_LRS
+    vm_size Vm.Standard_A2
+    operating_system Vm.UbuntuServer_2204LTS
+    os_disk 128 Vm.StandardSSD_LRS
     add_ssd_disk 256
     
     // Set delete option to automatically remove disks when VM is deleted
-    disk_delete_option DiskDeleteOption.Delete
+    disk_delete_option Vm.DiskDeleteOption.Delete
     
     // Set delete option to automatically remove NIC when VM is deleted
-    nic_delete_option NicDeleteOption.Delete
+    nic_delete_option Vm.NicDeleteOption.Delete
     
     // Set delete option to automatically remove public IP when VM is deleted
-    public_ip_delete_option PublicIpDeleteOption.Delete
+    public_ip_delete_option Vm.PublicIpDeleteOption.Delete
 }
 
 let deployment = arm {
