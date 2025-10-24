@@ -980,10 +980,41 @@ module Vm =
             match this with
             | x -> x.ToString()
 
+    /// Specifies what happens to disk when a VM is deleted.
+    type DiskDeleteOption =
+        | Delete
+        | Detach
+
+        member this.ArmValue =
+            match this with
+            | Delete -> "Delete"
+            | Detach -> "Detach"
+
+    /// Specifies what happens to NIC when a VM is deleted.
+    type NicDeleteOption =
+        | Delete
+        | Detach
+
+        member this.ArmValue =
+            match this with
+            | Delete -> "Delete"
+            | Detach -> "Detach"
+
+    /// Specifies what happens to public IP when a VM is deleted.
+    type PublicIpDeleteOption =
+        | Delete
+        | Detach
+
+        member this.ArmValue =
+            match this with
+            | Delete -> "Delete"
+            | Detach -> "Detach"
+
     /// Represents a disk in a VM.
     type DiskInfo = {
         Size: int
         DiskType: DiskType
+        DeleteOption: DiskDeleteOption option
     } with
 
         member this.IsUltraDisk =
@@ -993,14 +1024,14 @@ module Vm =
 
     /// VM OS disks can be created by attaching an existing disk or from a gallery image.
     type OsDiskCreateOption =
-        | AttachOsDisk of OS * ManagedDiskId: LinkedResource
+        | AttachOsDisk of OS * ManagedDiskId: LinkedResource * DeleteOption: DiskDeleteOption option
         | FromImage of ImageInfo * DiskInfo
 
     /// VM data disks can be created by attaching an existing disk or generating an empty disk.
     type DataDiskCreateOption =
-        | AttachDataDisk of ManagedDiskId: LinkedResource
+        | AttachDataDisk of ManagedDiskId: LinkedResource * DeleteOption: DiskDeleteOption option
         /// Indicates the disk being attached is an ultra disk to enable that option on the VM
-        | AttachUltra of ManagedDiskId: LinkedResource
+        | AttachUltra of ManagedDiskId: LinkedResource * DeleteOption: DiskDeleteOption option
         | Empty of DiskInfo
 
         /// Indicates an Ultra SSD will be used so that option should be enabled on the VM.

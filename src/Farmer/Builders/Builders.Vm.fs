@@ -57,6 +57,8 @@ type VmConfig = {
     LoadBalancerBackendAddressPools: LinkedResource list
     Identity: Identity.ManagedIdentity
     NetworkSecurityGroup: LinkedResource option
+    NicDeleteOption: NicDeleteOption option
+    PublicIpDeleteOption: PublicIpDeleteOption option
 
     Tags: Map<string, string>
 } with
@@ -92,6 +94,7 @@ type VmConfig = {
             PrivateIpAllocation = this.PrivateIpAllocation
             PrivateIpAddressVersion = AddressVersion.IPv4 // Must have have an IPv4 IP config on the primary.
             Primary = if this.IpConfigs.Length > 0 then Some true else None
+            PublicIpAddressDeleteOption = this.PublicIpDeleteOption
         }
         :: this.IpConfigs
         |> List.map (fun ipconfig ->
@@ -137,6 +140,7 @@ type VmConfig = {
                         None
                 VirtualNetwork = this.VNet.toLinkedResource this
                 NetworkSecurityGroup = nsgId
+                DeleteOption = this.NicDeleteOption
                 Tags = this.Tags
             })
 
@@ -221,6 +225,7 @@ type VmConfig = {
                     Identity = this.Identity
                     OsDisk = this.OsDisk
                     DataDisks = this.DataDisks |> Option.defaultValue []
+                    NicDeleteOption = this.NicDeleteOption
                     Tags = this.Tags
                 }
 
@@ -336,7 +341,7 @@ type VirtualMachineBuilder() =
         DisablePasswordAuthentication = None
         SshPathAndPublicKeys = None
         AadSshLogin = FeatureFlag.Disabled
-        OsDisk = FromImage(ImageDefinition WindowsServer_2012Datacenter, { Size = 128; DiskType = Standard_LRS })
+        OsDisk = FromImage(ImageDefinition WindowsServer_2012Datacenter, { Size = 128; DiskType = Standard_LRS; DeleteOption = None })
         AddressPrefix = "10.0.0.0/16"
         SubnetPrefix = "10.0.0.0/24"
         VNet = derived (fun config -> config.DeriveResourceName virtualNetworks "vnet")
@@ -351,6 +356,8 @@ type VirtualMachineBuilder() =
         PrivateIpAllocation = None
         LoadBalancerBackendAddressPools = []
         NetworkSecurityGroup = None
+        NicDeleteOption = None
+        PublicIpDeleteOption = None
         Tags = Map.empty
     }
 
@@ -372,6 +379,7 @@ type VirtualMachineBuilder() =
                             {
                                 Size = 1024
                                 DiskType = DiskType.Standard_LRS
+                                DeleteOption = None
                             }
                             |> DataDiskCreateOption.Empty
                           ]
@@ -585,23 +593,23 @@ type VirtualMachineBuilder() =
     [<CustomOperation "attach_os_disk">]
     member _.AttachOsDisk(state: VmConfig, os: OS, disk: DiskConfig) = {
         state with
-            OsDisk = AttachOsDisk(os, Managed((disk :> IBuilder).ResourceId))
+            OsDisk = AttachOsDisk(os, Managed((disk :> IBuilder).ResourceId), None)
     }
 
     member _.AttachOsDisk(state: VmConfig, os: OS, diskId: ResourceId) = {
         state with
-            OsDisk = AttachOsDisk(os, Managed diskId)
+            OsDisk = AttachOsDisk(os, Managed diskId, None)
     }
 
     [<CustomOperation "attach_existing_os_disk">]
     member _.AttachExistingOsDisk(state: VmConfig, os: OS, disk: DiskConfig) = {
         state with
-            OsDisk = AttachOsDisk(os, Unmanaged((disk :> IBuilder).ResourceId))
+            OsDisk = AttachOsDisk(os, Unmanaged((disk :> IBuilder).ResourceId), None)
     }
 
     member _.AttachExistingOsDisk(state: VmConfig, os: OS, diskId: ResourceId) = {
         state with
-            OsDisk = AttachOsDisk(os, Unmanaged diskId)
+            OsDisk = AttachOsDisk(os, Unmanaged diskId, None)
     }
 
     [<CustomOperation "attach_data_disk">]
@@ -611,11 +619,11 @@ type VirtualMachineBuilder() =
         match existingDisks with
         | Some disks -> {
             state with
-                DataDisks = disks @ [ AttachDataDisk(Managed diskId) ] |> Some
+                DataDisks = disks @ [ AttachDataDisk(Managed diskId, None) ] |> Some
           }
         | None -> {
             state with
-                DataDisks = [ AttachDataDisk(Managed diskId) ] |> Some
+                DataDisks = [ AttachDataDisk(Managed diskId, None) ] |> Some
           }
 
     member this.AttachDataDisk(state: VmConfig, disk: DiskConfig) =
@@ -627,11 +635,11 @@ type VirtualMachineBuilder() =
             match existingDisks with
             | Some disks -> {
                 state with
-                    DataDisks = disks @ [ AttachUltra(Managed diskId) ] |> Some
+                    DataDisks = disks @ [ AttachUltra(Managed diskId, None) ] |> Some
               }
             | None -> {
                 state with
-                    DataDisks = [ AttachUltra(Managed diskId) ] |> Some
+                    DataDisks = [ AttachUltra(Managed diskId, None) ] |> Some
               }
         | _ -> this.AttachDataDisk(state, (disk :> IBuilder).ResourceId)
 
@@ -643,11 +651,11 @@ type VirtualMachineBuilder() =
         match existingDisks with
         | Some disks -> {
             state with
-                DataDisks = disks @ [ AttachDataDisk(Unmanaged diskId) ] |> Some
+                DataDisks = disks @ [ AttachDataDisk(Unmanaged diskId, None) ] |> Some
           }
         | None -> {
             state with
-                DataDisks = [ AttachDataDisk(Unmanaged diskId) ] |> Some
+                DataDisks = [ AttachDataDisk(Unmanaged diskId, None) ] |> Some
           }
 
     member this.AttachExistingDataDisk(state: VmConfig, disk: DiskConfig) =
@@ -659,11 +667,11 @@ type VirtualMachineBuilder() =
             match existingDisks with
             | Some disks -> {
                 state with
-                    DataDisks = disks @ [ AttachUltra(Unmanaged diskId) ] |> Some
+                    DataDisks = disks @ [ AttachUltra(Unmanaged diskId, None) ] |> Some
               }
             | None -> {
                 state with
-                    DataDisks = [ AttachUltra(Unmanaged diskId) ] |> Some
+                    DataDisks = [ AttachUltra(Unmanaged diskId, None) ] |> Some
               }
         | _ -> this.AttachExistingDataDisk(state, (disk :> IBuilder).ResourceId)
 
@@ -678,7 +686,7 @@ type VirtualMachineBuilder() =
         {
             state with
                 DataDisks =
-                    DataDiskCreateOption.Empty { Size = size; DiskType = diskType } :: existingDisks
+                    DataDiskCreateOption.Empty { Size = size; DiskType = diskType; DeleteOption = None } :: existingDisks
                     |> Some
         }
 
@@ -1020,6 +1028,41 @@ type VirtualMachineBuilder() =
             NetworkSecurityGroup = Some(Unmanaged (nsg :> IBuilder).ResourceId)
     }
 
+    /// Sets the delete option for OS and data disks.
+    [<CustomOperation "disk_delete_option">]
+    member _.DiskDeleteOption(state: VmConfig, deleteOption: DiskDeleteOption) =
+        let updatedOsDisk =
+            match state.OsDisk with
+            | FromImage(image, diskInfo) -> FromImage(image, { diskInfo with DeleteOption = Some deleteOption })
+            | AttachOsDisk(os, diskId, _) -> AttachOsDisk(os, diskId, Some deleteOption)
+        
+        let updatedDataDisks =
+            state.DataDisks
+            |> Option.map (List.map (function
+                | Empty diskInfo -> Empty { diskInfo with DeleteOption = Some deleteOption }
+                | AttachDataDisk(diskId, _) -> AttachDataDisk(diskId, Some deleteOption)
+                | AttachUltra(diskId, _) -> AttachUltra(diskId, Some deleteOption)))
+        
+        {
+            state with
+                OsDisk = updatedOsDisk
+                DataDisks = updatedDataDisks
+        }
+
+    /// Sets the delete option for the network interface(s).
+    [<CustomOperation "nic_delete_option">]
+    member _.NicDeleteOption(state: VmConfig, deleteOption: NicDeleteOption) = {
+        state with
+            NicDeleteOption = Some deleteOption
+    }
+
+    /// Sets the delete option for the public IP address.
+    [<CustomOperation "public_ip_delete_option">]
+    member _.PublicIpDeleteOption(state: VmConfig, deleteOption: PublicIpDeleteOption) = {
+        state with
+            PublicIpDeleteOption = Some deleteOption
+    }
+
 
 let vm = VirtualMachineBuilder()
 
@@ -1078,6 +1121,7 @@ type IpConfigBuilder() =
         PrivateIpAllocation = None
         PrivateIpAddressVersion = IPv4
         Primary = None
+        PublicIpAddressDeleteOption = None
     }
 
     [<CustomOperation "ip_v6">]

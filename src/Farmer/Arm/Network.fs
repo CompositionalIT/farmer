@@ -649,6 +649,7 @@ type IpConfiguration = {
     PrivateIpAllocation: AllocationMethod option
     PrivateIpAddressVersion: AddressVersion
     Primary: bool option
+    PublicIpAddressDeleteOption: Vm.PublicIpDeleteOption option
 }
 
 module NetworkInterface =
@@ -704,6 +705,10 @@ type IpConfiguration with
                     ipConfig.PublicIpAddress
                     |> Option.map (fun pip -> {|
                         id = pip.ResourceId.ArmExpression.Eval()
+                        properties =
+                            match ipConfig.PublicIpAddressDeleteOption with
+                            | Some deleteOption -> box {| deleteOption = deleteOption.ArmValue |}
+                            | None -> null
                     |})
                     |> Option.defaultValue Unchecked.defaultof<_>
                 subnet = {|
@@ -727,6 +732,7 @@ type NetworkInterface = {
     VirtualNetwork: LinkedResource
     NetworkSecurityGroup: LinkedResource option
     Primary: bool option
+    DeleteOption: Vm.NicDeleteOption option
     Tags: Map<string, string>
 } with
 
