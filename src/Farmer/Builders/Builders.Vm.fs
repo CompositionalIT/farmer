@@ -1089,6 +1089,13 @@ type VirtualMachineBuilder() =
             PublicIpDeleteOption = Some deleteOption
     }
 
+    /// Sets all delete options (disks, NIC, and public IP) to Delete. This is a convenience method for the common use case of automatically cleaning up all resources when the VM is deleted.
+    [<CustomOperation "delete_all_on_vm_delete">]
+    member this.DeleteAllOnVmDelete(state: VmConfig) =
+        let stateWithDiskDelete = this.DiskDeleteOption(state, DiskDeleteOption.Delete)
+        let stateWithNicDelete = this.NicDeleteOption(stateWithDiskDelete, NicDeleteOption.Delete)
+        this.PublicIpDeleteOption(stateWithNicDelete, PublicIpDeleteOption.Delete)
+
 
 let vm = VirtualMachineBuilder()
 

@@ -5,8 +5,22 @@
 open Farmer
 open Farmer.Builders
 
-let myVm = vm {
-    name "my-vm"
+// Example 1: Using the convenience method to delete all resources
+let myVmSimple = vm {
+    name "my-vm-simple"
+    username "azureuser"
+    vm_size Vm.Standard_A2
+    operating_system Vm.UbuntuServer_2204LTS
+    os_disk 128 Vm.StandardSSD_LRS
+    add_ssd_disk 256
+
+    // Convenience method - sets all delete options to Delete at once
+    delete_all_on_vm_delete
+}
+
+// Example 2: Setting delete options individually for fine-grained control
+let myVmDetailed = vm {
+    name "my-vm-detailed"
     username "azureuser"
     vm_size Vm.Standard_A2
     operating_system Vm.UbuntuServer_2204LTS
@@ -25,7 +39,7 @@ let myVm = vm {
 
 let deployment = arm {
     location Location.EastUS
-    add_resource myVm
+    add_resources [ myVmSimple; myVmDetailed ]
 }
 
 // Generate the ARM template

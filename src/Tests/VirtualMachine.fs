@@ -1344,4 +1344,53 @@ let tests =
             Expect.isNotNull publicIpDeleteOption "Public IP deleteOption should be set"
             Expect.equal (string publicIpDeleteOption) "Delete" "Public IP deleteOption should be 'Delete'"
         }
+        test "VM with delete_all_on_vm_delete convenience method" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1s
+                        operating_system UbuntuServer_2204LTS
+                        os_disk 128 Standard_LRS
+                        add_ssd_disk 128
+                        delete_all_on_vm_delete
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+            Expect.isNotNull vmProps "VM properties missing from template"
+
+            // Check disk delete options
+            let osDiskDeleteOption = vmProps.SelectToken("storageProfile.osDisk.deleteOption")
+            Expect.isNotNull osDiskDeleteOption "OS disk deleteOption should be set"
+            Expect.equal (string osDiskDeleteOption) "Delete" "OS disk deleteOption should be 'Delete'"
+
+            let dataDiskDeleteOption =
+                vmProps.SelectToken("storageProfile.dataDisks[0].deleteOption")
+
+            Expect.isNotNull dataDiskDeleteOption "Data disk deleteOption should be set"
+            Expect.equal (string dataDiskDeleteOption) "Delete" "Data disk deleteOption should be 'Delete'"
+
+            // Check NIC delete option
+            let nicDeleteOption =
+                vmProps.SelectToken("networkProfile.networkInterfaces[0].properties.deleteOption")
+
+            Expect.isNotNull nicDeleteOption "NIC deleteOption should be set"
+            Expect.equal (string nicDeleteOption) "Delete" "NIC deleteOption should be 'Delete'"
+
+            // Check public IP delete option
+            let nic = jobj.SelectToken("resources[?(@.name=='my-vm-nic')]")
+            Expect.isNotNull nic "NIC resource missing from template"
+
+            let publicIpDeleteOption =
+                nic.SelectToken("properties.ipConfigurations[0].properties.publicIPAddress.properties.deleteOption")
+
+            Expect.isNotNull publicIpDeleteOption "Public IP deleteOption should be set"
+            Expect.equal (string publicIpDeleteOption) "Delete" "Public IP deleteOption should be 'Delete'"
+        }
     ]
