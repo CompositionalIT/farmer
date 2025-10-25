@@ -1,5 +1,5 @@
 // This sample demonstrates how to set delete options for VM resources
-// When set to Delete, the associated resources will be automatically 
+// When set to Delete, the associated resources will be automatically
 // removed when the VM is deleted from Azure.
 
 open Farmer
@@ -12,13 +12,13 @@ let myVm = vm {
     operating_system Vm.UbuntuServer_2204LTS
     os_disk 128 Vm.StandardSSD_LRS
     add_ssd_disk 256
-    
+
     // Set delete option to automatically remove disks when VM is deleted
     disk_delete_option Vm.DiskDeleteOption.Delete
-    
+
     // Set delete option to automatically remove NIC when VM is deleted
     nic_delete_option Vm.NicDeleteOption.Delete
-    
+
     // Set delete option to automatically remove public IP when VM is deleted
     public_ip_delete_option Vm.PublicIpDeleteOption.Delete
 }

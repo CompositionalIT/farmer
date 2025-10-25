@@ -426,27 +426,40 @@ module VirtualMachine =
                         :> obj)
         |}
 
-    let networkProfile (networkInterfaceIds: ResourceId list, nicConfig: NetworkInterfaceConfiguration list, nicDeleteOption: Vm.NicDeleteOption option) = {|
-        networkInterfaces =
-            networkInterfaceIds
-            |> List.mapi (fun idx id -> {|
-                id = id.Eval()
-                properties =
-                    let primaryProp =
-                        if networkInterfaceIds.Length > 1 then
-                            {| primary = idx = 0 |} |> box
-                        else
-                            null // Don't emit primary if there aren't multiple NICs
-                    let deleteOptionProp =
-                        nicDeleteOption |> Option.map (fun d -> {| deleteOption = d.ArmValue |} |> box) |> Option.toObj
-                    
-                    match primaryProp, deleteOptionProp with
-                    | null, null -> null
-                    | primary, null -> primary
-                    | null, deleteOpt -> deleteOpt
-                    | _, _ -> box {| primary = idx = 0; deleteOption = (nicDeleteOption |> Option.map (fun d -> d.ArmValue) |> Option.toObj) |}
-            |})
-    |}
+    let networkProfile
+        (
+            networkInterfaceIds: ResourceId list,
+            nicConfig: NetworkInterfaceConfiguration list,
+            nicDeleteOption: Vm.NicDeleteOption option
+        ) =
+        {|
+            networkInterfaces =
+                networkInterfaceIds
+                |> List.mapi (fun idx id -> {|
+                    id = id.Eval()
+                    properties =
+                        let primaryProp =
+                            if networkInterfaceIds.Length > 1 then
+                                {| primary = idx = 0 |} |> box
+                            else
+                                null // Don't emit primary if there aren't multiple NICs
+
+                        let deleteOptionProp =
+                            nicDeleteOption
+                            |> Option.map (fun d -> {| deleteOption = d.ArmValue |} |> box)
+                            |> Option.toObj
+
+                        match primaryProp, deleteOptionProp with
+                        | null, null -> null
+                        | primary, null -> primary
+                        | null, deleteOpt -> deleteOpt
+                        | _, _ ->
+                            box {|
+                                primary = idx = 0
+                                deleteOption = (nicDeleteOption |> Option.map (fun d -> d.ArmValue) |> Option.toObj)
+                            |}
+                |})
+        |}
 
     let diagnosticsProfile (diagnosticsEnabled: bool option, storageAccount: LinkedResource option) =
         match diagnosticsEnabled with

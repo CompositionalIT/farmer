@@ -1283,12 +1283,14 @@ let tests =
             let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
             let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
             Expect.isNotNull vmProps "VM properties missing from template"
-            
+
             let osDiskDeleteOption = vmProps.SelectToken("storageProfile.osDisk.deleteOption")
             Expect.isNotNull osDiskDeleteOption "OS disk deleteOption should be set"
             Expect.equal (string osDiskDeleteOption) "Delete" "OS disk deleteOption should be 'Delete'"
 
-            let dataDiskDeleteOption = vmProps.SelectToken("storageProfile.dataDisks[0].deleteOption")
+            let dataDiskDeleteOption =
+                vmProps.SelectToken("storageProfile.dataDisks[0].deleteOption")
+
             Expect.isNotNull dataDiskDeleteOption "Data disk deleteOption should be set"
             Expect.equal (string dataDiskDeleteOption) "Delete" "Data disk deleteOption should be 'Delete'"
         }
@@ -1310,8 +1312,10 @@ let tests =
             let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
             let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
             Expect.isNotNull vmProps "VM properties missing from template"
-            
-            let nicDeleteOption = vmProps.SelectToken("networkProfile.networkInterfaces[0].properties.deleteOption")
+
+            let nicDeleteOption =
+                vmProps.SelectToken("networkProfile.networkInterfaces[0].properties.deleteOption")
+
             Expect.isNotNull nicDeleteOption "NIC deleteOption should be set"
             Expect.equal (string nicDeleteOption) "Delete" "NIC deleteOption should be 'Delete'"
         }
@@ -1333,8 +1337,10 @@ let tests =
             let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
             let nic = jobj.SelectToken("resources[?(@.name=='my-vm-nic')]")
             Expect.isNotNull nic "NIC resource missing from template"
-            
-            let publicIpDeleteOption = nic.SelectToken("properties.ipConfigurations[0].properties.publicIPAddress.properties.deleteOption")
+
+            let publicIpDeleteOption =
+                nic.SelectToken("properties.ipConfigurations[0].properties.publicIPAddress.properties.deleteOption")
+
             Expect.isNotNull publicIpDeleteOption "Public IP deleteOption should be set"
             Expect.equal (string publicIpDeleteOption) "Delete" "Public IP deleteOption should be 'Delete'"
         }

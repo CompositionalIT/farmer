@@ -707,7 +707,10 @@ type IpConfiguration with
                         id = pip.ResourceId.ArmExpression.Eval()
                         properties =
                             match ipConfig.PublicIpAddressDeleteOption with
-                            | Some deleteOption -> box {| deleteOption = deleteOption.ArmValue |}
+                            | Some deleteOption ->
+                                box {|
+                                    deleteOption = deleteOption.ArmValue
+                                |}
                             | None -> null
                     |})
                     |> Option.defaultValue Unchecked.defaultof<_>

@@ -341,7 +341,15 @@ type VirtualMachineBuilder() =
         DisablePasswordAuthentication = None
         SshPathAndPublicKeys = None
         AadSshLogin = FeatureFlag.Disabled
-        OsDisk = FromImage(ImageDefinition WindowsServer_2012Datacenter, { Size = 128; DiskType = Standard_LRS; DeleteOption = None })
+        OsDisk =
+            FromImage(
+                ImageDefinition WindowsServer_2012Datacenter,
+                {
+                    Size = 128
+                    DiskType = Standard_LRS
+                    DeleteOption = None
+                }
+            )
         AddressPrefix = "10.0.0.0/16"
         SubnetPrefix = "10.0.0.0/24"
         VNet = derived (fun config -> config.DeriveResourceName virtualNetworks "vnet")
@@ -686,7 +694,12 @@ type VirtualMachineBuilder() =
         {
             state with
                 DataDisks =
-                    DataDiskCreateOption.Empty { Size = size; DiskType = diskType; DeleteOption = None } :: existingDisks
+                    DataDiskCreateOption.Empty {
+                        Size = size
+                        DiskType = diskType
+                        DeleteOption = None
+                    }
+                    :: existingDisks
                     |> Some
         }
 
@@ -1033,16 +1046,29 @@ type VirtualMachineBuilder() =
     member _.DiskDeleteOption(state: VmConfig, deleteOption: DiskDeleteOption) =
         let updatedOsDisk =
             match state.OsDisk with
-            | FromImage(image, diskInfo) -> FromImage(image, { diskInfo with DeleteOption = Some deleteOption })
+            | FromImage(image, diskInfo) ->
+                FromImage(
+                    image,
+                    {
+                        diskInfo with
+                            DeleteOption = Some deleteOption
+                    }
+                )
             | AttachOsDisk(os, diskId, _) -> AttachOsDisk(os, diskId, Some deleteOption)
-        
+
         let updatedDataDisks =
             state.DataDisks
-            |> Option.map (List.map (function
-                | Empty diskInfo -> Empty { diskInfo with DeleteOption = Some deleteOption }
-                | AttachDataDisk(diskId, _) -> AttachDataDisk(diskId, Some deleteOption)
-                | AttachUltra(diskId, _) -> AttachUltra(diskId, Some deleteOption)))
-        
+            |> Option.map (
+                List.map (function
+                    | Empty diskInfo ->
+                        Empty {
+                            diskInfo with
+                                DeleteOption = Some deleteOption
+                        }
+                    | AttachDataDisk(diskId, _) -> AttachDataDisk(diskId, Some deleteOption)
+                    | AttachUltra(diskId, _) -> AttachUltra(diskId, Some deleteOption))
+            )
+
         {
             state with
                 OsDisk = updatedOsDisk
