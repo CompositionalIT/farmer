@@ -341,15 +341,7 @@ type VirtualMachineBuilder() =
         DisablePasswordAuthentication = None
         SshPathAndPublicKeys = None
         AadSshLogin = FeatureFlag.Disabled
-        OsDisk =
-            FromImage(
-                ImageDefinition WindowsServer_2012Datacenter,
-                {
-                    Size = 128
-                    DiskType = Standard_LRS
-                    DeleteOption = None
-                }
-            )
+        OsDisk = FromImage(ImageDefinition WindowsServer_2012Datacenter, { Size = 128; DiskType = Standard_LRS })
         AddressPrefix = "10.0.0.0/16"
         SubnetPrefix = "10.0.0.0/24"
         VNet = derived (fun config -> config.DeriveResourceName virtualNetworks "vnet")
@@ -387,7 +379,6 @@ type VirtualMachineBuilder() =
                             {
                                 Size = 1024
                                 DiskType = DiskType.Standard_LRS
-                                DeleteOption = None
                             }
                             |> DataDiskCreateOption.Empty
                           ]
@@ -556,7 +547,9 @@ type VirtualMachineBuilder() =
         let osDisk =
             match state.OsDisk with
             | FromImage(_, diskInfo) -> FromImage(ImageDefinition image, diskInfo)
-            | AttachOsDisk _ -> raiseFarmer "Operating system from attached disk will be used"
+            | FromImageWithDelete(_, diskInfo) -> FromImageWithDelete(ImageDefinition image, diskInfo)
+            | AttachOsDisk _
+            | AttachOsDiskWithDelete _ -> raiseFarmer "Operating system from attached disk will be used"
 
         { state with OsDisk = osDisk }
 
@@ -564,7 +557,9 @@ type VirtualMachineBuilder() =
         let osDisk =
             match state.OsDisk with
             | FromImage(_, diskInfo) -> FromImage(GalleryImageRef imageRef, diskInfo)
-            | AttachOsDisk _ -> raiseFarmer "Operating system from attached disk will be used"
+            | FromImageWithDelete(_, diskInfo) -> FromImageWithDelete(GalleryImageRef imageRef, diskInfo)
+            | AttachOsDisk _
+            | AttachOsDiskWithDelete _ -> raiseFarmer "Operating system from attached disk will be used"
 
         { state with OsDisk = osDisk }
 
@@ -594,30 +589,39 @@ type VirtualMachineBuilder() =
                 }
 
                 FromImage(image, updatedDiskInfo)
-            | AttachOsDisk _ -> state.OsDisk // uses the size and type from the attached disk
+            | FromImageWithDelete(image, diskInfo) ->
+                let updatedDiskInfo = {
+                    diskInfo with
+                        DiskType = diskType
+                        Size = size
+                }
+
+                FromImageWithDelete(image, updatedDiskInfo)
+            | AttachOsDisk _
+            | AttachOsDiskWithDelete _ -> state.OsDisk // uses the size and type from the attached disk
 
         { state with OsDisk = osDisk }
 
     [<CustomOperation "attach_os_disk">]
     member _.AttachOsDisk(state: VmConfig, os: OS, disk: DiskConfig) = {
         state with
-            OsDisk = AttachOsDisk(os, Managed((disk :> IBuilder).ResourceId), None)
+            OsDisk = AttachOsDisk(os, Managed((disk :> IBuilder).ResourceId))
     }
 
     member _.AttachOsDisk(state: VmConfig, os: OS, diskId: ResourceId) = {
         state with
-            OsDisk = AttachOsDisk(os, Managed diskId, None)
+            OsDisk = AttachOsDisk(os, Managed diskId)
     }
 
     [<CustomOperation "attach_existing_os_disk">]
     member _.AttachExistingOsDisk(state: VmConfig, os: OS, disk: DiskConfig) = {
         state with
-            OsDisk = AttachOsDisk(os, Unmanaged((disk :> IBuilder).ResourceId), None)
+            OsDisk = AttachOsDisk(os, Unmanaged((disk :> IBuilder).ResourceId))
     }
 
     member _.AttachExistingOsDisk(state: VmConfig, os: OS, diskId: ResourceId) = {
         state with
-            OsDisk = AttachOsDisk(os, Unmanaged diskId, None)
+            OsDisk = AttachOsDisk(os, Unmanaged diskId)
     }
 
     [<CustomOperation "attach_data_disk">]
@@ -627,11 +631,11 @@ type VirtualMachineBuilder() =
         match existingDisks with
         | Some disks -> {
             state with
-                DataDisks = disks @ [ AttachDataDisk(Managed diskId, None) ] |> Some
+                DataDisks = disks @ [ AttachDataDisk(Managed diskId) ] |> Some
           }
         | None -> {
             state with
-                DataDisks = [ AttachDataDisk(Managed diskId, None) ] |> Some
+                DataDisks = [ AttachDataDisk(Managed diskId) ] |> Some
           }
 
     member this.AttachDataDisk(state: VmConfig, disk: DiskConfig) =
@@ -643,11 +647,11 @@ type VirtualMachineBuilder() =
             match existingDisks with
             | Some disks -> {
                 state with
-                    DataDisks = disks @ [ AttachUltra(Managed diskId, None) ] |> Some
+                    DataDisks = disks @ [ AttachUltra(Managed diskId) ] |> Some
               }
             | None -> {
                 state with
-                    DataDisks = [ AttachUltra(Managed diskId, None) ] |> Some
+                    DataDisks = [ AttachUltra(Managed diskId) ] |> Some
               }
         | _ -> this.AttachDataDisk(state, (disk :> IBuilder).ResourceId)
 
@@ -659,11 +663,11 @@ type VirtualMachineBuilder() =
         match existingDisks with
         | Some disks -> {
             state with
-                DataDisks = disks @ [ AttachDataDisk(Unmanaged diskId, None) ] |> Some
+                DataDisks = disks @ [ AttachDataDisk(Unmanaged diskId) ] |> Some
           }
         | None -> {
             state with
-                DataDisks = [ AttachDataDisk(Unmanaged diskId, None) ] |> Some
+                DataDisks = [ AttachDataDisk(Unmanaged diskId) ] |> Some
           }
 
     member this.AttachExistingDataDisk(state: VmConfig, disk: DiskConfig) =
@@ -675,11 +679,11 @@ type VirtualMachineBuilder() =
             match existingDisks with
             | Some disks -> {
                 state with
-                    DataDisks = disks @ [ AttachUltra(Unmanaged diskId, None) ] |> Some
+                    DataDisks = disks @ [ AttachUltra(Unmanaged diskId) ] |> Some
               }
             | None -> {
                 state with
-                    DataDisks = [ AttachUltra(Unmanaged diskId, None) ] |> Some
+                    DataDisks = [ AttachUltra(Unmanaged diskId) ] |> Some
               }
         | _ -> this.AttachExistingDataDisk(state, (disk :> IBuilder).ResourceId)
 
@@ -694,12 +698,7 @@ type VirtualMachineBuilder() =
         {
             state with
                 DataDisks =
-                    DataDiskCreateOption.Empty {
-                        Size = size
-                        DiskType = diskType
-                        DeleteOption = None
-                    }
-                    :: existingDisks
+                    DataDiskCreateOption.Empty { Size = size; DiskType = diskType } :: existingDisks
                     |> Some
         }
 
@@ -1047,26 +1046,50 @@ type VirtualMachineBuilder() =
         let updatedOsDisk =
             match state.OsDisk with
             | FromImage(image, diskInfo) ->
-                FromImage(
-                    image,
-                    {
-                        diskInfo with
-                            DeleteOption = Some deleteOption
-                    }
-                )
-            | AttachOsDisk(os, diskId, _) -> AttachOsDisk(os, diskId, Some deleteOption)
+                match deleteOption with
+                | DiskDeleteOption.Delete -> FromImageWithDelete(image, diskInfo)
+                | DiskDeleteOption.Detach -> FromImage(image, diskInfo)
+            | FromImageWithDelete(image, diskInfo) ->
+                match deleteOption with
+                | DiskDeleteOption.Delete -> FromImageWithDelete(image, diskInfo)
+                | DiskDeleteOption.Detach -> FromImage(image, diskInfo)
+            | AttachOsDisk(os, diskId) ->
+                match deleteOption with
+                | DiskDeleteOption.Delete -> AttachOsDiskWithDelete(os, diskId)
+                | DiskDeleteOption.Detach -> AttachOsDisk(os, diskId)
+            | AttachOsDiskWithDelete(os, diskId) ->
+                match deleteOption with
+                | DiskDeleteOption.Delete -> AttachOsDiskWithDelete(os, diskId)
+                | DiskDeleteOption.Detach -> AttachOsDisk(os, diskId)
 
         let updatedDataDisks =
             state.DataDisks
             |> Option.map (
                 List.map (function
                     | Empty diskInfo ->
-                        Empty {
-                            diskInfo with
-                                DeleteOption = Some deleteOption
-                        }
-                    | AttachDataDisk(diskId, _) -> AttachDataDisk(diskId, Some deleteOption)
-                    | AttachUltra(diskId, _) -> AttachUltra(diskId, Some deleteOption))
+                        match deleteOption with
+                        | DiskDeleteOption.Delete -> EmptyWithDelete diskInfo
+                        | DiskDeleteOption.Detach -> Empty diskInfo
+                    | EmptyWithDelete diskInfo ->
+                        match deleteOption with
+                        | DiskDeleteOption.Delete -> EmptyWithDelete diskInfo
+                        | DiskDeleteOption.Detach -> Empty diskInfo
+                    | AttachDataDisk diskId ->
+                        match deleteOption with
+                        | DiskDeleteOption.Delete -> AttachDataDiskWithDelete diskId
+                        | DiskDeleteOption.Detach -> AttachDataDisk diskId
+                    | AttachDataDiskWithDelete diskId ->
+                        match deleteOption with
+                        | DiskDeleteOption.Delete -> AttachDataDiskWithDelete diskId
+                        | DiskDeleteOption.Detach -> AttachDataDisk diskId
+                    | AttachUltra diskId ->
+                        match deleteOption with
+                        | DiskDeleteOption.Delete -> AttachUltraWithDelete diskId
+                        | DiskDeleteOption.Detach -> AttachUltra diskId
+                    | AttachUltraWithDelete diskId ->
+                        match deleteOption with
+                        | DiskDeleteOption.Delete -> AttachUltraWithDelete diskId
+                        | DiskDeleteOption.Detach -> AttachUltra diskId)
             )
 
         {

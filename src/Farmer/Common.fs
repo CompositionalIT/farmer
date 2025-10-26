@@ -1014,7 +1014,6 @@ module Vm =
     type DiskInfo = {
         Size: int
         DiskType: DiskType
-        DeleteOption: DiskDeleteOption option
     } with
 
         member this.IsUltraDisk =
@@ -1024,21 +1023,28 @@ module Vm =
 
     /// VM OS disks can be created by attaching an existing disk or from a gallery image.
     type OsDiskCreateOption =
-        | AttachOsDisk of OS * ManagedDiskId: LinkedResource * DeleteOption: DiskDeleteOption option
+        | AttachOsDisk of OS * ManagedDiskId: LinkedResource
+        | AttachOsDiskWithDelete of OS * ManagedDiskId: LinkedResource
         | FromImage of ImageInfo * DiskInfo
+        | FromImageWithDelete of ImageInfo * DiskInfo
 
     /// VM data disks can be created by attaching an existing disk or generating an empty disk.
     type DataDiskCreateOption =
-        | AttachDataDisk of ManagedDiskId: LinkedResource * DeleteOption: DiskDeleteOption option
+        | AttachDataDisk of ManagedDiskId: LinkedResource
+        | AttachDataDiskWithDelete of ManagedDiskId: LinkedResource
         /// Indicates the disk being attached is an ultra disk to enable that option on the VM
-        | AttachUltra of ManagedDiskId: LinkedResource * DeleteOption: DiskDeleteOption option
+        | AttachUltra of ManagedDiskId: LinkedResource
+        | AttachUltraWithDelete of ManagedDiskId: LinkedResource
         | Empty of DiskInfo
+        | EmptyWithDelete of DiskInfo
 
         /// Indicates an Ultra SSD will be used so that option should be enabled on the VM.
         member this.IsUltraDisk =
             match this with
-            | AttachUltra _ -> true
-            | Empty diskInfo when diskInfo.IsUltraDisk -> true
+            | AttachUltra _
+            | AttachUltraWithDelete _ -> true
+            | Empty diskInfo
+            | EmptyWithDelete diskInfo when diskInfo.IsUltraDisk -> true
             | _ -> false
 
     type EvictionPolicy =

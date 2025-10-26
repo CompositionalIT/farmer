@@ -377,32 +377,80 @@ module VirtualMachine =
                         createOption = "FromImage"
                         name = if isScaleSet then null else $"{vmNameLowerCase}-osdisk"
                         diskSizeGB = diskInfo.Size
-                        deleteOption = diskInfo.DeleteOption |> Option.map (fun d -> d.ArmValue) |> Option.toObj
                         managedDisk = {|
                             storageAccountType = diskInfo.DiskType.ArmValue
                         |}
                     |}
                     :> obj
-                | AttachOsDisk(os, managedDiskId, deleteOption) -> {|
+                | FromImageWithDelete(_, diskInfo) ->
+                    {|
+                        createOption = "FromImage"
+                        name = if isScaleSet then null else $"{vmNameLowerCase}-osdisk"
+                        diskSizeGB = diskInfo.Size
+                        deleteOption = "Delete"
+                        managedDisk = {|
+                            storageAccountType = diskInfo.DiskType.ArmValue
+                        |}
+                    |}
+                    :> obj
+                | AttachOsDisk(os, managedDiskId) -> {|
                     createOption = "Attach"
                     managedDisk = {|
                         id = managedDiskId.ResourceId.Eval()
                     |}
                     name = managedDiskId.Name.Value
                     osType = string<OS> os
-                    deleteOption = deleteOption |> Option.map (fun d -> d.ArmValue) |> Option.toObj
+                  |}
+                | AttachOsDiskWithDelete(os, managedDiskId) -> {|
+                    createOption = "Attach"
+                    managedDisk = {|
+                        id = managedDiskId.ResourceId.Eval()
+                    |}
+                    name = managedDiskId.Name.Value
+                    osType = string<OS> os
+                    deleteOption = "Delete"
                   |}
             dataDisks =
                 dataDisks
                 |> List.mapi (fun lun dataDisk ->
                     match dataDisk with
-                    | AttachDataDisk(managedDiskId, deleteOption)
-                    | AttachUltra(managedDiskId, deleteOption) ->
+                    | AttachDataDisk managedDiskId ->
                         {|
                             createOption = "Attach"
                             name = managedDiskId.Name.Value
                             lun = lun
-                            deleteOption = deleteOption |> Option.map (fun d -> d.ArmValue) |> Option.toObj
+                            managedDisk = {|
+                                id = managedDiskId.ResourceId.Eval()
+                            |}
+                        |}
+                        :> obj
+                    | AttachDataDiskWithDelete managedDiskId ->
+                        {|
+                            createOption = "Attach"
+                            name = managedDiskId.Name.Value
+                            lun = lun
+                            deleteOption = "Delete"
+                            managedDisk = {|
+                                id = managedDiskId.ResourceId.Eval()
+                            |}
+                        |}
+                        :> obj
+                    | AttachUltra managedDiskId ->
+                        {|
+                            createOption = "Attach"
+                            name = managedDiskId.Name.Value
+                            lun = lun
+                            managedDisk = {|
+                                id = managedDiskId.ResourceId.Eval()
+                            |}
+                        |}
+                        :> obj
+                    | AttachUltraWithDelete managedDiskId ->
+                        {|
+                            createOption = "Attach"
+                            name = managedDiskId.Name.Value
+                            lun = lun
+                            deleteOption = "Delete"
                             managedDisk = {|
                                 id = managedDiskId.ResourceId.Eval()
                             |}
@@ -418,7 +466,22 @@ module VirtualMachine =
                                     null
                             diskSizeGB = diskInfo.Size
                             lun = lun
-                            deleteOption = diskInfo.DeleteOption |> Option.map (fun d -> d.ArmValue) |> Option.toObj
+                            managedDisk = {|
+                                storageAccountType = diskInfo.DiskType.ArmValue
+                            |}
+                        |}
+                        :> obj
+                    | EmptyWithDelete diskInfo ->
+                        {|
+                            createOption = "Empty"
+                            name =
+                                if not isScaleSet then
+                                    $"{vmNameLowerCase}-datadisk-{lun}"
+                                else
+                                    null
+                            diskSizeGB = diskInfo.Size
+                            lun = lun
+                            deleteOption = "Delete"
                             managedDisk = {|
                                 storageAccountType = diskInfo.DiskType.ArmValue
                             |}
@@ -536,12 +599,15 @@ type VirtualMachine = {
                 | Some(Unmanaged _)
                 | None -> ()
                 match this.OsDisk with
-                | AttachOsDisk(_, Managed(resourceId), _) -> resourceId
+                | AttachOsDisk(_, Managed(resourceId))
+                | AttachOsDiskWithDelete(_, Managed(resourceId)) -> resourceId
                 | _ -> ()
                 for disk in this.DataDisks do
                     match disk with
-                    | AttachDataDisk(Managed(resourceId), _)
-                    | AttachUltra(Managed(resourceId), _) -> resourceId
+                    | AttachDataDisk(Managed(resourceId))
+                    | AttachDataDiskWithDelete(Managed(resourceId))
+                    | AttachUltra(Managed(resourceId))
+                    | AttachUltraWithDelete(Managed(resourceId)) -> resourceId
                     | _ -> ()
             ]
 
@@ -704,12 +770,15 @@ type VirtualMachineScaleSet = {
                     | Managed rid -> rid
                     | _ -> ()
                 match this.OsDisk with
-                | AttachOsDisk(_, Managed(resourceId), _) -> resourceId
+                | AttachOsDisk(_, Managed(resourceId))
+                | AttachOsDiskWithDelete(_, Managed(resourceId)) -> resourceId
                 | _ -> ()
                 for disk in this.DataDisks do
                     match disk with
-                    | AttachDataDisk(Managed(resourceId), _)
-                    | AttachUltra(Managed(resourceId), _) -> resourceId
+                    | AttachDataDisk(Managed(resourceId))
+                    | AttachDataDiskWithDelete(Managed(resourceId))
+                    | AttachUltra(Managed(resourceId))
+                    | AttachUltraWithDelete(Managed(resourceId)) -> resourceId
                     | _ -> ()
             ]
 
