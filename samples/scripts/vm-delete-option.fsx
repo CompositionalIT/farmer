@@ -5,7 +5,7 @@
 open Farmer
 open Farmer.Builders
 
-// Example 1: Using the convenience method to delete all resources
+// Example 1: Using the convenience method to delete all attached resources
 let myVmSimple = vm {
     name "my-vm-simple"
     username "azureuser"
@@ -14,8 +14,8 @@ let myVmSimple = vm {
     os_disk 128 Vm.StandardSSD_LRS
     add_ssd_disk 256
 
-    // Convenience method - sets all delete options to Delete at once
-    delete_all_on_vm_delete
+    // Convenience method - deletes all attached resources when VM is deleted
+    delete_attached
 }
 
 // Example 2: Setting delete options individually for fine-grained control

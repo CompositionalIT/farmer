@@ -4,7 +4,7 @@ Release Notes
 ## Unreleased
 * Virtual Machines: Added support for `deleteOption` on VM disks, NICs, and public IP addresses to automatically clean up resources when a VM is deleted.
   * New builder keywords: `disk_delete_option`, `nic_delete_option`, `public_ip_delete_option`
-  * New convenience keyword: `delete_all_on_vm_delete` to set all delete options at once
+  * New convenience keyword: `delete_attached` to set all delete options at once
 
 ## 1.9.23
 * Actions Groups: Bump API version to `2025-09-01-preview`.

@@ -1344,7 +1344,7 @@ let tests =
             Expect.isNotNull publicIpDeleteOption "Public IP deleteOption should be set"
             Expect.equal (string publicIpDeleteOption) "Delete" "Public IP deleteOption should be 'Delete'"
         }
-        test "VM with delete_all_on_vm_delete convenience method" {
+        test "VM with delete_attached convenience method" {
             let deployment = arm {
                 location Location.EastUS
 
@@ -1356,7 +1356,7 @@ let tests =
                         operating_system UbuntuServer_2204LTS
                         os_disk 128 Standard_LRS
                         add_ssd_disk 128
-                        delete_all_on_vm_delete
+                        delete_attached
                     }
                 ]
             }
