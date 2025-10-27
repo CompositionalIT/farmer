@@ -57,6 +57,7 @@ type VmConfig = {
     LoadBalancerBackendAddressPools: LinkedResource list
     Identity: Identity.ManagedIdentity
     NetworkSecurityGroup: LinkedResource option
+    DiskDeleteOption: DiskDeleteOption option
     NicDeleteOption: NicDeleteOption option
     PublicIpDeleteOption: PublicIpDeleteOption option
 
@@ -361,6 +362,7 @@ type VirtualMachineBuilder() =
         PrivateIpAllocation = None
         LoadBalancerBackendAddressPools = []
         NetworkSecurityGroup = None
+        DiskDeleteOption = None
         NicDeleteOption = None
         PublicIpDeleteOption = None
         Tags = Map.empty
@@ -633,14 +635,19 @@ type VirtualMachineBuilder() =
     member _.AttachDataDisk(state: VmConfig, diskId: ResourceId) =
         let existingDisks = state.DataDisks
 
+        let newDisk =
+            match state.DiskDeleteOption with
+            | Some DiskDeleteOption.Delete -> AttachDataDiskWithDelete(Managed diskId)
+            | _ -> AttachDataDisk(Managed diskId)
+
         match existingDisks with
         | Some disks -> {
             state with
-                DataDisks = disks @ [ AttachDataDisk(Managed diskId) ] |> Some
+                DataDisks = disks @ [ newDisk ] |> Some
           }
         | None -> {
             state with
-                DataDisks = [ AttachDataDisk(Managed diskId) ] |> Some
+                DataDisks = [ newDisk ] |> Some
           }
 
     member this.AttachDataDisk(state: VmConfig, disk: DiskConfig) =
@@ -649,14 +656,19 @@ type VirtualMachineBuilder() =
             let existingDisks = state.DataDisks
             let diskId = (disk :> IBuilder).ResourceId
 
+            let newDisk =
+                match state.DiskDeleteOption with
+                | Some DiskDeleteOption.Delete -> AttachUltraWithDelete(Managed diskId)
+                | _ -> AttachUltra(Managed diskId)
+
             match existingDisks with
             | Some disks -> {
                 state with
-                    DataDisks = disks @ [ AttachUltra(Managed diskId) ] |> Some
+                    DataDisks = disks @ [ newDisk ] |> Some
               }
             | None -> {
                 state with
-                    DataDisks = [ AttachUltra(Managed diskId) ] |> Some
+                    DataDisks = [ newDisk ] |> Some
               }
         | _ -> this.AttachDataDisk(state, (disk :> IBuilder).ResourceId)
 
@@ -665,14 +677,19 @@ type VirtualMachineBuilder() =
     member _.AttachExistingDataDisk(state: VmConfig, diskId: ResourceId) =
         let existingDisks = state.DataDisks
 
+        let newDisk =
+            match state.DiskDeleteOption with
+            | Some DiskDeleteOption.Delete -> AttachDataDiskWithDelete(Unmanaged diskId)
+            | _ -> AttachDataDisk(Unmanaged diskId)
+
         match existingDisks with
         | Some disks -> {
             state with
-                DataDisks = disks @ [ AttachDataDisk(Unmanaged diskId) ] |> Some
+                DataDisks = disks @ [ newDisk ] |> Some
           }
         | None -> {
             state with
-                DataDisks = [ AttachDataDisk(Unmanaged diskId) ] |> Some
+                DataDisks = [ newDisk ] |> Some
           }
 
     member this.AttachExistingDataDisk(state: VmConfig, disk: DiskConfig) =
@@ -681,14 +698,19 @@ type VirtualMachineBuilder() =
             let existingDisks = state.DataDisks
             let diskId = (disk :> IBuilder).ResourceId
 
+            let newDisk =
+                match state.DiskDeleteOption with
+                | Some DiskDeleteOption.Delete -> AttachUltraWithDelete(Unmanaged diskId)
+                | _ -> AttachUltra(Unmanaged diskId)
+
             match existingDisks with
             | Some disks -> {
                 state with
-                    DataDisks = disks @ [ AttachUltra(Unmanaged diskId) ] |> Some
+                    DataDisks = disks @ [ newDisk ] |> Some
               }
             | None -> {
                 state with
-                    DataDisks = [ AttachUltra(Unmanaged diskId) ] |> Some
+                    DataDisks = [ newDisk ] |> Some
               }
         | _ -> this.AttachExistingDataDisk(state, (disk :> IBuilder).ResourceId)
 
@@ -700,11 +722,14 @@ type VirtualMachineBuilder() =
             | Some disks -> disks
             | None -> []
 
+        let newDisk =
+            match state.DiskDeleteOption with
+            | Some DiskDeleteOption.Delete -> DataDiskCreateOption.EmptyWithDelete { Size = size; DiskType = diskType }
+            | _ -> DataDiskCreateOption.Empty { Size = size; DiskType = diskType }
+
         {
             state with
-                DataDisks =
-                    DataDiskCreateOption.Empty { Size = size; DiskType = diskType } :: existingDisks
-                    |> Some
+                DataDisks = newDisk :: existingDisks |> Some
         }
 
     /// Provision the VM without generating a data disk (OS-only).
@@ -1101,6 +1126,7 @@ type VirtualMachineBuilder() =
             state with
                 OsDisk = updatedOsDisk
                 DataDisks = updatedDataDisks
+                DiskDeleteOption = Some deleteOption
         }
 
     /// Sets the delete option for the network interface(s).
