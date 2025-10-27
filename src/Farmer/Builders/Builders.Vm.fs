@@ -377,23 +377,49 @@ type VirtualMachineBuilder() =
             | NetworkInterface.AcceleratedNetworkingSupported -> ()
         | _ -> ()
 
+        // Apply DiskDeleteOption to OS disk if set
+        let osDisk =
+            match state.DiskDeleteOption with
+            | Some DiskDeleteOption.Delete ->
+                match state.OsDisk with
+                | FromImage(image, diskInfo) -> FromImageWithDelete(image, diskInfo)
+                | AttachOsDisk(os, diskId) -> AttachOsDiskWithDelete(os, diskId)
+                | other -> other // Already has WithDelete variant
+            | _ -> state.OsDisk
+
+        // Apply DiskDeleteOption to data disks if set
+        let dataDisks =
+            state.DataDisks
+            |> Option.map (function
+                | [] ->
+                    // Create default 1024GB disk
+                    let diskInfo = {
+                        Size = 1024
+                        DiskType = DiskType.Standard_LRS
+                    }
+
+                    [
+                        match state.DiskDeleteOption with
+                        | Some DiskDeleteOption.Delete -> DataDiskCreateOption.EmptyWithDelete diskInfo
+                        | _ -> DataDiskCreateOption.Empty diskInfo
+                    ]
+                | disks ->
+                    // Apply DiskDeleteOption to existing disks
+                    match state.DiskDeleteOption with
+                    | Some DiskDeleteOption.Delete ->
+                        disks
+                        |> List.map (function
+                            | Empty diskInfo -> EmptyWithDelete diskInfo
+                            | AttachDataDisk diskId -> AttachDataDiskWithDelete diskId
+                            | AttachUltra diskId -> AttachUltraWithDelete diskId
+                            | other -> other // Already has WithDelete variant
+                        )
+                    | _ -> disks)
+
         {
             state with
-                DataDisks =
-                    state.DataDisks
-                    |> Option.map (function
-                        | [] ->
-                            let diskInfo = {
-                                Size = 1024
-                                DiskType = DiskType.Standard_LRS
-                            }
-
-                            [
-                                match state.DiskDeleteOption with
-                                | Some DiskDeleteOption.Delete -> DataDiskCreateOption.EmptyWithDelete diskInfo
-                                | _ -> DataDiskCreateOption.Empty diskInfo
-                            ]
-                        | other -> other)
+                OsDisk = osDisk
+                DataDisks = dataDisks
         }
 
     [<CustomOperation "encryption_at_host">]
@@ -638,11 +664,7 @@ type VirtualMachineBuilder() =
     [<CustomOperation "attach_data_disk">]
     member _.AttachDataDisk(state: VmConfig, diskId: ResourceId) =
         let existingDisks = state.DataDisks
-
-        let newDisk =
-            match state.DiskDeleteOption with
-            | Some DiskDeleteOption.Delete -> AttachDataDiskWithDelete(Managed diskId)
-            | _ -> AttachDataDisk(Managed diskId)
+        let newDisk = AttachDataDisk(Managed diskId)
 
         match existingDisks with
         | Some disks -> {
@@ -659,11 +681,7 @@ type VirtualMachineBuilder() =
         | Some(UltraSSD_LRS) ->
             let existingDisks = state.DataDisks
             let diskId = (disk :> IBuilder).ResourceId
-
-            let newDisk =
-                match state.DiskDeleteOption with
-                | Some DiskDeleteOption.Delete -> AttachUltraWithDelete(Managed diskId)
-                | _ -> AttachUltra(Managed diskId)
+            let newDisk = AttachUltra(Managed diskId)
 
             match existingDisks with
             | Some disks -> {
@@ -680,11 +698,7 @@ type VirtualMachineBuilder() =
     [<CustomOperation "attach_existing_data_disk">]
     member _.AttachExistingDataDisk(state: VmConfig, diskId: ResourceId) =
         let existingDisks = state.DataDisks
-
-        let newDisk =
-            match state.DiskDeleteOption with
-            | Some DiskDeleteOption.Delete -> AttachDataDiskWithDelete(Unmanaged diskId)
-            | _ -> AttachDataDisk(Unmanaged diskId)
+        let newDisk = AttachDataDisk(Unmanaged diskId)
 
         match existingDisks with
         | Some disks -> {
@@ -701,11 +715,7 @@ type VirtualMachineBuilder() =
         | Some(UltraSSD_LRS) ->
             let existingDisks = state.DataDisks
             let diskId = (disk :> IBuilder).ResourceId
-
-            let newDisk =
-                match state.DiskDeleteOption with
-                | Some DiskDeleteOption.Delete -> AttachUltraWithDelete(Unmanaged diskId)
-                | _ -> AttachUltra(Unmanaged diskId)
+            let newDisk = AttachUltra(Unmanaged diskId)
 
             match existingDisks with
             | Some disks -> {
@@ -726,10 +736,7 @@ type VirtualMachineBuilder() =
             | Some disks -> disks
             | None -> []
 
-        let newDisk =
-            match state.DiskDeleteOption with
-            | Some DiskDeleteOption.Delete -> DataDiskCreateOption.EmptyWithDelete { Size = size; DiskType = diskType }
-            | _ -> DataDiskCreateOption.Empty { Size = size; DiskType = diskType }
+        let newDisk = DataDiskCreateOption.Empty { Size = size; DiskType = diskType }
 
         {
             state with
@@ -1076,62 +1083,10 @@ type VirtualMachineBuilder() =
 
     /// Sets the delete option for OS and data disks.
     [<CustomOperation "disk_delete_option">]
-    member _.DiskDeleteOption(state: VmConfig, deleteOption: DiskDeleteOption) =
-        let updatedOsDisk =
-            match state.OsDisk with
-            | FromImage(image, diskInfo) ->
-                match deleteOption with
-                | DiskDeleteOption.Delete -> FromImageWithDelete(image, diskInfo)
-                | DiskDeleteOption.Detach -> FromImage(image, diskInfo)
-            | FromImageWithDelete(image, diskInfo) ->
-                match deleteOption with
-                | DiskDeleteOption.Delete -> FromImageWithDelete(image, diskInfo)
-                | DiskDeleteOption.Detach -> FromImage(image, diskInfo)
-            | AttachOsDisk(os, diskId) ->
-                match deleteOption with
-                | DiskDeleteOption.Delete -> AttachOsDiskWithDelete(os, diskId)
-                | DiskDeleteOption.Detach -> AttachOsDisk(os, diskId)
-            | AttachOsDiskWithDelete(os, diskId) ->
-                match deleteOption with
-                | DiskDeleteOption.Delete -> AttachOsDiskWithDelete(os, diskId)
-                | DiskDeleteOption.Detach -> AttachOsDisk(os, diskId)
-
-        let updatedDataDisks =
-            state.DataDisks
-            |> Option.map (
-                List.map (function
-                    | Empty diskInfo ->
-                        match deleteOption with
-                        | DiskDeleteOption.Delete -> EmptyWithDelete diskInfo
-                        | DiskDeleteOption.Detach -> Empty diskInfo
-                    | EmptyWithDelete diskInfo ->
-                        match deleteOption with
-                        | DiskDeleteOption.Delete -> EmptyWithDelete diskInfo
-                        | DiskDeleteOption.Detach -> Empty diskInfo
-                    | AttachDataDisk diskId ->
-                        match deleteOption with
-                        | DiskDeleteOption.Delete -> AttachDataDiskWithDelete diskId
-                        | DiskDeleteOption.Detach -> AttachDataDisk diskId
-                    | AttachDataDiskWithDelete diskId ->
-                        match deleteOption with
-                        | DiskDeleteOption.Delete -> AttachDataDiskWithDelete diskId
-                        | DiskDeleteOption.Detach -> AttachDataDisk diskId
-                    | AttachUltra diskId ->
-                        match deleteOption with
-                        | DiskDeleteOption.Delete -> AttachUltraWithDelete diskId
-                        | DiskDeleteOption.Detach -> AttachUltra diskId
-                    | AttachUltraWithDelete diskId ->
-                        match deleteOption with
-                        | DiskDeleteOption.Delete -> AttachUltraWithDelete diskId
-                        | DiskDeleteOption.Detach -> AttachUltra diskId)
-            )
-
-        {
-            state with
-                OsDisk = updatedOsDisk
-                DataDisks = updatedDataDisks
-                DiskDeleteOption = Some deleteOption
-        }
+    member _.DiskDeleteOption(state: VmConfig, deleteOption: DiskDeleteOption) = {
+        state with
+            DiskDeleteOption = Some deleteOption
+    }
 
     /// Sets the delete option for the network interface(s).
     [<CustomOperation "nic_delete_option">]
