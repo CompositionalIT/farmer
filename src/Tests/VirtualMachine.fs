@@ -1484,4 +1484,52 @@ let tests =
             let publisher = vmProps.SelectToken("storageProfile.imageReference.publisher")
             Expect.isNotNull publisher "imageReference.publisher should be set"
         }
+        test "VM without delete options has no deleteOption in template" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1s
+                        operating_system UbuntuServer_2204LTS
+                        os_disk 128 Standard_LRS
+                        add_ssd_disk 128
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+            Expect.isNotNull vmProps "VM properties missing from template"
+
+            // Validate OS disk does NOT have deleteOption
+            let osDiskDeleteOption = vmProps.SelectToken("storageProfile.osDisk.deleteOption")
+            Expect.isNull osDiskDeleteOption "OS disk should not have deleteOption when not set"
+
+            // Validate data disk does NOT have deleteOption
+            let dataDiskDeleteOption =
+                vmProps.SelectToken("storageProfile.dataDisks[0].deleteOption")
+
+            Expect.isNull dataDiskDeleteOption "Data disk should not have deleteOption when not set"
+
+            // Validate imageReference is still populated
+            let imageReference = vmProps.SelectToken("storageProfile.imageReference")
+            Expect.isNotNull imageReference "imageReference should be set"
+
+            let publisher = vmProps.SelectToken("storageProfile.imageReference.publisher")
+            Expect.isNotNull publisher "imageReference.publisher should be set"
+
+            // Validate NIC does NOT have deleteOption
+            let nic =
+                jobj.SelectToken("resources[?(@.type=='Microsoft.Network/networkInterfaces' && @.name=='my-vm-nic')]")
+
+            Expect.isNotNull nic "NIC should exist"
+
+            let nicDeleteOption =
+                nic.SelectToken("properties.networkInterfaces[0].properties.deleteOption")
+
+            Expect.isNull nicDeleteOption "NIC should not have deleteOption when not set"
+        }
     ]
