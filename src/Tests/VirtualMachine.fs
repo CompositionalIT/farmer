@@ -1393,4 +1393,95 @@ let tests =
             Expect.isNotNull publicIpDeleteOption "Public IP deleteOption should be set"
             Expect.equal (string publicIpDeleteOption) "Delete" "Public IP deleteOption should be 'Delete'"
         }
+        test "VM with delete_attached has imageReference populated" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1s
+                        operating_system UbuntuServer_2204LTS
+                        delete_attached
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+            Expect.isNotNull vmProps "VM properties missing from template"
+
+            // Validate imageReference is populated
+            let imageReference = vmProps.SelectToken("storageProfile.imageReference")
+            Expect.isNotNull imageReference "imageReference should be set"
+
+            let publisher = vmProps.SelectToken("storageProfile.imageReference.publisher")
+            Expect.isNotNull publisher "imageReference.publisher should be set"
+
+            let offer = vmProps.SelectToken("storageProfile.imageReference.offer")
+            Expect.isNotNull offer "imageReference.offer should be set"
+
+            let sku = vmProps.SelectToken("storageProfile.imageReference.sku")
+            Expect.isNotNull sku "imageReference.sku should be set"
+
+            let version = vmProps.SelectToken("storageProfile.imageReference.version")
+            Expect.isNotNull version "imageReference.version should be set"
+            Expect.equal (string version) "latest" "imageReference.version should be 'latest'"
+        }
+        test "VM with disk_delete_option after operating_system has imageReference" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1s
+                        operating_system UbuntuServer_2204LTS
+                        disk_delete_option DiskDeleteOption.Delete
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+            Expect.isNotNull vmProps "VM properties missing from template"
+
+            // Validate imageReference is populated
+            let imageReference = vmProps.SelectToken("storageProfile.imageReference")
+            Expect.isNotNull imageReference "imageReference should be set when disk_delete_option is used"
+
+            let publisher = vmProps.SelectToken("storageProfile.imageReference.publisher")
+            Expect.isNotNull publisher "imageReference.publisher should be set"
+        }
+        test "VM with disk_delete_option before operating_system has imageReference" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1s
+                        disk_delete_option DiskDeleteOption.Delete
+                        operating_system UbuntuServer_2204LTS
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+            Expect.isNotNull vmProps "VM properties missing from template"
+
+            // Validate imageReference is populated
+            let imageReference = vmProps.SelectToken("storageProfile.imageReference")
+
+            Expect.isNotNull
+                imageReference
+                "imageReference should be set when operating_system is after disk_delete_option"
+
+            let publisher = vmProps.SelectToken("storageProfile.imageReference.publisher")
+            Expect.isNotNull publisher "imageReference.publisher should be set"
+        }
     ]
