@@ -382,13 +382,17 @@ type VirtualMachineBuilder() =
                 DataDisks =
                     state.DataDisks
                     |> Option.map (function
-                        | [] -> [
-                            {
+                        | [] ->
+                            let diskInfo = {
                                 Size = 1024
                                 DiskType = DiskType.Standard_LRS
                             }
-                            |> DataDiskCreateOption.Empty
-                          ]
+
+                            [
+                                match state.DiskDeleteOption with
+                                | Some DiskDeleteOption.Delete -> DataDiskCreateOption.EmptyWithDelete diskInfo
+                                | _ -> DataDiskCreateOption.Empty diskInfo
+                            ]
                         | other -> other)
         }
 

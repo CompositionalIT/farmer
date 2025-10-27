@@ -1532,4 +1532,36 @@ let tests =
 
             Expect.isNull nicDeleteOption "NIC should not have deleteOption when not set"
         }
+        test "VM with delete_attached and default data disk has deleteOption on default disk" {
+            // This test verifies that the default 1024GB data disk created for certain OS images
+            // also gets the deleteOption when delete_attached or disk_delete_option is used
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1ms
+                        operating_system AzureLinux_3
+                        delete_attached
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+            Expect.isNotNull vmProps "VM properties missing from template"
+
+            // Check that the default data disk has deleteOption set
+            let dataDiskDeleteOption =
+                vmProps.SelectToken("storageProfile.dataDisks[0].deleteOption")
+
+            Expect.isNotNull dataDiskDeleteOption "Default data disk should have deleteOption set"
+            Expect.equal (string dataDiskDeleteOption) "Delete" "Default data disk deleteOption should be 'Delete'"
+
+            // Verify it's the 1024GB default disk
+            let dataDiskSize = vmProps.SelectToken("storageProfile.dataDisks[0].diskSizeGB")
+            Expect.equal (int dataDiskSize) 1024 "Default data disk should be 1024GB"
+        }
     ]
