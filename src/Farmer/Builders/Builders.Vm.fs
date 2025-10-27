@@ -283,8 +283,10 @@ type VmConfig = {
                     VirtualMachine = this.Name
                     OS =
                         match this.OsDisk with
-                        | FromImage(ImageDefinition image, _) -> image.OS
-                        | FromImage(GalleryImageRef(os, _), _) -> os
+                        | FromImage(ImageDefinition image, _)
+                        | FromImageWithDelete(ImageDefinition image, _) -> image.OS
+                        | FromImage(GalleryImageRef(os, _), _)
+                        | FromImageWithDelete(GalleryImageRef(os, _), _) -> os
                         | _ -> raiseFarmer "Unable to determine OS for custom script when attaching an existing disk"
                     ScriptContents = script
                     FileUris = files
@@ -297,14 +299,17 @@ type VmConfig = {
 
                 // Azure AD SSH login extension
                 match this.AadSshLogin, this.OsDisk with
-                | FeatureFlag.Enabled, FromImage(ImageDefinition image, _) when
+                | FeatureFlag.Enabled, FromImage(ImageDefinition image, _)
+                | FeatureFlag.Enabled, FromImageWithDelete(ImageDefinition image, _) when
                     image.OS = Linux && this.Identity.SystemAssigned = Disabled
                     ->
                     raiseFarmer
                         "AAD SSH login requires that system assigned identity be enabled on the virtual machine."
-                | FeatureFlag.Enabled, FromImage(ImageDefinition image, _) when image.OS = Windows ->
+                | FeatureFlag.Enabled, FromImage(ImageDefinition image, _)
+                | FeatureFlag.Enabled, FromImageWithDelete(ImageDefinition image, _) when image.OS = Windows ->
                     raiseFarmer "AAD SSH login is only supported for Linux Virtual Machines"
-                | FeatureFlag.Enabled, FromImage(GalleryImageRef(Windows, _), _) ->
+                | FeatureFlag.Enabled, FromImage(GalleryImageRef(Windows, _), _)
+                | FeatureFlag.Enabled, FromImageWithDelete(GalleryImageRef(Windows, _), _) ->
                     raiseFarmer "AAD SSH login is only supported for Linux Virtual Machines"
                 // Assuming a user that attaches a disk knows to only using this extension for Linux images.
                 | FeatureFlag.Enabled, _ -> {
