@@ -46,6 +46,10 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 | attach_data_disk                       | Attaches a newly imported managed disk to the VM as a data disk.                                                                                                                                                                                                                                                                                                      |
 | attach_existing_data_disk              | Attaches an existing managed disk to the VM as a data disk.                                                                                                                                                                                                                                                                                                           |
 | no_data_disk                           | Excludes a data disk (only an OS disk) - common when mounting cloud storage.                                                                                                                                                                                                                                                                                          |
+| disk_delete_option                     | Sets the delete option for VM disks (OS and data disks). When set to `Delete`, disks will be automatically deleted when the VM is deleted. When set to `Detach` (default), disks are detached but not deleted. Note: Does not apply to Virtual Machine Scale Sets.                                                                                                    |
+| nic_delete_option                      | Sets the delete option for network interfaces. When set to `Delete`, NICs will be automatically deleted when the VM is deleted. When set to `Detach` (default), NICs are detached but not deleted. Note: Does not apply to Virtual Machine Scale Sets.                                                                                                                |
+| public_ip_delete_option                | Sets the delete option for public IP addresses. When set to `Delete`, public IPs will be automatically deleted when the VM is deleted. When set to `Detach` (default), public IPs are detached but not deleted. Note: Does not apply to Virtual Machine Scale Sets.                                                                                                   |
+| delete_attached                        | Convenience method that sets all delete options (disks, NICs, and public IPs) to `Delete` at once. Recommended for most use cases where automatic cleanup of all VM resources is desired. Note: Does not apply to Virtual Machine Scale Sets.                                                                                                                         |
 | domain_name_prefix                     | Sets the prefix for the domain name of the VM.                                                                                                                                                                                                                                                                                                                        |
 | address_prefix                         | Sets the IP address prefix of the VM.                                                                                                                                                                                                                                                                                                                                 |
 | subnet_prefix                          | Sets the subnet prefix of the VM.                                                                                                                                                                                                                                                                                                                                     |
@@ -123,3 +127,40 @@ let myVm = vm {
     private_ip_allocation (PrivateIpAddress.StaticPrivateIp (Net.IPAddress.Parse("10.0.0.10")))
 }
 ```
+
+#### Automatic Resource Cleanup Example
+
+Use the `delete_attached` keyword to automatically clean up all VM-associated resources when the VM is deleted:
+
+```fsharp
+open Farmer
+open Farmer.Builders
+
+let myVm = vm {
+    name "myFarmerVm"
+    username "yourUsername"
+    vm_size Vm.Standard_A2
+    operating_system Vm.UbuntuServer_2204LTS
+    
+    // All attached resources (disks, NICs, public IPs) will be deleted with the VM
+    delete_attached
+}
+```
+
+For fine-grained control over which resources should be deleted:
+
+```fsharp
+let myVm = vm {
+    name "myFarmerVm"
+    username "yourUsername"
+    vm_size Vm.Standard_A2
+    operating_system Vm.UbuntuServer_2204LTS
+    
+    // Only delete disks and NICs, but keep public IPs
+    disk_delete_option Vm.DiskDeleteOption.Delete
+    nic_delete_option Vm.NicDeleteOption.Delete
+    public_ip_delete_option Vm.PublicIpDeleteOption.Detach
+}
+```
+
+> **Note**: The `deleteOption` feature is not supported on Virtual Machine Scale Sets. If you use `delete_attached` or any of the `*_delete_option` keywords with a VM Scale Set, the delete options will be ignored in the generated ARM template.
