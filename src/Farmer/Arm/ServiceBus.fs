@@ -231,9 +231,8 @@ type Namespace = {
                 properties = {|
                     minimumTlsVersion =
                         match this.MinTlsVersion with
-                        | Some Tls10 -> "1.0"
-                        | Some Tls11 -> "1.1"
                         | Some Tls12 -> "1.2"
+                        | Some Tls13 -> "1.3"
                         | None -> null
                     publicNetworkAccess =
                         match this.DisablePublicNetworkAccess with

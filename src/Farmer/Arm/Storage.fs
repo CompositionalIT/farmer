@@ -184,9 +184,8 @@ type StorageAccount = {
                         |> Option.defaultValue Unchecked.defaultof<_>
                     minimumTlsVersion =
                         match this.MinTlsVersion with
-                        | Some Tls10 -> "TLS1_0"
-                        | Some Tls11 -> "TLS1_1"
                         | Some Tls12 -> "TLS1_2"
+                        | Some Tls13 -> "TLS1_3"
                         | None -> null
                     supportsHttpsTrafficOnly =
                         match this.SupportsHttpsTrafficOnly with

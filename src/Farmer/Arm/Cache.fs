@@ -39,9 +39,8 @@ type Redis = {
                     minimumTlsVersion =
                         this.MinimumTlsVersion
                         |> Option.map (function
-                            | Tls10 -> "1.0"
-                            | Tls11 -> "1.1"
-                            | Tls12 -> "1.2")
+                            | Tls12 -> "1.2"
+                            | Tls13 -> "1.3")
                         |> Option.toObj
                     redisConfiguration = this.RedisConfiguration
                 |}
