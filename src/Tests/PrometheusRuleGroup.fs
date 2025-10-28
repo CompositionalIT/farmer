@@ -39,14 +39,10 @@ let tests =
                 jobj.SelectToken("resources[?(@.name=='myGroup')].properties.rules").ToString()
 
             let actualRule1 =
-                jobj
-                    .SelectToken("resources[?(@.name=='myGroup')].properties.rules[0]")
-                    .ToString()
+                jobj.SelectToken("resources[?(@.name=='myGroup')].properties.rules[0]").ToString()
 
             let actualRule2 =
-                jobj
-                    .SelectToken("resources[?(@.name=='myGroup')].properties.rules[1].labels")
-                    .ToString()
+                jobj.SelectToken("resources[?(@.name=='myGroup')].properties.rules[1].labels").ToString()
 
             let actualScopes =
                 jobj.SelectToken("resources[?(@.name=='myGroup')].properties.scopes").ToString()
@@ -82,9 +78,7 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             let actualInterval =
-                jobj
-                    .SelectToken("resources[?(@.name=='myGroup')].properties.interval")
-                    .ToString()
+                jobj.SelectToken("resources[?(@.name=='myGroup')].properties.interval").ToString()
 
             Expect.isTrue (actualInterval.Contains("PT1M")) "Expected interval is set to PT1M"
         }
@@ -152,10 +146,7 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             let actualEnabled =
-                jobj
-                    .SelectToken("resources[?(@.name=='myGroup')].properties.enabled")
-                    .ToString()
-                    .ToLower()
+                jobj.SelectToken("resources[?(@.name=='myGroup')].properties.enabled").ToString().ToLower()
 
             Expect.isTrue (actualEnabled = "true") "Expected rule group to be enabled"
         }
@@ -185,9 +176,7 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             let actualClusterName =
-                jobj
-                    .SelectToken("resources[?(@.name=='myGroup')].properties.clusterName")
-                    .ToString()
+                jobj.SelectToken("resources[?(@.name=='myGroup')].properties.clusterName").ToString()
 
             Expect.isTrue (actualClusterName = "myCluster") "Expected cluster name to be myCluster"
         }
@@ -217,9 +206,7 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             let actualSeverity =
-                jobj
-                    .SelectToken("resources[?(@.name=='myGroup')].properties.rules[0].severity")
-                    .ToString()
+                jobj.SelectToken("resources[?(@.name=='myGroup')].properties.rules[0].severity").ToString()
 
             Expect.isTrue (actualSeverity = "1") "Expected alert severity to be Error (1)"
         }
@@ -249,9 +236,7 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             let actualAlert =
-                jobj
-                    .SelectToken("resources[?(@.name=='myGroup')].properties.rules[0].alert")
-                    .ToString()
+                jobj.SelectToken("resources[?(@.name=='myGroup')].properties.rules[0].alert").ToString()
 
             Expect.isTrue (actualAlert = "testAlert") "Expected alert to be testAlert"
         }
@@ -372,9 +357,7 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             let actualForTime =
-                jobj
-                    .SelectToken("resources[?(@.name=='myGroup')].properties.rules[0].for")
-                    .ToString()
+                jobj.SelectToken("resources[?(@.name=='myGroup')].properties.rules[0].for").ToString()
 
             Expect.isTrue (actualForTime = "PT5M") "Expected for time to be PT5M"
         }

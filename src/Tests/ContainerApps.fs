@@ -432,8 +432,7 @@ let tests =
             Expect.isFalse
                 (containerApp.Secrets
                  |> Map.containsKey
-                     (ContainerAppValidation.ContainerAppSettingKey.Create $"{containerRegistryName}-username")
-                         .OkValue)
+                     (ContainerAppValidation.ContainerAppSettingKey.Create $"{containerRegistryName}-username").OkValue)
                 "Container app did not have linked ACR's secret"
         }
 

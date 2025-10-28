@@ -141,9 +141,7 @@ let tests =
                 "VMSS is not expected to have doNotRunExtensionsOnOverprovisionedVMs"
 
             Expect.equal
-                (vmProfile
-                    .SelectToken("storageProfile.imageReference.communityGalleryImageId")
-                    .ToString())
+                (vmProfile.SelectToken("storageProfile.imageReference.communityGalleryImageId").ToString())
                 "/CommunityGalleries/test-gallery/Images/test-image/Versions/version"
                 "VMSS OS profile has incorrect image reference"
         }
@@ -199,23 +197,17 @@ let tests =
                 "VMSS is expected to have doNotRunExtensionsOnOverprovisionedVMs"
 
             Expect.equal
-                (vmProfile
-                    .SelectToken("storageProfile.imageReference.sharedGalleryImageId")
-                    .ToString())
+                (vmProfile.SelectToken("storageProfile.imageReference.sharedGalleryImageId").ToString())
                 "/SharedGalleries/test-gallery/Images/test-image/Versions/version"
                 "VMSS OS profile has incorrect image reference"
 
             Expect.equal
-                (vmssProps
-                    .SelectToken("upgradePolicy.automaticOSUpgradePolicy.enableAutomaticOSUpgrade")
-                    .ToString())
+                (vmssProps.SelectToken("upgradePolicy.automaticOSUpgradePolicy.enableAutomaticOSUpgrade").ToString())
                 (string true)
                 "VMSS OS upgrade policy is expected to be enabled"
 
             Expect.equal
-                (vmssProps
-                    .SelectToken("upgradePolicy.automaticOSUpgradePolicy.useRollingUpgradePolicy")
-                    .ToString())
+                (vmssProps.SelectToken("upgradePolicy.automaticOSUpgradePolicy.useRollingUpgradePolicy").ToString())
                 (string true)
                 "VMSS OS rolling upgrade policy is expected to be enabled"
 

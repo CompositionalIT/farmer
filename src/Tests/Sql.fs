@@ -276,30 +276,22 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='my37server/mydb22')].sku.name")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='my37server/mydb22')].sku.name").ToString())
                 "GP_S_Gen5"
                 "Not serverless name"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='my37server/mydb22')].sku.capacity")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='my37server/mydb22')].sku.capacity").ToString())
                 "4"
                 "Incorrect max capacity"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='my37server/mydb22')].properties.minCapacity")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='my37server/mydb22')].properties.minCapacity").ToString())
                 "2"
                 "Incorrect min capacity"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='my37server/mydb22')].properties.autoPauseDelay")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='my37server/mydb22')].properties.autoPauseDelay").ToString())
                 "-1"
                 "Incorrect autoPauseDelay"
         }
@@ -326,16 +318,12 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='my38server/mydb23')].sku.capacity")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='my38server/mydb23')].sku.capacity").ToString())
                 "1"
                 "Incorrect max capacity"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='my38server/mydb23')].properties.minCapacity")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='my38server/mydb23')].properties.minCapacity").ToString())
                 "0.5"
                 "Incorrect min capacity - should support fractional VCores"
         }
@@ -388,8 +376,7 @@ let tests =
             let json = template.Template |> Writer.toJson |> JsonObject.Parse
 
             let azureAdOnlyAuth =
-                json.["resources"].[0].["properties"].["administrators"].["azureADOnlyAuthentication"]
-                    .GetValue()
+                json.["resources"].[0].["properties"].["administrators"].["azureADOnlyAuthentication"].GetValue()
 
             Expect.isFalse azureAdOnlyAuth "Should be mixed authetication."
         }
@@ -404,8 +391,7 @@ let tests =
             let json = template.Template |> Writer.toJson |> JsonObject.Parse
 
             let principalType =
-                json.["resources"].[0].["properties"].["administrators"].["principalType"]
-                    .GetValue()
+                json.["resources"].[0].["properties"].["administrators"].["principalType"].GetValue()
 
             Expect.equal principalType "User" "Principal type should be User"
         }
@@ -420,8 +406,7 @@ let tests =
             let json = template.Template |> Writer.toJson |> JsonObject.Parse
 
             let principalType =
-                json.["resources"].[0].["properties"].["administrators"].["principalType"]
-                    .GetValue()
+                json.["resources"].[0].["properties"].["administrators"].["principalType"].GetValue()
 
             Expect.equal principalType "Group" "Principal type should be Group"
         }

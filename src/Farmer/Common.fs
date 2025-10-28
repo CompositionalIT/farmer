@@ -2260,9 +2260,7 @@ module Identity =
                 | UserAssignedIdentity rid -> rid
                 | LinkedUserAssignedIdentity rid -> rid
 
-            ArmExpression
-                .create($"reference({resourceId.ArmExpression.Value}).%s{field}")
-                .WithOwner(resourceId)
+            ArmExpression.create($"reference({resourceId.ArmExpression.Value}).%s{field}").WithOwner(resourceId)
 
         member this.PrincipalId = this.CreateExpression "principalId" |> PrincipalId
         member this.ClientId = this.CreateExpression "clientId"

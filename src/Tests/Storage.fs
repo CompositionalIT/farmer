@@ -839,9 +839,7 @@ let tests =
                 "network acl should not define ip restrictions"
 
             Expect.isEmpty
-                (jobj
-                    .SelectToken("resources[0].properties.networkAcls.virtualNetworkRules")
-                    .Values<string>())
+                (jobj.SelectToken("resources[0].properties.networkAcls.virtualNetworkRules").Values<string>())
                 "network acl should not define vnet restrictions"
 
             Expect.equal
@@ -937,9 +935,7 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[0].properties.defaultToOAuthAuthentication")
-                    .ToString())
+                (jobj.SelectToken("resources[0].properties.defaultToOAuthAuthentication").ToString())
                 "true"
                 "default to OAuth should be enabled"
         }
@@ -958,9 +954,7 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[0].properties.defaultToOAuthAuthentication")
-                    .ToString())
+                (jobj.SelectToken("resources[0].properties.defaultToOAuthAuthentication").ToString())
                 "false"
                 "default to OAuth should be disabled"
         }

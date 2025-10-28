@@ -144,10 +144,7 @@ type SoaRecordProperties = {
 
 type DnsZone =
     static member getNameServers(resourceId: ResourceId) =
-        ArmExpression
-            .reference(zones, resourceId)
-            .Map(fun r -> r + ".nameServers")
-            .WithOwner(resourceId)
+        ArmExpression.reference(zones, resourceId).Map(fun r -> r + ".nameServers").WithOwner(resourceId)
         |> ArmExpression.string
 
     static member getNameServers(name: ResourceName, ?resourceGroup) =

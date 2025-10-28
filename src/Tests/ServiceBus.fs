@@ -355,8 +355,7 @@ let tests =
                     |> getResourceAtIndex 1
 
                 Expect.equal
-                    (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue)
-                        .TotalMinutes
+                    (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalMinutes
                     5.
                     "TTL from TimeSpan should be 5 minutes"
             }

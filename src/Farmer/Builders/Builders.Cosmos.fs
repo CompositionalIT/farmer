@@ -100,9 +100,7 @@ type CosmosDbConfig = {
         CosmosDb.getConnectionString (this.AccountResourceId, SecondaryConnectionString)
 
     member this.Endpoint =
-        ArmExpression
-            .reference(databaseAccounts, this.AccountResourceId)
-            .Map(sprintf "%s.documentEndpoint")
+        ArmExpression.reference(databaseAccounts, this.AccountResourceId).Map(sprintf "%s.documentEndpoint")
 
     interface IBuilder with
         member this.ResourceId = this.AccountResourceId

@@ -56,9 +56,7 @@ type DeploymentScriptConfig = {
             // Assignment
             {
                 Name =
-                    ArmExpression
-                        .create($"guid(concat(resourceGroup().id, '{Roles.Contributor.Id}'))")
-                        .Eval()
+                    ArmExpression.create($"guid(concat(resourceGroup().id, '{Roles.Contributor.Id}'))").Eval()
                     |> ResourceName
                 RoleDefinitionId = Roles.Contributor
                 PrincipalId = identity.PrincipalId

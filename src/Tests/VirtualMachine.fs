@@ -775,9 +775,7 @@ let tests =
             let jobj = Newtonsoft.Json.Linq.JObject.Parse json
 
             let vmNsgId =
-                jobj
-                    .SelectToken($"resources[?(@.name=='{vmName}-nic')].properties.networkSecurityGroup.id")
-                    .ToString()
+                jobj.SelectToken($"resources[?(@.name=='{vmName}-nic')].properties.networkSecurityGroup.id").ToString()
 
             Expect.isFalse (String.IsNullOrEmpty vmNsgId) "NSG not attached"
         }
@@ -842,9 +840,7 @@ let tests =
             Expect.hasLength nicDependsOn 1 "NIC should only have 1 dependency - the public IP"
 
             let nicSubnetId =
-                nicResource
-                    .SelectToken("properties.ipConfigurations[0].properties.subnet.id")
-                    .ToString()
+                nicResource.SelectToken("properties.ipConfigurations[0].properties.subnet.id").ToString()
 
             Expect.equal
                 nicSubnetId
