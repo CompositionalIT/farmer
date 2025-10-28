@@ -131,15 +131,19 @@ type TransmissionProtocol =
     | UDP
 
 type TlsVersion =
-    | Tls10
-    | Tls11
     | Tls12
+    | Tls13
 
     member this.ArmValue =
         match this with
-        | Tls10 -> "1.0"
-        | Tls11 -> "1.1"
         | Tls12 -> "1.2"
+        | Tls13 -> "1.3"
+
+    [<System.Obsolete("TLS 1.0 is deprecated and insecure. Use TLS 1.2 or higher.")>]
+    static member Tls10 = Tls12
+
+    [<System.Obsolete("TLS 1.1 is deprecated and insecure. Use TLS 1.2 or higher.")>]
+    static member Tls11 = Tls12
 
 /// Represents an environment variable that can be set, typically on Docker container services.
 type EnvVar =
