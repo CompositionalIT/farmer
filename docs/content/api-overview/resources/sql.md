@@ -48,6 +48,24 @@ The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azu
 | collation | Sets the collation of the database. |
 | use_encryption | Enables transparent data encryption of the database. |
 
+#### Serverless Gen5 SKU
+
+The Serverless Gen5 SKU (`S_Gen5`) supports fractional VCores, allowing you to specify capacity as low as 0.5 or 0.75 VCores for cost-effective serverless databases. You can specify both minimum and maximum capacity:
+
+```fsharp
+// Serverless with fractional VCores
+sqlDb {
+    name "serverlessDb"
+    sku (GeneralPurpose(S_Gen5(0.5, 2.0)))  // min: 0.5 VCores, max: 2.0 VCores
+}
+
+// Serverless with integer VCores (also supported)
+sqlDb {
+    name "serverlessDb2"
+    sku (GeneralPurpose(S_Gen5(1, 4)))  // min: 1 VCore, max: 4 VCores
+}
+```
+
 #### Example
 
 ##### AD auth not set
@@ -77,6 +95,10 @@ let myDatabases = sqlServer {
             sku (GeneralPurpose Gen5_8)
             db_size (1024<Mb> * 128)
             hybrid_benefit
+        }
+        sqlDb {
+            name "serverlessDb"
+            sku (GeneralPurpose(S_Gen5(0.5, 2.0)))  // Serverless with fractional VCores
         }
     ]
 }
@@ -131,6 +153,10 @@ let myDatabases = sqlServer {
             sku (GeneralPurpose Gen5_8)
             db_size (1024<Mb> * 128)
             hybrid_benefit
+        }
+        sqlDb {
+            name "serverlessDb"
+            sku (GeneralPurpose(S_Gen5(0.5, 2.0)))  // Serverless with fractional VCores
         }
     ]
 }

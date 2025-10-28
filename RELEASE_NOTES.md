@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.24
+* SQL Azure: Support for fractional VCores (0.5, 0.75) in Serverless Gen5 databases.
+
 ## 1.9.23
 * Actions Groups: Bump API version to `2025-09-01-preview`.
 
