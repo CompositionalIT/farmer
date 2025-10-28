@@ -45,6 +45,7 @@ type NetworkInterfaceConfig = {
                         PrivateIpAllocation = Some(this.PrivateIpAddress)
                         PrivateIpAddressVersion = this.PrivateIpAddressVersion
                         Primary = this.IsPrimary
+                        PublicIpAddressDeleteOption = None
                     }
                 ]
 
@@ -58,6 +59,7 @@ type NetworkInterfaceConfig = {
                     Primary = this.IsPrimary
                     VirtualNetwork = vnetId
                     NetworkSecurityGroup = this.NetworkSecurityGroup
+                    DeleteOption = None
                     Tags = this.Tags
                 }
 
@@ -91,6 +93,7 @@ type NetworkInterfaceConfig = {
                             PrivateIpAllocation = Some(this.PrivateIpAddress)
                             PrivateIpAddressVersion = AddressVersion.IPv4
                             Primary = this.IsPrimary
+                            PublicIpAddressDeleteOption = None
                         }
                     ]
 
@@ -105,6 +108,7 @@ type NetworkInterfaceConfig = {
                         Primary = this.IsPrimary
                         VirtualNetwork = vnetId
                         NetworkSecurityGroup = this.NetworkSecurityGroup
+                        DeleteOption = None
                         Tags = this.Tags
                     }
                 | _ ->
