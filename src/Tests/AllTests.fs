@@ -24,8 +24,9 @@ let allTests =
             AppGateway.tests
             AppInsights.tests
             AppInsightsAvailability.tests
-            if Build.isCiMaster then
-                AzCli.tests
+            // Temporarily disabling end to end tests while transitioning to new subscription.
+            //if Build.isCiMaster then
+            //    AzCli.tests
             AutoscaleSettings.tests
             AzureFirewall.tests
             B2cTenant.tests
@@ -83,10 +84,13 @@ let allTests =
             Alerts.tests
             ServicePlan.tests
             ActionGroup.tests
+            DataCollection.tests
+            PrometheusRuleGroup.tests
         ]
         testList "Control" [
-            if Build.isCiMaster || Build.isFarmerEndToEnd then
-                AzCli.endToEndTests
+            // Temporarily disabling end to end tests while transitioning to new subscription.
+            //if Build.isCiMaster || Build.isFarmerEndToEnd then
+            //    AzCli.endToEndTests
             Common.tests
             Identity.tests
             Template.tests

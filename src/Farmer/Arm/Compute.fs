@@ -124,6 +124,8 @@ type ApplicationHealthExtension = {
     NumberOfProbes: int option
     GracePeriod: TimeSpan option
     Tags: Map<string, string>
+    EnableAutomaticUpgrade: bool option
+    TypeHandlerVersion: string option
 } with
 
     static member Name = "HealthExtension"
@@ -138,8 +140,9 @@ type ApplicationHealthExtension = {
                 match this.OS with
                 | Linux -> "ApplicationHealthLinux"
                 | Windows -> "ApplicationHealthWindows"
-            typeHandlerVersion = "1.0"
+            typeHandlerVersion = this.TypeHandlerVersion |> Option.defaultValue "1.0"
             autoUpgradeMinorVersion = true
+            enableAutomaticUpgrade = this.EnableAutomaticUpgrade |> Option.map box |> Option.defaultValue null
             settings = {|
                 protocol = this.Protocol.ArmValue
                 port = this.Port
@@ -176,7 +179,7 @@ type NetworkInterfaceConfiguration = {
     EnableIpForwarding: bool option
     IpConfigs: IpConfiguration list
     VirtualNetwork: LinkedResource
-    NetworkSecurityGroup: ResourceId option
+    NetworkSecurityGroup: LinkedResource option
     Primary: bool
 } with
 
@@ -187,6 +190,7 @@ type NetworkInterfaceConfiguration = {
             enableIPForwarding = this.EnableIpForwarding |> Option.map box |> Option.defaultValue null
             networkSecurityGroup =
                 this.NetworkSecurityGroup
+                |> Option.map _.ResourceId
                 |> Option.map ResourceId.AsIdObject
                 |> Option.map box
                 |> Option.defaultValue null
@@ -196,6 +200,69 @@ type NetworkInterfaceConfiguration = {
             primary = this.Primary
         |}
     |}
+
+type VmProxyAgentSettings = {
+    Enabled: bool
+    KeyIncarnationId: int
+    Mode: VmProxyAgentMode
+}
+
+type UefiSettings = {
+    SecureBoot: FeatureFlag option
+    Vtpm: FeatureFlag option
+} with
+
+    static member Default = { SecureBoot = None; Vtpm = None }
+
+type VmSecurityProfile = {
+    EncryptionAtHost: bool option
+    EncryptionIdentity: Identity.ManagedIdentity option
+    ProxyAgentSettings: VmProxyAgentSettings option
+    SecurityType: VmSecurityType option
+    UefiSettings: UefiSettings option
+} with
+
+    static member Default = {
+        EncryptionAtHost = None
+        EncryptionIdentity = None
+        ProxyAgentSettings = None
+        SecurityType = None
+        UefiSettings = None
+    }
+
+    member this.ToArmJson = {|
+        encryptionAtHost = this.EncryptionAtHost |> Option.toNullable
+        encryptionIdentity =
+            this.EncryptionIdentity
+            |> Option.map (fun x -> {|
+                userAssignedIdentityResourceId =
+                    if x = ManagedIdentity.Empty then
+                        Unchecked.defaultof<_>
+                    else
+                        x.ToArmJson
+            |})
+            |> Option.defaultValue Unchecked.defaultof<_>
+        proxyAgentSettings =
+            this.ProxyAgentSettings
+            |> Option.map (fun x -> {|
+                enabled = x.Enabled
+                keyIncarnationId = x.KeyIncarnationId
+                mode = x.Mode.ArmValue
+            |})
+            |> Option.defaultValue Unchecked.defaultof<_>
+        securityType =
+            this.SecurityType
+            |> Option.map _.ArmValue
+            |> Option.defaultValue Unchecked.defaultof<_>
+        uefiSettings =
+            this.UefiSettings
+            |> Option.map (fun x -> {|
+                secureBootEnabled = x.SecureBoot |> Option.map FeatureFlag.toBool |> Option.toNullable
+                vTpmEnabled = x.Vtpm |> Option.map FeatureFlag.toBool |> Option.toNullable
+            |})
+            |> Option.defaultValue Unchecked.defaultof<_>
+    |}
+
 
 module VirtualMachine =
     let additionalCapabilities (dataDisks: DataDiskCreateOption list) =
@@ -284,7 +351,20 @@ module VirtualMachine =
         {|
             imageReference =
                 match osDisk with
-                | FromImage(imageDefintion, _) ->
+                | FromImage(GalleryImageRef(_, (SharedGalleryImageId _ as imageRef)), _)
+                | FromImageWithDelete(GalleryImageRef(_, (SharedGalleryImageId _ as imageRef)), _) ->
+                    {|
+                        sharedGalleryImageId = imageRef.ArmValue
+                    |}
+                    :> obj
+                | FromImage(GalleryImageRef(_, (CommunityGalleryImageId _ as imageRef)), _)
+                | FromImageWithDelete(GalleryImageRef(_, (CommunityGalleryImageId _ as imageRef)), _) ->
+                    {|
+                        communityGalleryImageId = imageRef.ArmValue
+                    |}
+                    :> obj
+                | FromImage(ImageDefinition imageDefintion, _)
+                | FromImageWithDelete(ImageDefinition imageDefintion, _) ->
                     {|
                         publisher = imageDefintion.Publisher.ArmValue
                         offer = imageDefintion.Offer.ArmValue
@@ -305,6 +385,28 @@ module VirtualMachine =
                         |}
                     |}
                     :> obj
+                | FromImageWithDelete(_, diskInfo) ->
+                    if isScaleSet then
+                        {|
+                            createOption = "FromImage"
+                            name = null
+                            diskSizeGB = diskInfo.Size
+                            managedDisk = {|
+                                storageAccountType = diskInfo.DiskType.ArmValue
+                            |}
+                        |}
+                        :> obj
+                    else
+                        {|
+                            createOption = "FromImage"
+                            name = $"{vmNameLowerCase}-osdisk"
+                            diskSizeGB = diskInfo.Size
+                            deleteOption = "Delete"
+                            managedDisk = {|
+                                storageAccountType = diskInfo.DiskType.ArmValue
+                            |}
+                        |}
+                        :> obj
                 | AttachOsDisk(os, managedDiskId) -> {|
                     createOption = "Attach"
                     managedDisk = {|
@@ -313,12 +415,33 @@ module VirtualMachine =
                     name = managedDiskId.Name.Value
                     osType = string<OS> os
                   |}
+                | AttachOsDiskWithDelete(os, managedDiskId) ->
+                    if isScaleSet then
+                        {|
+                            createOption = "Attach"
+                            managedDisk = {|
+                                id = managedDiskId.ResourceId.Eval()
+                            |}
+                            name = managedDiskId.Name.Value
+                            osType = string<OS> os
+                        |}
+                        :> obj
+                    else
+                        {|
+                            createOption = "Attach"
+                            managedDisk = {|
+                                id = managedDiskId.ResourceId.Eval()
+                            |}
+                            name = managedDiskId.Name.Value
+                            osType = string<OS> os
+                            deleteOption = "Delete"
+                        |}
+                        :> obj
             dataDisks =
                 dataDisks
                 |> List.mapi (fun lun dataDisk ->
                     match dataDisk with
-                    | AttachDataDisk(managedDiskId)
-                    | AttachUltra(managedDiskId) ->
+                    | AttachDataDisk managedDiskId ->
                         {|
                             createOption = "Attach"
                             name = managedDiskId.Name.Value
@@ -328,6 +451,60 @@ module VirtualMachine =
                             |}
                         |}
                         :> obj
+                    | AttachDataDiskWithDelete managedDiskId ->
+                        if isScaleSet then
+                            {|
+                                createOption = "Attach"
+                                name = managedDiskId.Name.Value
+                                lun = lun
+                                managedDisk = {|
+                                    id = managedDiskId.ResourceId.Eval()
+                                |}
+                            |}
+                            :> obj
+                        else
+                            {|
+                                createOption = "Attach"
+                                name = managedDiskId.Name.Value
+                                lun = lun
+                                deleteOption = "Delete"
+                                managedDisk = {|
+                                    id = managedDiskId.ResourceId.Eval()
+                                |}
+                            |}
+                            :> obj
+                    | AttachUltra managedDiskId ->
+                        {|
+                            createOption = "Attach"
+                            name = managedDiskId.Name.Value
+                            lun = lun
+                            managedDisk = {|
+                                id = managedDiskId.ResourceId.Eval()
+                            |}
+                        |}
+                        :> obj
+                    | AttachUltraWithDelete managedDiskId ->
+                        if isScaleSet then
+                            {|
+                                createOption = "Attach"
+                                name = managedDiskId.Name.Value
+                                lun = lun
+                                managedDisk = {|
+                                    id = managedDiskId.ResourceId.Eval()
+                                |}
+                            |}
+                            :> obj
+                        else
+                            {|
+                                createOption = "Attach"
+                                name = managedDiskId.Name.Value
+                                lun = lun
+                                deleteOption = "Delete"
+                                managedDisk = {|
+                                    id = managedDiskId.ResourceId.Eval()
+                                |}
+                            |}
+                            :> obj
                     | Empty diskInfo ->
                         {|
                             createOption = "Empty"
@@ -342,21 +519,67 @@ module VirtualMachine =
                                 storageAccountType = diskInfo.DiskType.ArmValue
                             |}
                         |}
-                        :> obj)
+                        :> obj
+                    | EmptyWithDelete diskInfo ->
+                        if isScaleSet then
+                            {|
+                                createOption = "Empty"
+                                name = null
+                                diskSizeGB = diskInfo.Size
+                                lun = lun
+                                managedDisk = {|
+                                    storageAccountType = diskInfo.DiskType.ArmValue
+                                |}
+                            |}
+                            :> obj
+                        else
+                            {|
+                                createOption = "Empty"
+                                name = $"{vmNameLowerCase}-datadisk-{lun}"
+                                diskSizeGB = diskInfo.Size
+                                lun = lun
+                                deleteOption = "Delete"
+                                managedDisk = {|
+                                    storageAccountType = diskInfo.DiskType.ArmValue
+                                |}
+                            |}
+                            :> obj)
         |}
 
-    let networkProfile (networkInterfaceIds: ResourceId list, nicConfig: NetworkInterfaceConfiguration list) = {|
-        networkInterfaces =
-            networkInterfaceIds
-            |> List.mapi (fun idx id -> {|
-                id = id.Eval()
-                properties =
-                    if networkInterfaceIds.Length > 1 then
-                        box {| primary = idx = 0 |} // First NIC is primary
-                    else
-                        null // Don't emit primary if there aren't multiple NICs
-            |})
-    |}
+    let networkProfile
+        (
+            networkInterfaceIds: ResourceId list,
+            nicConfig: NetworkInterfaceConfiguration list,
+            nicDeleteOption: Vm.DeleteOption option
+        ) =
+        {|
+            networkInterfaces =
+                networkInterfaceIds
+                |> List.mapi (fun idx id -> {|
+                    id = id.Eval()
+                    properties =
+                        let primaryProp =
+                            if networkInterfaceIds.Length > 1 then
+                                {| primary = idx = 0 |} |> box
+                            else
+                                null // Don't emit primary if there aren't multiple NICs
+
+                        let deleteOptionProp =
+                            nicDeleteOption
+                            |> Option.map (fun d -> {| deleteOption = d.ArmValue |} |> box)
+                            |> Option.toObj
+
+                        match primaryProp, deleteOptionProp with
+                        | null, null -> null
+                        | primary, null -> primary
+                        | null, deleteOpt -> deleteOpt
+                        | _, _ ->
+                            box {|
+                                primary = idx = 0
+                                deleteOption = (nicDeleteOption |> Option.map (fun d -> d.ArmValue) |> Option.toObj)
+                            |}
+                |})
+        |}
 
     let diagnosticsProfile (diagnosticsEnabled: bool option, storageAccount: LinkedResource option) =
         match diagnosticsEnabled with
@@ -394,6 +617,7 @@ type VirtualMachine = {
     Dependencies: ResourceId Set
     AvailabilityZone: string option
     DiagnosticsEnabled: bool option
+    SecurityProfile: VmSecurityProfile option
     StorageAccount: LinkedResource option
     Size: VMSize
     Priority: Priority option
@@ -408,6 +632,7 @@ type VirtualMachine = {
     OsDisk: OsDiskCreateOption
     DataDisks: DataDiskCreateOption list
     NetworkInterfaceIds: ResourceId list
+    NicDeleteOption: Vm.DeleteOption option
     Identity: Identity.ManagedIdentity
     Tags: Map<string, string>
 } with
@@ -431,12 +656,15 @@ type VirtualMachine = {
                 | Some(Unmanaged _)
                 | None -> ()
                 match this.OsDisk with
-                | AttachOsDisk(_, Managed(resourceId)) -> resourceId
+                | AttachOsDisk(_, Managed(resourceId))
+                | AttachOsDiskWithDelete(_, Managed(resourceId)) -> resourceId
                 | _ -> ()
                 for disk in this.DataDisks do
                     match disk with
                     | AttachDataDisk(Managed(resourceId))
-                    | AttachUltra(Managed(resourceId)) -> resourceId
+                    | AttachDataDiskWithDelete(Managed(resourceId))
+                    | AttachUltra(Managed(resourceId))
+                    | AttachUltraWithDelete(Managed(resourceId)) -> resourceId
                     | _ -> ()
             ]
 
@@ -455,8 +683,12 @@ type VirtualMachine = {
                         this.CustomData,
                         this.PublicKeys
                     )
+                securityProfile =
+                    this.SecurityProfile
+                    |> Option.map _.ToArmJson
+                    |> Option.defaultValue Unchecked.defaultof<_>
                 storageProfile = VirtualMachine.storageProfile (this.Name, this.OsDisk, this.DataDisks, false)
-                networkProfile = VirtualMachine.networkProfile (this.NetworkInterfaceIds, [])
+                networkProfile = VirtualMachine.networkProfile (this.NetworkInterfaceIds, [], this.NicDeleteOption)
                 diagnosticsProfile = VirtualMachine.diagnosticsProfile (this.DiagnosticsEnabled, this.StorageAccount)
             |}
 
@@ -480,11 +712,44 @@ type VirtualMachine = {
                     zones = this.AvailabilityZone |> Option.map ResizeArray |> Option.toObj
             |}
 
-type ScaleSetUpgradePolicy = {
-    Mode: VmScaleSet.UpgradeMode
+type VmssAutomaticOSUpgradePolicy = {
+    DisableAutomaticRollback: bool option
+    EnableAutomaticOSUpgrade: bool option
+    OsRollingUpgradeDeferral: bool option
+    UseRollingUpgradePolicy: bool option
 } with
 
-    member this.ArmJson = {| mode = this.Mode.ArmValue |}
+    member this.ArmJson = {|
+        disableAutomaticRollback = this.DisableAutomaticRollback |> Option.toNullable
+        enableAutomaticOSUpgrade = this.EnableAutomaticOSUpgrade |> Option.toNullable
+        osRollingUpgradeDeferral = this.OsRollingUpgradeDeferral |> Option.toNullable
+        useRollingUpgradePolicy = this.UseRollingUpgradePolicy |> Option.toNullable
+    |}
+
+    static member Default = {
+        DisableAutomaticRollback = None
+        EnableAutomaticOSUpgrade = None
+        OsRollingUpgradeDeferral = None
+        UseRollingUpgradePolicy = None
+    }
+
+type ScaleSetUpgradePolicy = {
+    Mode: VmScaleSet.UpgradeMode
+    AutomaticOSUpgradePolicy: VmssAutomaticOSUpgradePolicy option
+} with
+
+    static member Default = {
+        Mode = VmScaleSet.UpgradeMode.Automatic
+        AutomaticOSUpgradePolicy = None
+    }
+
+    member this.ArmJson = {|
+        mode = this.Mode.ArmValue
+        automaticOSUpgradePolicy =
+            this.AutomaticOSUpgradePolicy
+            |> Option.map _.ArmJson
+            |> Option.defaultValue Unchecked.defaultof<_>
+    |}
 
 type ScaleSetScaleInPolicy = {
     // Set false when reusing disks or MAC addresses
@@ -515,12 +780,15 @@ type VirtualMachineScaleSet = {
     Name: ResourceName
     Location: Location
     Dependencies: ResourceId Set
-    AvailabilityZones: string list
+    AvailabilityZones: ZoneSelection
     ZoneBalance: bool option
     DiagnosticsEnabled: bool option
     Size: VMSize
     Capacity: int
+    Overprovision: bool option
+    RunExtensionsOnOverprovisionedVMs: bool option
     ScaleInPolicy: ScaleSetScaleInPolicy
+    SecurityProfile: VmSecurityProfile option
     UpgradePolicy: ScaleSetUpgradePolicy
     AutomaticRepairsPolicy: ScaleSetAutomaticRepairsPolicy option
     Priority: Priority option
@@ -559,12 +827,15 @@ type VirtualMachineScaleSet = {
                     | Managed rid -> rid
                     | _ -> ()
                 match this.OsDisk with
-                | AttachOsDisk(_, Managed(resourceId)) -> resourceId
+                | AttachOsDisk(_, Managed(resourceId))
+                | AttachOsDiskWithDelete(_, Managed(resourceId)) -> resourceId
                 | _ -> ()
                 for disk in this.DataDisks do
                     match disk with
                     | AttachDataDisk(Managed(resourceId))
-                    | AttachUltra(Managed(resourceId)) -> resourceId
+                    | AttachDataDiskWithDelete(Managed(resourceId))
+                    | AttachUltra(Managed(resourceId))
+                    | AttachUltraWithDelete(Managed(resourceId)) -> resourceId
                     | _ -> ()
             ]
 
@@ -581,6 +852,9 @@ type VirtualMachineScaleSet = {
                         tier = this.Size.Tier
                     |}
                     properties = {|
+                        overprovision = this.Overprovision |> Option.toNullable
+                        doNotRunExtensionsOnOverprovisionedVMs =
+                            this.RunExtensionsOnOverprovisionedVMs |> Option.map not |> Option.toNullable
                         additionalCapabilities = VirtualMachine.additionalCapabilities this.DataDisks
                         virtualMachineProfile = {|
                             applicationProfile = VirtualMachine.applicationProfile this.GalleryApplications
@@ -608,6 +882,10 @@ type VirtualMachineScaleSet = {
                                     this.CustomData,
                                     this.PublicKeys
                                 )
+                            securityProfile =
+                                this.SecurityProfile
+                                |> Option.map _.ToArmJson
+                                |> Option.defaultValue Unchecked.defaultof<_>
                             storageProfile =
                                 VirtualMachine.storageProfile (this.Name, this.OsDisk, this.DataDisks, true)
                             networkProfile = {|
@@ -635,11 +913,7 @@ type VirtualMachineScaleSet = {
                         scaleInPolicy = this.ScaleInPolicy.ArmJson
                         upgradePolicy = this.UpgradePolicy.ArmJson
                     |}
-                    zones =
-                        if this.AvailabilityZones.Length > 0 then
-                            Seq.ofList this.AvailabilityZones
-                        else
-                            null
+                    zones = this.AvailabilityZones.ArmValue
             |}
 
 type Host = {

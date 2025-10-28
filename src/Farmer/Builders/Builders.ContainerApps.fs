@@ -1,7 +1,9 @@
 [<AutoOpen>]
 module Farmer.Builders.ContainerApps
 
+open System
 open Farmer
+open Farmer.ApplicationGateway
 open Farmer.Builders
 open Farmer.ContainerApp
 open Farmer.ContainerAppValidation
@@ -18,6 +20,7 @@ type ContainerConfig = {
         Memory: float<Gb>
         EphemeralStorage: float<Gb> option
     |}
+    Probes: ProbeMap
 } with
 
     member internal this.BuildContainer: Container =
@@ -27,6 +30,7 @@ type ContainerConfig = {
             DockerImage = dockerImage
             Resources = this.Resources
             VolumeMounts = this.VolumeMounts
+            Probes = this.Probes
           }
         | None -> raiseFarmer $"Container '{this.ContainerName}' requires a docker image."
 
@@ -54,9 +58,7 @@ type ContainerAppConfig = {
     member this.ResourceId = containerApps.resourceId this.Name
 
     member this.LatestRevisionFqdn =
-        ArmExpression
-            .reference(containerApps, this.ResourceId)
-            .Map(sprintf "%s.latestRevisionFqdn")
+        ArmExpression.reference(containerApps, this.ResourceId).Map(sprintf "%s.latestRevisionFqdn")
 
 type DaprComponent = {
     Name: ResourceName
@@ -561,6 +563,7 @@ type ContainerAppBuilder() =
             DockerImage = Some(Containers.PublicImage(dockerImage, Some dockerVersion))
             Resources = defaultResources
             VolumeMounts = Map.empty
+            Probes = Map.empty
         }
 
         this.AddContainers(state, [ container ])
@@ -589,6 +592,7 @@ type ContainerBuilder() =
         DockerImage = None
         Resources = defaultResources
         VolumeMounts = Map.empty
+        Probes = Map.empty
     }
 
     /// Set docker credentials
@@ -662,6 +666,20 @@ type ContainerBuilder() =
             VolumeMounts =
                 mounts
                 |> Seq.fold (fun s (volumeName, mountPath) -> s |> Map.add volumeName mountPath) state.VolumeMounts
+    }
+
+    [<CustomOperation "set_probe">]
+    member _.SetHealthProbe(state: ContainerConfig, probe, protocol, route, port) = {
+        state with
+            Probes =
+                state.Probes.Add(
+                    probe,
+                    {|
+                        Protocol = protocol
+                        Route = Uri(route, UriKind.Relative)
+                        Port = port
+                    |}
+                )
     }
 
 type DaprComponentBuilder() =
@@ -837,7 +855,6 @@ type DaprComponentBuilder() =
 
 
 let containerEnvironment = ContainerEnvironmentBuilder()
-
 let containerApp = ContainerAppBuilder()
 let container = ContainerBuilder()
 let daprComponent = DaprComponentBuilder()

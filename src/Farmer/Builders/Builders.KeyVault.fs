@@ -358,7 +358,7 @@ type AccessPolicy =
     static let createFilter searchField values =
         let query =
             values
-            |> Seq.map (fun value -> $"{searchField} eq '{value}'")
+            |> Seq.map (fun value -> $"{searchField} eq '%s{value}'")
             |> String.concat " or "
 
         $"\"{query}\""

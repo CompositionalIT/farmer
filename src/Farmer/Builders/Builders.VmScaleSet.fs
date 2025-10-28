@@ -24,6 +24,8 @@ type ApplicationHealthExtensionConfig = {
     NumberOfProbes: int option
     GracePeriod: TimeSpan option
     Tags: Map<string, string>
+    TypeHandlerVersion: string option
+    EnableAutomaticUpgrade: bool option
 } with
 
     interface IExtensionBuilder with
@@ -37,6 +39,8 @@ type ApplicationHealthExtensionConfig = {
             NumberOfProbes = this.NumberOfProbes
             GracePeriod = this.GracePeriod
             Tags = this.Tags
+            TypeHandlerVersion = this.TypeHandlerVersion
+            EnableAutomaticUpgrade = this.EnableAutomaticUpgrade
         }
 
     interface IBuilder with
@@ -53,8 +57,10 @@ type VmScaleSetConfig = {
     Vm: VmConfig option
     AutomaticRepairsPolicy: ScaleSetAutomaticRepairsPolicy option
     Autoscale: AutoscaleSettings option
-    AvailabilityZones: string list
+    AvailabilityZones: ZoneSelection
     Capacity: int option
+    Overprovision: bool option
+    RunExtensionsOnOverprovisionedVMs: bool option
     Extensions: IExtensionBuilder list
     HealthProbeId: ResourceId option
     LoadBalancerBackendAddressPools: LinkedResource list
@@ -120,7 +126,8 @@ type VmScaleSetConfig = {
                             ScriptContents = vm.CustomScript.Value
                             OS =
                                 match vm.OsDisk with
-                                | FromImage(image, _) -> image.OS
+                                | FromImage(ImageDefinition image, _) -> image.OS
+                                | FromImage(GalleryImageRef(os, _), _) -> os
                                 | _ ->
                                     raiseFarmer
                                         "Unable to determine OS for custom script when attaching an existing disk"
@@ -134,9 +141,13 @@ type VmScaleSetConfig = {
         this.Vm
         |> Option.bind (fun vm ->
             match vm.AadSshLogin, vm.OsDisk with
-            | FeatureFlag.Enabled, FromImage(image, _) when image.OS = Linux && vm.Identity.SystemAssigned = Disabled ->
+            | FeatureFlag.Enabled, FromImage(ImageDefinition image, _) when
+                image.OS = Linux && vm.Identity.SystemAssigned = Disabled
+                ->
                 raiseFarmer "AAD SSH login requires that system assigned identity be enabled on the virtual machine."
-            | FeatureFlag.Enabled, FromImage(image, _) when image.OS = Windows ->
+            | FeatureFlag.Enabled, FromImage(ImageDefinition image, _) when image.OS = Windows ->
+                raiseFarmer "AAD SSH login is only supported for Linux Virtual Machines"
+            | FeatureFlag.Enabled, FromImage(GalleryImageRef(Windows, _), _) ->
                 raiseFarmer "AAD SSH login is only supported for Linux Virtual Machines"
             // Assuming a user that attaches a disk knows to only using this extension for Linux images.
             | FeatureFlag.Enabled, _ ->
@@ -165,7 +176,8 @@ type VmScaleSetConfig = {
             match this.Vm with
             | None -> raiseFarmer "The 'vm_profile' must be set for the VM scale set."
             | Some vm ->
-                let nsgId = vm.NetworkSecurityGroup |> Option.map (fun lr -> lr.ResourceId)
+                let nsgId =
+                    vm.NetworkSecurityGroup |> Option.map (fun lr -> (Managed lr.ResourceId))
 
                 [
                     // The VM Scale Set
@@ -176,6 +188,8 @@ type VmScaleSetConfig = {
                         AutomaticRepairsPolicy = this.AutomaticRepairsPolicy
                         AvailabilityZones = this.AvailabilityZones
                         Capacity = this.Capacity |> Option.defaultValue 1
+                        Overprovision = this.Overprovision
+                        RunExtensionsOnOverprovisionedVMs = this.RunExtensionsOnOverprovisionedVMs
                         Credentials =
                             match vm.Username with
                             | Some username -> {|
@@ -212,8 +226,14 @@ type VmScaleSetConfig = {
                                 ForceDeletion = false
                                 Rules = [ ScaleInPolicyRule.Default ]
                             }
+                        SecurityProfile = vm.SecurityProfile
                         Size = vm.Size
-                        UpgradePolicy = this.UpgradePolicy |> Option.defaultValue { Mode = UpgradeMode.Automatic }
+                        UpgradePolicy =
+                            this.UpgradePolicy
+                            |> Option.defaultValue {
+                                ScaleSetUpgradePolicy.Default with
+                                    Mode = UpgradeMode.Automatic
+                            }
                         ZoneBalance = this.ZoneBalance
                         Tags = this.Tags
                     }
@@ -267,6 +287,20 @@ type ApplicationHealthExtensionBuilder() =
         NumberOfProbes = None
         GracePeriod = None
         Tags = Map.empty
+        TypeHandlerVersion = None
+        EnableAutomaticUpgrade = None
+    }
+
+    [<CustomOperation "enable_automatic_upgrade">]
+    member _.EnableAutomaticUpgrade(state: ApplicationHealthExtensionConfig, enable) = {
+        state with
+            EnableAutomaticUpgrade = Some enable
+    }
+
+    [<CustomOperation "type_handler_version">]
+    member _.TypeHandlerVersion(state: ApplicationHealthExtensionConfig, version) = {
+        state with
+            TypeHandlerVersion = Some version
     }
 
     /// Sets the VMSS where this health extension should be installed.
@@ -331,7 +365,9 @@ type VirtualMachineScaleSetBuilder() =
         UpgradePolicy = None
         AutomaticRepairsPolicy = None
         Autoscale = None
-        AvailabilityZones = []
+        Overprovision = None
+        RunExtensionsOnOverprovisionedVMs = None
+        AvailabilityZones = NoZone
         HealthProbeId = None
         LoadBalancerBackendAddressPools = []
         Extensions = []
@@ -413,8 +449,24 @@ type VirtualMachineScaleSetBuilder() =
     [<CustomOperation "add_availability_zones">]
     member _.AddAvailabilityZone(state: VmScaleSetConfig, zones: string list) = {
         state with
-            AvailabilityZones = state.AvailabilityZones @ zones
+            AvailabilityZones =
+                match state.AvailabilityZones with
+                | ExplicitZones existingZones -> existingZones |> Seq.append zones |> Set.ofSeq |> Set.toSeq
+                | NoZone
+                | ZoneExpression _ -> zones
+                |> ExplicitZones
     }
+
+    [<CustomOperation "pick_zones">]
+    member _.PickZones(state: VmScaleSetConfig, num: int) = {
+        state with
+            AvailabilityZones =
+                ArmExpression.pickZones (virtualMachineScaleSets, numZones = num)
+                |> ZoneSelection.ZoneExpression
+    }
+
+    [<CustomOperation "pick_zones">]
+    member this.PickZones(state: VmScaleSetConfig) = this.PickZones(state, 3)
 
     /// Add extensions.
     [<CustomOperation "add_extensions">]
@@ -450,6 +502,18 @@ type VirtualMachineScaleSetBuilder() =
 
     [<CustomOperation "capacity">]
     member _.Capacity(state: VmScaleSetConfig, capacity: int) = { state with Capacity = Some capacity }
+
+    [<CustomOperation "overprovision">]
+    member _.Overprovision(state: VmScaleSetConfig, enable) = {
+        state with
+            Overprovision = Some enable
+    }
+
+    [<CustomOperation "run_extensions_on_overprovisioned_vms">]
+    member _.RunExtensionsOnOverprovisionedVMs(state: VmScaleSetConfig, enable) = {
+        state with
+            RunExtensionsOnOverprovisionedVMs = Some enable
+    }
 
     [<CustomOperation "health_probe">]
     member _.HealthProbeId(state: VmScaleSetConfig, healthProbeId: ResourceId) = {
@@ -499,7 +563,91 @@ type VirtualMachineScaleSetBuilder() =
     [<CustomOperation "upgrade_mode">]
     member _.UpgradeMode(state: VmScaleSetConfig, mode: UpgradeMode) = {
         state with
-            UpgradePolicy = { Mode = mode } |> Some
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> { x with Mode = mode })
+                |> Some
+    }
+
+    [<CustomOperation "osupgrade_automatic">]
+    member _.OSUpgrade(state: VmScaleSetConfig, enabled) = {
+        state with
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> {
+                    x with
+                        AutomaticOSUpgradePolicy =
+                            x.AutomaticOSUpgradePolicy
+                            |> Option.defaultValue VmssAutomaticOSUpgradePolicy.Default
+                            |> (fun x -> {
+                                x with
+                                    EnableAutomaticOSUpgrade = Some enabled
+                            })
+                            |> Some
+                })
+                |> Some
+    }
+
+    [<CustomOperation "osupgrade_automatic_rollback">]
+    member _.OSUpgradeRollback(state: VmScaleSetConfig, enabled) = {
+        state with
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> {
+                    x with
+                        AutomaticOSUpgradePolicy =
+                            x.AutomaticOSUpgradePolicy
+                            |> Option.defaultValue VmssAutomaticOSUpgradePolicy.Default
+                            |> (fun x -> {
+                                x with
+                                    DisableAutomaticRollback = Some(not enabled)
+                            })
+                            |> Some
+                })
+                |> Some
+    }
+
+    [<CustomOperation "osupgrade_rolling_upgrade">]
+    member _.OSUpgradeRollingUpgrade(state: VmScaleSetConfig, enabled) = {
+        state with
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> {
+                    x with
+                        AutomaticOSUpgradePolicy =
+                            x.AutomaticOSUpgradePolicy
+                            |> Option.defaultValue VmssAutomaticOSUpgradePolicy.Default
+                            |> (fun x -> {
+                                x with
+                                    UseRollingUpgradePolicy = Some enabled
+                            })
+                            |> Some
+                })
+                |> Some
+    }
+
+    [<CustomOperation "osupgrade_rolling_upgrade_deferral">]
+    member _.OSUpgradeRollingUpgradeDeferral(state: VmScaleSetConfig, enabled) = {
+        state with
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> {
+                    x with
+                        AutomaticOSUpgradePolicy =
+                            x.AutomaticOSUpgradePolicy
+                            |> Option.defaultValue VmssAutomaticOSUpgradePolicy.Default
+                            |> (fun x -> {
+                                x with
+                                    OsRollingUpgradeDeferral = Some enabled
+                            })
+                            |> Some
+                })
+                |> Some
     }
 
 let vmss = VirtualMachineScaleSetBuilder()

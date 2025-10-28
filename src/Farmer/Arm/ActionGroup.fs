@@ -6,7 +6,7 @@ open Farmer
 open System
 
 let actionGroups =
-    Farmer.ResourceType("microsoft.insights/actionGroups", "2022-06-01")
+    Farmer.ResourceType("microsoft.insights/actionGroups", "2025-09-01-preview")
 
 type ActionGroupLocation =
     | ActionGroupLocation of string
@@ -222,6 +222,28 @@ type WebhookReceiver = {
         useCommonAlertSchema = useCommonAlertSchema
     }
 
+type IncidentServiceConnection = { Id: Guid; Name: string }
+
+type IncidentManagementService = | Icm
+
+type IncidentReceiver = {
+    /// The name of the incident receiver. Names must be unique across all receivers within an action group.
+    Name: string
+    /// The connection string for the incident management service.
+    Connection: IncidentServiceConnection
+    /// Field mappings for the incident serice
+    Mappings: Map<string, string>
+    /// incident management service type
+    IncidentManagementService: IncidentManagementService
+} with
+
+    static member Create(name, connection, mappings, incidentManagementService) = {
+        Name = name
+        Connection = connection
+        Mappings = mappings
+        IncidentManagementService = incidentManagementService
+    }
+
 type ActionGroup = {
     Name: Farmer.ResourceName
     GroupShortName: Farmer.ResourceName
@@ -238,6 +260,7 @@ type ActionGroup = {
     SMSReceivers: SMSReceiver list
     EmailReceivers: EmailReceiver list
     WebhookReceivers: WebhookReceiver list
+    IncidentReceivers: IncidentReceiver list
 } with
 
     interface Farmer.IArmResource with
@@ -253,6 +276,19 @@ type ActionGroup = {
                         enabled = true
                         groupShortName = this.GroupShortName.Value
                         armRoleReceivers = this.ArmRoleReceivers
+                        incidentReceivers =
+                            this.IncidentReceivers
+                            |> List.map (fun r -> {|
+                                name = r.Name
+                                connection = {|
+                                    Id = r.Connection.Id
+                                    Name = r.Connection.Name
+                                |}
+                                mappings = r.Mappings |> Map.toList |> dict
+                                incidentManagementService =
+                                    match r.IncidentManagementService with
+                                    | Icm -> "Icm"
+                            |})
                         automationRunbookReceivers =
                             this.AutomationRunbookReceivers
                             |> List.map (fun r -> {|

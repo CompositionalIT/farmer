@@ -18,6 +18,7 @@ type NetworkInterfaceConfig = {
     SubnetName: string option
     SubnetPrefix: IPAddressCidr option
     LinkedSubnet: LinkedResource option
+    NetworkSecurityGroup: LinkedResource option
     PrivateIpAddress: AllocationMethod
     PrivateIpAddressVersion: AddressVersion
     Tags: Map<string, string>
@@ -44,6 +45,7 @@ type NetworkInterfaceConfig = {
                         PrivateIpAllocation = Some(this.PrivateIpAddress)
                         PrivateIpAddressVersion = this.PrivateIpAddressVersion
                         Primary = this.IsPrimary
+                        PublicIpAddressDeleteOption = None
                     }
                 ]
 
@@ -56,7 +58,8 @@ type NetworkInterfaceConfig = {
                     IpConfigs = subnetIpConfigs
                     Primary = this.IsPrimary
                     VirtualNetwork = vnetId
-                    NetworkSecurityGroup = None
+                    NetworkSecurityGroup = this.NetworkSecurityGroup
+                    DeleteOption = None
                     Tags = this.Tags
                 }
 
@@ -68,7 +71,9 @@ type NetworkInterfaceConfig = {
                         Subnet.Name = ResourceName subnetName
                         Prefixes = [ IPAddressCidr.format subnetPrefix ]
                         VirtualNetwork = Some(vnetId)
+                        RouteTable = None
                         NetworkSecurityGroup = None
+                        DefaultOutboundAccess = None
                         Delegations = []
                         NatGateway = None
                         ServiceEndpoints = []
@@ -88,6 +93,7 @@ type NetworkInterfaceConfig = {
                             PrivateIpAllocation = Some(this.PrivateIpAddress)
                             PrivateIpAddressVersion = AddressVersion.IPv4
                             Primary = this.IsPrimary
+                            PublicIpAddressDeleteOption = None
                         }
                     ]
 
@@ -101,7 +107,8 @@ type NetworkInterfaceConfig = {
                         IpConfigs = subnetIpConfigs
                         Primary = this.IsPrimary
                         VirtualNetwork = vnetId
-                        NetworkSecurityGroup = None
+                        NetworkSecurityGroup = this.NetworkSecurityGroup
+                        DeleteOption = None
                         Tags = this.Tags
                     }
                 | _ ->
@@ -119,6 +126,7 @@ type NetworkInterfaceBuilder() =
         SubnetName = None
         SubnetPrefix = None
         LinkedSubnet = None
+        NetworkSecurityGroup = None
         PrivateIpAddress = AllocationMethod.DynamicPrivateIp
         PrivateIpAddressVersion = IPv4
         Tags = Map.empty
@@ -193,6 +201,40 @@ type NetworkInterfaceBuilder() =
                     | AddressFamily.InterNetworkV6 -> IPv6
                     | _ -> IPv4
         }
+
+    /// Sets the network security group for network interface
+    [<CustomOperation "network_security_group">]
+    member _.NetworkSecurityGroup(state: NetworkInterfaceConfig, nsg: IArmResource) = {
+        state with
+            NetworkSecurityGroup = Some(Managed nsg.ResourceId)
+    }
+
+    member _.NetworkSecurityGroup(state: NetworkInterfaceConfig, nsg: ResourceId) = {
+        state with
+            NetworkSecurityGroup = Some(Managed nsg)
+    }
+
+    member _.NetworkSecurityGroup(state: NetworkInterfaceConfig, nsg: NsgConfig) = {
+        state with
+            NetworkSecurityGroup = Some(Managed (nsg :> IBuilder).ResourceId)
+    }
+
+    /// Links the network interface to an existing network security group.
+    [<CustomOperation "link_to_network_security_group">]
+    member _.LinkToNetworkSecurityGroup(state: NetworkInterfaceConfig, nsg: IArmResource) = {
+        state with
+            NetworkSecurityGroup = Some(Unmanaged(nsg.ResourceId))
+    }
+
+    member _.LinkToNetworkSecurityGroup(state: NetworkInterfaceConfig, nsg: ResourceId) = {
+        state with
+            NetworkSecurityGroup = Some(Unmanaged nsg)
+    }
+
+    member _.LinkToNetworkSecurityGroup(state: NetworkInterfaceConfig, nsg: NsgConfig) = {
+        state with
+            NetworkSecurityGroup = Some(Unmanaged (nsg :> IBuilder).ResourceId)
+    }
 
     interface ITaggable<NetworkInterfaceConfig> with
         member _.Add state tags = {

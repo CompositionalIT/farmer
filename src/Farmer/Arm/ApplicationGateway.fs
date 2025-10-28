@@ -4,53 +4,56 @@ open Farmer
 open Farmer.ApplicationGateway
 open Farmer.Identity
 
+[<Literal>]
+let private apiVersion = "2024-05-01"
+
 let applicationGateways =
-    ResourceType("Microsoft.Network/applicationGateways", "2020-11-01")
+    ResourceType("Microsoft.Network/applicationGateways", apiVersion)
 
 let applicationGatewayAuthenticationCertificates =
-    ResourceType("Microsoft.Network/applicationGateways/authenticationCertificates", "2020-11-01")
+    ResourceType("Microsoft.Network/applicationGateways/authenticationCertificates", apiVersion)
 
 let applicationGatewayBackendHttpSettingsCollection =
-    ResourceType("Microsoft.Network/applicationGateways/backendHttpSettingsCollection", "2020-11-01")
+    ResourceType("Microsoft.Network/applicationGateways/backendHttpSettingsCollection", apiVersion)
 
 let applicationGatewayBackendAddressPools =
-    ResourceType("Microsoft.Network/applicationGateways/backendAddressPools", "2020-11-01")
+    ResourceType("Microsoft.Network/applicationGateways/backendAddressPools", apiVersion)
 
 let applicationGatewayFrontendIPConfigurations =
-    ResourceType("Microsoft.Network/applicationGateways/frontendIPConfigurations", "2020-11-01")
+    ResourceType("Microsoft.Network/applicationGateways/frontendIPConfigurations", apiVersion)
 
 let applicationGatewayFrontendPorts =
-    ResourceType("Microsoft.Network/applicationGateways/frontendPorts", "2020-11-01")
+    ResourceType("Microsoft.Network/applicationGateways/frontendPorts", apiVersion)
 
 let applicationGatewayHttpListeners =
-    ResourceType("Microsoft.Network/applicationGateways/httpListeners", "2020-11-01")
+    ResourceType("Microsoft.Network/applicationGateways/httpListeners", apiVersion)
 
 let applicationGatewayPathRules =
-    ResourceType("Microsoft.Network/applicationGateways/pathRule", "2020-11-01")
+    ResourceType("Microsoft.Network/applicationGateways/pathRule", apiVersion)
 
 let ApplicationGatewayProbes =
-    ResourceType("Microsoft.Network/applicationGateways/probes", "2020-11-01")
+    ResourceType("Microsoft.Network/applicationGateways/probes", apiVersion)
 
 let applicationGatewayRedirectConfigurations =
-    ResourceType("Microsoft.Network/applicationGateways/redirectConfigurations", "2020-11-01")
+    ResourceType("Microsoft.Network/applicationGateways/redirectConfigurations", apiVersion)
 
 let applicationGatewayRequestRoutingRules =
-    ResourceType("Microsoft.Network/applicationGateways/requestRoutingRules", "2020-11-01")
+    ResourceType("Microsoft.Network/applicationGateways/requestRoutingRules", apiVersion)
 
 let applicationGatewayRewriteRuleSets =
-    ResourceType("Microsoft.Network/applicationGateways/rewriteRuleSets", "2020-11-01")
+    ResourceType("Microsoft.Network/applicationGateways/rewriteRuleSets", apiVersion)
 
 let applicationGatewaySslCertificates =
-    ResourceType("Microsoft.Network/applicationGateways/sslCertificates", "2020-11-01")
+    ResourceType("Microsoft.Network/applicationGateways/sslCertificates", apiVersion)
 
 let applicationGatewaySslProfiles =
-    ResourceType("Microsoft.Network/applicationGateways/sslProfiles", "2020-11-01")
+    ResourceType("Microsoft.Network/applicationGateways/sslProfiles", apiVersion)
 
 let applicationGatewayTrustedRootCertificates =
-    ResourceType("Microsoft.Network/applicationGateways/trustedRootCertificates", "2020-11-01")
+    ResourceType("Microsoft.Network/applicationGateways/trustedRootCertificates", apiVersion)
 
 let applicationGatewayUrlPathMaps =
-    ResourceType("Microsoft.Network/applicationGateways/urlPathMap", "2020-11-01")
+    ResourceType("Microsoft.Network/applicationGateways/urlPathMap", apiVersion)
 
 type ApplicationGateway = {
     Name: ResourceName
@@ -67,7 +70,7 @@ type ApplicationGateway = {
     FrontendIpConfigs:
         {|
             Name: ResourceName
-            PrivateIpAllocationMethod: PrivateIpAddress.AllocationMethod
+            PrivateIpAllocationMethod: AllocationMethod
             PublicIp: ResourceId option
         |} list
     BackendAddressPools:
@@ -209,7 +212,7 @@ type ApplicationGateway = {
         {|
             Name: ResourceName
             Data: string option
-            KeyVaultSecretId: string
+            KeyVaultSecretId: string option
             Password: string option
         |} list
     SslPolicy:
@@ -448,8 +451,8 @@ type ApplicationGateway = {
                         |> List.map (fun frontend ->
                             let allocationMethod, ip =
                                 match frontend.PrivateIpAllocationMethod with
-                                | PrivateIpAddress.DynamicPrivateIp -> "Dynamic", null
-                                | PrivateIpAddress.StaticPrivateIp ip -> "Static", string ip
+                                | DynamicPrivateIp -> "Dynamic", null
+                                | StaticPrivateIp ip -> "Static", string ip
 
                             {|
                                 name = frontend.Name.Value
@@ -521,7 +524,7 @@ type ApplicationGateway = {
                         |})
                     requestRoutingRules =
                         this.RequestRoutingRules
-                        |> List.map (fun routingRule -> {|
+                        |> List.mapi (fun idx routingRule -> {|
                             name = routingRule.Name.Value
                             properties = {|
                                 backendAddressPool =
@@ -539,7 +542,7 @@ type ApplicationGateway = {
                                 httpListener =
                                     applicationGatewayHttpListeners.resourceId (this.Name, routingRule.HttpListener)
                                     |> ResourceId.AsIdObject
-                                priority = routingRule.Priority |> Option.toNullable
+                                priority = routingRule.Priority |> Option.defaultValue (1000 + idx)
                                 redirectConfiguration =
                                     routingRule.RedirectConfiguration
                                     |> Option.map (
@@ -614,7 +617,7 @@ type ApplicationGateway = {
                             name = cert.Name.Value
                             properties = {|
                                 data = cert.Data |> Option.toObj
-                                keyVaultSecretId = cert.KeyVaultSecretId
+                                keyVaultSecretId = cert.KeyVaultSecretId |> Option.toObj
                                 password = cert.Password |> Option.toObj
                             |}
                         |})

@@ -1,6 +1,85 @@
 Release Notes
 =============
 
+## 1.9.24
+* Service Bus: Add validation for SKU-specific features (topics not supported on Basic SKU, max message size only supported on Premium SKU).
+* SQL Azure: Support for fractional VCores such as (0.5, 0.75) in Serverless Gen5 databases.
+* Virtual Machines: Added support for `deleteOption` on VM disks, NICs, and public IP addresses to automatically clean up resources when a VM is deleted.
+  * New builder keywords: `disk_delete_option`, `nic_delete_option`, `public_ip_delete_option`
+  * New convenience keyword: `delete_attached` to set all delete options at once
+  * Simplified type: All delete options now use a single `DeleteOption` type with `Delete` and `Detach` values
+
+## 1.9.23
+* Actions Groups: Bump API version to `2025-09-01-preview`.
+
+## 1.9.22
+* AKS Cluster: Added support for Azure Key Vault provider for Secrets Store CSI Driver
+
+## 1.9.21
+* AKS Cluster: Added auto_upgrade_profile option for managed clusters
+* AKS Cluster: Added os_sku option for agentPool config
+
+## 1.9.20
+* Data Collection: Fixes bug in data collection association by removing location field.
+
+## 1.9.19
+* Data Collection: Adds `dataCollectionRule`, `dataCollectionEndpoint`, `dataCollectionRuleAssociation` builders for Azure Monitor
+* Prometheus Group Rules: Adds `prometheusRuleGroup` builder for prometheus metrics in Azure Monitor
+* Container Service: add ability to specify `enable_azure_monitor` parameter
+* Action Group: adds ability to create Incident Receivers in action group with `add_incident_receivers`
+* NAT Gateways: enables setting the `sku` for the NAT Gateway and the generated Public IP Address resource.
+
+## 1.9.18
+* AKS: add ability to specify `kubernetes_version` parameter
+
+## 1.9.16
+* AKS: add node_resource_group parameter to aks config
+
+## 1.9.15
+* Container Apps: Adds health probes.
+* AKS: Add node_taints parameter to agent pool config.
+
+## 1.9.14
+* VMSS, AKS, Azure Firewall, Managed Clusters (AKS): Adds `pick_zones` to let ARM select the availability zones.
+* AKS: Remove deprecated `docker_bridge` from Container Services (AKS).
+
+## 1.9.13
+* Subnets: Support for `disable_outbound_access`.
+* Public IP Addresses and Load Balancers: drop `Basic` SKU, support zones.
+
+## 1.9.12
+* AKS Cluster: Add link_to_kubelet_identity
+* VMSS overprovisioning controls
+
+## 1.9.11
+* VM extensions: support for auto-upgrades and initial version
+
+## 1.9.10
+* Application Gateways: Adds SSL Certificates
+* Network Security Groups: use ARM expressions in security rules
+* Gallery Applications: `source_media_link` can be an ARM expression
+
+## 1.9.9
+* Virtual Machines: support for Azure Linux 3.0
+* Virtual Machines: support for Standard SKU Public IP Address
+* Galleries: support for Gallery Applications to distribute applications for Virtual Machines and Virtual Machine Scale Sets
+
+## 1.9.8
+* AKS Cluster: support for node pool availability zones
+
+## 1.9.7
+* AKS Cluster: support for Sku and Tier. Support for pod subnet in agent pool config. Support for node pool autoscaling
+* CosmosDB: Add support for Gremlin Graphs
+* Virtual Machines: Support gallery references for VMs (`operating_system`)
+* Virtual Machines and VMSS: Support for security profile options (#1163)
+
+## 1.9.6
+- Network Interface: Support for adding Network Security Group (NSG) to Network Interface (NIC)
+
+## 1.9.5
+* Fix an issue with Access Policies that allows non-string sequences to be supplied for user / group lookups.
+* Virtual Network: Specify the route table for a subnet.
+
 ## 1.9.4
 * Network Security Groups: Use a common protocol in security rules with multiple sources. Defaults to Any if sources use different protocols.
 
@@ -11,6 +90,7 @@ Release Notes
 * Functions: Support automatic creation of Workspace Based App Insights & Log Analytics.
 * Az: Update `ad` commands to work with latest (breaking) structure.
 * PostgreSQL: Fix a number of issues around the introduction of Flexible Servers.
+
 
 ## 1.9.2
 * Container Apps: Fix to container registry credential to not emit a secret for a managed identity.

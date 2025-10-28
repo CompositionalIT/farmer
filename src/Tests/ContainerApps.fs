@@ -1,5 +1,6 @@
 module ContainerApps
 
+open System
 open Expecto
 open Farmer
 open Farmer.Builders
@@ -41,6 +42,7 @@ let fullContainerAppDeployment =
 
         add_containers [
             container {
+                set_probe Liveness ProbeProtocol.HTTPS "/api/healthcheck" 443
                 name "http"
                 private_docker_image containerRegistryDomain "http" version
                 cpu_cores 0.25<VCores>
@@ -430,8 +432,7 @@ let tests =
             Expect.isFalse
                 (containerApp.Secrets
                  |> Map.containsKey
-                     (ContainerAppValidation.ContainerAppSettingKey.Create $"{containerRegistryName}-username")
-                         .OkValue)
+                     (ContainerAppValidation.ContainerAppSettingKey.Create $"{containerRegistryName}-username").OkValue)
                 "Container app did not have linked ACR's secret"
         }
 
@@ -464,5 +465,24 @@ let tests =
                     | _ -> None)
 
             Expect.isSome managedEnvironment.AppInsightsInstrumentationKey "Dapr AI key not set"
+        }
+
+        test "Supports Health Probes" {
+            let apps =
+                fullContainerAppDeployment.Template.Resources
+                |> List.choose (function
+                    | (:? ContainerApp as c) -> Some c
+                    | _ -> None)
+
+            let probe =
+                apps
+                |> List.pick (fun app ->
+                    app.Containers
+                    |> List.tryFind (fun c -> not c.Probes.IsEmpty)
+                    |> Option.map (fun c -> c.Probes[Liveness]))
+
+            Expect.equal probe.Protocol ProbeProtocol.HTTPS "Incorrect probe protocol"
+            Expect.equal (probe.Route.ToString()) "/api/healthcheck" "Incorrect probe route"
+            Expect.equal probe.Port 443 "Incorrect probe port"
         }
     ]

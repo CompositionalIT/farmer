@@ -217,6 +217,25 @@ module DedicatedHosts =
             | WindowsPerpetual -> "Windows_Server_Perpetual"
 
 module Vm =
+
+    type VmProxyAgentMode =
+        | Audit
+        | Enforce
+
+        member this.ArmValue =
+            match this with
+            | Audit -> "Audit"
+            | Enforce -> "Enforce"
+
+    type VmSecurityType =
+        | ConfidentialVM
+        | TrustedLaunch
+
+        member this.ArmValue =
+            match this with
+            | ConfidentialVM -> "ConfidentialVM"
+            | TrustedLaunch -> "TrustedLaunch"
+
     type VMSize =
         | Basic_A0
         | Basic_A1
@@ -821,6 +840,21 @@ module Vm =
         OS: OS
     }
 
+    type GalleryImageId =
+        | SharedGalleryImageId of gallery: ResourceName * image: ResourceName * version: string
+        | CommunityGalleryImageId of gallery: ResourceName * image: ResourceName * version: string
+
+        member this.ArmValue =
+            match this with
+            | SharedGalleryImageId(ResourceName gallery, ResourceName image, version) ->
+                $"/SharedGalleries/{gallery}/Images/{image}/Versions/{version}"
+            | CommunityGalleryImageId(ResourceName gallery, ResourceName image, version) ->
+                $"/CommunityGalleries/{gallery}/Images/{image}/Versions/{version}"
+
+    type ImageInfo =
+        | ImageDefinition of ImageDefinition
+        | GalleryImageRef of OS * GalleryImageId
+
     let makeVm os offer publisher sku = {
         Offer = Offer offer
         Publisher = Publisher publisher
@@ -876,6 +910,22 @@ module Vm =
     let Mariner_2_Fips =
         makeLinuxVm "cbl-mariner" "MicrosoftCBLMariner" "cbl-mariner-2-gen2-fips"
 
+    // Aliasing Azure Linux 2 to Mariner 2 since rebranding.
+    let AzureLinux_2 = Mariner_2
+
+    let AzureLinux_2Arm = Mariner_2Arm
+
+    let AzureLinux_2Fips = Mariner_2_Fips
+
+    let AzureLinux_3 =
+        makeLinuxVm "azure-linux-3" "MicrosoftCBLMariner" "azure-linux-3-gen2"
+
+    let AzureLinux_3Arm =
+        makeLinuxVm "azure-linux-3" "MicrosoftCBLMariner" "azure-linux-3-arm64"
+
+    let AzureLinux_3Fips =
+        makeLinuxVm "azure-linux-3" "MicrosoftCBLMariner" "azure-linux-3-gen2-fips"
+
     let WindowsServer_2022DatacenterAzureEdition =
         makeWindowsVm "2022-datacenter-azure-edition"
 
@@ -930,6 +980,16 @@ module Vm =
             match this with
             | x -> x.ToString()
 
+    /// Specifies what happens to a resource (disk, NIC, or public IP) when a VM is deleted.
+    type DeleteOption =
+        | Delete
+        | Detach
+
+        member this.ArmValue =
+            match this with
+            | Delete -> "Delete"
+            | Detach -> "Detach"
+
     /// Represents a disk in a VM.
     type DiskInfo = {
         Size: int
@@ -944,20 +1004,27 @@ module Vm =
     /// VM OS disks can be created by attaching an existing disk or from a gallery image.
     type OsDiskCreateOption =
         | AttachOsDisk of OS * ManagedDiskId: LinkedResource
-        | FromImage of ImageDefinition * DiskInfo
+        | AttachOsDiskWithDelete of OS * ManagedDiskId: LinkedResource
+        | FromImage of ImageInfo * DiskInfo
+        | FromImageWithDelete of ImageInfo * DiskInfo
 
     /// VM data disks can be created by attaching an existing disk or generating an empty disk.
     type DataDiskCreateOption =
         | AttachDataDisk of ManagedDiskId: LinkedResource
+        | AttachDataDiskWithDelete of ManagedDiskId: LinkedResource
         /// Indicates the disk being attached is an ultra disk to enable that option on the VM
         | AttachUltra of ManagedDiskId: LinkedResource
+        | AttachUltraWithDelete of ManagedDiskId: LinkedResource
         | Empty of DiskInfo
+        | EmptyWithDelete of DiskInfo
 
         /// Indicates an Ultra SSD will be used so that option should be enabled on the VM.
         member this.IsUltraDisk =
             match this with
-            | AttachUltra _ -> true
-            | Empty diskInfo when diskInfo.IsUltraDisk -> true
+            | AttachUltra _
+            | AttachUltraWithDelete _ -> true
+            | Empty diskInfo
+            | EmptyWithDelete diskInfo when diskInfo.IsUltraDisk -> true
             | _ -> false
 
     type EvictionPolicy =
@@ -1152,6 +1219,8 @@ module internal Validation =
 
     let lettersNumbersDashOrDot =
         "alphanumeric characters, a dash (-) or a dot (.)", Char.IsLetterOrDigit <|> (snd dash) <|> (snd dot)
+
+    let numbersOrDot = "numeric characters or the dot (.)", Char.IsDigit <|> (snd dot)
 
     let validate entity inputValue rules =
         rules
@@ -1889,6 +1958,36 @@ module GalleryValidation =
             match this with
             | GalleryName name -> name
 
+    type GalleryApplicationName =
+        private
+        | GalleryApplicationName of ResourceName
+
+        static member Create name =
+            [ containsOnly lettersNumbersDashOrDot; nonEmptyLengthBetween 1 80 ]
+            |> validate "Gallery Application Name" name
+            |> Result.map (ResourceName >> GalleryApplicationName)
+
+        static member internal Empty = GalleryApplicationName ResourceName.Empty
+
+        member this.ResourceName =
+            match this with
+            | GalleryApplicationName name -> name
+
+    type GalleryApplicationVersionName =
+        private
+        | GalleryApplicationVersionName of ResourceName
+
+        static member Create name =
+            [ containsOnly numbersOrDot; isNonEmpty ]
+            |> validate "Gallery Application Version Name" name
+            |> Result.map (ResourceName >> GalleryApplicationVersionName)
+
+        static member internal Empty = GalleryApplicationVersionName ResourceName.Empty
+
+        member this.ResourceName =
+            match this with
+            | GalleryApplicationVersionName name -> name
+
 module Search =
     type HostingMode =
         | Default
@@ -1923,7 +2022,7 @@ module Sql =
         | Gen5_32
         | Gen5_40
         | Gen5_80
-        | S_Gen5 of CapacityMin: int * CapacityMax: int
+        | S_Gen5 of CapacityMin: float * CapacityMax: float
 
         member this.Name =
             Reflection.FSharpValue.GetUnionFields(this, typeof<Gen5Series>)
@@ -2161,9 +2260,7 @@ module Identity =
                 | UserAssignedIdentity rid -> rid
                 | LinkedUserAssignedIdentity rid -> rid
 
-            ArmExpression
-                .create($"reference({resourceId.ArmExpression.Value}).%s{field}")
-                .WithOwner(resourceId)
+            ArmExpression.create($"reference({resourceId.ArmExpression.Value}).%s{field}").WithOwner(resourceId)
 
         member this.PrincipalId = this.CreateExpression "principalId" |> PrincipalId
         member this.ClientId = this.CreateExpression "clientId"
@@ -2329,6 +2426,54 @@ module ContainerService =
             match this with
             | Kubenet -> "kubenet"
             | AzureCni -> "azure"
+
+    [<RequireQualifiedAccess>]
+    type Sku =
+        | Automatic
+        | Base
+
+        member this.ArmValue =
+            match this with
+            | Automatic -> "Automatic"
+            | Base -> "Base"
+
+    [<RequireQualifiedAccess>]
+    type Tier =
+        | Free
+        | Standard
+        | Premium
+
+        member this.ArmValue =
+            match this with
+            | Free -> "Free"
+            | Standard -> "Standard"
+            | Premium -> "Premium"
+
+    type ContainerServiceSku = { Name: Sku; Tier: Tier }
+
+    [<RequireQualifiedAccess>]
+    type AutoUpgradeChannel =
+        | Patch
+        | Stable
+        | Rapid
+
+        member this.ArmValue =
+            match this with
+            | Patch -> "patch"
+            | Stable -> "stable"
+            | Rapid -> "rapid"
+
+    [<RequireQualifiedAccess>]
+    type NodeOSUpgradeChannel =
+        | NodeImage
+        | SecurityPatch
+        | Unmanaged
+
+        member this.ArmValue =
+            match this with
+            | NodeImage -> "NodeImage"
+            | SecurityPatch -> "SecurityPatch"
+            | Unmanaged -> "Unmanaged"
 
 module B2cTenant =
     type Sku =
@@ -2565,12 +2710,10 @@ module PrivateIpAddress =
 module LoadBalancer =
     [<RequireQualifiedAccess>]
     type Sku =
-        | Basic
         | Standard
 
         member this.ArmValue =
             match this with
-            | Basic -> "Basic"
             | Standard -> "Standard"
 
     [<RequireQualifiedAccess>]
@@ -2844,6 +2987,16 @@ module ApplicationGateway =
             | TemporaryRedirect -> "TemporaryRedirect"
             | PermanentRedirect -> "PermanentRedirect"
 
+module NatGateway =
+    [<RequireQualifiedAccess>]
+    type Sku =
+        | Standard
+        | StandardV2
+
+        member this.ArmValue =
+            match this with
+            | Standard -> "Standard"
+            | StandardV2 -> "StandardV2"
 
 module VirtualNetworkGateway =
     [<RequireQualifiedAccess>]
@@ -3385,6 +3538,7 @@ module NetworkSecurity =
         | Network of IPAddressCidr
         | Tag of string
         | AnyEndpoint
+        | Expression of ArmExpression
 
         member this.ArmValue: obj =
             match this with
@@ -3393,6 +3547,7 @@ module NetworkSecurity =
             | Network cidr -> cidr |> IPAddressCidr.format |> box
             | Tag tag -> tag
             | AnyEndpoint -> "*"
+            | Expression expr -> expr.Eval()
 
     module Endpoint =
         let ArmValue (endpoint: Endpoint) = endpoint.ArmValue
@@ -3424,13 +3579,13 @@ module PublicIpAddress =
             | Static -> "Static"
 
     type Sku =
-        | Basic
         | Standard
+        | StandardV2
 
         member this.ArmValue =
             match this with
-            | Basic -> "Basic"
             | Standard -> "Standard"
+            | StandardV2 -> "StandardV2"
 
 module Cdn =
     type Sku =
@@ -3956,6 +4111,11 @@ module ContainerApp =
         | HTTP1
         | HTTP2
         | Auto
+
+    [<RequireQualifiedAccess>]
+    type ProbeProtocol =
+        | TCP
+        | HTTPS
 
     type IngressMode =
         | External of port: uint16 * Transport option

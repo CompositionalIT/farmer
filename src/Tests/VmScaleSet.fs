@@ -15,6 +15,7 @@ let tests =
                     vmss {
                         name "my-scale-set"
                         capacity 3
+                        pick_zones
 
                         vm_profile (
                             vm {
@@ -89,6 +90,130 @@ let tests =
                 (vmProfile.SelectToken("osProfile.computerNamePrefix").ToString())
                 "my-scale-set"
                 "VMSS OS profile has incorrect computer name prefix"
+
+            let zones = vmss["zones"]
+            Expect.isNotNull zones "VMSS should have 'zones'"
+
+            Expect.equal
+                (vmss["zones"].ToString())
+                "[pickZones('Microsoft.Compute', 'virtualMachineScaleSets', resourceGroup().location, 3)]"
+                "Incorrect syntax for 'pickZones'"
+        }
+        test "Create a basic scale set using a gallery image" {
+            let deployment = arm {
+                add_resources [
+                    vmss {
+                        name "my-scale-set"
+
+                        vm_profile (
+                            vm {
+                                username "azureuser"
+
+                                operating_system (
+                                    Linux,
+                                    CommunityGalleryImageId(
+                                        ResourceName "test-gallery",
+                                        ResourceName "test-image",
+                                        "version"
+                                    )
+                                )
+
+                                vm_size Standard_B1s
+                                os_disk 128 StandardSSD_LRS
+                            }
+                        )
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmss = jobj.SelectToken("resources[?(@.name=='my-scale-set')]")
+            Expect.isNotNull vmss "Scale set resource not generated"
+            let vmssProps = vmss["properties"]
+            Expect.isNotNull vmssProps "VMSS is missing 'properties'"
+            let vmProfile = vmssProps.SelectToken("virtualMachineProfile")
+            Expect.isNotNull vmProfile "VMSS is missing VM profile"
+
+            Expect.isNull (vmssProps.SelectToken "overprovision") "VMSS is not expected to have overprovision"
+
+            Expect.isNull
+                (vmssProps.SelectToken "doNotRunExtensionsOnOverprovisionedVMs")
+                "VMSS is not expected to have doNotRunExtensionsOnOverprovisionedVMs"
+
+            Expect.equal
+                (vmProfile.SelectToken("storageProfile.imageReference.communityGalleryImageId").ToString())
+                "/CommunityGalleries/test-gallery/Images/test-image/Versions/version"
+                "VMSS OS profile has incorrect image reference"
+        }
+        test "Create a scale with OS upgrade and overprovisioning options" {
+            let deployment = arm {
+                add_resources [
+                    vmss {
+                        name "my-scale-set"
+                        capacity 1
+                        overprovision false
+                        run_extensions_on_overprovisioned_vms false
+
+                        vm_profile (
+                            vm {
+                                username "azureuser"
+
+                                operating_system (
+                                    Linux,
+                                    SharedGalleryImageId(
+                                        ResourceName "test-gallery",
+                                        ResourceName "test-image",
+                                        "version"
+                                    )
+                                )
+
+                                vm_size Standard_B1s
+                                os_disk 128 StandardSSD_LRS
+                            }
+                        )
+
+                        osupgrade_automatic true
+                        osupgrade_rolling_upgrade true
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmss = jobj.SelectToken("resources[?(@.name=='my-scale-set')]")
+            Expect.isNotNull vmss "Scale set resource not generated"
+            let vmssProps = vmss["properties"]
+            Expect.isNotNull vmssProps "VMSS is missing 'properties'"
+            let vmProfile = vmssProps.SelectToken("virtualMachineProfile")
+            Expect.isNotNull vmProfile "VMSS is missing VM profile"
+
+            Expect.equal
+                (vmssProps.SelectToken "overprovision" |> string)
+                (string false)
+                "VMSS is expected to have overprovision"
+
+            Expect.equal
+                (vmssProps.SelectToken "doNotRunExtensionsOnOverprovisionedVMs" |> string)
+                (string true)
+                "VMSS is expected to have doNotRunExtensionsOnOverprovisionedVMs"
+
+            Expect.equal
+                (vmProfile.SelectToken("storageProfile.imageReference.sharedGalleryImageId").ToString())
+                "/SharedGalleries/test-gallery/Images/test-image/Versions/version"
+                "VMSS OS profile has incorrect image reference"
+
+            Expect.equal
+                (vmssProps.SelectToken("upgradePolicy.automaticOSUpgradePolicy.enableAutomaticOSUpgrade").ToString())
+                (string true)
+                "VMSS OS upgrade policy is expected to be enabled"
+
+            Expect.equal
+                (vmssProps.SelectToken("upgradePolicy.automaticOSUpgradePolicy.useRollingUpgradePolicy").ToString())
+                (string true)
+                "VMSS OS rolling upgrade policy is expected to be enabled"
+
+            Expect.isNull
+                (vmssProps.SelectToken("upgradePolicy.automaticOSUpgradePolicy.disableAutomaticRollback"))
+                "VMSS OS automatic upgrade rollback is not expected to be set"
         }
         test "Create a scale set linking to existing vnet" {
             let deployment = arm {
@@ -191,5 +316,42 @@ let tests =
                 (vmProfile.SelectToken("osProfile.computerNamePrefix").ToString())
                 "my-scale-set"
                 "VMSS OS profile has incorrect computer name prefix"
+        }
+
+        test "VMSS does not set deleteOption even when delete_attached is used" {
+            let deployment = arm {
+                add_resources [
+                    vmss {
+                        name "my-scale-set"
+                        capacity 2
+
+                        vm_profile (
+                            vm {
+                                username "azureuser"
+                                operating_system UbuntuServer_2204LTS
+                                vm_size Standard_B1s
+                                os_disk 128 StandardSSD_LRS
+                                add_ssd_disk 256
+                                delete_attached // This should be ignored for scale sets
+                            }
+                        )
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmss = jobj.SelectToken("resources[?(@.name=='my-scale-set')]")
+            let vmProfile = vmss.SelectToken("properties.virtualMachineProfile")
+
+            // Check OS disk does NOT have deleteOption
+            let osDiskDeleteOption = vmProfile.SelectToken("storageProfile.osDisk.deleteOption")
+
+            Expect.isNull osDiskDeleteOption "VMSS OS disk should NOT have deleteOption property"
+
+            // Check data disk does NOT have deleteOption
+            let dataDiskDeleteOption =
+                vmProfile.SelectToken("storageProfile.dataDisks[0].deleteOption")
+
+            Expect.isNull dataDiskDeleteOption "VMSS data disk should NOT have deleteOption property"
         }
     ]

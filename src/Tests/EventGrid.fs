@@ -127,6 +127,7 @@ let tests =
 
             let bus = serviceBus {
                 name "busbus"
+                sku ServiceBus.Standard
                 add_topics [ t ]
             }
 

@@ -1,7 +1,9 @@
 module ContainerService
 
 open Expecto
+open Farmer.Arm
 open Farmer.Arm.ContainerService.AddonProfiles
+open Farmer.Arm.ContainerService
 open Farmer.Arm.RoleAssignment
 open Farmer.Builders
 open Farmer
@@ -215,6 +217,7 @@ let tests =
                         count 3
                         vnet "my-vnet"
                         subnet "containernet"
+                        pod_subnet "podnet"
                     }
                 ]
 
@@ -230,28 +233,6 @@ let tests =
 
             Expect.hasLength aks.AgentPoolProfiles 1 ""
             Expect.equal aks.AgentPoolProfiles.[0].Name "linuxpool" ""
-        }
-        test "AKS with private API must use a standard load balancer." {
-            Expect.throws
-                (fun () ->
-                    let _ = aks {
-                        name "k8s-cluster"
-                        service_principal_client_id "some-spn-client-id"
-                        dns_prefix "testaks"
-
-                        add_agent_pools [
-                            agentPool {
-                                name "linuxPool"
-                                count 3
-                            }
-                        ]
-
-                        network_profile (kubenetNetworkProfile { load_balancer_sku LoadBalancer.Sku.Basic })
-                        enable_private_cluster true
-                    }
-
-                    ())
-                "Should throw validation exception when trying to use a private cluster on a basic LB"
         }
         test "AKS API accessible to limited IP range." {
             let myAks = aks {
@@ -281,6 +262,49 @@ let tests =
             Expect.hasLength authIpRanges 1 ""
 
             Expect.equal (authIpRanges.[0].ToString()) "88.77.66.0/24" "Got incorrect value for authorized IP ranges."
+        }
+        test "AKS with linked MSI" {
+            let linkedMsi =
+                ResourceId.create (
+                    ResourceType.ResourceType("Microsoft.ManagedIdentity/userAssignedIdentities", "2023-01-31"),
+                    Farmer.ResourceName("test-msi"),
+                    "test-rg",
+                    "d33736db-6f4e-44c4-8846-e779334f300c"
+                )
+
+            let myAks = aks {
+                name "aks-cluster"
+                dns_prefix "aks-cluster-223d2976"
+                link_to_identity linkedMsi
+                service_principal_use_msi
+                link_to_kubelet_identity linkedMsi
+            }
+
+            let template = arm {
+                location Location.EastUS
+                add_resource myAks
+            }
+
+            let json = template.Template |> Writer.toJson
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+            let kubeletIdentityDependsOn =
+                jobj.SelectToken("resources[?(@.name=='aks-cluster')].dependsOn").Children()
+                |> Seq.map string
+                |> Seq.toArray
+
+            Expect.equal kubeletIdentityDependsOn.Length 0 "incorrect number of dependencies"
+
+            let kubeletIdentityClientId =
+                jobj.SelectToken(
+                    "resources[?(@.name=='aks-cluster')].properties.identityProfile.kubeletIdentity.clientId"
+                )
+                |> string
+
+            Expect.equal
+                kubeletIdentityClientId
+                "[reference(resourceId('d33736db-6f4e-44c4-8846-e779334f300c', 'test-rg', 'Microsoft.ManagedIdentity/userAssignedIdentities', 'test-msi'), '2023-01-31').clientId]"
+                "Incorrect kubelet identity reference."
         }
         test "AKS with MSI and Kubelet identity" {
             let kubeletMsi = createUserAssignedIdentity "kubeletIdentity"
@@ -347,6 +371,13 @@ let tests =
 
             Expect.equal identity "UserAssigned" "Should have a UserAssigned identity."
 
+            let kubeletIdentityDependsOn =
+                jobj.SelectToken("resources[?(@.name=='aks-cluster')].dependsOn").Children()
+                |> Seq.map string
+                |> Seq.toArray
+
+            Expect.equal kubeletIdentityDependsOn.Length 5 "incorrect number of dependencies"
+
             let kubeletIdentityClientId =
                 jobj.SelectToken(
                     "resources[?(@.name=='aks-cluster')].properties.identityProfile.kubeletIdentity.clientId"
@@ -357,6 +388,129 @@ let tests =
                 kubeletIdentityClientId
                 "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity'), '2023-01-31').clientId]"
                 "Incorrect kubelet identity reference."
+        }
+        test "Basic AKS cluster with node taints" {
+            let myAks = aks {
+                name "aks-cluster"
+                dns_prefix "testaks"
+
+                add_agent_pools [
+                    agentPool {
+                        name "linuxPool"
+                        count 3
+                        node_taints [ "CriticalAddonsOnly=true:NoSchedule" ]
+                    }
+                ]
+            }
+
+            let template = arm { add_resource myAks }
+            let json = template.Template |> Writer.toJson
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+            let firstNodeTaint =
+                jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.agentPoolProfiles[0].nodeTaints[0]")
+                |> string
+
+            Expect.equal firstNodeTaint "CriticalAddonsOnly=true:NoSchedule" "Incorrect nodeTaint value"
+        }
+        test "Basic AKS cluster with node resource group" {
+            let myAks = aks {
+                name "aks-cluster"
+                dns_prefix "testaks"
+                node_resource_group (ResourceName "MC_aks-cluster")
+
+                add_agent_pools [
+                    agentPool {
+                        name "linuxPool"
+                        count 3
+                        node_taints [ "CriticalAddonsOnly=true:NoSchedule" ]
+                    }
+                ]
+            }
+
+            let template = arm { add_resource myAks }
+            let json = template.Template |> Writer.toJson
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+            let nodeResourceGroup =
+                jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.nodeResourceGroup")
+                |> string
+
+            Expect.equal nodeResourceGroup "MC_aks-cluster" "Incorrect nodeResourceGroup value"
+        }
+        test "Basic AKS cluster with specific version" {
+            let myAks = aks {
+                name "aks-cluster"
+                kubernetes_version "1.31"
+            }
+
+            let template = arm { add_resource myAks }
+            let json = template.Template |> Writer.toJson
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+            let kubernetesVersion =
+                jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.kubernetesVersion")
+                |> string
+
+            Expect.equal kubernetesVersion "1.31" "Incorrect kubernetes version value"
+
+            let myNextAks = aks {
+                name "next-aks-cluster"
+
+                kubernetes_version {
+                    Major = 1
+                    Minor = 31
+                    Patch = Some 8
+                }
+            }
+
+            let nextTemplate = arm { add_resource myNextAks }
+            let nextJson = nextTemplate.Template |> Writer.toJson
+            let nextJobj = Newtonsoft.Json.Linq.JObject.Parse(nextJson)
+
+            let nextKubernetesVersion =
+                nextJobj.SelectToken("resources[?(@.name=='next-aks-cluster')].properties.kubernetesVersion")
+                |> string
+
+            Expect.equal nextKubernetesVersion "1.31.8" "Incorrect kubernetes version for next AKS cluster."
+        }
+        test "KubernetesVersion Parsing" {
+            Expect.equal
+                (KubernetesVersion.Create "1.31")
+                (Ok { Major = 1; Minor = 31; Patch = None })
+                "KubernetesVersion.Create should parse version correctly."
+
+            Expect.equal
+                (KubernetesVersion.Create "1.31.7")
+                (Ok {
+                    Major = 1
+                    Minor = 31
+                    Patch = Some 7
+                })
+                "KubernetesVersion.Create should parse version correctly."
+
+            Expect.isError
+                (KubernetesVersion.Create "")
+                "KubernetesVersion.Create should return error for empty string."
+
+            Expect.isError
+                (KubernetesVersion.Create "1")
+                "KubernetesVersion.Create should return error for version without minor version."
+
+            Expect.isError
+                (KubernetesVersion.Create "major.minor.patch")
+                "KubernetesVersion.Create should return error for non-numeric version."
+
+            try
+                let myAks = aks {
+                    name "aks-cluster"
+                    kubernetes_version "1"
+                }
+
+                failwith "Able to create AKS with invalid Kubernetes version."
+            with
+            | :? FarmerException -> ()
+            | ex -> failwithf "Expected FarmerException, but got: %s" (ex.Message)
         }
         test "Basic AKS cluster with addons" {
             let myAppGateway = appGateway { name "app-gw" }
@@ -374,6 +528,11 @@ let tests =
                         Status = Enabled
                         ApplicationGatewayId = (myAppGateway :> IBuilder).ResourceId
                         Identity = Some appGatewayMsi.UserAssignedIdentity
+                    }
+                    AzureKeyvaultSecretsProvider {
+                        Status = Enabled
+                        EnableSecretRotation = Some true
+                        RotationPollInterval = Some "2m"
                     }
                 ]
             }
@@ -430,5 +589,152 @@ let tests =
                 appGatewayIngress
                 expectedAppGateway
                 "Unexpected value for addonProfiles.ingressApplicationGateway."
+
+            let expectedAzureKeyvaultSecretsProvider =
+                """{
+  "config": {
+    "enableSecretRotation": "True",
+    "rotationPollInterval": "2m"
+  },
+  "enabled": true
+}"""
+
+            let azureKeyvaultSecretsProvider =
+                jobj.SelectToken(
+                    "resources[?(@.name=='aks-cluster')].properties.addonProfiles.azureKeyvaultSecretsProvider"
+                )
+                |> string
+
+            Expect.equal
+                azureKeyvaultSecretsProvider
+                expectedAzureKeyvaultSecretsProvider
+                "Unexpected value for addonProfiles.azureKeyvaultSecretsProvider."
+        }
+
+        test "Simple AKS cluster with Azure Monitor enabled" {
+            let myAks = aks {
+                name "k8s-cluster"
+                dns_prefix "testaks"
+
+                add_agent_pools [
+                    agentPool {
+                        name "linuxPool"
+                        count 3
+                    }
+                ]
+
+                linux_profile "aksuser" "public-key-here"
+                service_principal_client_id "some-spn-client-id"
+                enable_azure_monitor
+            }
+
+            let template = arm { add_resource myAks }
+            let json = template.Template |> Writer.toJson
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+            let enableAzureMonitor =
+                jobj.SelectToken("resources[?(@.name=='k8s-cluster')].properties.azureMonitorProfile.metrics.enabled")
+                |> string
+
+            Expect.equal enableAzureMonitor "True" "Incorrect azureMonitorProfile.metrics.enabled value"
+        }
+
+        test "Simple AKS cluster with Azure Monitor enabled and metrics labels allow list specified" {
+            let myAks = aks {
+                name "k8s-cluster"
+                dns_prefix "testaks"
+
+                add_agent_pools [
+                    agentPool {
+                        name "linuxPool"
+                        count 3
+                    }
+                ]
+
+                linux_profile "aksuser" "public-key-here"
+                service_principal_client_id "some-spn-client-id"
+
+                add_kube_state_metrics (
+                    {
+                        MetricLabelsAllowList = Some "app"
+                        MetricAnnotationsAllowList = None
+                    }
+                )
+            }
+
+            let template = arm { add_resource myAks }
+            let json = template.Template |> Writer.toJson
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+            let enableAzureMonitor =
+                jobj.SelectToken("resources[?(@.name=='k8s-cluster')].properties.azureMonitorProfile.metrics.enabled")
+                |> string
+
+            let metricLabelsAllowList =
+                jobj.SelectToken(
+                    "resources[?(@.name=='k8s-cluster')].properties.azureMonitorProfile.metrics.kubeStateMetrics.metricLabelsAllowList"
+                )
+                |> string
+
+            Expect.equal enableAzureMonitor "True" "Incorrect azureMonitorProfile.metrics.enabled value"
+
+            Expect.equal
+                metricLabelsAllowList
+                "app"
+                "azureMonitorProfile.metrics.kubeStateMetrics.metricLabelsAllowList should be 'app' when specified"
+        }
+        test "Basic AKS cluster with auto upgrade channel" {
+            let autoUpgradeConfig = {
+                AutoUpgradeChannel = ContainerService.AutoUpgradeChannel.Stable
+                NodeOSUpgradeChannel = ContainerService.NodeOSUpgradeChannel.NodeImage
+            }
+
+            let myAks = aks {
+                name "aks-cluster"
+                dns_prefix "testaks"
+                auto_upgrade_profile autoUpgradeConfig
+
+                add_agent_pools [
+                    agentPool {
+                        name "linuxPool"
+                        count 3
+                    }
+                ]
+            }
+
+            let template = arm { add_resource myAks }
+            let json = template.Template |> Writer.toJson
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+            let autoUpgradeChannel =
+                jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.autoUpgradeProfile.upgradeChannel")
+                |> string
+
+            Expect.equal autoUpgradeChannel "stable" "Incorrect autoUpgradeChannel value"
+        }
+        test "Basic AKS cluster with osSKU" {
+            let myAks = aks {
+                name "aks-cluster"
+                dns_prefix "testaks"
+
+                add_agent_pools [
+                    agentPool {
+                        name "linuxPool"
+                        count 3
+                        node_taints [ "CriticalAddonsOnly=true:NoSchedule" ]
+                        os_sku "AzureLinux"
+                    }
+                ]
+            }
+
+            let template = arm { add_resource myAks }
+            let json = template.Template |> Writer.toJson
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+            let osSKU =
+                jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.agentPoolProfiles[0].osSKU")
+                |> string
+
+            Expect.equal osSKU "AzureLinux" "Incorrect osSKU value"
         }
     ]

@@ -77,6 +77,49 @@ let tests =
 
             Expect.isNull (vmProperties.Property "priority") "Priority should not be set by default"
         }
+        test "VM with security profile and trusted launch" {
+            let template =
+                let myVm = vm {
+                    name "myvm"
+                    username "me"
+                    security_type TrustedLaunch
+                }
+
+                arm { add_resource myVm }
+
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(template.Template |> Writer.toJson)
+
+            let securityProfile =
+                jobj.SelectToken("resources[?(@.name=='myvm')].properties.securityProfile")
+                :?> Newtonsoft.Json.Linq.JObject
+
+            Expect.equal
+                (string (securityProfile.Property "securityType").Value)
+                "TrustedLaunch"
+                "Expected securityProfile.securityType to be TrustedLaunch"
+        }
+        test "VM with security profile and UEFI" {
+            let template =
+                let myVm = vm {
+                    name "myvm"
+                    username "me"
+                    security_type TrustedLaunch
+                    secure_boot Enabled
+                    vtpm Disabled
+                }
+
+                arm { add_resource myVm }
+
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(template.Template |> Writer.toJson)
+
+            let uefi =
+                jobj.SelectToken("resources[?(@.name=='myvm')].properties.securityProfile.uefiSettings")
+                :?> Newtonsoft.Json.Linq.JObject
+
+            Expect.equal (string (uefi.Property "secureBootEnabled").Value) "True" "Expected secureBootEnabled"
+
+            Expect.equal (string (uefi.Property "vTpmEnabled").Value) "False" "Expected vTpmEnabled to be False"
+        }
         test "Can create a basic virtual machine with managed boot diagnostics" {
             let resource =
                 let myVm = vm {
@@ -732,9 +775,7 @@ let tests =
             let jobj = Newtonsoft.Json.Linq.JObject.Parse json
 
             let vmNsgId =
-                jobj
-                    .SelectToken($"resources[?(@.name=='{vmName}-nic')].properties.networkSecurityGroup.id")
-                    .ToString()
+                jobj.SelectToken($"resources[?(@.name=='{vmName}-nic')].properties.networkSecurityGroup.id").ToString()
 
             Expect.isFalse (String.IsNullOrEmpty vmNsgId) "NSG not attached"
         }
@@ -799,9 +840,7 @@ let tests =
             Expect.hasLength nicDependsOn 1 "NIC should only have 1 dependency - the public IP"
 
             let nicSubnetId =
-                nicResource
-                    .SelectToken("properties.ipConfigurations[0].properties.subnet.id")
-                    .ToString()
+                nicResource.SelectToken("properties.ipConfigurations[0].properties.subnet.id").ToString()
 
             Expect.equal
                 nicSubnetId
@@ -1198,5 +1237,327 @@ let tests =
                 (galleryApps[0].SelectToken "packageReferenceId" |> string)
                 "[resourceId('Microsoft.Compute/galleries/applications/versions', 'farmer.app.gallery', 'some-data', '1.0.1')]"
                 "Missing on incorrect packageReferenceId"
+        }
+        test "Creates VM with Standard SKU Public IP" {
+            let deployment = arm {
+                location Location.WestUS3
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        vm_size Standard_B1ms
+                        username "azureuser"
+                        operating_system UbuntuServer_2204LTS
+                        public_ip_sku PublicIpAddress.Standard
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+
+            let publicIpSku = jobj.SelectToken "resources[?(@.name=='my-vm-ip')].sku.name"
+
+            Expect.equal (string publicIpSku) "Standard" "Public IP SKU should be 'Standard'."
+        }
+        test "VM with disk delete option" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1s
+                        operating_system UbuntuServer_2204LTS
+                        os_disk 128 Standard_LRS
+                        add_ssd_disk 128
+                        disk_delete_option DeleteOption.Delete
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+            Expect.isNotNull vmProps "VM properties missing from template"
+
+            let osDiskDeleteOption = vmProps.SelectToken("storageProfile.osDisk.deleteOption")
+            Expect.isNotNull osDiskDeleteOption "OS disk deleteOption should be set"
+            Expect.equal (string osDiskDeleteOption) "Delete" "OS disk deleteOption should be 'Delete'"
+
+            let dataDiskDeleteOption =
+                vmProps.SelectToken("storageProfile.dataDisks[0].deleteOption")
+
+            Expect.isNotNull dataDiskDeleteOption "Data disk deleteOption should be set"
+            Expect.equal (string dataDiskDeleteOption) "Delete" "Data disk deleteOption should be 'Delete'"
+        }
+        test "VM with NIC delete option" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1s
+                        operating_system UbuntuServer_2204LTS
+                        nic_delete_option DeleteOption.Delete
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+            Expect.isNotNull vmProps "VM properties missing from template"
+
+            let nicDeleteOption =
+                vmProps.SelectToken("networkProfile.networkInterfaces[0].properties.deleteOption")
+
+            Expect.isNotNull nicDeleteOption "NIC deleteOption should be set"
+            Expect.equal (string nicDeleteOption) "Delete" "NIC deleteOption should be 'Delete'"
+        }
+        test "VM with public IP delete option" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1s
+                        operating_system UbuntuServer_2204LTS
+                        public_ip_delete_option DeleteOption.Delete
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let nic = jobj.SelectToken("resources[?(@.name=='my-vm-nic')]")
+            Expect.isNotNull nic "NIC resource missing from template"
+
+            let publicIpDeleteOption =
+                nic.SelectToken("properties.ipConfigurations[0].properties.publicIPAddress.properties.deleteOption")
+
+            Expect.isNotNull publicIpDeleteOption "Public IP deleteOption should be set"
+            Expect.equal (string publicIpDeleteOption) "Delete" "Public IP deleteOption should be 'Delete'"
+        }
+        test "VM with delete_attached convenience method" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1s
+                        operating_system UbuntuServer_2204LTS
+                        os_disk 128 Standard_LRS
+                        add_ssd_disk 128
+                        delete_attached
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+            Expect.isNotNull vmProps "VM properties missing from template"
+
+            // Check disk delete options
+            let osDiskDeleteOption = vmProps.SelectToken("storageProfile.osDisk.deleteOption")
+            Expect.isNotNull osDiskDeleteOption "OS disk deleteOption should be set"
+            Expect.equal (string osDiskDeleteOption) "Delete" "OS disk deleteOption should be 'Delete'"
+
+            let dataDiskDeleteOption =
+                vmProps.SelectToken("storageProfile.dataDisks[0].deleteOption")
+
+            Expect.isNotNull dataDiskDeleteOption "Data disk deleteOption should be set"
+            Expect.equal (string dataDiskDeleteOption) "Delete" "Data disk deleteOption should be 'Delete'"
+
+            // Check NIC delete option
+            let nicDeleteOption =
+                vmProps.SelectToken("networkProfile.networkInterfaces[0].properties.deleteOption")
+
+            Expect.isNotNull nicDeleteOption "NIC deleteOption should be set"
+            Expect.equal (string nicDeleteOption) "Delete" "NIC deleteOption should be 'Delete'"
+
+            // Check public IP delete option
+            let nic = jobj.SelectToken("resources[?(@.name=='my-vm-nic')]")
+            Expect.isNotNull nic "NIC resource missing from template"
+
+            let publicIpDeleteOption =
+                nic.SelectToken("properties.ipConfigurations[0].properties.publicIPAddress.properties.deleteOption")
+
+            Expect.isNotNull publicIpDeleteOption "Public IP deleteOption should be set"
+            Expect.equal (string publicIpDeleteOption) "Delete" "Public IP deleteOption should be 'Delete'"
+        }
+        test "VM with delete_attached has imageReference populated" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1s
+                        operating_system UbuntuServer_2204LTS
+                        delete_attached
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+            Expect.isNotNull vmProps "VM properties missing from template"
+
+            // Validate imageReference is populated
+            let imageReference = vmProps.SelectToken("storageProfile.imageReference")
+            Expect.isNotNull imageReference "imageReference should be set"
+
+            let publisher = vmProps.SelectToken("storageProfile.imageReference.publisher")
+            Expect.isNotNull publisher "imageReference.publisher should be set"
+
+            let offer = vmProps.SelectToken("storageProfile.imageReference.offer")
+            Expect.isNotNull offer "imageReference.offer should be set"
+
+            let sku = vmProps.SelectToken("storageProfile.imageReference.sku")
+            Expect.isNotNull sku "imageReference.sku should be set"
+
+            let version = vmProps.SelectToken("storageProfile.imageReference.version")
+            Expect.isNotNull version "imageReference.version should be set"
+            Expect.equal (string version) "latest" "imageReference.version should be 'latest'"
+        }
+        test "VM with disk_delete_option after operating_system has imageReference" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1s
+                        operating_system UbuntuServer_2204LTS
+                        disk_delete_option DeleteOption.Delete
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+            Expect.isNotNull vmProps "VM properties missing from template"
+
+            // Validate imageReference is populated
+            let imageReference = vmProps.SelectToken("storageProfile.imageReference")
+            Expect.isNotNull imageReference "imageReference should be set when disk_delete_option is used"
+
+            let publisher = vmProps.SelectToken("storageProfile.imageReference.publisher")
+            Expect.isNotNull publisher "imageReference.publisher should be set"
+        }
+        test "VM with disk_delete_option before operating_system has imageReference" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1s
+                        disk_delete_option DeleteOption.Delete
+                        operating_system UbuntuServer_2204LTS
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+            Expect.isNotNull vmProps "VM properties missing from template"
+
+            // Validate imageReference is populated
+            let imageReference = vmProps.SelectToken("storageProfile.imageReference")
+
+            Expect.isNotNull
+                imageReference
+                "imageReference should be set when operating_system is after disk_delete_option"
+
+            let publisher = vmProps.SelectToken("storageProfile.imageReference.publisher")
+            Expect.isNotNull publisher "imageReference.publisher should be set"
+        }
+        test "VM without delete options has no deleteOption in template" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1s
+                        operating_system UbuntuServer_2204LTS
+                        os_disk 128 Standard_LRS
+                        add_ssd_disk 128
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+            Expect.isNotNull vmProps "VM properties missing from template"
+
+            // Validate OS disk does NOT have deleteOption
+            let osDiskDeleteOption = vmProps.SelectToken("storageProfile.osDisk.deleteOption")
+            Expect.isNull osDiskDeleteOption "OS disk should not have deleteOption when not set"
+
+            // Validate data disk does NOT have deleteOption
+            let dataDiskDeleteOption =
+                vmProps.SelectToken("storageProfile.dataDisks[0].deleteOption")
+
+            Expect.isNull dataDiskDeleteOption "Data disk should not have deleteOption when not set"
+
+            // Validate imageReference is still populated
+            let imageReference = vmProps.SelectToken("storageProfile.imageReference")
+            Expect.isNotNull imageReference "imageReference should be set"
+
+            let publisher = vmProps.SelectToken("storageProfile.imageReference.publisher")
+            Expect.isNotNull publisher "imageReference.publisher should be set"
+
+            // Validate NIC does NOT have deleteOption
+            let nic =
+                jobj.SelectToken("resources[?(@.type=='Microsoft.Network/networkInterfaces' && @.name=='my-vm-nic')]")
+
+            Expect.isNotNull nic "NIC should exist"
+
+            let nicDeleteOption =
+                nic.SelectToken("properties.networkInterfaces[0].properties.deleteOption")
+
+            Expect.isNull nicDeleteOption "NIC should not have deleteOption when not set"
+        }
+        test "VM with delete_attached and default data disk has deleteOption on default disk" {
+            // This test verifies that the default 1024GB data disk created for certain OS images
+            // also gets the deleteOption when delete_attached or disk_delete_option is used
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1ms
+                        operating_system AzureLinux_3
+                        delete_attached
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+            Expect.isNotNull vmProps "VM properties missing from template"
+
+            // Check that the default data disk has deleteOption set
+            let dataDiskDeleteOption =
+                vmProps.SelectToken("storageProfile.dataDisks[0].deleteOption")
+
+            Expect.isNotNull dataDiskDeleteOption "Default data disk should have deleteOption set"
+            Expect.equal (string dataDiskDeleteOption) "Delete" "Default data disk deleteOption should be 'Delete'"
+
+            // Verify it's the 1024GB default disk
+            let dataDiskSize = vmProps.SelectToken("storageProfile.dataDisks[0].diskSizeGB")
+            Expect.equal (int dataDiskSize) 1024 "Default data disk should be 1024GB"
         }
     ]

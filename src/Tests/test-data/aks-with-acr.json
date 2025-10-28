@@ -74,6 +74,10 @@
           "clientId": "msi"
         }
       },
+      "sku": {
+        "name": "Base",
+        "tier": "Free"
+      },
       "type": "Microsoft.ContainerService/managedClusters"
     },
     {

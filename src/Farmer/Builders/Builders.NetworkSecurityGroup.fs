@@ -54,6 +54,7 @@ let applicationSecurityGroup = ApplicationSecurityGroupBuilder()
 type SecurityRuleConfig = {
     Name: ResourceName
     Nsg: LinkedResource option
+    Dependencies: ResourceId Set
     Description: string option
     Services: NetworkService list
     Sources: (NetworkProtocol * Endpoint * Port) list
@@ -101,6 +102,7 @@ type SecurityRuleConfig = {
                     match sourceEndpoint with
                     | ApplicationSecurityGroup asgId -> Some asgId
                     | _ -> None)
+            Dependencies = this.Dependencies
             DestinationPorts =
                 match this.Services with
                 | [] -> Set [ AnyPort ]
@@ -132,6 +134,7 @@ type SecurityRuleBuilder() =
         Name = ResourceName.Empty
         Nsg = None
         Description = None
+        Dependencies = Set.empty
         Services = []
         Sources = []
         Destinations = []
@@ -212,6 +215,11 @@ type SecurityRuleBuilder() =
             Sources = (protocol, Host(IPAddress.Parse sourceAddress), AnyPort) :: state.Sources
     }
 
+    member _.AddSourceAddress(state: SecurityRuleConfig, protocol, sourceAddress: ArmExpression) = {
+        state with
+            Sources = (protocol, Expression sourceAddress, AnyPort) :: state.Sources
+    }
+
     /// Sets the rule to a managed source application security group.
     [<CustomOperation("add_source_application_security_group")>]
     member _.AddSourceApplicationSecurityGroup
@@ -271,6 +279,11 @@ type SecurityRuleBuilder() =
             Destinations = Host(IPAddress.Parse destAddress) :: state.Destinations
     }
 
+    member _.AddDestinationAddress(state: SecurityRuleConfig, destAddress: ArmExpression) = {
+        state with
+            Destinations = Expression destAddress :: state.Destinations
+    }
+
     /// Sets the rule to a managed destination application security group.
     [<CustomOperation("add_destination_application_security_group")>]
     member _.AddDestinationApplicationSecurityGroup(state: SecurityRuleConfig, asg: ApplicationSecurityGroupConfig) = {
@@ -314,6 +327,12 @@ type SecurityRuleBuilder() =
     /// Specify the priority for the rule.
     [<CustomOperation "priority">]
     member _.Priority(state: SecurityRuleConfig, priority) = { state with Priority = Some priority }
+
+    interface IDependable<SecurityRuleConfig> with
+        member _.Add state newDeps = {
+            state with
+                Dependencies = state.Dependencies + newDeps
+        }
 
 let securityRule = SecurityRuleBuilder()
 

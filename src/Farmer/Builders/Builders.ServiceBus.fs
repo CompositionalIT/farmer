@@ -552,6 +552,10 @@ type ServiceBusBuilder() =
             raiseFarmer "Zone redundancy can only be enabled against premium service bus namespaces"
         | _ -> ()
 
+        // Validate topics are not used with Basic SKU
+        if not (Map.isEmpty state.Topics) && state.Sku = Basic then
+            raiseFarmer "Topics are not supported on the Basic SKU. Please use Standard or Premium SKU."
+
         for queue in state.Queues do
             let queue = queue.Value
 
@@ -565,6 +569,17 @@ type ServiceBusBuilder() =
             |> Option.iter (fun lockDuration ->
                 if lockDuration > TimeSpan(0, 5, 0) then
                     raiseFarmer "Lock duration name must not be more than 5 minutes.")
+
+        // Validate max message size for topics
+        for topic in state.Topics do
+            let topic = topic.Value
+
+            match topic.MaxMessageSizeInKilobytes, state.Sku with
+            | Some _, Basic
+            | Some _, Standard ->
+                raiseFarmer
+                    $"Max message size for topics is only supported on the Premium SKU (topic '{topic.Name.Value}' fails this check)."
+            | _ -> ()
 
         state
 

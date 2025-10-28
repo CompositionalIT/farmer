@@ -15,7 +15,9 @@ type SubnetConfig = {
     Name: ResourceName
     Prefixes: IPAddressCidr list
     VirtualNetwork: LinkedResource option
+    RouteTable: LinkedResource option
     NetworkSecurityGroup: LinkedResource option
+    DefaultOutboundAccess: bool option
     Delegations: SubnetDelegationService list
     NatGateway: LinkedResource option
     ServiceEndpoints: (EndpointServiceType * Location list) list
@@ -29,7 +31,9 @@ type SubnetConfig = {
         Name = this.Name
         Prefixes = this.Prefixes |> List.map IPAddressCidr.format
         VirtualNetwork = this.VirtualNetwork
+        RouteTable = this.RouteTable
         NetworkSecurityGroup = this.NetworkSecurityGroup
+        DefaultOutboundAccess = this.DefaultOutboundAccess
         Delegations =
             this.Delegations
             |> List.map (fun (SubnetDelegationService(delegation)) -> {
@@ -59,7 +63,9 @@ type SubnetBuilder() =
         Name = ResourceName.Empty
         Prefixes = []
         VirtualNetwork = None
+        RouteTable = None
         NetworkSecurityGroup = None
+        DefaultOutboundAccess = None
         Delegations = []
         NatGateway = None
         ServiceEndpoints = []
@@ -164,6 +170,40 @@ type SubnetBuilder() =
             NetworkSecurityGroup = Some(Unmanaged (nsg :> IBuilder).ResourceId)
     }
 
+    /// Sets the route table for subnet
+    [<CustomOperation "route_table">]
+    member _.RouteTable(state: SubnetConfig, rt: IArmResource) = {
+        state with
+            RouteTable = Some(Managed rt.ResourceId)
+    }
+
+    member _.RouteTable(state: SubnetConfig, rt: ResourceId) = {
+        state with
+            RouteTable = Some(Managed rt)
+    }
+
+    member _.RouteTable(state: SubnetConfig, rt: RouteTableConfig) = {
+        state with
+            RouteTable = Some(Managed (rt :> IBuilder).ResourceId)
+    }
+
+    /// Links the subnet to an existing route table.
+    [<CustomOperation "link_to_route_table">]
+    member _.LinkToRouteTable(state: SubnetConfig, rt: IArmResource) = {
+        state with
+            RouteTable = Some(Unmanaged(rt.ResourceId))
+    }
+
+    member _.LinkToRouteTable(state: SubnetConfig, rt: ResourceId) = {
+        state with
+            RouteTable = Some(Unmanaged rt)
+    }
+
+    member _.LinkToRouteTable(state: SubnetConfig, rt: RouteTableConfig) = {
+        state with
+            RouteTable = Some(Unmanaged (rt :> IBuilder).ResourceId)
+    }
+
     /// Links the subnet to an managed virtual network.
     [<CustomOperation "link_to_vnet">]
     member _.LinkToVirtualNetwork(state: SubnetConfig, vnet: IArmResource) = {
@@ -233,6 +273,14 @@ type SubnetBuilder() =
             PrivateLinkServiceNetworkPolicies = Some flag
     }
 
+    /// Set to false to disable default outbound access on the vnet, requiring VMs to
+    /// use their own public IP, a NAT Gateway, or a Load Balancer for outbound access.
+    [<CustomOperation "default_outbound_access">]
+    member _.DefaultOutboundAccess(state: SubnetConfig, defaultOutboundAccess) = {
+        state with
+            DefaultOutboundAccess = Some defaultOutboundAccess
+    }
+
     interface IDependable<SubnetConfig> with
         member _.Add state newDeps = {
             state with
@@ -246,6 +294,8 @@ type SubnetBuildSpec = {
     Name: string
     Size: int
     NetworkSecurityGroup: LinkedResource option
+    RouteTable: LinkedResource option
+    DefaultOutboundAccess: bool option
     Delegations: SubnetDelegationService list
     NatGateway: LinkedResource option
     ServiceEndpoints: (EndpointServiceType * Location list) list
@@ -259,6 +309,8 @@ let buildSubnet name size = {
     Name = name
     Size = size
     NetworkSecurityGroup = None
+    RouteTable = None
+    DefaultOutboundAccess = None
     Delegations = []
     NatGateway = None
     ServiceEndpoints = []
@@ -272,6 +324,8 @@ let buildSubnetDelegations name size delegations = {
     Name = name
     Size = size
     NetworkSecurityGroup = None
+    RouteTable = None
+    DefaultOutboundAccess = None
     Delegations = delegations
     NatGateway = None
     ServiceEndpoints = []
@@ -284,6 +338,8 @@ let buildSubnetAllowPrivateEndpoints name size = {
     Name = name
     Size = size
     NetworkSecurityGroup = None
+    RouteTable = None
+    DefaultOutboundAccess = None
     Delegations = []
     NatGateway = None
     ServiceEndpoints = []
@@ -297,6 +353,8 @@ type SubnetSpecBuilder() =
         Name = ""
         Size = 24
         NetworkSecurityGroup = None
+        RouteTable = None
+        DefaultOutboundAccess = None
         Delegations = []
         NatGateway = None
         ServiceEndpoints = []
@@ -379,6 +437,40 @@ type SubnetSpecBuilder() =
             NetworkSecurityGroup = Some(Unmanaged (nsg :> IBuilder).ResourceId)
     }
 
+    /// Sets the route table for subnet
+    [<CustomOperation "route_table">]
+    member _.RouteTable(state: SubnetBuildSpec, rt: IArmResource) = {
+        state with
+            RouteTable = Some(Managed rt.ResourceId)
+    }
+
+    member _.RouteTable(state: SubnetBuildSpec, rt: ResourceId) = {
+        state with
+            RouteTable = Some(Managed rt)
+    }
+
+    member _.RouteTable(state: SubnetBuildSpec, rt: RouteTableConfig) = {
+        state with
+            RouteTable = Some(Managed (rt :> IBuilder).ResourceId)
+    }
+
+    /// Links the subnet to an existing route table.
+    [<CustomOperation "link_to_route_table">]
+    member _.LinkToRouteTable(state: SubnetBuildSpec, rt: IArmResource) = {
+        state with
+            RouteTable = Some(Unmanaged(rt.ResourceId))
+    }
+
+    member _.LinkToRouteTable(state: SubnetBuildSpec, rt: ResourceId) = {
+        state with
+            RouteTable = Some(Unmanaged(rt))
+    }
+
+    member _.LinkToRouteTable(state: SubnetBuildSpec, rt: RouteTableConfig) = {
+        state with
+            RouteTable = Some(Unmanaged (rt :> IBuilder).ResourceId)
+    }
+
     /// Adds any services to delegate this subnet
     [<CustomOperation "add_delegations">]
     member _.AddDelegations(state: SubnetBuildSpec, delegations) = {
@@ -414,6 +506,14 @@ type SubnetSpecBuilder() =
             PrivateLinkServiceNetworkPolicies = Some flag
     }
 
+    /// Set to false to disable default outbound access on the vnet, requiring VMs to
+    /// use their own public IP, a NAT Gateway, or a Load Balancer for outbound access.
+    [<CustomOperation "default_outbound_access">]
+    member _.DefaultOutboundAccess(state: SubnetBuildSpec, defaultOutboundAccess) = {
+        state with
+            DefaultOutboundAccess = Some defaultOutboundAccess
+    }
+
 let subnetSpec = SubnetSpecBuilder()
 
 /// A specification building an address space and subnets.
@@ -447,12 +547,15 @@ type AddressSpaceBuilder() =
             ?associatedServiceEndpointPolicies: ResourceId list,
             ?allowPrivateEndpoints: FeatureFlag,
             ?privateLinkServiceNetworkPolicies: FeatureFlag,
-            ?nsg: LinkedResource
+            ?nsg: LinkedResource,
+            ?rt: LinkedResource
         ) =
         let subnetBuildSpec = {
             Name = name
             Size = size
             NetworkSecurityGroup = nsg
+            RouteTable = rt
+            DefaultOutboundAccess = None
             Delegations = delegations |> Option.defaultValue []
             NatGateway = None
             ServiceEndpoints = serviceEndpoints |> Option.defaultValue []
@@ -643,7 +746,8 @@ type VirtualNetworkBuilder() =
                         s.AllowPrivateEndpoints,
                         s.PrivateLinkServiceNetworkPolicies,
                         s.NatGateway,
-                        s.NetworkSecurityGroup)
+                        s.NetworkSecurityGroup,
+                        s.RouteTable)
                 )
                 |> List.map
                     (fun
@@ -654,12 +758,15 @@ type VirtualNetworkBuilder() =
                           allowPrivateEndpoints,
                           privateLinkServiceNetworkPolicies,
                           natGateway,
-                          nsg),
+                          nsg,
+                          rt),
                          cidr) -> {
                         Name = ResourceName name
                         Prefixes = [ cidr ]
                         VirtualNetwork = Some(Managed(virtualNetworks.resourceId state.Name))
                         NetworkSecurityGroup = nsg
+                        RouteTable = rt
+                        DefaultOutboundAccess = None
                         Delegations = delegations
                         NatGateway = natGateway
                         ServiceEndpoints = serviceEndpoints

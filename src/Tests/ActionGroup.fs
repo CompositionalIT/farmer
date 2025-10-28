@@ -88,6 +88,17 @@ let tests =
 
             let myWebhookReceiver = WebhookReceiver.Create(name = "...", serviceUri = uri)
 
+            let myIncidentReceiver =
+                IncidentReceiver.Create(
+                    name = "...",
+                    connection = {
+                        Id = Guid.NewGuid()
+                        Name = "MyIncidentConnection"
+                    },
+                    mappings = ([ "incidentId", "incidentIdValue"; "title", "titleValue" ] |> Map.ofList),
+                    incidentManagementService = Icm
+                )
+
             let ag = actionGroup {
                 name actionGroupName
                 short_name "ag1"
@@ -102,6 +113,7 @@ let tests =
                 add_sms_receivers [ mySmsReceiver ]
                 add_email_receivers [ myEmailReceiver ]
                 add_webhook_receivers [ myWebhookReceiver ]
+                add_incident_receivers [ myIncidentReceiver ]
             }
 
             let template = arm { add_resources [ ag ] }
@@ -121,6 +133,11 @@ let tests =
 
             let armRoleReceiverRoleId =
                 props.SelectToken(".armRoleReceivers[0].roleId").ToString()
+
+            let incidentReceiverMappings =
+                props.SelectToken(".incidentReceivers[0].mappings").ToString()
+
+            Expect.isNotNull incidentReceiverMappings "Incident Receiver Mappings should not be null"
 
             Expect.equal isenabled "True" "ActionGroup not enabled"
 

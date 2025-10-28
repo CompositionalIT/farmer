@@ -69,7 +69,7 @@ type RouteServerConfig = {
             //public ip
             {
                 PublicIpAddress.Name = publicIpName
-                AvailabilityZone = None
+                AvailabilityZones = NoZone
                 Location = location
                 Sku = PublicIpAddress.Sku.Standard
                 AllocationMethod = PublicIpAddress.AllocationMethod.Static
@@ -83,7 +83,9 @@ type RouteServerConfig = {
                 Subnet.Name = ResourceName "RouteServerSubnet"
                 Prefixes = [ IPAddressCidr.format this.SubnetPrefix ]
                 VirtualNetwork = Some(vnetId)
+                RouteTable = None
                 NetworkSecurityGroup = None
+                DefaultOutboundAccess = None
                 Delegations = []
                 NatGateway = None
                 ServiceEndpoints = []

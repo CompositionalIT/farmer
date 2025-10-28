@@ -1,9 +1,7 @@
 [<AutoOpen>]
 module Farmer.Arm.Network
 
-open System.Net.Mail
 open Farmer
-open Farmer.Arm
 open Farmer.ExpressRoute
 open Farmer.Network
 open Farmer.Route
@@ -28,19 +26,19 @@ let networkProfiles =
     ResourceType("Microsoft.Network/networkProfiles", "2020-04-01")
 
 let publicIPAddresses =
-    ResourceType("Microsoft.Network/publicIPAddresses", "2018-11-01")
+    ResourceType("Microsoft.Network/publicIPAddresses", "2024-07-01")
 
 let publicIPPrefixes =
-    ResourceType("Microsoft.Network/publicIPPrefixes", "2021-08-01")
+    ResourceType("Microsoft.Network/publicIPPrefixes", "2024-07-01")
 
 let serviceEndpointPolicies =
     ResourceType("Microsoft.Network/serviceEndpointPolicies", "2020-07-01")
 
 let subnets =
-    ResourceType("Microsoft.Network/virtualNetworks/subnets", "2020-07-01")
+    ResourceType("Microsoft.Network/virtualNetworks/subnets", "2024-05-01")
 
 let virtualNetworks =
-    ResourceType("Microsoft.Network/virtualNetworks", "2020-07-01")
+    ResourceType("Microsoft.Network/virtualNetworks", "2024-05-01")
 
 let virtualNetworkGateways =
     ResourceType("Microsoft.Network/virtualNetworkGateways", "2020-05-01")
@@ -48,7 +46,7 @@ let virtualNetworkGateways =
 let localNetworkGateways =
     ResourceType("Microsoft.Network/localNetworkGateways", "")
 
-let natGateways = ResourceType("Microsoft.Network/natGateways", "2021-08-01")
+let natGateways = ResourceType("Microsoft.Network/natGateways", "2024-07-01")
 
 let privateEndpoints =
     ResourceType("Microsoft.Network/privateEndpoints", "2021-05-01")
@@ -254,7 +252,7 @@ type RouteServerBGPConnection = {
 
 type PublicIpAddress = {
     Name: ResourceName
-    AvailabilityZone: string option
+    AvailabilityZones: ZoneSelection
     Location: Location
     Sku: PublicIpAddress.Sku
     AllocationMethod: PublicIpAddress.AllocationMethod
@@ -280,7 +278,7 @@ type PublicIpAddress = {
                         | Some label -> box {| domainNameLabel = label.ToLower() |}
                         | None -> null
                 |}
-                zones = this.AvailabilityZone |> Option.map ResizeArray |> Option.toObj
+                zones = this.AvailabilityZones.ArmValue
         |}
 
 /// If using the IPs in the frontend of a cross-region laod balancer, public IPs and prefixes must be in
@@ -327,7 +325,9 @@ type Subnet = {
     Name: ResourceName
     Prefixes: string list
     VirtualNetwork: LinkedResource option
+    RouteTable: LinkedResource option
     NetworkSecurityGroup: LinkedResource option
+    DefaultOutboundAccess: bool option
     Delegations: SubnetDelegation list
     NatGateway: LinkedResource option
     ServiceEndpoints: (Network.EndpointServiceType * Location list) list
@@ -351,12 +351,17 @@ type Subnet = {
                 this.NatGateway
                 |> Option.map LinkedResource.AsIdObject
                 |> Option.defaultValue Unchecked.defaultof<_>
+            routeTable =
+                this.RouteTable
+                |> Option.map (fun rt -> {| id = rt.ResourceId.Eval() |})
+                |> Option.defaultValue Unchecked.defaultof<_>
             networkSecurityGroup =
                 this.NetworkSecurityGroup
                 |> Option.map (fun nsg -> {|
                     id = nsg.ResourceId.ArmExpression.Eval()
                 |})
                 |> Option.defaultValue Unchecked.defaultof<_>
+            defaultOutboundAccess = this.DefaultOutboundAccess |> Option.toNullable
             delegations =
                 this.Delegations
                 |> List.map (fun delegation -> {|
@@ -429,6 +434,10 @@ type VirtualNetwork = {
                         | _ -> ()
 
                         match subnet.NatGateway with
+                        | Some(Managed id) -> id
+                        | _ -> ()
+
+                        match subnet.RouteTable with
                         | Some(Managed id) -> id
                         | _ -> ()
                 }
@@ -640,6 +649,7 @@ type IpConfiguration = {
     PrivateIpAllocation: AllocationMethod option
     PrivateIpAddressVersion: AddressVersion
     Primary: bool option
+    PublicIpAddressDeleteOption: Vm.DeleteOption option
 }
 
 module NetworkInterface =
@@ -695,6 +705,13 @@ type IpConfiguration with
                     ipConfig.PublicIpAddress
                     |> Option.map (fun pip -> {|
                         id = pip.ResourceId.ArmExpression.Eval()
+                        properties =
+                            match ipConfig.PublicIpAddressDeleteOption with
+                            | Some deleteOption ->
+                                box {|
+                                    deleteOption = deleteOption.ArmValue
+                                |}
+                            | None -> null
                     |})
                     |> Option.defaultValue Unchecked.defaultof<_>
                 subnet = {|
@@ -716,8 +733,9 @@ type NetworkInterface = {
     EnableIpForwarding: bool option
     IpConfigs: IpConfiguration list
     VirtualNetwork: LinkedResource
-    NetworkSecurityGroup: ResourceId option
+    NetworkSecurityGroup: LinkedResource option
     Primary: bool option
+    DeleteOption: Vm.DeleteOption option
     Tags: Map<string, string>
 } with
 
@@ -743,8 +761,9 @@ type NetworkInterface = {
                         match linkedResource with
                         | Managed resId -> resId
                         | _ -> ()
-                if this.NetworkSecurityGroup.IsSome then
-                    this.NetworkSecurityGroup.Value
+                match this.NetworkSecurityGroup with
+                | Some(Managed id) -> id
+                | _ -> ()
             ]
 
             let props = {|
@@ -754,20 +773,18 @@ type NetworkInterface = {
                 ipConfigurations =
                     this.IpConfigs
                     |> List.mapi (fun index ipConfig -> ipConfig.ToArmJson(index, this.VirtualNetwork.ResourceId, true))
+                networkSecurityGroup =
+                    this.NetworkSecurityGroup
+                    |> Option.map (fun nsg -> {|
+                        id = nsg.ResourceId.ArmExpression.Eval()
+                    |})
+                    |> Option.defaultValue Unchecked.defaultof<_>
             |}
 
-            match this.NetworkSecurityGroup with
-            | None -> {|
+            {|
                 networkInterfaces.Create(this.Name, this.Location, dependsOn, this.Tags) with
                     properties = props
-              |}
-            | Some nsg -> {|
-                networkInterfaces.Create(this.Name, this.Location, dependsOn, this.Tags) with
-                    properties = {|
-                        props with
-                            networkSecurityGroup = {| id = nsg.Eval() |}
-                    |}
-              |}
+            |}
 
 type NetworkProfile = {
     Name: ResourceName
@@ -1018,6 +1035,7 @@ type NatGateway = {
     IdleTimeout: int<Minutes>
     PublicIpAddresses: LinkedResource list
     PublicIpPrefixes: LinkedResource list
+    Sku: NatGateway.Sku
     Tags: Map<string, string>
 } with
 
@@ -1036,7 +1054,7 @@ type NatGateway = {
 
             {|
                 natGateways.Create(this.Name, this.Location, dependsOn = dependencies, tags = this.Tags) with
-                    sku = {| name = "Standard" |}
+                    sku = {| name = this.Sku.ArmValue |}
                     properties = {|
                         idleTimeoutInMinutes = this.IdleTimeout
                         publicIpAddresses = this.PublicIpAddresses |> List.map LinkedResource.AsIdObject

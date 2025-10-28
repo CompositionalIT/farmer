@@ -7,6 +7,7 @@ open Farmer.Arm
 open Farmer.Arm.ContainerService.AddonProfiles
 open Farmer.Arm.RoleAssignment
 open Farmer.Identity
+open Farmer.ContainerService
 open Farmer.Vm
 
 type AgentPoolConfig = {
@@ -17,9 +18,17 @@ type AgentPoolConfig = {
     Mode: AgentPoolMode
     OsDiskSize: int<Gb>
     OsType: OS
+    OsSKU: string option
     VmSize: VMSize
+    AvailabilityZones: ZoneSelection
     VirtualNetworkName: ResourceName option
     SubnetName: ResourceName option
+    PodSubnetName: ResourceName option
+    AutoscaleSetting: FeatureFlag option
+    ScaleDownMode: ScaleDownMode option
+    MinCount: int option
+    MaxCount: int option
+    NodeTaints: string list
 } with
 
     static member Default = {
@@ -32,9 +41,17 @@ type AgentPoolConfig = {
         Mode = System
         OsDiskSize = 0<Gb>
         OsType = OS.Linux
+        OsSKU = None
         VirtualNetworkName = None
         SubnetName = None
+        PodSubnetName = None
         VmSize = Standard_DS2_v2
+        AvailabilityZones = NoZone
+        AutoscaleSetting = None
+        ScaleDownMode = None
+        MinCount = None
+        MaxCount = None
+        NodeTaints = []
     }
 
 type ApiServerAccessProfileConfig = {
@@ -46,8 +63,6 @@ type NetworkProfileConfig = {
     NetworkPlugin: ContainerService.NetworkPlugin option
     /// If no address is specified, this will use the 2nd address in the service address CIDR
     DnsServiceIP: System.Net.IPAddress option
-    /// Usually the default 172.17.0.1/16 is acceptable.
-    DockerBridgeCidr: IPAddressCidr option
     /// Load balancer SKU (defaults to basic)
     LoadBalancerSku: LoadBalancer.Sku option
     /// Private IP address CIDR for services in the cluster which should not overlap with the vnet
@@ -55,12 +70,23 @@ type NetworkProfileConfig = {
     ServiceCidr: IPAddressCidr option
 }
 
+type AutoUpgradeConfig = {
+    AutoUpgradeChannel: AutoUpgradeChannel
+    NodeOSUpgradeChannel: NodeOSUpgradeChannel
+} with
+
+    static member BuildConfig(config: AutoUpgradeConfig) : AutoUpgradeProfiles.AutoUpgradeProfile = {
+        AutoUpgradeChannel = config.AutoUpgradeChannel
+        NodeOSUpgradeChannel = config.NodeOSUpgradeChannel
+    }
+
 type AddonConfig =
     | AciConnectorLinux of FeatureFlag
     | HttpApplicationRouting of FeatureFlag
     | IngressApplicationGateway of IngressApplicationGateway
     | KubeDashboard of FeatureFlag
     | OmsAgent of OmsAgent
+    | AzureKeyvaultSecretsProvider of AzureKeyvaultSecretsProvider
 
     static member BuildConfig(addons: AddonConfig list) : AddonProfileConfig = {
         // TODO: Clean up with active pattern
@@ -107,25 +133,38 @@ type AddonConfig =
             |> function
                 | Some(OmsAgent oms) -> Some oms
                 | _ -> None
+        AzureKeyvaultSecretsProvider =
+            addons
+            |> List.tryFind (function
+                | AzureKeyvaultSecretsProvider _ -> true
+                | _ -> false)
+            |> function
+                | Some(AzureKeyvaultSecretsProvider secretsProvider) -> Some secretsProvider
+                | _ -> None
     }
 
 type AksConfig = {
     Name: ResourceName
+    Sku: ContainerServiceSku
     AddonProfiles: AddonConfig list
     AgentPools: AgentPoolConfig list
     Dependencies: ResourceId Set
     DependencyExpressions: ArmExpression Set
     DnsPrefix: string
     EnableRBAC: bool
+    AutoUpgradeProfiles: AutoUpgradeConfig option
+    KubernetesVersion: KubernetesVersion option
     Identity: ManagedIdentity
     IdentityProfile: ManagedClusterIdentityProfile option
     ApiServerAccessProfile: ApiServerAccessProfileConfig option
     LinuxProfile: (string * string list) option
     NetworkProfile: NetworkProfileConfig option
     OidcIssuerProfile: OidcIssuerProfile option
+    AzureMonitorProfile: AzureMonitorProfile option
     SecurityProfile: SecurityProfileSettings option
     ServicePrincipalClientID: string
     WindowsProfileAdminUserName: string option
+    NodeResourceGroup: ResourceName option
 } with
 
     member private this.ResourceId = managedClusters.resourceId this.Name
@@ -137,6 +176,7 @@ type AksConfig = {
         member this.BuildResources location = [
             {
                 Name = this.Name
+                Sku = this.Sku
                 Location = location
                 AddOnProfiles =
                     match this.AddonProfiles with
@@ -150,6 +190,11 @@ type AksConfig = {
                     else
                         this.DnsPrefix
                 EnableRBAC = this.EnableRBAC
+                AutoUpgradeProfile =
+                    match this.AutoUpgradeProfiles with
+                    | None -> None
+                    | Some config -> config |> AutoUpgradeConfig.BuildConfig |> Some
+                KubernetesVersion = this.KubernetesVersion
                 Identity = this.Identity
                 IdentityProfile = this.IdentityProfile
                 AgentPoolProfiles =
@@ -169,9 +214,20 @@ type AksConfig = {
                         Mode = agentPool.Mode
                         OsDiskSize = agentPool.OsDiskSize
                         OsType = agentPool.OsType
+                        OsSKU = agentPool.OsSKU
                         SubnetName = agentPool.SubnetName
+                        PodSubnetName = agentPool.PodSubnetName
                         VmSize = agentPool.VmSize
+                        AvailabilityZones = agentPool.AvailabilityZones
                         VirtualNetworkName = agentPool.VirtualNetworkName
+                        AutoscaleSetting = agentPool.AutoscaleSetting
+                        ScaleDownMode = agentPool.ScaleDownMode
+                        MinCount = agentPool.MinCount
+                        MaxCount = agentPool.MaxCount
+                        NodeTaints =
+                            match agentPool.NodeTaints with
+                            | [] -> None
+                            | _ -> Some agentPool.NodeTaints
                     |})
                 ApiServerAccessProfile =
                     this.ApiServerAccessProfile
@@ -195,7 +251,6 @@ type AksConfig = {
                             | None ->
                                 netProfile.ServiceCidr
                                 |> Option.map (IPAddressCidr.addresses >> Seq.skip 2 >> Seq.head)
-                        DockerBridgeCidr = netProfile.DockerBridgeCidr
                         LoadBalancerSku = netProfile.LoadBalancerSku
                         ServiceCidr = netProfile.ServiceCidr
                     |})
@@ -207,6 +262,7 @@ type AksConfig = {
                         | _ -> Some(SecureParameter $"client-secret-for-{this.Name.Value}")
                 |}
                 OidcIssuerProfile = this.OidcIssuerProfile
+                AzureMonitorProfile = this.AzureMonitorProfile
                 SecurityProfile = this.SecurityProfile
                 WindowsProfile =
                     this.WindowsProfileAdminUserName
@@ -214,6 +270,7 @@ type AksConfig = {
                         AdminUserName = username
                         AdminPassword = SecureParameter $"admin-password-for-{this.Name.Value}"
                     |})
+                NodeResourceGroup = this.NodeResourceGroup
             }
         ]
 
@@ -245,6 +302,9 @@ type AgentPoolBuilder() =
             EnableFIPS = Some featureFlag
     }
 
+    [<CustomOperation "os_sku">]
+    member _.osSKU(state: AgentPoolConfig, sku) = { state with OsSKU = Some sku }
+
     /// Sets the agent pool to user mode.
     [<CustomOperation "user_mode">]
     member _.UserMode(state: AgentPoolConfig) = { state with Mode = AgentPoolMode.User }
@@ -264,11 +324,41 @@ type AgentPoolBuilder() =
     [<CustomOperation "os_type">]
     member _.OsType(state: AgentPoolConfig, os) = { state with OsType = os }
 
+    [<CustomOperation "add_availability_zones">]
+    member _.AddAvailabilityZone(state: AgentPoolConfig, availabilityZones: string seq) = {
+        state with
+            AvailabilityZones =
+                match state.AvailabilityZones with
+                | NoZone
+                | ZoneExpression _ -> availabilityZones
+                | ExplicitZones zones -> zones |> Seq.append availabilityZones |> Set.ofSeq |> Set.toSeq
+                |> ExplicitZones
+    }
+
+    /// Automatically select zones for the agent pool's VM scale set.
+    [<CustomOperation "pick_zones">]
+    member _.PickZones(state: AgentPoolConfig, num: int) = {
+        state with
+            AvailabilityZones =
+                ArmExpression.pickZones (virtualMachineScaleSets, numZones = num)
+                |> ZoneSelection.ZoneExpression
+    }
+
+    [<CustomOperation "pick_zones">]
+    member this.PickZones(state: AgentPoolConfig) = this.PickZones(state, 3)
+
     /// Sets the name of a virtual network subnet where this AKS cluster should be attached.
     [<CustomOperation "subnet">]
     member _.SubnetName(state: AgentPoolConfig, subnetName) = {
         state with
             SubnetName = Some(ResourceName subnetName)
+    }
+
+    /// Sets the name of a virtual network subnet where the AKS pods should be deployed.
+    [<CustomOperation "pod_subnet">]
+    member _.PodSubnetName(state: AgentPoolConfig, podSubnetName) = {
+        state with
+            PodSubnetName = Some(ResourceName podSubnetName)
     }
 
     /// Sets the size of the VM's in the agent pool.
@@ -280,6 +370,36 @@ type AgentPoolBuilder() =
     member _.VNetName(state: AgentPoolConfig, vnetName) = {
         state with
             VirtualNetworkName = Some(ResourceName vnetName)
+    }
+
+    /// Enables autoscaling for this agent pool.
+    [<CustomOperation "enable_autoscale">]
+    member _.AutoscaleSetting(state: AgentPoolConfig) = {
+        state with
+            AutoscaleSetting = Some Enabled
+    }
+
+    /// Set Node Taints on agent pool
+    [<CustomOperation "node_taints">]
+    member _.NodeTaints(state: AgentPoolConfig, taints) = { state with NodeTaints = taints }
+
+    [<CustomOperation "autoscale_scale_down_mode">]
+    member _.ScaleDownMode(state: AgentPoolConfig, scaleDownMode) = {
+        state with
+            ScaleDownMode = Some scaleDownMode
+    }
+
+    /// Sets the min count of VM's in the agent pool if autoscale is enabled
+    [<CustomOperation "autoscale_min_count">]
+    member _.MinCount(state: AgentPoolConfig, minCount) = { state with MinCount = Some minCount }
+
+    /// Sets the min count of VM's in the agent pool if autoscale is enabled
+    [<CustomOperation "autoscale_max_count">]
+    member _.MaxCount(state: AgentPoolConfig, maxCount) = {
+        state with
+            MaxCount = Some maxCount
+            AutoscaleSetting = Some(state.AutoscaleSetting |> Option.defaultValue Enabled)
+            MinCount = Some(state.MinCount |> Option.defaultValue 1)
     }
 
 /// Builds an AKS cluster agent pool ARM resource definition
@@ -301,7 +421,6 @@ type KubenetBuilder() =
         NetworkPlugin = Some ContainerService.NetworkPlugin.Kubenet
         LoadBalancerSku = None
         DnsServiceIP = None
-        DockerBridgeCidr = None
         ServiceCidr = None
     }
 
@@ -315,7 +434,6 @@ type AzureCniBuilder() =
         NetworkPlugin = Some ContainerService.NetworkPlugin.AzureCni
         LoadBalancerSku = None
         DnsServiceIP = None
-        DockerBridgeCidr = IPAddressCidr.parse "172.17.0.1/16" |> Some
         ServiceCidr = IPAddressCidr.parse "10.224.0.0/16" |> Some
     }
 
@@ -327,13 +445,6 @@ type AzureCniBuilder() =
                 | None ->
                     config.ServiceCidr
                     |> Option.map (IPAddressCidr.addresses >> Seq.skip 2 >> Seq.head)
-    }
-
-    /// Sets the docker bridge CIDR to a network other than the default 17.17.0.1/16.
-    [<CustomOperation "docker_bridge">]
-    member _.DockerBridge(state: NetworkProfileConfig, dockerBridge) = {
-        state with
-            DockerBridgeCidr = IPAddressCidr.parse dockerBridge |> Some
     }
 
     /// Sets the DNS service IP - must be within the service CIDR, default is the second address in the service CIDR.
@@ -357,11 +468,10 @@ let makeLinuxProfile user sshKeys = user, sshKeys
 
 /// Match on type of load balancer for an AKS config's network profile.
 /// The default if nothing is specified is a Standard LB.
-let private (|BasicLoadBalancer|StandardLoadBalancer|) =
+let private (|StandardLoadBalancer|) =
     function
     | Some netProfile ->
         match netProfile.LoadBalancerSku with
-        | Some LoadBalancer.Sku.Basic -> BasicLoadBalancer
         | _ -> StandardLoadBalancer
     | _ -> StandardLoadBalancer
 
@@ -375,29 +485,29 @@ let private (|PrivateClusterEnabled|_|) =
 type AksBuilder() =
     member _.Yield _ = {
         Name = ResourceName.Empty
+        Sku = { Name = Sku.Base; Tier = Tier.Free }
         Dependencies = Set.empty
         DependencyExpressions = Set.empty
         AddonProfiles = []
         AgentPools = []
         DnsPrefix = ""
         EnableRBAC = false
+        AutoUpgradeProfiles = None
+        KubernetesVersion = None
         Identity = ManagedIdentity.Empty
         IdentityProfile = None
         ApiServerAccessProfile = None
         LinuxProfile = None
         NetworkProfile = None
         OidcIssuerProfile = None
+        AzureMonitorProfile = None
         SecurityProfile = None
         ServicePrincipalClientID = "msi"
         WindowsProfileAdminUserName = None
+        NodeResourceGroup = None
     }
 
     member _.Run(config: AksConfig) =
-        match config.NetworkProfile, config.ApiServerAccessProfile with
-        | BasicLoadBalancer, PrivateClusterEnabled ->
-            invalidArg "sku" "Private cluster requires a standard SKU load balancer."
-        | _ -> ()
-
         if String.IsNullOrWhiteSpace config.ServicePrincipalClientID then
             raiseFarmer
                 "Missing ServicePrincipalClientID on ManagedCluster - specify 'service_principal_use_msi' or 'service_principal_client_id' to assign one."
@@ -407,6 +517,33 @@ type AksBuilder() =
     /// Sets the name of the AKS cluster.
     [<CustomOperation "name">]
     member _.Name(state: AksConfig, name) = { state with Name = ResourceName name }
+
+    /// Sets the sku of the AKS cluster (default is 'Base').
+    [<CustomOperation "sku">]
+    member _.Sku(state: AksConfig, skuName) = {
+        state with
+            Sku = { state.Sku with Name = skuName }
+    }
+
+    /// Sets the name of the AKS node resource group
+    [<CustomOperation "node_resource_group">]
+    member _.NodeResourceGroup(state: AksConfig, name) = {
+        state with
+            NodeResourceGroup = Some(name)
+    }
+
+    [<CustomOperation "node_resource_group">]
+    member _.NodeResourceGroup(state: AksConfig, name) = {
+        state with
+            NodeResourceGroup = Some(ResourceName name)
+    }
+
+    /// Sets the tier of the load balancer (default is 'Free').
+    [<CustomOperation "tier">]
+    member _.Tier(state: AksConfig, skuTier) = {
+        state with
+            Sku = { state.Sku with Tier = skuTier }
+    }
 
     /// Sets the DNS prefix of the AKS cluster.
     [<CustomOperation "dns_prefix">]
@@ -427,6 +564,26 @@ type AksBuilder() =
             state with
                 Dependencies = state.Dependencies + newDeps
         }
+
+    [<CustomOperation "auto_upgrade_profile">]
+    member _.AutoUpgradeChannel(state: AksConfig, channel: AutoUpgradeConfig) = {
+        state with
+            AutoUpgradeProfiles = Some channel
+    }
+
+    [<CustomOperation "kubernetes_version">]
+    member _.KubernetesVersion(state: AksConfig, version: KubernetesVersion) = {
+        state with
+            KubernetesVersion = Some version
+    }
+
+    member _.KubernetesVersion(state: AksConfig, version: string) =
+        match KubernetesVersion.Create version with
+        | Error err -> raiseFarmer $"Invalid Kubernetes version '{version}' specified: {err}"
+        | Ok version -> {
+            state with
+                KubernetesVersion = Some version
+          }
 
     [<CustomOperation "depends_on_expression">]
     member _.DependencyExpressions(state: AksConfig, dependencyExpr: ArmExpression) = {
@@ -502,14 +659,36 @@ type AksBuilder() =
         match state.IdentityProfile with
         | None -> {
             state with
-                IdentityProfile = Some { KubeletIdentity = Some identity }
+                IdentityProfile =
+                    Some {
+                        KubeletIdentity = Some(Managed(identity))
+                    }
           }
         | Some identityProfile -> {
             state with
                 IdentityProfile =
                     Some {
                         identityProfile with
-                            KubeletIdentity = Some identity
+                            KubeletIdentity = Some(Managed(identity))
+                    }
+          }
+
+    [<CustomOperation "link_to_kubelet_identity">]
+    member this.LinkToKubletIdentity(state: AksConfig, resourceId: ResourceId) =
+        match state.IdentityProfile with
+        | None -> {
+            state with
+                IdentityProfile =
+                    Some {
+                        KubeletIdentity = Some(Unmanaged(resourceId))
+                    }
+          }
+        | Some identityProfile -> {
+            state with
+                IdentityProfile =
+                    Some {
+                        identityProfile with
+                            KubeletIdentity = Some(Unmanaged(resourceId))
                     }
           }
 
@@ -552,6 +731,32 @@ type AksBuilder() =
     member _.OidcIssuer(state: AksConfig, featureFlag) = {
         state with
             OidcIssuerProfile = Some { Enabled = featureFlag }
+    }
+
+    /// Enables Azure Monitor for AKS cluster
+    [<CustomOperation "enable_azure_monitor">]
+    member _.EnableAzureMonitor(state: AksConfig) = {
+        state with
+            AzureMonitorProfile =
+                Some {
+                    Metrics = {|
+                        Enabled = Enabled
+                        KubeStateMetrics = None
+                    |}
+                }
+    }
+
+    /// Enables Azure Monitor for AKS cluster with custom metrics.
+    [<CustomOperation "add_kube_state_metrics">]
+    member _.AddKubeStateMetrics(state: AksConfig, kubeStateMetrics) = {
+        state with
+            AzureMonitorProfile =
+                Some {
+                    Metrics = {|
+                        Enabled = Enabled
+                        KubeStateMetrics = Some kubeStateMetrics
+                    |}
+                }
     }
 
     /// Enables Workload Identity for the AKS cluster.

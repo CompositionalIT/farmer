@@ -26,7 +26,8 @@ let (|SingleEndpoint|ManyEndpoints|) endpoints =
         |> function
             | Some(Tag tag) -> SingleEndpoint(Tag tag)
             | None
-            | Some(AnyEndpoint | Network _ | Host _ | ApplicationSecurityGroup _) -> ManyEndpoints(List.ofSeq endpoints)
+            | Some(AnyEndpoint | Network _ | Host _ | ApplicationSecurityGroup _ | Expression _) ->
+                ManyEndpoints(List.ofSeq endpoints)
 
 let private (|SinglePort|ManyPorts|) (ports: _ Set) =
     if ports.Contains AnyPort then
@@ -57,6 +58,7 @@ module private EndpointWriter =
 
 type SecurityRule = {
     Name: ResourceName
+    Dependencies: ResourceId Set
     Description: string option
     SecurityGroup: LinkedResource
     Protocol: NetworkProtocol
@@ -72,13 +74,14 @@ type SecurityRule = {
 } with
 
     /// Get any managed application security group resource IDs.
-    static member Dependencies securityRule =
+    static member internal AllDependencies securityRule =
         securityRule.SourceApplicationSecurityGroups
         @ securityRule.DestinationApplicationSecurityGroups
         |> List.choose (function
             | Managed id -> Some id
             | _ -> None)
         |> Set.ofList
+        |> Set.union securityRule.Dependencies
 
     member this.PropertiesModel = {|
         description = this.Description |> Option.toObj
@@ -103,7 +106,8 @@ type SecurityRule = {
         member this.ResourceId = securityRules.resourceId (this.SecurityGroup.Name / this.Name)
 
         member this.JsonModel =
-            let dependsOn = Set.empty |> LinkedResource.addToSetIfManaged this.SecurityGroup
+            let dependsOn =
+                this.Dependencies |> LinkedResource.addToSetIfManaged this.SecurityGroup
 
             {|
                 securityRules.Create(this.SecurityGroup.Name / this.Name, dependsOn = dependsOn) with
@@ -125,7 +129,7 @@ type NetworkSecurityGroup = {
             let dependencies =
                 [
                     this.Dependencies
-                    yield! this.SecurityRules |> List.map SecurityRule.Dependencies
+                    yield! this.SecurityRules |> List.map SecurityRule.AllDependencies
                 ]
                 |> Set.unionMany
 

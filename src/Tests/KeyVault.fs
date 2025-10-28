@@ -110,9 +110,7 @@ let tests =
 
             let roleAssignment = {
                 Name =
-                    ArmExpression
-                        .create($"guid(concat(resourceGroup().id, '{Roles.KeyVaultReader.Id}'))")
-                        .Eval()
+                    ArmExpression.create($"guid(concat(resourceGroup().id, '{Roles.KeyVaultReader.Id}'))").Eval()
                     |> ResourceName
                 RoleDefinitionId = Roles.KeyVaultReader
                 PrincipalId = msi.PrincipalId

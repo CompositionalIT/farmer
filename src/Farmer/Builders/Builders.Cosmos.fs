@@ -1,11 +1,12 @@
 [<AutoOpen>]
 module Farmer.Builders.CosmosDb
 
+open System
 open Farmer
+open Farmer.Arm
 open Farmer.CosmosDb
-open Farmer.Arm.DocumentDb
 open DatabaseAccounts
-open SqlDatabases
+open Containers
 
 type KeyType =
     | PrimaryKey
@@ -62,6 +63,7 @@ type CosmosDbContainerConfig = {
     Indexes: (string * (IndexDataType * IndexKind) list) list
     UniqueKeys: Set<string list>
     ExcludedPaths: string list
+    Kind: DatabaseKind
 }
 
 type CosmosDbConfig = {
@@ -98,9 +100,7 @@ type CosmosDbConfig = {
         CosmosDb.getConnectionString (this.AccountResourceId, SecondaryConnectionString)
 
     member this.Endpoint =
-        ArmExpression
-            .reference(databaseAccounts, this.AccountResourceId)
-            .Map(sprintf "%s.documentEndpoint")
+        ArmExpression.reference(databaseAccounts, this.AccountResourceId).Map(sprintf "%s.documentEndpoint")
 
     interface IBuilder with
         member this.ResourceId = this.AccountResourceId
@@ -138,6 +138,7 @@ type CosmosDbConfig = {
                     Name = container.Name
                     Account = this.AccountResourceId.Name
                     Database = this.DbName
+                    Kind = container.Kind
                     PartitionKey = {|
                         Paths = fst container.PartitionKey
                         Kind = snd container.PartitionKey
@@ -160,6 +161,7 @@ type CosmosDbConfig = {
 type CosmosDbContainerBuilder() =
     member _.Yield _ = {
         Name = ResourceName ""
+        Kind = DatabaseKind.Document
         PartitionKey = [], Hash
         Indexes = []
         UniqueKeys = Set.empty
@@ -185,6 +187,13 @@ type CosmosDbContainerBuilder() =
     /// Sets the name of the container.
     [<CustomOperation "name">]
     member _.Name(state: CosmosDbContainerConfig, name) = { state with Name = ResourceName name }
+
+    /// Sets the container kind of the container.
+    [<CustomOperation "gremlin_graph">]
+    member _.Graph(state: CosmosDbContainerConfig) = {
+        state with
+            Kind = DatabaseKind.Gremlin
+    }
 
     /// Sets the partition key of the container.
     [<CustomOperation "partition_key">]
@@ -238,6 +247,29 @@ type CosmosDbBuilder() =
         Tags = Map.empty
         Kind = DatabaseKind.Document
     }
+
+    static member ValidateContainers(state: CosmosDbConfig) =
+        let validateContainerAndAccountConfig (container: CosmosDbContainerConfig, accountKind: DatabaseKind) =
+            if container.Kind = accountKind then
+                Ok container
+            else
+                Error $"Container {container.Name.Value} must be of {state.Kind} kind"
+
+        state.Containers
+        |> List.map (fun container -> validateContainerAndAccountConfig (container, state.Kind))
+
+    member _.Run state =
+        let errors =
+            CosmosDbBuilder.ValidateContainers(state)
+            |> List.choose (fun r ->
+                match r with
+                | Error e -> Some(e)
+                | Ok _ -> None)
+
+        if errors.Length > 0 then
+            errors |> String.concat Environment.NewLine |> raiseFarmer
+
+        state
 
     /// Sets the name of the CosmosDB server.
     [<CustomOperation "account_name">]

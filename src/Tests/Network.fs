@@ -653,6 +653,7 @@ let tests =
                                 name "my-services"
                                 prefix "10.100.12.0/24"
                                 nat_gateway (natGateways.resourceId "my-nat-gateway")
+                                default_outbound_access false
                             }
                         ]
                     }
@@ -685,6 +686,49 @@ let tests =
                 jobj.SelectToken "resources[?(@.type=='Microsoft.Network/publicIPAddresses')]"
 
             Expect.isNotNull publicIp "Public IP should have been generated for the NAT gateway."
+
+            let subnet =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks')].properties.subnets[0]"
+
+            Expect.isNotNull subnet "Subnet resource not generated."
+            let defaultOutbound = subnet.SelectToken "properties.defaultOutboundAccess"
+            Expect.isNotNull defaultOutbound "defaultOutboundAccess should be emitted"
+            Expect.isFalse (defaultOutbound.ToObject<bool>()) "defaultOutboundAccess should be false"
+
+        }
+        test "Creates V2 NAT gateway" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    natGateway {
+                        name "my-nat-gateway-v2"
+                        sku NatGateway.Sku.StandardV2
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+
+            let natGateway =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.Network/natGateways')]"
+
+            Expect.isNotNull natGateway "NAT Gateway is missing from template."
+
+            Expect.equal
+                (string <| natGateway.SelectToken "sku.name")
+                "StandardV2"
+                "Incorrect SKU generated for NAT Gateway"
+
+            let publicIp =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.Network/publicIPAddresses')]"
+
+            Expect.isNotNull publicIp "Public IP is missing from template."
+
+            Expect.equal
+                (string <| publicIp.SelectToken "sku.name")
+                "StandardV2"
+                "Incorrect SKU generated for Public IP"
         }
         test "Creates route table with two routes" {
             let deployment = arm {
@@ -1174,6 +1218,80 @@ let tests =
                 "Incorrect subnet id for ipConfig"
         }
 
+        test "Creates basic network interface with existing vnet subnet and network security group" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    nsg { name "my-nsg" }
+                    networkInterface {
+                        name "my-network-interface-with-nsg"
+                        link_to_subnet "test-subnet"
+                        link_to_vnet "test-vnet"
+                        network_security_group (networkSecurityGroups.resourceId "my-nsg")
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+
+            let networkInterfaceWithNsg =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.Network/networkInterfaces')]"
+
+            Expect.equal
+                (networkInterfaceWithNsg.["properties"].["networkSecurityGroup"].["id"].ToString())
+                "[resourceId(\u0027Microsoft.Network/networkSecurityGroups\u0027, \u0027my-nsg\u0027)]"
+                "Incorrect networkSecurityGroup for networkInterface"
+
+            let networkInterfaceWithNsgDependencies =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.Network/networkInterfaces')].dependsOn" :?> JArray
+
+            Expect.isNotNull networkInterfaceWithNsgDependencies "Missing dependency for networkInterface"
+
+            Expect.hasLength
+                networkInterfaceWithNsgDependencies
+                1
+                "Incorrect number of dependencies for networkInterface"
+
+            Expect.equal
+                (networkInterfaceWithNsgDependencies.[0].ToString())
+                "[resourceId(\u0027Microsoft.Network/networkSecurityGroups\u0027, \u0027my-nsg\u0027)]"
+                "Incorrect networkInterface dependencies"
+        }
+
+        test "Creates basic network interface with existing vnet subnet and existing network security group" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    networkInterface {
+                        name "my-network-interface-with-existing-nsg"
+                        link_to_subnet "test-subnet"
+                        link_to_vnet "test-vnet"
+                        link_to_network_security_group (networkSecurityGroups.resourceId "my-nsg")
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+
+            let networkInterfaceWithExistingNsg =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.Network/networkInterfaces')]"
+
+            Expect.equal
+                (networkInterfaceWithExistingNsg.["properties"].["networkSecurityGroup"].["id"].ToString())
+                "[resourceId(\u0027Microsoft.Network/networkSecurityGroups\u0027, \u0027my-nsg\u0027)]"
+                "Incorrect networkSecurityGroup for networkInterface"
+
+            let networkInterfaceWithExistingNsgDependencies =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.Network/networkInterfaces')].dependsOn" :?> JArray
+
+            Expect.hasLength
+                networkInterfaceWithExistingNsgDependencies
+                0
+                "Incorrect number of dependencies for networkInterface"
+        }
+
         test "Creates basic network interface with existing vnet subnet and dynamic ip" {
             let deployment = arm {
                 location Location.EastUS
@@ -1211,5 +1329,114 @@ let tests =
                 subnetId
                 "[resourceId(\u0027Microsoft.Network/virtualNetworks/subnets\u0027, \u0027test-vnet\u0027, \u0027test-subnet\u0027)]"
                 "Incorrect subnet id for ipConfig"
+        }
+
+        test "Automatically carved subnets with route table" {
+            let myRt = routeTable { name "my-rt" }
+
+            let vnetName = "my-vnet"
+            let webSubnet = "web"
+            let appsSubnet = "apps"
+            let noRtSubnet = "no-rt"
+
+            let myNet = vnet {
+                name vnetName
+
+                build_address_spaces [
+                    addressSpace {
+                        space "10.28.0.0/16"
+
+                        subnets [
+                            subnetSpec {
+                                name webSubnet
+                                size 24
+                                route_table myRt
+                            }
+                            subnetSpec {
+                                name appsSubnet
+                                size 24
+                                route_table myRt
+                            }
+                            subnetSpec {
+                                name noRtSubnet
+                                size 24
+                            }
+                        ]
+                    }
+                ]
+            }
+
+            let template = arm { add_resources [ myNet; myRt ] }
+            let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+            let dependencies =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks')].dependsOn"
+                :?> Newtonsoft.Json.Linq.JArray
+
+            Expect.isNotNull dependencies "vnet missing dependency for rt"
+            Expect.hasLength dependencies 1 "Incorrect number of dependencies for vnet"
+
+            Expect.equal
+                (dependencies.[0].ToString())
+                "[resourceId('Microsoft.Network/routeTables', 'my-rt')]"
+                "Incorrect vnet dependencies"
+
+            let vnet = template |> getVnetResource
+            Expect.isNotNull vnet.Subnets.[0].RouteTable "First subnet missing route table"
+
+            Expect.equal
+                vnet.Subnets.[0].RouteTable.Id
+                "[resourceId('Microsoft.Network/routeTables', 'my-rt')]"
+                "Incorrect route table for first subnet"
+
+            Expect.isNotNull vnet.Subnets.[0].RouteTable "Second subnet missing route table"
+
+            Expect.equal
+                vnet.Subnets.[1].RouteTable.Id
+                "[resourceId('Microsoft.Network/routeTables', 'my-rt')]"
+                "Incorrect route table for second subnet"
+
+            Expect.isNull vnet.Subnets.[2].RouteTable "Third subnet should not have route table"
+        }
+
+        test "Vnet with linked route table doesn't add dependsOn" {
+            let vnetName = "my-vnet"
+            let webSubnet = "web"
+
+            let myNet = vnet {
+                name vnetName
+
+                build_address_spaces [
+                    addressSpace {
+                        space "10.28.0.0/16"
+
+                        subnets [
+                            subnetSpec {
+                                name webSubnet
+                                size 24
+
+                                link_to_route_table (routeTables.resourceId "my-rt")
+                            }
+                        ]
+                    }
+                ]
+            }
+
+            let template = arm { add_resources [ myNet ] }
+            let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+            let dependencies =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks')].dependsOn"
+                :?> Newtonsoft.Json.Linq.JArray
+
+            Expect.hasLength dependencies 0 "Should be no vnet dependencies when linking to route table"
+
+            let vnet = template |> getVnetResource
+            Expect.isNotNull vnet.Subnets.[0].RouteTable "Subnet missing route table"
+
+            Expect.equal
+                vnet.Subnets.[0].RouteTable.Id
+                "[resourceId('Microsoft.Network/routeTables', 'my-rt')]"
+                "Incorrect route table for subnet"
         }
     ]
