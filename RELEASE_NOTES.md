@@ -2,7 +2,12 @@ Release Notes
 =============
 
 ## 1.9.24
-* SQL Azure: Support for fractional VCores (0.5, 0.75) in Serverless Gen5 databases.
+* Service Bus: Add validation for SKU-specific features (topics not supported on Basic SKU, max message size only supported on Premium SKU).
+* SQL Azure: Support for fractional VCores such as (0.5, 0.75) in Serverless Gen5 databases.
+* Virtual Machines: Added support for `deleteOption` on VM disks, NICs, and public IP addresses to automatically clean up resources when a VM is deleted.
+  * New builder keywords: `disk_delete_option`, `nic_delete_option`, `public_ip_delete_option`
+  * New convenience keyword: `delete_attached` to set all delete options at once
+  * Simplified type: All delete options now use a single `DeleteOption` type with `Delete` and `Detach` values
 
 ## 1.9.23
 * Actions Groups: Bump API version to `2025-09-01-preview`.
