@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.24
+* Service Bus: Add validation for SKU-specific features (topics not supported on Basic SKU, max message size only supported on Premium SKU).
+
 ## 1.9.23
 * Actions Groups: Bump API version to `2025-09-01-preview`.
 
