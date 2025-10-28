@@ -28,13 +28,13 @@ let myVmDetailed = vm {
     add_ssd_disk 256
 
     // Set delete option to automatically remove disks when VM is deleted
-    disk_delete_option Vm.DiskDeleteOption.Delete
+    disk_delete_option Vm.DeleteOption.Delete
 
     // Set delete option to automatically remove NIC when VM is deleted
-    nic_delete_option Vm.NicDeleteOption.Delete
+    nic_delete_option Vm.DeleteOption.Delete
 
     // Set delete option to automatically remove public IP when VM is deleted
-    public_ip_delete_option Vm.PublicIpDeleteOption.Delete
+    public_ip_delete_option Vm.DeleteOption.Delete
 }
 
 let deployment = arm {

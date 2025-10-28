@@ -1275,7 +1275,7 @@ let tests =
                         operating_system UbuntuServer_2204LTS
                         os_disk 128 Standard_LRS
                         add_ssd_disk 128
-                        disk_delete_option DiskDeleteOption.Delete
+                        disk_delete_option DeleteOption.Delete
                     }
                 ]
             }
@@ -1304,7 +1304,7 @@ let tests =
                         username "azureuser"
                         vm_size Standard_B1s
                         operating_system UbuntuServer_2204LTS
-                        nic_delete_option NicDeleteOption.Delete
+                        nic_delete_option DeleteOption.Delete
                     }
                 ]
             }
@@ -1329,7 +1329,7 @@ let tests =
                         username "azureuser"
                         vm_size Standard_B1s
                         operating_system UbuntuServer_2204LTS
-                        public_ip_delete_option PublicIpDeleteOption.Delete
+                        public_ip_delete_option DeleteOption.Delete
                     }
                 ]
             }
@@ -1439,7 +1439,7 @@ let tests =
                         username "azureuser"
                         vm_size Standard_B1s
                         operating_system UbuntuServer_2204LTS
-                        disk_delete_option DiskDeleteOption.Delete
+                        disk_delete_option DeleteOption.Delete
                     }
                 ]
             }
@@ -1464,7 +1464,7 @@ let tests =
                         name "my-vm"
                         username "azureuser"
                         vm_size Standard_B1s
-                        disk_delete_option DiskDeleteOption.Delete
+                        disk_delete_option DeleteOption.Delete
                         operating_system UbuntuServer_2204LTS
                     }
                 ]

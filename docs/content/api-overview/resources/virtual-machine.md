@@ -157,9 +157,9 @@ let myVm = vm {
     operating_system Vm.UbuntuServer_2204LTS
     
     // Only delete disks and NICs, but keep public IPs
-    disk_delete_option Vm.DiskDeleteOption.Delete
-    nic_delete_option Vm.NicDeleteOption.Delete
-    public_ip_delete_option Vm.PublicIpDeleteOption.Detach
+    disk_delete_option Vm.DeleteOption.Delete
+    nic_delete_option Vm.DeleteOption.Delete
+    public_ip_delete_option Vm.DeleteOption.Detach
 }
 ```
 

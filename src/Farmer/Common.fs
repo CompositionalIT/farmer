@@ -980,28 +980,8 @@ module Vm =
             match this with
             | x -> x.ToString()
 
-    /// Specifies what happens to disk when a VM is deleted.
-    type DiskDeleteOption =
-        | Delete
-        | Detach
-
-        member this.ArmValue =
-            match this with
-            | Delete -> "Delete"
-            | Detach -> "Detach"
-
-    /// Specifies what happens to NIC when a VM is deleted.
-    type NicDeleteOption =
-        | Delete
-        | Detach
-
-        member this.ArmValue =
-            match this with
-            | Delete -> "Delete"
-            | Detach -> "Detach"
-
-    /// Specifies what happens to public IP when a VM is deleted.
-    type PublicIpDeleteOption =
+    /// Specifies what happens to a resource (disk, NIC, or public IP) when a VM is deleted.
+    type DeleteOption =
         | Delete
         | Detach
 

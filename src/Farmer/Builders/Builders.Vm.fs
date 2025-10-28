@@ -57,9 +57,9 @@ type VmConfig = {
     LoadBalancerBackendAddressPools: LinkedResource list
     Identity: Identity.ManagedIdentity
     NetworkSecurityGroup: LinkedResource option
-    DiskDeleteOption: DiskDeleteOption option
-    NicDeleteOption: NicDeleteOption option
-    PublicIpDeleteOption: PublicIpDeleteOption option
+    DiskDeleteOption: DeleteOption option
+    NicDeleteOption: DeleteOption option
+    PublicIpDeleteOption: DeleteOption option
 
     Tags: Map<string, string>
 } with
@@ -380,7 +380,7 @@ type VirtualMachineBuilder() =
         // Apply DiskDeleteOption to OS disk if set
         let osDisk =
             match state.DiskDeleteOption with
-            | Some DiskDeleteOption.Delete ->
+            | Some DeleteOption.Delete ->
                 match state.OsDisk with
                 | FromImage(image, diskInfo) -> FromImageWithDelete(image, diskInfo)
                 | AttachOsDisk(os, diskId) -> AttachOsDiskWithDelete(os, diskId)
@@ -400,13 +400,13 @@ type VirtualMachineBuilder() =
 
                     [
                         match state.DiskDeleteOption with
-                        | Some DiskDeleteOption.Delete -> DataDiskCreateOption.EmptyWithDelete diskInfo
+                        | Some DeleteOption.Delete -> DataDiskCreateOption.EmptyWithDelete diskInfo
                         | _ -> DataDiskCreateOption.Empty diskInfo
                     ]
                 | disks ->
                     // Apply DiskDeleteOption to existing disks
                     match state.DiskDeleteOption with
-                    | Some DiskDeleteOption.Delete ->
+                    | Some DeleteOption.Delete ->
                         disks
                         |> List.map (function
                             | Empty diskInfo -> EmptyWithDelete diskInfo
@@ -1083,21 +1083,21 @@ type VirtualMachineBuilder() =
 
     /// Sets the delete option for OS and data disks.
     [<CustomOperation "disk_delete_option">]
-    member _.DiskDeleteOption(state: VmConfig, deleteOption: DiskDeleteOption) = {
+    member _.DiskDeleteOption(state: VmConfig, deleteOption: DeleteOption) = {
         state with
             DiskDeleteOption = Some deleteOption
     }
 
     /// Sets the delete option for the network interface(s).
     [<CustomOperation "nic_delete_option">]
-    member _.NicDeleteOption(state: VmConfig, deleteOption: NicDeleteOption) = {
+    member _.NicDeleteOption(state: VmConfig, deleteOption: DeleteOption) = {
         state with
             NicDeleteOption = Some deleteOption
     }
 
     /// Sets the delete option for the public IP address.
     [<CustomOperation "public_ip_delete_option">]
-    member _.PublicIpDeleteOption(state: VmConfig, deleteOption: PublicIpDeleteOption) = {
+    member _.PublicIpDeleteOption(state: VmConfig, deleteOption: DeleteOption) = {
         state with
             PublicIpDeleteOption = Some deleteOption
     }
@@ -1105,12 +1105,12 @@ type VirtualMachineBuilder() =
     /// Sets all delete options (disks, NIC, and public IP) to Delete. This is a convenience method for the common use case of automatically cleaning up all attached resources when the VM is deleted.
     [<CustomOperation "delete_attached">]
     member this.DeleteAttached(state: VmConfig) =
-        let stateWithDiskDelete = this.DiskDeleteOption(state, DiskDeleteOption.Delete)
+        let stateWithDiskDelete = this.DiskDeleteOption(state, DeleteOption.Delete)
 
         let stateWithNicDelete =
-            this.NicDeleteOption(stateWithDiskDelete, NicDeleteOption.Delete)
+            this.NicDeleteOption(stateWithDiskDelete, DeleteOption.Delete)
 
-        this.PublicIpDeleteOption(stateWithNicDelete, PublicIpDeleteOption.Delete)
+        this.PublicIpDeleteOption(stateWithNicDelete, DeleteOption.Delete)
 
 
 let vm = VirtualMachineBuilder()

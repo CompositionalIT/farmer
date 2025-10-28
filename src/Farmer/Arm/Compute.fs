@@ -550,7 +550,7 @@ module VirtualMachine =
         (
             networkInterfaceIds: ResourceId list,
             nicConfig: NetworkInterfaceConfiguration list,
-            nicDeleteOption: Vm.NicDeleteOption option
+            nicDeleteOption: Vm.DeleteOption option
         ) =
         {|
             networkInterfaces =
@@ -632,7 +632,7 @@ type VirtualMachine = {
     OsDisk: OsDiskCreateOption
     DataDisks: DataDiskCreateOption list
     NetworkInterfaceIds: ResourceId list
-    NicDeleteOption: Vm.NicDeleteOption option
+    NicDeleteOption: Vm.DeleteOption option
     Identity: Identity.ManagedIdentity
     Tags: Map<string, string>
 } with

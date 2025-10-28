@@ -649,7 +649,7 @@ type IpConfiguration = {
     PrivateIpAllocation: AllocationMethod option
     PrivateIpAddressVersion: AddressVersion
     Primary: bool option
-    PublicIpAddressDeleteOption: Vm.PublicIpDeleteOption option
+    PublicIpAddressDeleteOption: Vm.DeleteOption option
 }
 
 module NetworkInterface =
@@ -735,7 +735,7 @@ type NetworkInterface = {
     VirtualNetwork: LinkedResource
     NetworkSecurityGroup: LinkedResource option
     Primary: bool option
-    DeleteOption: Vm.NicDeleteOption option
+    DeleteOption: Vm.DeleteOption option
     Tags: Map<string, string>
 } with
 
