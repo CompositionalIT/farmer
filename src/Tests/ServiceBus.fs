@@ -889,11 +889,7 @@ let tests =
                             name "serviceBus"
                             sku Basic
 
-                            add_topics [
-                                topic {
-                                    name "my-topic"
-                                }
-                            ]
+                            add_topics [ topic { name "my-topic" } ]
                         }
                         |> ignore)
                     "Topics are not supported on Basic SKU"
