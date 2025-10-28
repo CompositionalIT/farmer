@@ -71,32 +71,22 @@ let tests =
             let isLinux = jobj.SelectToken("resources[?(@.name=='myRule')].kind").ToString()
 
             let actualEndpoint =
-                jobj
-                    .SelectToken("resources[?(@.name=='myRule')].properties.dataCollectionEndpointId")
-                    .ToString()
+                jobj.SelectToken("resources[?(@.name=='myRule')].properties.dataCollectionEndpointId").ToString()
 
             let actualDependsOn =
                 jobj.SelectToken("resources[?(@.name=='myRule')].dependsOn[0]").ToString()
 
             let actualDataFlows =
-                jobj
-                    .SelectToken("resources[?(@.name=='myRule')].properties.dataFlows")
-                    .ToString()
+                jobj.SelectToken("resources[?(@.name=='myRule')].properties.dataFlows").ToString()
 
             let actualDataSources =
-                jobj
-                    .SelectToken("resources[?(@.name=='myRule')].properties.dataSources")
-                    .ToString()
+                jobj.SelectToken("resources[?(@.name=='myRule')].properties.dataSources").ToString()
 
             let actualDestinations =
-                jobj
-                    .SelectToken("resources[?(@.name=='myRule')].properties.destinations")
-                    .ToString()
+                jobj.SelectToken("resources[?(@.name=='myRule')].properties.destinations").ToString()
 
             let actualPrometheusForwarder =
-                jobj
-                    .SelectToken("resources[?(@.name=='myRule')].properties.dataSources.prometheusForwarder")
-                    .ToString()
+                jobj.SelectToken("resources[?(@.name=='myRule')].properties.dataSources.prometheusForwarder").ToString()
 
             Expect.equal isLinux "Linux" "Expected Linux OS type"
             Expect.equal actualEndpoint ((myEndpoint :> IBuilder).ResourceId.Eval()) "Expected matching endpoint Id"
@@ -149,27 +139,19 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             let actualRuleId =
-                jobj
-                    .SelectToken("resources[?(@.name=='myRuleAssociation')].properties.dataCollectionRuleId")
-                    .ToString()
+                jobj.SelectToken("resources[?(@.name=='myRuleAssociation')].properties.dataCollectionRuleId").ToString()
 
             Expect.throws
                 (fun _ ->
-                    jobj
-                        .SelectToken("resources[?(@.name=='myRuleAssociation')].location")
-                        .ToString()
+                    jobj.SelectToken("resources[?(@.name=='myRuleAssociation')].location").ToString()
                     |> ignore)
                 "Location should not be present in data collection rule association."
 
             let actualDependsOn =
-                jobj
-                    .SelectToken("resources[?(@.name=='myRuleAssociation')].dependsOn")
-                    .ToString()
+                jobj.SelectToken("resources[?(@.name=='myRuleAssociation')].dependsOn").ToString()
 
             let actualDataCollectionRuleId =
-                jobj
-                    .SelectToken("resources[?(@.name=='myRuleAssociation')].properties.dataCollectionRuleId")
-                    .ToString()
+                jobj.SelectToken("resources[?(@.name=='myRuleAssociation')].properties.dataCollectionRuleId").ToString()
 
             Expect.equal actualRuleId (expectedRuleId.Eval()) "Expected matching rule Id"
 

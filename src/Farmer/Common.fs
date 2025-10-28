@@ -1,4 +1,4 @@
-namespace Farmer
+﻿namespace Farmer
 
 open System
 
@@ -131,19 +131,15 @@ type TransmissionProtocol =
     | UDP
 
 type TlsVersion =
+    | Tls10
+    | Tls11
     | Tls12
-    | Tls13
 
     member this.ArmValue =
         match this with
+        | Tls10 -> "1.0"
+        | Tls11 -> "1.1"
         | Tls12 -> "1.2"
-        | Tls13 -> "1.3"
-
-    [<System.Obsolete("TLS 1.0 is deprecated and insecure. Use TLS 1.2 or higher.")>]
-    static member Tls10 = Tls12
-
-    [<System.Obsolete("TLS 1.1 is deprecated and insecure. Use TLS 1.2 or higher.")>]
-    static member Tls11 = Tls12
 
 /// Represents an environment variable that can be set, typically on Docker container services.
 type EnvVar =
@@ -984,6 +980,16 @@ module Vm =
             match this with
             | x -> x.ToString()
 
+    /// Specifies what happens to a resource (disk, NIC, or public IP) when a VM is deleted.
+    type DeleteOption =
+        | Delete
+        | Detach
+
+        member this.ArmValue =
+            match this with
+            | Delete -> "Delete"
+            | Detach -> "Detach"
+
     /// Represents a disk in a VM.
     type DiskInfo = {
         Size: int
@@ -998,20 +1004,27 @@ module Vm =
     /// VM OS disks can be created by attaching an existing disk or from a gallery image.
     type OsDiskCreateOption =
         | AttachOsDisk of OS * ManagedDiskId: LinkedResource
+        | AttachOsDiskWithDelete of OS * ManagedDiskId: LinkedResource
         | FromImage of ImageInfo * DiskInfo
+        | FromImageWithDelete of ImageInfo * DiskInfo
 
     /// VM data disks can be created by attaching an existing disk or generating an empty disk.
     type DataDiskCreateOption =
         | AttachDataDisk of ManagedDiskId: LinkedResource
+        | AttachDataDiskWithDelete of ManagedDiskId: LinkedResource
         /// Indicates the disk being attached is an ultra disk to enable that option on the VM
         | AttachUltra of ManagedDiskId: LinkedResource
+        | AttachUltraWithDelete of ManagedDiskId: LinkedResource
         | Empty of DiskInfo
+        | EmptyWithDelete of DiskInfo
 
         /// Indicates an Ultra SSD will be used so that option should be enabled on the VM.
         member this.IsUltraDisk =
             match this with
-            | AttachUltra _ -> true
-            | Empty diskInfo when diskInfo.IsUltraDisk -> true
+            | AttachUltra _
+            | AttachUltraWithDelete _ -> true
+            | Empty diskInfo
+            | EmptyWithDelete diskInfo when diskInfo.IsUltraDisk -> true
             | _ -> false
 
     type EvictionPolicy =
@@ -2009,7 +2022,7 @@ module Sql =
         | Gen5_32
         | Gen5_40
         | Gen5_80
-        | S_Gen5 of CapacityMin: int * CapacityMax: int
+        | S_Gen5 of CapacityMin: float * CapacityMax: float
 
         member this.Name =
             Reflection.FSharpValue.GetUnionFields(this, typeof<Gen5Series>)
@@ -2247,9 +2260,7 @@ module Identity =
                 | UserAssignedIdentity rid -> rid
                 | LinkedUserAssignedIdentity rid -> rid
 
-            ArmExpression
-                .create($"reference({resourceId.ArmExpression.Value}).%s{field}")
-                .WithOwner(resourceId)
+            ArmExpression.create($"reference({resourceId.ArmExpression.Value}).%s{field}").WithOwner(resourceId)
 
         member this.PrincipalId = this.CreateExpression "principalId" |> PrincipalId
         member this.ClientId = this.CreateExpression "clientId"

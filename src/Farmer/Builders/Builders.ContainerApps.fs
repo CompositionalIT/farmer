@@ -58,9 +58,7 @@ type ContainerAppConfig = {
     member this.ResourceId = containerApps.resourceId this.Name
 
     member this.LatestRevisionFqdn =
-        ArmExpression
-            .reference(containerApps, this.ResourceId)
-            .Map(sprintf "%s.latestRevisionFqdn")
+        ArmExpression.reference(containerApps, this.ResourceId).Map(sprintf "%s.latestRevisionFqdn")
 
 type DaprComponent = {
     Name: ResourceName

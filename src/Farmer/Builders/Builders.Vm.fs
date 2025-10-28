@@ -57,6 +57,9 @@ type VmConfig = {
     LoadBalancerBackendAddressPools: LinkedResource list
     Identity: Identity.ManagedIdentity
     NetworkSecurityGroup: LinkedResource option
+    DiskDeleteOption: DeleteOption option
+    NicDeleteOption: DeleteOption option
+    PublicIpDeleteOption: DeleteOption option
 
     Tags: Map<string, string>
 } with
@@ -92,6 +95,7 @@ type VmConfig = {
             PrivateIpAllocation = this.PrivateIpAllocation
             PrivateIpAddressVersion = AddressVersion.IPv4 // Must have have an IPv4 IP config on the primary.
             Primary = if this.IpConfigs.Length > 0 then Some true else None
+            PublicIpAddressDeleteOption = this.PublicIpDeleteOption
         }
         :: this.IpConfigs
         |> List.map (fun ipconfig ->
@@ -137,6 +141,7 @@ type VmConfig = {
                         None
                 VirtualNetwork = this.VNet.toLinkedResource this
                 NetworkSecurityGroup = nsgId
+                DeleteOption = this.NicDeleteOption
                 Tags = this.Tags
             })
 
@@ -221,6 +226,7 @@ type VmConfig = {
                     Identity = this.Identity
                     OsDisk = this.OsDisk
                     DataDisks = this.DataDisks |> Option.defaultValue []
+                    NicDeleteOption = this.NicDeleteOption
                     Tags = this.Tags
                 }
 
@@ -278,8 +284,10 @@ type VmConfig = {
                     VirtualMachine = this.Name
                     OS =
                         match this.OsDisk with
-                        | FromImage(ImageDefinition image, _) -> image.OS
-                        | FromImage(GalleryImageRef(os, _), _) -> os
+                        | FromImage(ImageDefinition image, _)
+                        | FromImageWithDelete(ImageDefinition image, _) -> image.OS
+                        | FromImage(GalleryImageRef(os, _), _)
+                        | FromImageWithDelete(GalleryImageRef(os, _), _) -> os
                         | _ -> raiseFarmer "Unable to determine OS for custom script when attaching an existing disk"
                     ScriptContents = script
                     FileUris = files
@@ -292,14 +300,17 @@ type VmConfig = {
 
                 // Azure AD SSH login extension
                 match this.AadSshLogin, this.OsDisk with
-                | FeatureFlag.Enabled, FromImage(ImageDefinition image, _) when
+                | FeatureFlag.Enabled, FromImage(ImageDefinition image, _)
+                | FeatureFlag.Enabled, FromImageWithDelete(ImageDefinition image, _) when
                     image.OS = Linux && this.Identity.SystemAssigned = Disabled
                     ->
                     raiseFarmer
                         "AAD SSH login requires that system assigned identity be enabled on the virtual machine."
-                | FeatureFlag.Enabled, FromImage(ImageDefinition image, _) when image.OS = Windows ->
+                | FeatureFlag.Enabled, FromImage(ImageDefinition image, _)
+                | FeatureFlag.Enabled, FromImageWithDelete(ImageDefinition image, _) when image.OS = Windows ->
                     raiseFarmer "AAD SSH login is only supported for Linux Virtual Machines"
-                | FeatureFlag.Enabled, FromImage(GalleryImageRef(Windows, _), _) ->
+                | FeatureFlag.Enabled, FromImage(GalleryImageRef(Windows, _), _)
+                | FeatureFlag.Enabled, FromImageWithDelete(GalleryImageRef(Windows, _), _) ->
                     raiseFarmer "AAD SSH login is only supported for Linux Virtual Machines"
                 // Assuming a user that attaches a disk knows to only using this extension for Linux images.
                 | FeatureFlag.Enabled, _ -> {
@@ -351,6 +362,9 @@ type VirtualMachineBuilder() =
         PrivateIpAllocation = None
         LoadBalancerBackendAddressPools = []
         NetworkSecurityGroup = None
+        DiskDeleteOption = None
+        NicDeleteOption = None
+        PublicIpDeleteOption = None
         Tags = Map.empty
     }
 
@@ -363,19 +377,49 @@ type VirtualMachineBuilder() =
             | NetworkInterface.AcceleratedNetworkingSupported -> ()
         | _ -> ()
 
+        // Apply DiskDeleteOption to OS disk if set
+        let osDisk =
+            match state.DiskDeleteOption with
+            | Some DeleteOption.Delete ->
+                match state.OsDisk with
+                | FromImage(image, diskInfo) -> FromImageWithDelete(image, diskInfo)
+                | AttachOsDisk(os, diskId) -> AttachOsDiskWithDelete(os, diskId)
+                | other -> other // Already has WithDelete variant
+            | _ -> state.OsDisk
+
+        // Apply DiskDeleteOption to data disks if set
+        let dataDisks =
+            state.DataDisks
+            |> Option.map (function
+                | [] ->
+                    // Create default 1024GB disk
+                    let diskInfo = {
+                        Size = 1024
+                        DiskType = DiskType.Standard_LRS
+                    }
+
+                    [
+                        match state.DiskDeleteOption with
+                        | Some DeleteOption.Delete -> DataDiskCreateOption.EmptyWithDelete diskInfo
+                        | _ -> DataDiskCreateOption.Empty diskInfo
+                    ]
+                | disks ->
+                    // Apply DiskDeleteOption to existing disks
+                    match state.DiskDeleteOption with
+                    | Some DeleteOption.Delete ->
+                        disks
+                        |> List.map (function
+                            | Empty diskInfo -> EmptyWithDelete diskInfo
+                            | AttachDataDisk diskId -> AttachDataDiskWithDelete diskId
+                            | AttachUltra diskId -> AttachUltraWithDelete diskId
+                            | other -> other // Already has WithDelete variant
+                        )
+                    | _ -> disks)
+
         {
             state with
-                DataDisks =
-                    state.DataDisks
-                    |> Option.map (function
-                        | [] -> [
-                            {
-                                Size = 1024
-                                DiskType = DiskType.Standard_LRS
-                            }
-                            |> DataDiskCreateOption.Empty
-                          ]
-                        | other -> other)
+                OsDisk = osDisk
+                DataDisks = dataDisks
         }
 
     [<CustomOperation "encryption_at_host">]
@@ -540,7 +584,9 @@ type VirtualMachineBuilder() =
         let osDisk =
             match state.OsDisk with
             | FromImage(_, diskInfo) -> FromImage(ImageDefinition image, diskInfo)
-            | AttachOsDisk _ -> raiseFarmer "Operating system from attached disk will be used"
+            | FromImageWithDelete(_, diskInfo) -> FromImageWithDelete(ImageDefinition image, diskInfo)
+            | AttachOsDisk _
+            | AttachOsDiskWithDelete _ -> raiseFarmer "Operating system from attached disk will be used"
 
         { state with OsDisk = osDisk }
 
@@ -548,7 +594,9 @@ type VirtualMachineBuilder() =
         let osDisk =
             match state.OsDisk with
             | FromImage(_, diskInfo) -> FromImage(GalleryImageRef imageRef, diskInfo)
-            | AttachOsDisk _ -> raiseFarmer "Operating system from attached disk will be used"
+            | FromImageWithDelete(_, diskInfo) -> FromImageWithDelete(GalleryImageRef imageRef, diskInfo)
+            | AttachOsDisk _
+            | AttachOsDiskWithDelete _ -> raiseFarmer "Operating system from attached disk will be used"
 
         { state with OsDisk = osDisk }
 
@@ -578,7 +626,16 @@ type VirtualMachineBuilder() =
                 }
 
                 FromImage(image, updatedDiskInfo)
-            | AttachOsDisk _ -> state.OsDisk // uses the size and type from the attached disk
+            | FromImageWithDelete(image, diskInfo) ->
+                let updatedDiskInfo = {
+                    diskInfo with
+                        DiskType = diskType
+                        Size = size
+                }
+
+                FromImageWithDelete(image, updatedDiskInfo)
+            | AttachOsDisk _
+            | AttachOsDiskWithDelete _ -> state.OsDisk // uses the size and type from the attached disk
 
         { state with OsDisk = osDisk }
 
@@ -607,15 +664,16 @@ type VirtualMachineBuilder() =
     [<CustomOperation "attach_data_disk">]
     member _.AttachDataDisk(state: VmConfig, diskId: ResourceId) =
         let existingDisks = state.DataDisks
+        let newDisk = AttachDataDisk(Managed diskId)
 
         match existingDisks with
         | Some disks -> {
             state with
-                DataDisks = disks @ [ AttachDataDisk(Managed diskId) ] |> Some
+                DataDisks = disks @ [ newDisk ] |> Some
           }
         | None -> {
             state with
-                DataDisks = [ AttachDataDisk(Managed diskId) ] |> Some
+                DataDisks = [ newDisk ] |> Some
           }
 
     member this.AttachDataDisk(state: VmConfig, disk: DiskConfig) =
@@ -623,15 +681,16 @@ type VirtualMachineBuilder() =
         | Some(UltraSSD_LRS) ->
             let existingDisks = state.DataDisks
             let diskId = (disk :> IBuilder).ResourceId
+            let newDisk = AttachUltra(Managed diskId)
 
             match existingDisks with
             | Some disks -> {
                 state with
-                    DataDisks = disks @ [ AttachUltra(Managed diskId) ] |> Some
+                    DataDisks = disks @ [ newDisk ] |> Some
               }
             | None -> {
                 state with
-                    DataDisks = [ AttachUltra(Managed diskId) ] |> Some
+                    DataDisks = [ newDisk ] |> Some
               }
         | _ -> this.AttachDataDisk(state, (disk :> IBuilder).ResourceId)
 
@@ -639,15 +698,16 @@ type VirtualMachineBuilder() =
     [<CustomOperation "attach_existing_data_disk">]
     member _.AttachExistingDataDisk(state: VmConfig, diskId: ResourceId) =
         let existingDisks = state.DataDisks
+        let newDisk = AttachDataDisk(Unmanaged diskId)
 
         match existingDisks with
         | Some disks -> {
             state with
-                DataDisks = disks @ [ AttachDataDisk(Unmanaged diskId) ] |> Some
+                DataDisks = disks @ [ newDisk ] |> Some
           }
         | None -> {
             state with
-                DataDisks = [ AttachDataDisk(Unmanaged diskId) ] |> Some
+                DataDisks = [ newDisk ] |> Some
           }
 
     member this.AttachExistingDataDisk(state: VmConfig, disk: DiskConfig) =
@@ -655,15 +715,16 @@ type VirtualMachineBuilder() =
         | Some(UltraSSD_LRS) ->
             let existingDisks = state.DataDisks
             let diskId = (disk :> IBuilder).ResourceId
+            let newDisk = AttachUltra(Unmanaged diskId)
 
             match existingDisks with
             | Some disks -> {
                 state with
-                    DataDisks = disks @ [ AttachUltra(Unmanaged diskId) ] |> Some
+                    DataDisks = disks @ [ newDisk ] |> Some
               }
             | None -> {
                 state with
-                    DataDisks = [ AttachUltra(Unmanaged diskId) ] |> Some
+                    DataDisks = [ newDisk ] |> Some
               }
         | _ -> this.AttachExistingDataDisk(state, (disk :> IBuilder).ResourceId)
 
@@ -675,11 +736,11 @@ type VirtualMachineBuilder() =
             | Some disks -> disks
             | None -> []
 
+        let newDisk = DataDiskCreateOption.Empty { Size = size; DiskType = diskType }
+
         {
             state with
-                DataDisks =
-                    DataDiskCreateOption.Empty { Size = size; DiskType = diskType } :: existingDisks
-                    |> Some
+                DataDisks = newDisk :: existingDisks |> Some
         }
 
     /// Provision the VM without generating a data disk (OS-only).
@@ -1020,6 +1081,37 @@ type VirtualMachineBuilder() =
             NetworkSecurityGroup = Some(Unmanaged (nsg :> IBuilder).ResourceId)
     }
 
+    /// Sets the delete option for OS and data disks.
+    [<CustomOperation "disk_delete_option">]
+    member _.DiskDeleteOption(state: VmConfig, deleteOption: DeleteOption) = {
+        state with
+            DiskDeleteOption = Some deleteOption
+    }
+
+    /// Sets the delete option for the network interface(s).
+    [<CustomOperation "nic_delete_option">]
+    member _.NicDeleteOption(state: VmConfig, deleteOption: DeleteOption) = {
+        state with
+            NicDeleteOption = Some deleteOption
+    }
+
+    /// Sets the delete option for the public IP address.
+    [<CustomOperation "public_ip_delete_option">]
+    member _.PublicIpDeleteOption(state: VmConfig, deleteOption: DeleteOption) = {
+        state with
+            PublicIpDeleteOption = Some deleteOption
+    }
+
+    /// Sets all delete options (disks, NIC, and public IP) to Delete. This is a convenience method for the common use case of automatically cleaning up all attached resources when the VM is deleted.
+    [<CustomOperation "delete_attached">]
+    member this.DeleteAttached(state: VmConfig) =
+        let stateWithDiskDelete = this.DiskDeleteOption(state, DeleteOption.Delete)
+
+        let stateWithNicDelete =
+            this.NicDeleteOption(stateWithDiskDelete, DeleteOption.Delete)
+
+        this.PublicIpDeleteOption(stateWithNicDelete, DeleteOption.Delete)
+
 
 let vm = VirtualMachineBuilder()
 
@@ -1078,6 +1170,7 @@ type IpConfigBuilder() =
         PrivateIpAllocation = None
         PrivateIpAddressVersion = IPv4
         Primary = None
+        PublicIpAddressDeleteOption = None
     }
 
     [<CustomOperation "ip_v6">]
