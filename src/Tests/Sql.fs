@@ -262,7 +262,7 @@ let tests =
                 add_databases [
                     sqlDb {
                         name "mydb22"
-                        sku (GeneralPurpose(S_Gen5(2.0, 4.0)))
+                        sku (GeneralPurpose(S_Gen5(2, 4)))
                     }
                 ]
             }
