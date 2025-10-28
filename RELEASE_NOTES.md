@@ -2,6 +2,7 @@ Release Notes
 =============
 
 ## 1.9.24
+* Service Bus: Add validation for SKU-specific features (topics not supported on Basic SKU, max message size only supported on Premium SKU).
 * Virtual Machines: Added support for `deleteOption` on VM disks, NICs, and public IP addresses to automatically clean up resources when a VM is deleted.
   * New builder keywords: `disk_delete_option`, `nic_delete_option`, `public_ip_delete_option`
   * New convenience keyword: `delete_attached` to set all delete options at once
