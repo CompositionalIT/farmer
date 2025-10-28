@@ -737,4 +737,51 @@ let tests =
 
             Expect.equal osSKU "AzureLinux" "Incorrect osSKU value"
         }
+        test "AKS cluster with system identity and ACR access" {
+            let myAcr = containerRegistry { name "mycontainerregistry" }
+            let myAcrResId = (myAcr :> IBuilder).ResourceId
+
+            let myAks = aks {
+                name "aks-cluster"
+                service_principal_use_msi
+            }
+
+            let myAksResId = (myAks :> IBuilder).ResourceId
+
+            let acrPullRoleNameExpr =
+                ArmExpression.create (
+                    $"guid(concat(resourceGroup().id, '{myAksResId.Name.Value}', '{Roles.AcrPull.Id}'))"
+                )
+
+            let acrPullRole = {
+                Name = acrPullRoleNameExpr.Eval() |> ResourceName
+                RoleDefinitionId = Roles.AcrPull
+                PrincipalId = myAks.SystemIdentity.PrincipalId
+                PrincipalType = PrincipalType.ServicePrincipal
+                Scope = AssignmentScope.SpecificResource myAcrResId
+                Dependencies = Set [ myAksResId; myAcrResId ]
+            }
+
+            let template = arm {
+                add_resource myAcr
+                add_resource myAks
+                add_resource acrPullRole
+            }
+
+            let json = template.Template |> Writer.toJson
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+            // Verify AKS has system identity
+            let identity =
+                jobj.SelectToken("resources[?(@.name=='aks-cluster')].identity.type") |> string
+
+            Expect.equal identity "SystemAssigned" "AKS cluster should have a SystemAssigned identity for ACR access"
+
+            // Verify role assignment exists in template
+            let roleAssignments =
+                jobj.SelectTokens("resources[?(@.type=='Microsoft.Authorization/roleAssignments')]")
+                |> Seq.toList
+
+            Expect.hasLength roleAssignments 1 "Should have one role assignment in template"
+        }
     ]
