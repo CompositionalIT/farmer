@@ -10,14 +10,15 @@ Every PR must follow the template in `pull_request_template.md`:
 
 - Link to the issue being closed: "This PR closes #" (add issue number)
 - List all changes in bullet points under "The changes in this PR are as follows:"
-- Read the contributing guidelines and complete the checklist items:
+- State: "I have read the [contributing guidelines](CONTRIBUTING.md) and have completed the following:"
+- Complete the checklist items:
   - [ ] **Tested my code** end-to-end against a live Azure subscription.
   - [ ] **Updated the documentation** in the docs folder for the affected changes.
   - [ ] **Written unit tests** against the modified code that I have made.
   - [ ] **Updated the [release notes](RELEASE_NOTES.md)** with a new entry for this PR.
   - [ ] **Checked the coding standards** outlined in the [contributions guide](CONTRIBUTING.md) and ensured my code adheres to them.
-- If any checklist items are not completed, include the reasons why
-- Include a minimal example F# configuration that can be used to deploy to Azure
+- If you haven't completed any of the tasks above, include the reasons why here
+- Include this section: "Below is a minimal example configuration that includes the new features, which can be used to deploy to Azure:" followed by an F# code block with the example
 
 ### 2. Format Code with Fantomas
 
