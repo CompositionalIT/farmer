@@ -304,6 +304,42 @@ let tests =
                 "Incorrect autoPauseDelay"
         }
 
+        test "Serverless sql supports fractional VCores (0.5 and 0.75)" {
+            let sql = sqlServer {
+                name "my38server"
+                admin_username "isaac"
+
+                add_databases [
+                    sqlDb {
+                        name "mydb23"
+                        sku (GeneralPurpose(S_Gen5(0.5, 1.0)))
+                    }
+                ]
+            }
+
+            let template = arm {
+                location Location.UKSouth
+                add_resources [ sql ]
+            }
+
+            let jsn = template.Template |> Writer.toJson
+            let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+            Expect.equal
+                (jobj
+                    .SelectToken("resources[?(@.name=='my38server/mydb23')].sku.capacity")
+                    .ToString())
+                "1"
+                "Incorrect max capacity"
+
+            Expect.equal
+                (jobj
+                    .SelectToken("resources[?(@.name=='my38server/mydb23')].properties.minCapacity")
+                    .ToString())
+                "0.5"
+                "Incorrect min capacity - should support fractional VCores"
+        }
+
         test "Must set either SQL Server or AD authentication" {
             Expect.throws (fun () -> sqlServer { name "test" } |> ignore) "Should throw if no auth set"
         }

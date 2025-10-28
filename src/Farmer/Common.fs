@@ -2022,7 +2022,7 @@ module Sql =
         | Gen5_32
         | Gen5_40
         | Gen5_80
-        | S_Gen5 of CapacityMin: int * CapacityMax: int
+        | S_Gen5 of CapacityMin: float * CapacityMax: float
 
         member this.Name =
             Reflection.FSharpValue.GetUnionFields(this, typeof<Gen5Series>)
