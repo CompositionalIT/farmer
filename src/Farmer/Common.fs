@@ -141,7 +141,7 @@ type TlsVersion =
 
     [<System.Obsolete("TLS 1.0 is deprecated and insecure. Use TLS 1.2 or higher.")>]
     static member Tls10 = Tls12
-    
+
     [<System.Obsolete("TLS 1.1 is deprecated and insecure. Use TLS 1.2 or higher.")>]
     static member Tls11 = Tls12
 
