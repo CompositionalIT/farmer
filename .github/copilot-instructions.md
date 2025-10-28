@@ -62,7 +62,11 @@ Every PR **SHOULD** have at least one test associated with it. If no tests are a
 
 ### 6. Release Notes
 
-Every PR **MUST** include an entry in the `RELEASE_NOTES.md` file under the next release section. Format:
+Every PR **MUST** include an entry in the `RELEASE_NOTES.md` file under the next release section. 
+
+You can generally assume it will be in the next release based off the GitHub releases. Once the PR milestone is set, it will confirm what release the PR should be under in the release notes.
+
+Format:
 
 ```markdown
 * [Feature/Fix description] - [link to PR]
