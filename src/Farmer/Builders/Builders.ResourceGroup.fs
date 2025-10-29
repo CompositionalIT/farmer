@@ -130,7 +130,7 @@ type ResourceGroupConfig = {
         ]
 
 type DeploymentBuilder() =
-    member _.Yield _ = {
+    static member private EmptyState() = {
         TargetResourceGroup = None
         DeploymentName = AutoGeneratable.AutoGenerate()
         Dependencies = Set.empty
@@ -144,20 +144,10 @@ type DeploymentBuilder() =
         Tags = Map.empty
     }
 
+    member _.Yield _ = DeploymentBuilder.EmptyState()
+
     /// Returns the current state unchanged, enabling if-then expressions without else
-    member _.Zero() = {
-        TargetResourceGroup = None
-        DeploymentName = AutoGeneratable.AutoGenerate()
-        Dependencies = Set.empty
-        Parameters = Set.empty
-        Outputs = Map.empty
-        Resources = List.empty
-        ParameterValues = List.empty
-        SubscriptionId = None
-        Location = Location.ResourceGroup
-        Mode = Incremental
-        Tags = Map.empty
-    }
+    member _.Zero() = DeploymentBuilder.EmptyState()
 
     /// Combines two deployment states together
     member _.Combine(state1: ResourceGroupConfig, state2: ResourceGroupConfig) = {
