@@ -178,7 +178,8 @@ type PrivateDnsZoneVirtualNetworkLinkConfig = {
                 }
             ]
 
-        member this.ResourceId = failwith "todo"
+        member this.ResourceId =
+            privateDnsZoneVirtualNetworkLinks.resourceId (this.PrivateDnsZone.Value.Name, this.Name)
 
 type DnsZoneConfig = {
     Name: ResourceName
