@@ -17,7 +17,7 @@ let topics =
     ResourceType("Microsoft.ServiceBus/namespaces/topics", "2022-01-01-preview")
 
 let namespaces =
-    ResourceType("Microsoft.ServiceBus/namespaces", "2022-01-01-preview")
+    ResourceType("Microsoft.ServiceBus/namespaces", "2025-05-01-preview")
 
 let queueAuthorizationRules =
     ResourceType("Microsoft.ServiceBus/namespaces/queues/authorizationRules", "2022-01-01-preview")

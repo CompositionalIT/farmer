@@ -37,10 +37,12 @@ type Redis = {
                     enableNonSslPort = this.NonSslEnabled |> Option.toNullable
                     shardCount = this.ShardCount |> Option.toNullable
                     minimumTlsVersion =
+                        // TLS 1.3 is supported, but it can only currently enforce TLS 1.2 as the minimum version.
+                        // Reference: https://learn.microsoft.com/azure/redis/tls-configuration#tls-13-support
                         this.MinimumTlsVersion
                         |> Option.map (function
                             | Tls12 -> "1.2"
-                            | Tls13 -> "1.3")
+                            | Tls13 -> "1.2") // TLS 1.3 enforcement not yet supported
                         |> Option.toObj
                     redisConfiguration = this.RedisConfiguration
                 |}
