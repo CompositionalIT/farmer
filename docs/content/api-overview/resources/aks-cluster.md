@@ -131,16 +131,19 @@ let myAks = aks {
 
 #### Granting AKS access to Azure Container Registry (ACR)
 
-To allow an AKS cluster to pull container images from Azure Container Registry, you need to grant the **[AcrPull](https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#acrpull)** role to the cluster's identity. This is a common requirement when deploying containerized applications.
+To allow an AKS cluster to pull container images from Azure Container Registry, you need to grant the **[AcrPull](https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#acrpull)** role to the cluster's **kubelet identity**. The kubelet identity is used by the cluster to authenticate when pulling container images. This is a common requirement when deploying containerized applications.
 
-##### Using System-Assigned Managed Identity (Simplest Approach)
+##### Recommended Approach: User-Assigned Kubelet Identity
 
-When using a system-assigned managed identity with `service_principal_use_msi`, the cluster automatically gets an identity. You can grant this identity access to ACR:
+The recommended approach is to create a user-assigned managed identity for the kubelet and grant it AcrPull access. This ensures the identity is available immediately without waiting for Azure AD propagation:
 
 ```fsharp
 open Farmer
 open Farmer.Builders
 open Farmer.Arm.RoleAssignment
+
+// Create an identity for kubelet (used to pull container images)
+let kubeletMsi = createUserAssignedIdentity "kubeletIdentity"
 
 // Create a container registry
 let myAcr = containerRegistry { 
@@ -148,55 +151,37 @@ let myAcr = containerRegistry {
 }
 let myAcrResId = (myAcr :> IBuilder).ResourceId
 
-// Create an AKS cluster with system-assigned identity
-let myAks = aks {
-    name "aks-cluster"
-    service_principal_use_msi
-}
-let myAksResId = (myAks :> IBuilder).ResourceId
-
-// Grant the AKS system identity AcrPull access to the container registry
-// Use a deterministic GUID for the role assignment name
+// Grant the kubelet identity AcrPull access to the container registry
 let acrPullRoleNameExpr = 
-    ArmExpression.create($"guid(concat(resourceGroup().id, '{myAksResId.Name.Value}', '{Roles.AcrPull.Id}'))")
+    ArmExpression.create($"guid(concat(resourceGroup().id, '{kubeletMsi.ResourceId.Name.Value}', '{Roles.AcrPull.Id}'))")
 
 let acrPullRole = {
     Name = acrPullRoleNameExpr.Eval() |> ResourceName
     RoleDefinitionId = Roles.AcrPull
-    PrincipalId = myAks.SystemIdentity.PrincipalId
+    PrincipalId = kubeletMsi.PrincipalId
     PrincipalType = PrincipalType.ServicePrincipal
     Scope = AssignmentScope.SpecificResource myAcrResId
-    Dependencies = Set [ myAksResId; myAcrResId ]
+    Dependencies = Set [ kubeletMsi.ResourceId ]
+}
+
+// Create an AKS cluster and assign the kubelet identity
+let myAks = aks {
+    name "aks-cluster"
+    service_principal_use_msi
+    kubelet_identity kubeletMsi
+    depends_on myAcr
+    depends_on_expression acrPullRoleNameExpr
 }
 
 let template = arm {
+    add_resource kubeletMsi
     add_resource myAcr
     add_resource myAks
     add_resource acrPullRole
 }
 ```
 
-This approach is recommended for most scenarios as it's simpler and doesn't require managing separate identities.
-
-##### Using an Existing Service Principal
-
-If you're using an existing service principal (with `service_principal_client_id`), you need to grant that service principal the AcrPull role outside of the Farmer template, or pass the principal ID as a parameter:
-
-```fsharp
-// When using service_principal_client_id, the service principal exists externally
-let myAks = aks {
-    name "aks-cluster"
-    service_principal_client_id "your-spn-client-id-guid"
-}
-
-// The role assignment for the external service principal should be created
-// with its object ID (principal ID), which is different from the client ID.
-// You can obtain the principal ID and pass it as a parameter, or manage
-// the role assignment outside of Farmer using Azure CLI:
-// az role assignment create --assignee <spn-object-id> \
-//   --role AcrPull \
-//   --scope /subscriptions/<subscription-id>/resourceGroups/<rg-name>/providers/Microsoft.ContainerRegistry/registries/<acr-name>
-```
+This approach ensures that the kubelet identity is created first and granted the necessary permissions before the AKS cluster attempts to pull images.
 
 #### Using user assigned identities and connecting to the container registry
 ```fsharp
