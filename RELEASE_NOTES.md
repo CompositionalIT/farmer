@@ -1,6 +1,19 @@
 Release Notes
 =============
 
+## 1.9.25
+* Service Bus: Support for minimum TLS version of 1.3.
+* Storage Accounts: Support for requesting minimum TLS version of 1.3. The ARM resource itself currently falls back to 1.2.
+* Redis: Support for requesting minimum TLS version of 1.2. TLS 1.3 is supported, but not enforced as a minimum.
+
+### TLS Version Support
+
+**Note:** As of version 1.9.25 (October 2025), Farmer has:
+- Added support for TLS 1.3
+- Deprecated TLS 1.0 and TLS 1.1 (marked as obsolete)
+
+If you see compiler warnings about `Tls10` or `Tls11` being obsolete, these versions now automatically fall back to TLS 1.2 for security reasons. Update your code to use `Tls12` or `Tls13` explicitly to remove the warnings.
+
 ## 1.9.24
 * Service Bus: Add validation for SKU-specific features (topics not supported on Basic SKU, max message size only supported on Premium SKU).
 * SQL Azure: Support for fractional VCores such as (0.5, 0.75) in Serverless Gen5 databases.

@@ -5,7 +5,7 @@ open Farmer
 open Farmer.Storage
 
 let storageAccounts =
-    ResourceType("Microsoft.Storage/storageAccounts", "2022-05-01")
+    ResourceType("Microsoft.Storage/storageAccounts", "2025-06-01")
 
 let blobServices =
     ResourceType("Microsoft.Storage/storageAccounts/blobServices", "2019-06-01")
@@ -184,9 +184,8 @@ type StorageAccount = {
                         |> Option.defaultValue Unchecked.defaultof<_>
                     minimumTlsVersion =
                         match this.MinTlsVersion with
-                        | Some Tls10 -> "TLS1_0"
-                        | Some Tls11 -> "TLS1_1"
                         | Some Tls12 -> "TLS1_2"
+                        | Some Tls13 -> "TLS1_3"
                         | None -> null
                     supportsHttpsTrafficOnly =
                         match this.SupportsHttpsTrafficOnly with

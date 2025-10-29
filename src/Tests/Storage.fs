@@ -456,7 +456,7 @@ let tests =
 
             Expect.equal
                 builder.WebsitePrimaryEndpoint.Value
-                "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2022-05-01').primaryEndpoints.web"
+                "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2025-06-01').primaryEndpoints.web"
                 "Zone names are not fixed and should be related to a storage account name"
         }
         test "Creates different SKU kinds correctly" {

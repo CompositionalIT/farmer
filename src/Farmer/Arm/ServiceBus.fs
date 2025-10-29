@@ -17,7 +17,7 @@ let topics =
     ResourceType("Microsoft.ServiceBus/namespaces/topics", "2022-01-01-preview")
 
 let namespaces =
-    ResourceType("Microsoft.ServiceBus/namespaces", "2022-01-01-preview")
+    ResourceType("Microsoft.ServiceBus/namespaces", "2025-05-01-preview")
 
 let queueAuthorizationRules =
     ResourceType("Microsoft.ServiceBus/namespaces/queues/authorizationRules", "2022-01-01-preview")
@@ -231,9 +231,8 @@ type Namespace = {
                 properties = {|
                     minimumTlsVersion =
                         match this.MinTlsVersion with
-                        | Some Tls10 -> "1.0"
-                        | Some Tls11 -> "1.1"
                         | Some Tls12 -> "1.2"
+                        | Some Tls13 -> "1.3"
                         | None -> null
                     publicNetworkAccess =
                         match this.DisablePublicNetworkAccess with
