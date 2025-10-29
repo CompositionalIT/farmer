@@ -559,4 +559,80 @@ let tests =
                 expected
                 "Parameter 'vault-secret-name' is incorrect."
         }
+
+        test "Can use output with string Option type (None case)" {
+            let optionalValue: string option = None
+
+            let template =
+                arm {
+                    location Location.NorthEurope
+                    output "conditionalOutput" optionalValue
+                }
+                |> toTemplate
+
+            Expect.isEmpty template.outputs "Should have no outputs when value is None"
+        }
+
+        test "Can use output with string Option type (Some case)" {
+            let optionalValue = Some "test-value"
+
+            let template =
+                arm {
+                    location Location.NorthEurope
+                    output "conditionalOutput" optionalValue
+                }
+                |> toTemplate
+
+            Expect.equal template.outputs.Count 1 "Should have one output"
+            Expect.equal template.outputs.["conditionalOutput"].value "test-value" ""
+        }
+
+        test "Can use output with ArmExpression Option type (None)" {
+            let optionalExpr: ArmExpression option = None
+
+            let template =
+                arm {
+                    location Location.NorthEurope
+                    output "conditionalExpr" optionalExpr
+                }
+                |> toTemplate
+
+            Expect.isEmpty template.outputs "Should have no outputs when expression is None"
+        }
+
+        test "Can use output with ArmExpression Option type (Some)" {
+            let optionalExpr = Some(ArmExpression.create "resourceGroup().location")
+
+            let template =
+                arm {
+                    location Location.NorthEurope
+                    output "conditionalExpr" optionalExpr
+                }
+                |> toTemplate
+
+            Expect.equal template.outputs.Count 1 "Should have one output"
+            Expect.equal template.outputs.["conditionalExpr"].value "[resourceGroup().location]" ""
+        }
+
+        test "Copy-and-update pattern enables conditional deployment composition" {
+            let includeOutput = true
+
+            let baseDeployment = arm {
+                location Location.NorthEurope
+                add_resource (storageAccount { name "storage1" })
+            }
+
+            let deployment =
+                if includeOutput then
+                    {
+                        baseDeployment with
+                            Outputs = baseDeployment.Outputs.Add("testOutput", "testValue")
+                    }
+                else
+                    baseDeployment
+
+            if includeOutput then
+                Expect.equal deployment.Outputs.Count 1 "Should have one output"
+                Expect.isTrue (deployment.Outputs.ContainsKey "testOutput") "Should have testOutput"
+        }
     ]

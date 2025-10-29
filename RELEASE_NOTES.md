@@ -1,6 +1,13 @@
 Release Notes
 =============
 
+## Unreleased
+* Computation Expressions: Added `Zero`, `Combine`, `Delay`, `Run`, and `For` methods to `DeploymentBuilder` to enable control flow constructs in the `arm` builder computation expression.
+  * This allows for more flexible deployment composition using F#'s computation expression features
+  * The existing `output` method overloads for `Option` types (`string option` and `ArmExpression option`) can now be used more naturally
+  * Users can use copy-and-update patterns on deployment records for conditional composition
+  * Example: `output "vmIP" (myVm.PublicIpId |> Option.map (fun ip -> ip.ArmExpression))` - [link to PR]
+
 ## 1.9.25
 * Service Bus: Support for minimum TLS version of 1.3.
 * Storage Accounts: Support for requesting minimum TLS version of 1.3. The ARM resource itself currently falls back to 1.2.
