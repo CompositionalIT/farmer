@@ -5,7 +5,7 @@
   "parameters": {},
   "resources": [
     {
-      "apiVersion": "2022-01-01-preview",
+      "apiVersion": "2025-05-01-preview",
       "dependsOn": [],
       "location": "northeurope",
       "name": "farmer-bus",
