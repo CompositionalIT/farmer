@@ -1,9 +1,6 @@
 Release Notes
 =============
 
-## Next Release (TBD)
-* AKS Cluster: Added documentation and example for granting AcrPull role to kubelet identity for Azure Container Registry access
-
 ## 1.9.24
 * Service Bus: Add validation for SKU-specific features (topics not supported on Basic SKU, max message size only supported on Premium SKU).
 * SQL Azure: Support for fractional VCores such as (0.5, 0.75) in Serverless Gen5 databases.
