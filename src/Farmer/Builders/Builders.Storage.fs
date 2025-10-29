@@ -93,9 +93,7 @@ type StorageAccountConfig = {
 
     /// Gets the Primary endpoint for static website (if enabled)
     member this.WebsitePrimaryEndpoint =
-        ArmExpression
-            .reference(storageAccounts, this.ResourceId)
-            .Map(sprintf "%s.primaryEndpoints.web")
+        ArmExpression.reference(storageAccounts, this.ResourceId).Map(sprintf "%s.primaryEndpoints.web")
 
     member this.WebsitePrimaryEndpointHost =
         this.WebsitePrimaryEndpoint.Map(fun uri -> $"replace(replace({uri}, 'https://', ''), '/', '')")

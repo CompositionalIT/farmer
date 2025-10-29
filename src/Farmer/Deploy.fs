@@ -261,8 +261,7 @@ module Az =
     let tryGetError (error: string) =
         try
             let skip =
-                "Deployment failed. Correlation ID: 3c51a527-c6e2-42a9-acee-7d9c796a626f. "
-                    .Length
+                "Deployment failed. Correlation ID: 3c51a527-c6e2-42a9-acee-7d9c796a626f. ".Length
 
             match Serialization.ofJson<AzureError> error[skip..] with
             | {

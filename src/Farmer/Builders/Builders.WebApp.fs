@@ -521,9 +521,7 @@ type WebAppConfig = {
                         match this.CommonWebConfig.AppInsights with
                         | Some cfg -> [
                             "APPINSIGHTS_INSTRUMENTATIONKEY",
-                            AppInsights
-                                .getInstrumentationKey(cfg.AppInsights.resourceId this.Name.ResourceName)
-                                .Eval()
+                            AppInsights.getInstrumentationKey(cfg.AppInsights.resourceId this.Name.ResourceName).Eval()
 
                             // AppInsights Connection String is only valid for "newer" app insights configurations.
                             match cfg with

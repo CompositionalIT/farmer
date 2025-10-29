@@ -1239,8 +1239,7 @@ let tests =
                 jobj.SelectToken "resources[?(@.type=='Microsoft.Network/networkInterfaces')]"
 
             Expect.equal
-                (networkInterfaceWithNsg.["properties"].["networkSecurityGroup"].["id"]
-                    .ToString())
+                (networkInterfaceWithNsg.["properties"].["networkSecurityGroup"].["id"].ToString())
                 "[resourceId(\u0027Microsoft.Network/networkSecurityGroups\u0027, \u0027my-nsg\u0027)]"
                 "Incorrect networkSecurityGroup for networkInterface"
 
@@ -1280,8 +1279,7 @@ let tests =
                 jobj.SelectToken "resources[?(@.type=='Microsoft.Network/networkInterfaces')]"
 
             Expect.equal
-                (networkInterfaceWithExistingNsg.["properties"].["networkSecurityGroup"].["id"]
-                    .ToString())
+                (networkInterfaceWithExistingNsg.["properties"].["networkSecurityGroup"].["id"].ToString())
                 "[resourceId(\u0027Microsoft.Network/networkSecurityGroups\u0027, \u0027my-nsg\u0027)]"
                 "Incorrect networkSecurityGroup for networkInterface"
 

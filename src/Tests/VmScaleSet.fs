@@ -141,9 +141,7 @@ let tests =
                 "VMSS is not expected to have doNotRunExtensionsOnOverprovisionedVMs"
 
             Expect.equal
-                (vmProfile
-                    .SelectToken("storageProfile.imageReference.communityGalleryImageId")
-                    .ToString())
+                (vmProfile.SelectToken("storageProfile.imageReference.communityGalleryImageId").ToString())
                 "/CommunityGalleries/test-gallery/Images/test-image/Versions/version"
                 "VMSS OS profile has incorrect image reference"
         }
@@ -199,23 +197,17 @@ let tests =
                 "VMSS is expected to have doNotRunExtensionsOnOverprovisionedVMs"
 
             Expect.equal
-                (vmProfile
-                    .SelectToken("storageProfile.imageReference.sharedGalleryImageId")
-                    .ToString())
+                (vmProfile.SelectToken("storageProfile.imageReference.sharedGalleryImageId").ToString())
                 "/SharedGalleries/test-gallery/Images/test-image/Versions/version"
                 "VMSS OS profile has incorrect image reference"
 
             Expect.equal
-                (vmssProps
-                    .SelectToken("upgradePolicy.automaticOSUpgradePolicy.enableAutomaticOSUpgrade")
-                    .ToString())
+                (vmssProps.SelectToken("upgradePolicy.automaticOSUpgradePolicy.enableAutomaticOSUpgrade").ToString())
                 (string true)
                 "VMSS OS upgrade policy is expected to be enabled"
 
             Expect.equal
-                (vmssProps
-                    .SelectToken("upgradePolicy.automaticOSUpgradePolicy.useRollingUpgradePolicy")
-                    .ToString())
+                (vmssProps.SelectToken("upgradePolicy.automaticOSUpgradePolicy.useRollingUpgradePolicy").ToString())
                 (string true)
                 "VMSS OS rolling upgrade policy is expected to be enabled"
 
@@ -324,5 +316,42 @@ let tests =
                 (vmProfile.SelectToken("osProfile.computerNamePrefix").ToString())
                 "my-scale-set"
                 "VMSS OS profile has incorrect computer name prefix"
+        }
+
+        test "VMSS does not set deleteOption even when delete_attached is used" {
+            let deployment = arm {
+                add_resources [
+                    vmss {
+                        name "my-scale-set"
+                        capacity 2
+
+                        vm_profile (
+                            vm {
+                                username "azureuser"
+                                operating_system UbuntuServer_2204LTS
+                                vm_size Standard_B1s
+                                os_disk 128 StandardSSD_LRS
+                                add_ssd_disk 256
+                                delete_attached // This should be ignored for scale sets
+                            }
+                        )
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmss = jobj.SelectToken("resources[?(@.name=='my-scale-set')]")
+            let vmProfile = vmss.SelectToken("properties.virtualMachineProfile")
+
+            // Check OS disk does NOT have deleteOption
+            let osDiskDeleteOption = vmProfile.SelectToken("storageProfile.osDisk.deleteOption")
+
+            Expect.isNull osDiskDeleteOption "VMSS OS disk should NOT have deleteOption property"
+
+            // Check data disk does NOT have deleteOption
+            let dataDiskDeleteOption =
+                vmProfile.SelectToken("storageProfile.dataDisks[0].deleteOption")
+
+            Expect.isNull dataDiskDeleteOption "VMSS data disk should NOT have deleteOption property"
         }
     ]
