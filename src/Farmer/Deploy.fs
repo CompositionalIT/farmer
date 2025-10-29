@@ -101,7 +101,8 @@ module Az =
             Environment.SetEnvironmentVariable("AZURE_TENANT_ID", tenantId, EnvironmentVariableTarget.Process)
 
             // Login without password in command line
-            let result = az $"login --service-principal --username %s{appId} --tenant %s{tenantId}"
+            let result =
+                az $"login --service-principal --username %s{appId} --tenant %s{tenantId}"
 
             // Clean up immediately after use
             Environment.SetEnvironmentVariable("AZURE_CLIENT_SECRET", null, EnvironmentVariableTarget.Process)
@@ -110,7 +111,7 @@ module Az =
         with ex ->
             // Ensure cleanup on error
             Environment.SetEnvironmentVariable("AZURE_CLIENT_SECRET", null, EnvironmentVariableTarget.Process)
-            reraise()
+            reraise ()
 
     /// Gets the version of Az CLI
     let version () = az "--version"
