@@ -737,4 +737,77 @@ let tests =
 
             Expect.equal osSKU "AzureLinux" "Incorrect osSKU value"
         }
+        test "AKS cluster with kubelet identity and ACR access" {
+            let kubeletMsi = createUserAssignedIdentity "kubeletIdentity"
+            let clusterMsi = createUserAssignedIdentity "clusterIdentity"
+
+            let assignMsiRoleNameExpr =
+                ArmExpression.create (
+                    $"guid(concat(resourceGroup().id, '{clusterMsi.ResourceId.Name.Value}', '{Roles.ManagedIdentityOperator.Id}'))"
+                )
+
+            let assignMsiRole = {
+                Name = assignMsiRoleNameExpr.Eval() |> ResourceName
+                RoleDefinitionId = Roles.ManagedIdentityOperator
+                PrincipalId = clusterMsi.PrincipalId
+                PrincipalType = PrincipalType.ServicePrincipal
+                Scope = ResourceGroup
+                Dependencies = Set [ clusterMsi.ResourceId ]
+            }
+
+            let myAcr = containerRegistry { name "mycontainerregistry" }
+            let myAcrResId = (myAcr :> IBuilder).ResourceId
+
+            let acrPullRoleNameExpr =
+                ArmExpression.create (
+                    $"guid(concat(resourceGroup().id, '{kubeletMsi.ResourceId.Name.Value}', '{Roles.AcrPull.Id}'))"
+                )
+
+            let acrPullRole = {
+                Name = acrPullRoleNameExpr.Eval() |> ResourceName
+                RoleDefinitionId = Roles.AcrPull
+                PrincipalId = kubeletMsi.PrincipalId
+                PrincipalType = PrincipalType.ServicePrincipal
+                Scope = AssignmentScope.SpecificResource myAcrResId
+                Dependencies = Set [ kubeletMsi.ResourceId ]
+            }
+
+            let myAks = aks {
+                name "aks-cluster"
+                add_identity clusterMsi
+                service_principal_use_msi
+                kubelet_identity kubeletMsi
+                depends_on clusterMsi
+                depends_on myAcr
+                depends_on_expression assignMsiRoleNameExpr
+                depends_on_expression acrPullRoleNameExpr
+            }
+
+            let template = arm {
+                add_resource kubeletMsi
+                add_resource clusterMsi
+                add_resource myAcr
+                add_resource myAks
+                add_resource assignMsiRole
+                add_resource acrPullRole
+            }
+
+            let json = template.Template |> Writer.toJson
+            let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+            // Verify AKS has kubelet identity configured
+            let kubeletIdentityClientId =
+                jobj.SelectToken(
+                    "resources[?(@.name=='aks-cluster')].properties.identityProfile.kubeletIdentity.clientId"
+                )
+
+            Expect.isNotNull kubeletIdentityClientId "AKS cluster should have kubelet identity configured"
+
+            // Verify role assignments exist in template (ManagedIdentityOperator + AcrPull)
+            let roleAssignments =
+                jobj.SelectTokens("resources[?(@.type=='Microsoft.Authorization/roleAssignments')]")
+                |> Seq.toList
+
+            Expect.hasLength roleAssignments 2 "Should have two role assignments in template"
+        }
     ]

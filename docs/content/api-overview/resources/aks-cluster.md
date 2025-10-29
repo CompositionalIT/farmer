@@ -128,6 +128,81 @@ let myAks = aks {
     )
 }
 ```
+
+#### Granting AKS access to Azure Container Registry (ACR)
+
+To allow an AKS cluster to pull container images from Azure Container Registry, you need to grant the **[AcrPull](https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#acrpull)** role to the cluster's **kubelet identity**. The kubelet identity is used by the cluster to authenticate when pulling container images. This is a common requirement when deploying containerized applications.
+
+##### Recommended Approach: User-Assigned Identities
+
+The recommended approach is to create user-assigned managed identities for both the cluster and the kubelet. The kubelet identity is granted AcrPull access to pull container images. This ensures identities are available immediately without waiting for Azure AD propagation:
+
+```fsharp
+open Farmer
+open Farmer.Builders
+open Farmer.Arm.RoleAssignment
+
+// Create an identity for kubelet (used to pull container images)
+let kubeletMsi = createUserAssignedIdentity "kubeletIdentity"
+// Create an identity for the AKS cluster
+let clusterMsi = createUserAssignedIdentity "clusterIdentity"
+
+// Give the AKS cluster's identity rights to manage the kubelet MSI
+let assignMsiRoleNameExpr = 
+    ArmExpression.create($"guid(concat(resourceGroup().id, '{clusterMsi.ResourceId.Name.Value}', '{Roles.ManagedIdentityOperator.Id}'))")
+
+let assignMsiRole = {
+    Name = assignMsiRoleNameExpr.Eval() |> ResourceName
+    RoleDefinitionId = Roles.ManagedIdentityOperator
+    PrincipalId = clusterMsi.PrincipalId
+    PrincipalType = PrincipalType.ServicePrincipal
+    Scope = ResourceGroup
+    Dependencies = Set [ clusterMsi.ResourceId ]
+}
+
+// Create a container registry
+let myAcr = containerRegistry { 
+    name "mycontainerregistry" 
+}
+let myAcrResId = (myAcr :> IBuilder).ResourceId
+
+// Grant the kubelet identity AcrPull access to the container registry
+let acrPullRoleNameExpr = 
+    ArmExpression.create($"guid(concat(resourceGroup().id, '{kubeletMsi.ResourceId.Name.Value}', '{Roles.AcrPull.Id}'))")
+
+let acrPullRole = {
+    Name = acrPullRoleNameExpr.Eval() |> ResourceName
+    RoleDefinitionId = Roles.AcrPull
+    PrincipalId = kubeletMsi.PrincipalId
+    PrincipalType = PrincipalType.ServicePrincipal
+    Scope = AssignmentScope.SpecificResource myAcrResId
+    Dependencies = Set [ kubeletMsi.ResourceId ]
+}
+
+// Create an AKS cluster and assign both identities
+let myAks = aks {
+    name "aks-cluster"
+    add_identity clusterMsi
+    service_principal_use_msi
+    kubelet_identity kubeletMsi
+    depends_on clusterMsi
+    depends_on myAcr
+    depends_on_expression assignMsiRoleNameExpr
+    depends_on_expression acrPullRoleNameExpr
+}
+
+let template = arm {
+    add_resource kubeletMsi
+    add_resource clusterMsi
+    add_resource myAcr
+    add_resource myAks
+    add_resource assignMsiRole
+    add_resource acrPullRole
+}
+```
+
+This approach ensures that both identities are created first and granted the necessary permissions before the AKS cluster attempts to pull images.
+
 #### Using user assigned identities and connecting to the container registry
 ```fsharp
 // Create an identity for kubelet (used to connect to container registry)
