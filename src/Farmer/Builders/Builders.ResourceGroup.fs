@@ -147,13 +147,13 @@ type DeploymentBuilder() =
     member _.Yield _ = DeploymentBuilder.EmptyState()
 
     /// Returns empty state for if-then expressions without else branches.
-    /// Note: F# does not allow custom operations (like 'output', 'add_resource') inside control flow.
-    /// Use Option type overloads instead: output "key" (someOption |> Option.map ...)
+    /// Note: Custom operations (marked with [<CustomOperation>]) cannot be used inside control flow (if/match/for/while/try).
+    /// This is F# error FS3086. Use Option type overloads instead: output "key" (someOption |> Option.map ...)
     member _.Zero() = DeploymentBuilder.EmptyState()
 
     /// Combines two deployment states together.
-    /// Note: This enables control flow for non-custom operations only.
-    /// Custom operations cannot be used inside if/match due to F# limitations (error FS3086).
+    /// Note: This enables control flow, but custom operations (like 'output', 'add_resource') still cannot be used inside.
+    /// Unlike seq/async which use yield/let! (not custom ops), Farmer operations are custom operations (error FS3086).
     member _.Combine(state1: ResourceGroupConfig, state2: ResourceGroupConfig) = {
         TargetResourceGroup = state2.TargetResourceGroup |> Option.orElse state1.TargetResourceGroup
         DeploymentName =
@@ -184,7 +184,7 @@ type DeploymentBuilder() =
     member _.Run(f: unit -> ResourceGroupConfig) = f ()
 
     /// Enables for loops over sequences.
-    /// Note: Custom operations cannot be used inside the loop body due to F# limitations.
+    /// Note: Custom operations cannot be used inside the loop body (F# error FS3086 for custom operations in control flow).
     member this.For(sequence: seq<'T>, body: 'T -> ResourceGroupConfig) =
         let mutable state = this.Zero()
 
