@@ -146,10 +146,14 @@ type DeploymentBuilder() =
 
     member _.Yield _ = DeploymentBuilder.EmptyState()
 
-    /// Returns the current state unchanged, enabling if-then expressions without else
+    /// Returns empty state for if-then expressions without else branches.
+    /// Note: F# does not allow custom operations (like 'output', 'add_resource') inside control flow.
+    /// Use Option type overloads instead: output "key" (someOption |> Option.map ...)
     member _.Zero() = DeploymentBuilder.EmptyState()
 
-    /// Combines two deployment states together
+    /// Combines two deployment states together.
+    /// Note: This enables control flow for non-custom operations only.
+    /// Custom operations cannot be used inside if/match due to F# limitations (error FS3086).
     member _.Combine(state1: ResourceGroupConfig, state2: ResourceGroupConfig) = {
         TargetResourceGroup = state2.TargetResourceGroup |> Option.orElse state1.TargetResourceGroup
         DeploymentName =
@@ -173,13 +177,14 @@ type DeploymentBuilder() =
         Tags = Map.merge (Map.toList state1.Tags) state2.Tags
     }
 
-    /// Delays computation for proper evaluation order
+    /// Delays computation for proper evaluation order.
     member _.Delay(f: unit -> ResourceGroupConfig) = f
 
-    /// Runs the delayed computation
+    /// Runs the delayed computation.
     member _.Run(f: unit -> ResourceGroupConfig) = f ()
 
-    /// Enables for loops in the computation expression
+    /// Enables for loops over sequences.
+    /// Note: Custom operations cannot be used inside the loop body due to F# limitations.
     member this.For(sequence: seq<'T>, body: 'T -> ResourceGroupConfig) =
         let mutable state = this.Zero()
 
