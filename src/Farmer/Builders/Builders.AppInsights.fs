@@ -1,4 +1,4 @@
-﻿[<AutoOpen>]
+[<AutoOpen>]
 module Farmer.Builders.AppInsights
 
 open Farmer
@@ -77,6 +77,20 @@ type AppInsightsBuilder() =
             SamplingPercentage = samplingPercentage
     }
 
+    /// Sets sampling to 20% - recommended for high-traffic production apps (keeps all errors, samples successes)
+    [<CustomOperation "production_sampling">]
+    member _.ProductionSampling(state: AppInsightsConfig) = {
+        state with
+            SamplingPercentage = 20
+    }
+
+    /// Sets sampling to 100% - recommended for development environments
+    [<CustomOperation "development_sampling">]
+    member _.DevelopmentSampling(state: AppInsightsConfig) = {
+        state with
+            SamplingPercentage = 100
+    }
+
     /// Links this AI instance to a Log Analytics workspace, using the newer 2020-02-02-preview App Insights version.
     [<CustomOperation "log_analytics_workspace">]
     member _.Workspace(state: AppInsightsConfig, workspace: ResourceId) = {
@@ -93,6 +107,8 @@ type AppInsightsBuilder() =
             raiseFarmer "Sampling Percentage cannot be higher than 100%"
         elif state.SamplingPercentage <= 0 then
             raiseFarmer "Sampling Percentage cannot be lower than or equal to 0%"
+        elif state.SamplingPercentage = 100 then
+            printfn "Warning: [%s] App Insights sampling at 100%%. For high-traffic production apps, consider 'production_sampling' (20%%) to reduce costs." state.Name.Value
 
         state
 
