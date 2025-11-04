@@ -73,4 +73,69 @@ let tests =
                 [ "[resourceId('Microsoft.OperationalInsights/workspaces', 'la')]" ]
                 "Incorrect dependencies"
         }
+
+        test "production_sampling sets 20% sampling" {
+            let ai = appInsights {
+                name "prod-ai"
+                production_sampling
+            }
+
+            Expect.equal ai.SamplingPercentage 20 "Should set sampling to 20%"
+        }
+
+        test "development_sampling sets 100% sampling" {
+            let ai = appInsights {
+                name "dev-ai"
+                development_sampling
+            }
+
+            Expect.equal ai.SamplingPercentage 100 "Should set sampling to 100%"
+        }
+
+        test "Default sampling is 100%" {
+            let ai = appInsights { name "default-ai" }
+
+            Expect.equal ai.SamplingPercentage 100 "Default sampling should be 100%"
+        }
+
+        test "Sampling percentage can be set explicitly" {
+            let ai = appInsights {
+                name "custom-ai"
+                sampling_percentage 50
+            }
+
+            Expect.equal ai.SamplingPercentage 50 "Should set custom sampling percentage"
+        }
+
+        test "production_sampling can be overridden" {
+            let ai = appInsights {
+                name "override-ai"
+                production_sampling
+                sampling_percentage 30  // Override the default 20
+            }
+
+            Expect.equal ai.SamplingPercentage 30 "Should allow overriding production sampling"
+        }
+
+        test "Sampling percentage validation fails for values > 100" {
+            Expect.throws
+                (fun () ->
+                    appInsights {
+                        name "test"
+                        sampling_percentage 101
+                    }
+                    |> ignore)
+                "Should throw for sampling > 100%"
+        }
+
+        test "Sampling percentage validation fails for values <= 0" {
+            Expect.throws
+                (fun () ->
+                    appInsights {
+                        name "test"
+                        sampling_percentage 0
+                    }
+                    |> ignore)
+                "Should throw for sampling <= 0%"
+        }
     ]
