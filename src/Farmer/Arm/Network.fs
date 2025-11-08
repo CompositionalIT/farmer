@@ -48,6 +48,14 @@ let localNetworkGateways =
 
 let natGateways = ResourceType("Microsoft.Network/natGateways", "2024-07-01")
 
+let ddosProtectionPlans =
+    ResourceType("Microsoft.Network/ddosProtectionPlans", "2024-05-01")
+
+let networkWatchers = ResourceType("Microsoft.Network/networkWatchers", "2024-05-01")
+
+let flowLogs =
+    ResourceType("Microsoft.Network/networkWatchers/flowLogs", "2024-05-01")
+
 let privateEndpoints =
     ResourceType("Microsoft.Network/privateEndpoints", "2021-05-01")
 
@@ -1059,5 +1067,79 @@ type NatGateway = {
                         idleTimeoutInMinutes = this.IdleTimeout
                         publicIpAddresses = this.PublicIpAddresses |> List.map LinkedResource.AsIdObject
                         publicIpPrefixes = this.PublicIpPrefixes |> List.map LinkedResource.AsIdObject
+                    |}
+            |}
+
+type DdosProtectionPlan = {
+    Name: ResourceName
+    Location: Location
+    Tags: Map<string, string>
+} with
+
+    interface IArmResource with
+        member this.ResourceId = ddosProtectionPlans.resourceId this.Name
+
+        member this.JsonModel =
+            ddosProtectionPlans.Create(this.Name, this.Location, tags = this.Tags)
+
+type NetworkWatcher = {
+    Name: ResourceName
+    Location: Location
+    Tags: Map<string, string>
+} with
+
+    interface IArmResource with
+        member this.ResourceId = networkWatchers.resourceId this.Name
+
+        member this.JsonModel = networkWatchers.Create(this.Name, this.Location, tags = this.Tags)
+
+type FlowLog = {
+    Name: ResourceName
+    Location: Location
+    NetworkWatcher: ResourceName
+    TargetResourceId: ResourceId
+    StorageAccountId: ResourceId
+    Enabled: bool
+    RetentionDays: int
+    WorkspaceId: ResourceId option
+    Tags: Map<string, string>
+} with
+
+    interface IArmResource with
+        member this.ResourceId =
+            flowLogs.resourceId (this.NetworkWatcher, this.Name)
+
+        member this.JsonModel =
+            let dependencies = [
+                this.TargetResourceId
+                this.StorageAccountId
+                yield! this.WorkspaceId |> Option.toList
+            ]
+
+            {|
+                flowLogs.Create(this.NetworkWatcher / this.Name, this.Location, dependencies, this.Tags) with
+                    properties = {|
+                        targetResourceId = this.TargetResourceId.Eval()
+                        storageId = this.StorageAccountId.Eval()
+                        enabled = this.Enabled
+                        retentionPolicy = {|
+                            days = this.RetentionDays
+                            enabled = this.RetentionDays > 0
+                        |}
+                        format = {| ``type`` = "JSON"; version = 2 |}
+                        flowAnalyticsConfiguration =
+                            this.WorkspaceId
+                            |> Option.map (fun workspaceId ->
+                                {|
+                                    networkWatcherFlowAnalyticsConfiguration = {|
+                                        enabled = true
+                                        workspaceId = workspaceId.Eval()
+                                        workspaceRegion = this.Location.ArmValue
+                                        workspaceResourceId = workspaceId.Eval()
+                                        trafficAnalyticsInterval = 60
+                                    |}
+                                |}
+                                :> obj)
+                            |> Option.toObj
                     |}
             |}

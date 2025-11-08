@@ -41,7 +41,9 @@ let allTests =
             ContainerService.tests
             Cosmos.tests
             Databricks.tests
+            DdosProtectionPlan.tests
             DedicatedHosts.tests
+            DefenderForCloud.tests
             DeploymentScript.tests
             DiagnosticSettings.tests
             Disk.tests
@@ -57,16 +59,20 @@ let allTests =
             JsonRegression.tests
             KeyVault.tests
             Network.tests
+            NetworkWatcher.tests
             LoadBalancer.tests
             LogAnalytics.tests
             LogicApps.tests
             Maps.tests
             NetworkSecurityGroup.tests
             OperationsManagement.tests
+            Policy.tests
             PostgreSQL.tests
             PrivateLink.tests
+            RecoveryServices.tests
             ResourceGroup.tests
             RoleAssignment.tests
+            Sentinel.tests
             ServiceBus.tests
             SignalR.tests
             Sql.tests
