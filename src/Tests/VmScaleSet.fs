@@ -98,6 +98,11 @@ let tests =
                 (vmss["zones"].ToString())
                 "[pickZones('Microsoft.Compute', 'virtualMachineScaleSets', resourceGroup().location, 3)]"
                 "Incorrect syntax for 'pickZones'"
+
+            let rollingUpgradePolicy =
+                vmss.SelectToken("properties.upgradePolicy.rollingUpgradePolicy")
+
+            Expect.isNull rollingUpgradePolicy "VMSS should not have rolling upgrade policy when not configured"
         }
         test "Create a basic scale set using a gallery image" {
             let deployment = arm {
@@ -353,5 +358,288 @@ let tests =
                 vmProfile.SelectToken("storageProfile.dataDisks[0].deleteOption")
 
             Expect.isNull dataDiskDeleteOption "VMSS data disk should NOT have deleteOption property"
+        }
+
+        test "VMSS supports rolling upgrade policy configuration" {
+            let deployment = arm {
+                add_resources [
+                    vmss {
+                        name "my-scale-set"
+                        capacity 3
+                        upgrade_mode UpgradeMode.Rolling
+
+                        vm_profile (
+                            vm {
+                                username "azureuser"
+                                operating_system UbuntuServer_2204LTS
+                                vm_size Standard_B1s
+                                os_disk 128 StandardSSD_LRS
+                            }
+                        )
+
+                        rolling_upgrade_enable_cross_zone_upgrade true
+                        rolling_upgrade_max_batch_instance_percent 20
+                        rolling_upgrade_max_surge true
+                        rolling_upgrade_max_unhealthy_instance_percent 20
+                        rolling_upgrade_max_unhealthy_upgraded_instance_percent 20
+                        rolling_upgrade_pause_time_between_batches (System.TimeSpan.FromSeconds 30)
+                        rolling_upgrade_prioritize_unhealthy_instances true
+                        rolling_upgrade_rollback_failed_instances_on_policy_breach false
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmss = jobj.SelectToken("resources[?(@.name=='my-scale-set')]")
+            Expect.isNotNull vmss "Scale set resource not generated"
+            let vmssProps = vmss["properties"]
+            Expect.isNotNull vmssProps "VMSS is missing 'properties'"
+            let upgradePolicy = vmssProps.SelectToken("upgradePolicy")
+            Expect.isNotNull upgradePolicy "VMSS is missing upgrade policy"
+
+            Expect.equal (upgradePolicy.SelectToken("mode").ToString()) "Rolling" "VMSS upgrade mode should be Rolling"
+
+            let rollingUpgradePolicy = upgradePolicy.SelectToken("rollingUpgradePolicy")
+            Expect.isNotNull rollingUpgradePolicy "VMSS is missing rolling upgrade policy"
+
+            Expect.equal
+                (rollingUpgradePolicy.SelectToken("enableCrossZoneUpgrade").ToString())
+                (string true)
+                "enableCrossZoneUpgrade should be true"
+
+            Expect.equal
+                (rollingUpgradePolicy.SelectToken("maxBatchInstancePercent").ToString())
+                "20"
+                "maxBatchInstancePercent should be 20"
+
+            Expect.equal
+                (rollingUpgradePolicy.SelectToken("maxSurge").ToString())
+                (string true)
+                "maxSurge should be true"
+
+            Expect.equal
+                (rollingUpgradePolicy.SelectToken("maxUnhealthyInstancePercent").ToString())
+                "20"
+                "maxUnhealthyInstancePercent should be 20"
+
+            Expect.equal
+                (rollingUpgradePolicy.SelectToken("maxUnhealthyUpgradedInstancePercent").ToString())
+                "20"
+                "maxUnhealthyUpgradedInstancePercent should be 20"
+
+            Expect.equal
+                (rollingUpgradePolicy.SelectToken("pauseTimeBetweenBatches").ToString())
+                "PT30S"
+                "pauseTimeBetweenBatches should be PT30S (ISO8601 duration)"
+
+            Expect.equal
+                (rollingUpgradePolicy.SelectToken("prioritizeUnhealthyInstances").ToString())
+                (string true)
+                "prioritizeUnhealthyInstances should be true"
+
+            Expect.equal
+                (rollingUpgradePolicy.SelectToken("rollbackFailedInstancesOnPolicyBreach").ToString())
+                (string false)
+                "rollbackFailedInstancesOnPolicyBreach should be false"
+        }
+
+        test "VMSS rolling upgrade policy omits unset fields" {
+            let deployment = arm {
+                add_resources [
+                    vmss {
+                        name "my-scale-set"
+                        capacity 2
+                        upgrade_mode Rolling
+
+                        vm_profile (
+                            vm {
+                                username "azureuser"
+                                operating_system UbuntuServer_2204LTS
+                                vm_size Standard_B1s
+                                os_disk 128 StandardSSD_LRS
+                            }
+                        )
+
+                        rolling_upgrade_max_batch_instance_percent 25
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmss = jobj.SelectToken("resources[?(@.name=='my-scale-set')]")
+
+            let rollingUpgradePolicy =
+                vmss.SelectToken("properties.upgradePolicy.rollingUpgradePolicy")
+
+            Expect.isNotNull rollingUpgradePolicy "VMSS is missing rolling upgrade policy"
+
+            Expect.equal
+                (rollingUpgradePolicy.SelectToken("maxBatchInstancePercent").ToString())
+                "25"
+                "maxBatchInstancePercent should be 25"
+
+            Expect.isNull
+                (rollingUpgradePolicy.SelectToken("enableCrossZoneUpgrade"))
+                "enableCrossZoneUpgrade should not be present when not set"
+
+            Expect.isNull (rollingUpgradePolicy.SelectToken("maxSurge")) "maxSurge should not be present when not set"
+
+            Expect.isNull
+                (rollingUpgradePolicy.SelectToken("maxUnhealthyInstancePercent"))
+                "maxUnhealthyInstancePercent should not be present when not set"
+
+            Expect.isNull
+                (rollingUpgradePolicy.SelectToken("maxUnhealthyUpgradedInstancePercent"))
+                "maxUnhealthyUpgradedInstancePercent should not be present when not set"
+
+            Expect.isNull
+                (rollingUpgradePolicy.SelectToken("pauseTimeBetweenBatches"))
+                "pauseTimeBetweenBatches should not be present when not set"
+
+            Expect.isNull
+                (rollingUpgradePolicy.SelectToken("prioritizeUnhealthyInstances"))
+                "prioritizeUnhealthyInstances should not be present when not set"
+
+            Expect.isNull
+                (rollingUpgradePolicy.SelectToken("rollbackFailedInstancesOnPolicyBreach"))
+                "rollbackFailedInstancesOnPolicyBreach should not be present when not set"
+        }
+
+        test "VMSS rolling upgrade max_batch_instance_percent validates min value" {
+            let createVmss () =
+                vmss {
+                    name "my-scale-set"
+                    capacity 2
+                    upgrade_mode Rolling
+
+                    vm_profile (
+                        vm {
+                            username "azureuser"
+                            operating_system UbuntuServer_2204LTS
+                            vm_size Standard_B1s
+                            os_disk 128 StandardSSD_LRS
+                        }
+                    )
+
+                    rolling_upgrade_max_batch_instance_percent 4
+                }
+                |> ignore
+
+            Expect.throws createVmss "Should throw when max_batch_instance_percent is less than 5"
+        }
+
+        test "VMSS rolling upgrade max_batch_instance_percent validates max value" {
+            let createVmss () =
+                vmss {
+                    name "my-scale-set"
+                    capacity 2
+                    upgrade_mode Rolling
+
+                    vm_profile (
+                        vm {
+                            username "azureuser"
+                            operating_system UbuntuServer_2204LTS
+                            vm_size Standard_B1s
+                            os_disk 128 StandardSSD_LRS
+                        }
+                    )
+
+                    rolling_upgrade_max_batch_instance_percent 101
+                }
+                |> ignore
+
+            Expect.throws createVmss "Should throw when max_batch_instance_percent is greater than 100"
+        }
+
+        test "VMSS rolling upgrade max_unhealthy_instance_percent validates min value" {
+            let createVmss () =
+                vmss {
+                    name "my-scale-set"
+                    capacity 2
+                    upgrade_mode Rolling
+
+                    vm_profile (
+                        vm {
+                            username "azureuser"
+                            operating_system UbuntuServer_2204LTS
+                            vm_size Standard_B1s
+                            os_disk 128 StandardSSD_LRS
+                        }
+                    )
+
+                    rolling_upgrade_max_unhealthy_instance_percent 4
+                }
+                |> ignore
+
+            Expect.throws createVmss "Should throw when max_unhealthy_instance_percent is less than 5"
+        }
+
+        test "VMSS rolling upgrade max_unhealthy_instance_percent validates max value" {
+            let createVmss () =
+                vmss {
+                    name "my-scale-set"
+                    capacity 2
+                    upgrade_mode Rolling
+
+                    vm_profile (
+                        vm {
+                            username "azureuser"
+                            operating_system UbuntuServer_2204LTS
+                            vm_size Standard_B1s
+                            os_disk 128 StandardSSD_LRS
+                        }
+                    )
+
+                    rolling_upgrade_max_unhealthy_instance_percent 101
+                }
+                |> ignore
+
+            Expect.throws createVmss "Should throw when max_unhealthy_instance_percent is greater than 100"
+        }
+
+        test "VMSS rolling upgrade max_unhealthy_upgraded_instance_percent validates min value" {
+            let createVmss () =
+                vmss {
+                    name "my-scale-set"
+                    capacity 2
+                    upgrade_mode Rolling
+
+                    vm_profile (
+                        vm {
+                            username "azureuser"
+                            operating_system UbuntuServer_2204LTS
+                            vm_size Standard_B1s
+                            os_disk 128 StandardSSD_LRS
+                        }
+                    )
+
+                    rolling_upgrade_max_unhealthy_upgraded_instance_percent -1
+                }
+                |> ignore
+
+            Expect.throws createVmss "Should throw when max_unhealthy_upgraded_instance_percent is less than 0"
+        }
+
+        test "VMSS rolling upgrade max_unhealthy_upgraded_instance_percent validates max value" {
+            let createVmss () =
+                vmss {
+                    name "my-scale-set"
+                    capacity 2
+                    upgrade_mode Rolling
+
+                    vm_profile (
+                        vm {
+                            username "azureuser"
+                            operating_system UbuntuServer_2204LTS
+                            vm_size Standard_B1s
+                            os_disk 128 StandardSSD_LRS
+                        }
+                    )
+
+                    rolling_upgrade_max_unhealthy_upgraded_instance_percent 101
+                }
+                |> ignore
+
+            Expect.throws createVmss "Should throw when max_unhealthy_upgraded_instance_percent is greater than 100"
         }
     ]
