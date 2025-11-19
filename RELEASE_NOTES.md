@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.26
+* Virtual Machine Scale Sets: Add support for rolling upgrade policy configuration.
+
 ## 1.9.25
 * Service Bus: Support for minimum TLS version of 1.3.
 * Storage Accounts: Support for requesting minimum TLS version of 1.3. The ARM resource itself currently falls back to 1.2.

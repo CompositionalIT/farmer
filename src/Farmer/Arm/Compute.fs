@@ -733,20 +733,62 @@ type VmssAutomaticOSUpgradePolicy = {
         UseRollingUpgradePolicy = None
     }
 
+type VmssRollingUpgradePolicy = {
+    EnableCrossZoneUpgrade: bool option
+    MaxBatchInstancePercent: int option
+    MaxSurge: bool option
+    MaxUnhealthyInstancePercent: int option
+    MaxUnhealthyUpgradedInstancePercent: int option
+    PauseTimeBetweenBatches: TimeSpan option
+    PrioritizeUnhealthyInstances: bool option
+    RollbackFailedInstancesOnPolicyBreach: bool option
+} with
+
+    member this.ArmJson = {|
+        enableCrossZoneUpgrade = this.EnableCrossZoneUpgrade |> Option.toNullable
+        maxBatchInstancePercent = this.MaxBatchInstancePercent |> Option.toNullable
+        maxSurge = this.MaxSurge |> Option.toNullable
+        maxUnhealthyInstancePercent = this.MaxUnhealthyInstancePercent |> Option.toNullable
+        maxUnhealthyUpgradedInstancePercent = this.MaxUnhealthyUpgradedInstancePercent |> Option.toNullable
+        pauseTimeBetweenBatches =
+            this.PauseTimeBetweenBatches
+            |> Option.map (fun ts -> (IsoDateTime.OfTimeSpan ts).Value)
+            |> Option.toObj
+        prioritizeUnhealthyInstances = this.PrioritizeUnhealthyInstances |> Option.toNullable
+        rollbackFailedInstancesOnPolicyBreach = this.RollbackFailedInstancesOnPolicyBreach |> Option.toNullable
+    |}
+
+    static member Default = {
+        EnableCrossZoneUpgrade = None
+        MaxBatchInstancePercent = None
+        MaxSurge = None
+        MaxUnhealthyInstancePercent = None
+        MaxUnhealthyUpgradedInstancePercent = None
+        PauseTimeBetweenBatches = None
+        PrioritizeUnhealthyInstances = None
+        RollbackFailedInstancesOnPolicyBreach = None
+    }
+
 type ScaleSetUpgradePolicy = {
     Mode: VmScaleSet.UpgradeMode
     AutomaticOSUpgradePolicy: VmssAutomaticOSUpgradePolicy option
+    RollingUpgradePolicy: VmssRollingUpgradePolicy option
 } with
 
     static member Default = {
         Mode = VmScaleSet.UpgradeMode.Automatic
         AutomaticOSUpgradePolicy = None
+        RollingUpgradePolicy = None
     }
 
     member this.ArmJson = {|
         mode = this.Mode.ArmValue
         automaticOSUpgradePolicy =
             this.AutomaticOSUpgradePolicy
+            |> Option.map _.ArmJson
+            |> Option.defaultValue Unchecked.defaultof<_>
+        rollingUpgradePolicy =
+            this.RollingUpgradePolicy
             |> Option.map _.ArmJson
             |> Option.defaultValue Unchecked.defaultof<_>
     |}
