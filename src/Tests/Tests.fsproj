@@ -26,6 +26,7 @@
         <Compile Include="LogicApps.fs" />
         <Compile Include="LogAnalytics.fs" />
         <Compile Include="Bastion.fs" />
+        <Compile Include="DdosProtectionPlan.fs" />
         <Compile Include="CommunicationServices.fs" />
         <Compile Include="BingSearch.fs" />
         <Compile Include="Cdn.fs" />
@@ -34,6 +35,7 @@
         <Compile Include="ContainerService.fs" />
         <Compile Include="CognitiveServices.fs" />
         <Compile Include="DataCollection.fs" />
+        <Compile Include="DefenderForCloud.fs" />
         <Compile Include="Dns.fs" />
         <Compile Include="DnsResolver.fs" />
         <Compile Include="ExpressRoute.fs" />
@@ -41,13 +43,17 @@
         <Compile Include="Gallery.fs" />
         <Compile Include="ImageTemplate.fs" />
         <Compile Include="Network.fs" />
+        <Compile Include="NetworkWatcher.fs" />
         <Compile Include="LoadBalancer.fs" />
         <Compile Include="NetworkSecurityGroup.fs" />
         <Compile Include="OperationsManagement.fs" />
+        <Compile Include="Policy.fs" />
+        <Compile Include="RecoveryServices.fs" />
         <Compile Include="PrivateLink.fs" />
         <Compile Include="PrometheusRuleGroup.fs" />
         <Compile Include="ResourceGroup.fs" />
         <Compile Include="Storage.fs" />
+        <Compile Include="Sentinel.fs" />
         <Compile Include="ServiceBus.fs" />
         <Compile Include="IotHub.fs" />
         <Compile Include="Template.fs" />
