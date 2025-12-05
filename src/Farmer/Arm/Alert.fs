@@ -44,7 +44,7 @@ type ResourceCriteria = {
     /// Name of the metric
     MetricName: MetricsName
     /// Threshold to exceed to hit the alert
-    Threshold: int
+    Threshold: float
     /// Equals, GreaterThan, GreaterThanOrEqual, LessThan or LessThanOrEqual
     Comparison: MetricComparison
     /// Average, Count, Total, Maximum, Minimum
@@ -57,7 +57,7 @@ type CustomMetricCriteria = {
     /// Name of the metric
     MetricName: MetricsName
     /// Threshold to exceed to hit the alert
-    Threshold: int
+    Threshold: float
     /// Equals, GreaterThan, GreaterThanOrEqual, LessThan or LessThanOrEqual
     Comparison: MetricComparison
     /// Average, Count, Total, Maximum, Minimum
