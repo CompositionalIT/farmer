@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## Unreleased
+* Storage Accounts: Add `AccountKey` member to return just the storage account key and `ConnectionString` member to return the connection string. The existing `Key` member is now obsolete (it incorrectly returned a connection string instead of just the key).
+
 ## 1.9.26
 * Virtual Machine Scale Sets: Add support for rolling upgrade policy configuration.
 

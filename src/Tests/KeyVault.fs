@@ -59,8 +59,12 @@ let tests =
                 "Invalid value of parameter secret"
 
             let sa = storageAccount { name "storage" }
-            let expressionSecret = SecretConfig.create ("test", sa.Key)
-            Expect.equal expressionSecret.Value (ExpressionSecret sa.Key) "Invalid value of expression secret"
+            let expressionSecret = SecretConfig.create ("test", sa.ConnectionString)
+
+            Expect.equal
+                expressionSecret.Value
+                (ExpressionSecret sa.ConnectionString)
+                "Invalid value of expression secret"
 
             Expect.sequenceEqual
                 expressionSecret.Dependencies

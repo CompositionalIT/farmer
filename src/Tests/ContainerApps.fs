@@ -72,7 +72,7 @@ let fullContainerAppDeployment =
                 component_type "some.component.type"
                 version "v1"
                 add_metadata "meta1" "value1"
-                add_secret_metadata "meta2" "secret1" storage.Key
+                add_secret_metadata "meta2" "secret1" storage.ConnectionString
                 add_scope httpContainerApp
             }
         ]

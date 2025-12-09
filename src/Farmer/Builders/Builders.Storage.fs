@@ -10,6 +10,20 @@ open BlobServices
 open FileShares
 
 type StorageAccount =
+    /// Gets an ARM Expression for the account key of any Storage Account.
+    static member getAccountKey(storageAccount: ResourceId) =
+        let expr =
+            $"listKeys({storageAccount.ArmExpression.Value}, '2017-10-01').keys[0].value"
+
+        ArmExpression.create (expr, storageAccount)
+
+    /// Gets an ARM Expression for the account key of any Storage Account.
+    static member getAccountKey(storageAccountName: StorageAccountName, ?group) =
+        let resourceId =
+            ResourceId.create (storageAccounts, storageAccountName.ResourceName, ?group = group)
+
+        StorageAccount.getAccountKey(resourceId).WithOwner(resourceId)
+
     /// Gets an ARM Expression connection string for any Storage Account.
     static member getConnectionString(storageAccount: ResourceId) =
         let expr =
@@ -88,7 +102,14 @@ type StorageAccountConfig = {
     DefaultToOAuthAuthentication: FeatureFlag option
 } with
 
+    /// Gets the ARM expression for the primary account key of this storage account.
+    member this.AccountKey = StorageAccount.getAccountKey (this.Name)
+
+    /// Gets the ARM expression for the connection string of this storage account.
+    member this.ConnectionString = StorageAccount.getConnectionString (this.Name)
+
     /// Gets the ARM expression path to the key of this storage account.
+    [<System.Obsolete("Use ConnectionString instead. This member incorrectly returns a connection string rather than just the key.")>]
     member this.Key = StorageAccount.getConnectionString (this.Name)
 
     /// Gets the Primary endpoint for static website (if enabled)

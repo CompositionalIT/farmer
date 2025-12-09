@@ -958,4 +958,24 @@ let tests =
                 "false"
                 "default to OAuth should be disabled"
         }
+        test "AccountKey returns just the storage account key" {
+            let account = storageAccount { name "account" }
+
+            let accountKeyExpression = account.AccountKey.Value
+
+            Expect.equal
+                accountKeyExpression
+                "listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value"
+                "AccountKey should return only the key"
+        }
+        test "ConnectionString returns the full connection string" {
+            let account = storageAccount { name "account" }
+
+            let connectionStringExpression = account.ConnectionString.Value
+
+            Expect.equal
+                connectionStringExpression
+                "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)"
+                "ConnectionString should return the full connection string"
+        }
     ]

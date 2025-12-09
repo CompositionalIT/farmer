@@ -210,7 +210,7 @@ let tests =
                     webApp {
                         name "test"
                         connection_string "a"
-                        connection_string ("b", sa.Key)
+                        connection_string ("b", sa.ConnectionString)
                         connection_string ("c", ArmExpression.create ("c"), ConnectionStringKind.SQLAzure)
                     }
                     |> getResources
@@ -219,7 +219,7 @@ let tests =
 
             let expected = [
                 "a", (ParameterSetting(SecureParameter "a"), ConnectionStringKind.Custom)
-                "b", (ExpressionSetting sa.Key, ConnectionStringKind.Custom)
+                "b", (ExpressionSetting sa.ConnectionString, ConnectionStringKind.Custom)
                 "c", (ExpressionSetting(ArmExpression.create ("c")), ConnectionStringKind.SQLAzure)
             ]
 
@@ -301,7 +301,7 @@ let tests =
 
             let wa = webApp {
                 name "testweb"
-                setting "storage" sa.Key
+                setting "storage" sa.ConnectionString
                 setting "conn" (sql.ConnectionString "thedb")
                 setting "bad" (ArmExpression.literal "ignore_me")
             }
@@ -322,7 +322,7 @@ let tests =
 
             let wa = webApp {
                 name "testweb"
-                setting "storage" sa.Key
+                setting "storage" sa.ConnectionString
             }
 
             let wa = wa |> getResources |> getResource<Web.Site> |> List.head
@@ -338,7 +338,7 @@ let tests =
 
             let wa = webApp {
                 name "testweb"
-                setting "astorage" sa.Key
+                setting "astorage" sa.ConnectionString
                 secret_setting "bsecret"
                 secret_setting "csection:secret"
                 secret_setting "dmy_secret"
@@ -389,7 +389,7 @@ let tests =
             Expect.hasLength secrets 4 "Incorrect number of KV secrets"
 
             Expect.equal secrets.[0].Name.Value "testwebvault/astorage" "Incorrect secret name"
-            Expect.equal secrets.[0].Value (ExpressionSecret sa.Key) "Incorrect secret value"
+            Expect.equal secrets.[0].Value (ExpressionSecret sa.ConnectionString) "Incorrect secret value"
 
             Expect.sequenceEqual
                 secrets.[0].Dependencies
@@ -424,7 +424,7 @@ let tests =
 
             let wa = webApp {
                 name "testweb"
-                setting "storage" sa.Key
+                setting "storage" sa.ConnectionString
                 secret_setting "secret"
                 setting "literal" "value"
                 link_to_keyvault (ResourceName "testwebvault")
@@ -465,7 +465,7 @@ let tests =
                 "Incorrect secret dependencies"
 
             Expect.equal secrets.[1].Name.Value "testwebvault/storage" "Incorrect secret name"
-            Expect.equal secrets.[1].Value (ExpressionSecret sa.Key) "Incorrect secret value"
+            Expect.equal secrets.[1].Value (ExpressionSecret sa.ConnectionString) "Incorrect secret value"
 
             Expect.sequenceEqual
                 secrets.[1].Dependencies

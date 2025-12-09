@@ -592,7 +592,9 @@ async {
                         add_volume_mount "script" "/app/src"
                         command_line ("dotnet fsi /app/src/main.fsx".Split null |> List.ofArray)
 
-                        env_vars [ EnvVar.createSecureExpression "AZURE_STORAGE_CONNECTION_STRING" storage.Key ]
+                        env_vars [
+                            EnvVar.createSecureExpression "AZURE_STORAGE_CONNECTION_STRING" storage.ConnectionString
+                        ]
                     }
                 ]
 
