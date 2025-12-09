@@ -108,7 +108,7 @@ type StorageAccountConfig = {
     /// Gets the ARM expression for the connection string of this storage account.
     member this.ConnectionString = StorageAccount.getConnectionString (this.Name)
 
-    /// Gets the ARM expression path to the key of this storage account.
+    /// [Obsolete] Gets the ARM expression for the connection string of this storage account. Use ConnectionString member instead.
     [<System.Obsolete("Use ConnectionString instead. This member incorrectly returns a connection string rather than just the key.")>]
     member this.Key = StorageAccount.getConnectionString (this.Name)
 
