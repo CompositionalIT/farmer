@@ -72,7 +72,7 @@ let fullContainerAppDeployment =
                 component_type "some.component.type"
                 version "v1"
                 add_metadata "meta1" "value1"
-                add_secret_metadata "meta2" "secret1" storage.Key
+                add_secret_metadata "meta2" "secret1" storage.ConnectionString
                 add_scope httpContainerApp
             }
         ]
@@ -250,7 +250,7 @@ let tests =
 
             Expect.equal
                 (firstDaprSecret["value"] |> string)
-                "[concat('DefaultEndpointsProtocol=https;AccountName=storagename;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'storagename'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
+                "[concat('DefaultEndpointsProtocol=https;AccountName=storagename;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'storagename'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
                 "Incorrect value for secrets[0]"
 
             let scope = daprComponentProperties.SelectToken("scopes[0]")
@@ -372,7 +372,7 @@ let tests =
 
             Expect.equal
                 (queueAppSecrets[1]["value"] |> string)
-                "[concat('DefaultEndpointsProtocol=https;AccountName=storagename;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'storagename'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
+                "[concat('DefaultEndpointsProtocol=https;AccountName=storagename;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'storagename'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
                 "Incorrect queue app secret"
 
             let queueAppScaleRules =
