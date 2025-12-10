@@ -622,7 +622,7 @@ let tests =
                 {|
                     name = "AzureWebJobsDashboard"
                     value =
-                        "[concat('DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=', listKeys(resourceId('shared-group', 'Microsoft.Storage/storageAccounts', 'accountName'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
+                        "[concat('DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=', listKeys(resourceId('shared-group', 'Microsoft.Storage/storageAccounts', 'accountName'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
                 |}
                 "Invalid value for AzureWebJobsDashboard"
 
