@@ -1,4 +1,4 @@
-﻿module LogAnalytics
+module LogAnalytics
 
 open Expecto
 open Farmer
@@ -9,6 +9,7 @@ open Microsoft.Azure.Management.OperationalInsights
 open Microsoft.Azure.Management.OperationalInsights.Models
 open Microsoft.Rest
 open System
+open Newtonsoft.Json.Linq
 
 let dummyClient =
     new OperationalInsightsManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
@@ -39,6 +40,33 @@ let tests =
             Expect.equal workspace.PublicNetworkAccessForQuery "Enabled" "QuerySupport"
             Expect.equal workspace.Sku.Name "PerGB2018" "Incorrect Sku"
             Expect.equal workspace.RetentionInDays (Nullable 30) "Incorrect Retention In Days"
+        }
+
+        test "Table created under workspace resource" {
+            let logging = logAnalytics {
+                name "MyAnalytics"
+                tables [
+                    {
+                        Name = ResourceName "MyTable"
+                        Plan = Analytics (Some 1<Days>)
+                        Columns = [
+                            { Name = "TimeGenerated"; Type = "datetime" }
+                            { Name = "Event"; Type = "dynamic" }
+                        ]
+                        TotalRetentionInDays = Some 2<Days>
+                    }
+                ]
+            }
+            let deployment = arm { add_resource logging }
+            let table =
+                deployment.Template.Resources
+                |> List.tryFind (fun r ->
+                    r.ResourceId.Name.Value = "MyAnalytics"
+                    && not(r.ResourceId.Segments |> List.isEmpty)
+                    && (r.ResourceId.Segments |> List.exactlyOne).Value = "MyTable")
+                |> Option.map (fun t -> t :?> Farmer.Arm.LogAnalytics.Table)
+
+            Expect.isSome table "Table resource not found"
         }
 
         test "Ingestion and Query are disabled by default" {
