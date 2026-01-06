@@ -108,6 +108,7 @@ type ContainerEnvironmentConfig = {
                         IngestionSupport = None
                         QuerySupport = None
                         DailyCap = None
+                        Tables = []
                         Tags = Map.empty
                     }
                     :> IBuilder

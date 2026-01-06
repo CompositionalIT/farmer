@@ -14,20 +14,16 @@ type TableConfig = {
     Plan: Plan
     Columns: Column list
     TotalRetentionInDays: int<Days> option
-    LogAnalyticsWorkspace: ResourceId
 } with
-    interface IBuilder with
-        member this.ResourceId = tables.resourceId (this.LogAnalyticsWorkspace.Name/this.Name)
-        member this.BuildResources _ = [
-            let t : Table = {
-                Name = this.Name
-                Plan = this.Plan
-                Columns = this.Columns
-                TotalRetentionInDays = this.TotalRetentionInDays
-                LogAnalyticsWorkspace = this.LogAnalyticsWorkspace
-            }
-            t
-        ]
+    member this.BuildResources logAnalyticsWorkspace = [
+        {
+            Name = this.Name
+            Plan = this.Plan
+            Columns = this.Columns
+            TotalRetentionInDays = this.TotalRetentionInDays
+            LogAnalyticsWorkspace = logAnalyticsWorkspace
+        } :> IArmResource
+    ]
 
 type WorkspaceConfig = {
     Name: ResourceName
@@ -35,6 +31,7 @@ type WorkspaceConfig = {
     IngestionSupport: FeatureFlag option
     QuerySupport: FeatureFlag option
     DailyCap: int<Gb> option
+    Tables : TableConfig list
     Tags: Map<string, string>
 } with
 
@@ -57,35 +54,9 @@ type WorkspaceConfig = {
                 DailyCap = this.DailyCap
                 Tags = this.Tags
             }
+            for table in this.Tables do
+                yield! table.BuildResources (this :> IBuilder).ResourceId
         ]
-
-type TableBuilder() =
-    member _.Yield _ = {
-        Name = ResourceName.Empty
-        Plan = Basic
-        Columns = []
-        TotalRetentionInDays = None
-        LogAnalyticsWorkspace = ResourceId.Empty
-    }
-    /// Sets the name of the Log Analytics table.
-    [<CustomOperation "name">]
-    member _.Name(state: TableConfig, name) = { state with Name = ResourceName name }
-    /// Sets the plan of the Log Analytics table.
-    [<CustomOperation "plan">]
-    member _.Plan(state: TableConfig, plan) = { state with Plan = plan }
-    /// Sets the columns of the Log Analytics table.
-    [<CustomOperation "columns">]
-    member _.Columns(state: TableConfig, columns) = { state with Columns = columns }
-    /// Sets the total retention period of the Log Analytics table.
-    [<CustomOperation "total_retention_in_days">]
-    member _.TotalRetentionInDays(state: TableConfig, days) = { state with TotalRetentionInDays = Some days }
-    /// Sets the Log Analytics workspace for the table.
-    [<CustomOperation "log_analytics_workspace">]
-    member _.LogAnalyticsWorkspace(state: TableConfig, workspaceId : ResourceId) =
-        if workspaceId.Type.Type <> Arm.LogAnalytics.workspaces.Type then
-            raiseFarmer $"given resource was not of type '{Arm.LogAnalytics.workspaces.Type}'."
-        { state with LogAnalyticsWorkspace = workspaceId }
-
 
 type WorkspaceBuilder() =
     member _.Yield _ = {
@@ -94,6 +65,7 @@ type WorkspaceBuilder() =
         DailyCap = None
         IngestionSupport = None
         QuerySupport = None
+        Tables = []
         Tags = Map.empty
     }
 
@@ -134,6 +106,13 @@ type WorkspaceBuilder() =
     /// Specifies the daily cap of ingested data.
     [<CustomOperation "daily_cap">]
     member _.DailyCap(state: WorkspaceConfig, cap) = { state with DailyCap = Some cap }
+
+    /// Adds tables to the Log Analytics workspace.
+    [<CustomOperation "tables">]
+    member _.Tables(state: WorkspaceConfig, tables: TableConfig list) = {
+        state with
+            Tables = tables
+    }
 
     interface ITaggable<WorkspaceConfig> with
         member _.Add state tags = {
