@@ -42,7 +42,7 @@ type Table = {
     LogAnalyticsWorkspace: ResourceId
 } with 
     interface IArmResource with
-        member this.ResourceId = tables.resourceId this.Name
+        member this.ResourceId = tables.resourceId (this.LogAnalyticsWorkspace.Name/this.Name)
         member this.JsonModel = {|
             tables.Create(this.LogAnalyticsWorkspace.Name/this.Name, dependsOn = [ this.LogAnalyticsWorkspace ]) with
                 properties = {|
