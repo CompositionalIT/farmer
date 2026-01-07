@@ -9,11 +9,6 @@ let workspaces =
 let tables =
     ResourceType("Microsoft.OperationalInsights/workspaces/tables", "2023-09-01")
 
-type Column = {
-    Name: string
-    Type: string
-}
-
 type Plan =
     | Analytics of RetentionInDays : int<Days> option
     | Auxiliary

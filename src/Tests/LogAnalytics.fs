@@ -73,7 +73,7 @@ let tests =
             Expect.equal (table.Value.TotalRetentionInDays) (Some 2<Days>) "Incorrect total retention in days"
             Expect.equal (table.Value.Plan.ArmValue) "Analytics" "Incorrect plan type"
             Expect.equal (table.Value.Plan.RetentionInDays) (Some 1<Days>) "Incorrect plan retention in days"
-            Expect.equal (table.Value.LogAnalyticsWorkspace.Name.Value) "MyAnalytics" "Incorrect workspace name in table resource"
+            Expect.equal (table.Value.LogAnalyticsWorkspace.Name.Value) "log-analytics" "Incorrect workspace name in table resource"
         }
 
         test "Table JSON emitted correctly" {
@@ -97,7 +97,7 @@ let tests =
             let tableJson = jobj["resources"][1]
             Expect.equal (tableJson["type"] |> string) LogAnalytics.tables.Type "Incorrect resource type"
             Expect.equal (tableJson["apiVersion"] |> string) LogAnalytics.tables.ApiVersion "Incorrect api version"
-            Expect.equal (tableJson["dependsOn"][0] |> string) "[resourceId('Microsoft.OperationalInsights/workspaces', 'MyAnalytics')]" "Incorrect dependsOn"
+            Expect.equal (tableJson["dependsOn"][0] |> string) "[resourceId('Microsoft.OperationalInsights/workspaces', 'log-analytics')]" "Incorrect dependsOn"
             Expect.equal (tableJson["name"] |> string) "log-analytics/MyTable_CL" "Incorrect resource name"
             Expect.equal (tableJson["properties"]["plan"] |> string) "Analytics" "Incorrect plan type"
             Expect.equal (tableJson["properties"]["retentionInDays"] |> int) 1 "Incorrect plan retention in days"
