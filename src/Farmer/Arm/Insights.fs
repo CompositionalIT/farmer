@@ -79,3 +79,56 @@ type DataCollectionEndpoint = {
     interface IArmResource with
         member this.ResourceId = dces.resourceId this.Name
         member this.JsonModel = dces.Create(this.Name, this.Location)
+
+type DataFlow = {
+    Streams : string list
+    Destinations : string list
+    TransformKQL : string option
+    OutputStream : string option
+}
+
+type DataCollectionRule = {
+    Name: ResourceName
+    Location: Location
+    DceResourceId : ResourceId
+    StreamDeclarations : Map<string, Column list>
+    DataSources : Map<string, Map<string, string> list>
+    Destinations : Map<string, Map<string, string> list>
+    DataFlows : DataFlow list
+    Tags: Map<string, string>
+} with
+    interface IArmResource with
+        member this.ResourceId = dcrs.resourceId this.Name
+        member this.JsonModel =
+            {|
+                dcrs.Create(this.Name, this.Location, tags = this.Tags) with
+                    properties = {|
+                        dataCollectionEndpointId = this.DceResourceId.Eval()
+                        streamDeclarations =
+                            this.StreamDeclarations
+                            |> Map.map (fun _ columns ->
+                                {|
+                                    columns =
+                                        columns
+                                        |> List.map (fun col ->
+                                            {|
+                                                name = col.Name
+                                                ``type`` = col.Type
+                                            |}
+                                        )
+                                |}
+                            )
+                        dataSources = this.DataSources
+                        destinations = this.Destinations
+                        dataFlows =
+                            this.DataFlows
+                            |> List.map (fun flow ->
+                                {|
+                                    streams = flow.Streams
+                                    destinations = flow.Destinations
+                                    transformKql = flow.TransformKQL |> Option.defaultValue "source"
+                                    outputStream = flow.OutputStream |> Option.toObj
+                                |}
+                            )
+                    |}
+            |}

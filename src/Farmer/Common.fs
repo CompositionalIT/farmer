@@ -1,6 +1,11 @@
-﻿namespace Farmer
+namespace Farmer
 
 open System
+
+type Column = {
+    Name: string
+    Type: string
+}
 
 type NonEmptyList<'T> =
     private
