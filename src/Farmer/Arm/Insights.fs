@@ -91,6 +91,7 @@ type DataCollectionRule = {
     Name: ResourceName
     Location: Location
     DceResourceId : ResourceId
+    LogAnalyticsWorkspaceResourceId : ResourceId option
     StreamDeclarations : Map<string, Column list>
     DataSources : Map<string, Map<string, string> list>
     Destinations : Map<string, Map<string, string> list>
@@ -100,8 +101,15 @@ type DataCollectionRule = {
     interface IArmResource with
         member this.ResourceId = dcrs.resourceId this.Name
         member this.JsonModel =
+            let deps =
+                [
+                    this.DceResourceId
+                    match this.LogAnalyticsWorkspaceResourceId with
+                    | Some logging -> logging
+                    | None -> ()
+                ]
             {|
-                dcrs.Create(this.Name, this.Location, tags = this.Tags) with
+                dcrs.Create(this.Name, this.Location, dependsOn = deps, tags = this.Tags) with
                     properties = {|
                         dataCollectionEndpointId = this.DceResourceId.Eval()
                         streamDeclarations =
