@@ -6,6 +6,10 @@ open Farmer
 let private createComponents version =
     ResourceType("Microsoft.Insights/components", version)
 
+let dces = ResourceType("Microsoft.Insights/dataCollectionEndpoints", "2023-03-11")
+
+let dcrs = ResourceType("Microsoft.Insights/dataCollectionRules", "2023-03-11")
+
 /// Classic AI instance
 let components = createComponents "2014-04-01"
 /// Workspace-enabled AI instance
@@ -67,3 +71,11 @@ type Components = {
                             | Classic -> null
                     |}
             |}
+
+type DataCollectionEndpoint = {
+    Name: ResourceName
+    Location: Location
+} with
+    interface IArmResource with
+        member this.ResourceId = dces.resourceId this.Name
+        member this.JsonModel = dces.Create(this.Name, this.Location)
