@@ -43,7 +43,7 @@ let tests =
 
         test "Table created under workspace resource" {
             let logging = logAnalytics {
-                name "MyAnalytics"
+                name "log-analytics"
                 tables [
                     {
                         Name = ResourceName "MyTable"
@@ -60,9 +60,9 @@ let tests =
             let table =
                 deployment.Template.Resources
                 |> List.tryFind (fun r ->
-                    r.ResourceId.Name.Value = "MyAnalytics"
+                    r.ResourceId.Name.Value = "log-analytics"
                     && not(r.ResourceId.Segments |> List.isEmpty)
-                    && (r.ResourceId.Segments |> List.exactlyOne).Value = "MyTable")
+                    && (r.ResourceId.Segments |> List.exactlyOne).Value = "MyTable_CL")
                 |> Option.map (fun t -> t :?> Farmer.Arm.LogAnalytics.Table)
 
             Expect.equal (table.Value.Columns.Length) 2 "Incorrect number of columns in table"
@@ -78,7 +78,7 @@ let tests =
 
         test "Table JSON emitted correctly" {
             let logging = logAnalytics {
-                name "MyAnalytics"
+                name "log-analytics"
                 tables [
                     {
                         Name = ResourceName "MyTable"
@@ -98,10 +98,11 @@ let tests =
             Expect.equal (tableJson["type"] |> string) LogAnalytics.tables.Type "Incorrect resource type"
             Expect.equal (tableJson["apiVersion"] |> string) LogAnalytics.tables.ApiVersion "Incorrect api version"
             Expect.equal (tableJson["dependsOn"][0] |> string) "[resourceId('Microsoft.OperationalInsights/workspaces', 'MyAnalytics')]" "Incorrect dependsOn"
-            Expect.equal (tableJson["name"] |> string) "MyAnalytics/MyTable" "Incorrect resource name"
+            Expect.equal (tableJson["name"] |> string) "log-analytics/MyTable_CL" "Incorrect resource name"
             Expect.equal (tableJson["properties"]["plan"] |> string) "Analytics" "Incorrect plan type"
             Expect.equal (tableJson["properties"]["retentionInDays"] |> int) 1 "Incorrect plan retention in days"
             Expect.equal (tableJson["properties"]["totalRetentionInDays"] |> int) 2 "Incorrect total retention in days"
+            Expect.equal (tableJson["properties"].["schema"].["name"] |> string) "MyTable_CL" "Incorrect table name"
             let columns = tableJson["properties"].["schema"].["columns"]
             Expect.equal (columns.[0]["name"] |> string) "TimeGenerated" "Incorrect first column name"
             Expect.equal (columns.[0]["type"] |> string) "datetime" "Incorrect first column type"

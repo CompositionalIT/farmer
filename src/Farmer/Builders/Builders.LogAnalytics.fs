@@ -17,7 +17,7 @@ type TableConfig = {
 } with
     member this.BuildResources logAnalyticsWorkspace = [
         {
-            Name = this.Name
+            Name = ResourceName $"{this.Name.Value}_CL"
             Plan = this.Plan
             Columns = this.Columns
             TotalRetentionInDays = this.TotalRetentionInDays
