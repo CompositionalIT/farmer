@@ -4,7 +4,6 @@ open Expecto
 open Farmer
 open Farmer.Arm
 open Farmer.Builders
-open Farmer.Helpers
 open Microsoft.Azure.Management.OperationalInsights
 open Microsoft.Azure.Management.OperationalInsights.Models
 open Microsoft.Rest
