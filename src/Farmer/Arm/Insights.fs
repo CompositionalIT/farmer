@@ -6,9 +6,9 @@ open Farmer
 let private createComponents version =
     ResourceType("Microsoft.Insights/components", version)
 
-let dces = ResourceType("Microsoft.Insights/dataCollectionEndpoints", "2023-03-11")
+let dataCollectionEndpoints = ResourceType("Microsoft.Insights/dataCollectionEndpoints", "2023-03-11")
 
-let dcrs = ResourceType("Microsoft.Insights/dataCollectionRules", "2023-03-11")
+let dataCollectionRules = ResourceType("Microsoft.Insights/dataCollectionRules", "2023-03-11")
 
 /// Classic AI instance
 let components = createComponents "2014-04-01"
@@ -77,8 +77,8 @@ type DataCollectionEndpoint = {
     Location: Location
 } with
     interface IArmResource with
-        member this.ResourceId = dces.resourceId this.Name
-        member this.JsonModel = dces.Create(this.Name, this.Location)
+        member this.ResourceId = dataCollectionEndpoints.resourceId this.Name
+        member this.JsonModel = dataCollectionEndpoints.Create(this.Name, this.Location)
 
 type DataFlow = {
     Streams : string list
@@ -99,7 +99,7 @@ type DataCollectionRule = {
     Tags: Map<string, string>
 } with
     interface IArmResource with
-        member this.ResourceId = dcrs.resourceId this.Name
+        member this.ResourceId = dataCollectionRules.resourceId this.Name
         member this.JsonModel =
             let deps =
                 [
@@ -109,7 +109,7 @@ type DataCollectionRule = {
                     | None -> ()
                 ]
             {|
-                dcrs.Create(this.Name, this.Location, dependsOn = deps, tags = this.Tags) with
+                dataCollectionRules.Create(this.Name, this.Location, dependsOn = deps, tags = this.Tags) with
                     properties = {|
                         dataCollectionEndpointId = this.DceResourceId.Eval()
                         streamDeclarations =
