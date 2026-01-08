@@ -31,7 +31,7 @@ type WorkspaceConfig = {
     IngestionSupport: FeatureFlag option
     QuerySupport: FeatureFlag option
     DailyCap: int<Gb> option
-    Tables : TableConfig list
+    CustomTables : TableConfig list
     Tags: Map<string, string>
 } with
 
@@ -54,7 +54,7 @@ type WorkspaceConfig = {
                 DailyCap = this.DailyCap
                 Tags = this.Tags
             }
-            for table in this.Tables do
+            for table in this.CustomTables do
                 yield! table.BuildResources (this :> IBuilder).ResourceId
         ]
 
@@ -65,7 +65,7 @@ type WorkspaceBuilder() =
         DailyCap = None
         IngestionSupport = None
         QuerySupport = None
-        Tables = []
+        CustomTables = []
         Tags = Map.empty
     }
 
@@ -108,10 +108,10 @@ type WorkspaceBuilder() =
     member _.DailyCap(state: WorkspaceConfig, cap) = { state with DailyCap = Some cap }
 
     /// Adds tables to the Log Analytics workspace.
-    [<CustomOperation "tables">]
-    member _.Tables(state: WorkspaceConfig, tables: TableConfig list) = {
+    [<CustomOperation "custom_tables">]
+    member _.CustomTables(state: WorkspaceConfig, customTables: TableConfig list) = {
         state with
-            Tables = tables
+            CustomTables = customTables
     }
 
     interface ITaggable<WorkspaceConfig> with

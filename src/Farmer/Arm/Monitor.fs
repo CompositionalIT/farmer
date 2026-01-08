@@ -159,7 +159,7 @@ type DataCollectionRule = {
                                         |> List.map (fun col ->
                                             {|
                                                 name = col.Name
-                                                ``type`` = col.Type
+                                                ``type`` = col.Type.ArmValue
                                             |}
                                         )
                                 |})

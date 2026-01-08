@@ -1,10 +1,37 @@
 namespace Farmer
 
 open System
+(*
+'boolean'
+'datetime'
+'dynamic'
+'int'
+'long'
+'real'
+'string'
+*)
+type ColumnType =
+    | Boolean
+    | DateTime
+    | Dynamic
+    | Int
+    | Long
+    | Real
+    | String
+    with
+        member this.ArmValue =
+            match this with
+            | Boolean -> "boolean"
+            | DateTime -> "datetime"
+            | Dynamic -> "dynamic"
+            | Int -> "int"
+            | Long -> "long"
+            | Real -> "real"
+            | String -> "string"
 
 type Column = {
     Name: string
-    Type: string
+    Type: ColumnType
 }
 
 type NonEmptyList<'T> =

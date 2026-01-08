@@ -44,13 +44,13 @@ let tests =
         test "Table created under workspace resource" {
             let logging = logAnalytics {
                 name "log-analytics"
-                tables [
+                custom_tables [
                     {
                         Name = ResourceName "MyTable"
                         Plan = Analytics (Some 1<Days>)
                         Columns = [
-                            { Name = "TimeGenerated"; Type = "datetime" }
-                            { Name = "Event"; Type = "dynamic" }
+                            { Name = "TimeGenerated"; Type = ColumnType.DateTime }
+                            { Name = "Event"; Type = ColumnType.Dynamic }
                         ]
                         TotalRetentionInDays = Some 2<Days>
                     }
@@ -67,9 +67,9 @@ let tests =
 
             Expect.equal (table.Value.Columns.Length) 2 "Incorrect number of columns in table"
             Expect.equal (table.Value.Columns[0].Name) "TimeGenerated" "Incorrect first column name"
-            Expect.equal (table.Value.Columns[0].Type) "datetime" "Incorrect first column type"
+            Expect.equal (table.Value.Columns[0].Type) ColumnType.DateTime "Incorrect first column type"
             Expect.equal (table.Value.Columns[1].Name) "Event" "Incorrect second column name"
-            Expect.equal (table.Value.Columns[1].Type) "dynamic" "Incorrect second column type"
+            Expect.equal (table.Value.Columns[1].Type) ColumnType.Dynamic "Incorrect second column type"
             Expect.equal (table.Value.TotalRetentionInDays) (Some 2<Days>) "Incorrect total retention in days"
             Expect.equal (table.Value.Plan.ArmValue) "Analytics" "Incorrect plan type"
             Expect.equal (table.Value.Plan.RetentionInDays) (Some 1<Days>) "Incorrect plan retention in days"
@@ -79,13 +79,13 @@ let tests =
         test "Table JSON emitted correctly" {
             let logging = logAnalytics {
                 name "log-analytics"
-                tables [
+                custom_tables [
                     {
                         Name = ResourceName "MyTable"
                         Plan = Analytics (Some 1<Days>)
                         Columns = [
-                            { Name = "TimeGenerated"; Type = "datetime" }
-                            { Name = "Event"; Type = "dynamic" }
+                            { Name = "TimeGenerated"; Type = ColumnType.DateTime }
+                            { Name = "Event"; Type = ColumnType.Dynamic }
                         ]
                         TotalRetentionInDays = Some 2<Days>
                     }

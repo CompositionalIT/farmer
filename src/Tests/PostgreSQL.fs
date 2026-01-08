@@ -9,6 +9,7 @@ open Farmer
 open Farmer.Arm
 open Farmer.Builders
 open Farmer.PostgreSQL
+open System
 
 type PostgresSku = {
     name: string

@@ -50,7 +50,7 @@ type Table = {
                             this.Columns
                             |> List.map (fun c -> {|
                                 name = c.Name
-                                ``type`` = c.Type
+                                ``type`` = c.Type.ArmValue
                             |})
                     |}
                 |}
