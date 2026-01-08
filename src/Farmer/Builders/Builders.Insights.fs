@@ -109,7 +109,14 @@ type DataCollectionRuleBuilder() =
     /// Adds data flows.
     [<CustomOperation "data_flows">]
     member _.DataFlows(state: DataCollectionRuleConfig, dataFlows: DataFlow list) =
-        { state with DataFlows = dataFlows }
+        let dfs = 
+            dataFlows 
+            |> List.map (fun df -> 
+                { df with 
+                    Streams = df.Streams |> List.map (fun s -> $"Custom-{s}_CL")
+                    OutputStream = df.OutputStream |> Option.map (fun s -> $"Custom-{s}_CL")
+                })
+        { state with DataFlows = dfs }
 
     interface ITaggable<DataCollectionRuleConfig> with
         member _.Add state tags = {
