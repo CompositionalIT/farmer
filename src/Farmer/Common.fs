@@ -1,15 +1,7 @@
 namespace Farmer
 
 open System
-(*
-'boolean'
-'datetime'
-'dynamic'
-'int'
-'long'
-'real'
-'string'
-*)
+
 type ColumnType =
     | Boolean
     | DateTime

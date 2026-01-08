@@ -1,6 +1,5 @@
 module Gallery
 
-open System
 open Expecto
 open Farmer
 open Farmer.Builders
