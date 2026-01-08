@@ -8,7 +8,7 @@ type DataCollectionEndpointConfig = {
     Name: ResourceName
 } with
     interface IBuilder with
-        member this.ResourceId = dces.resourceId this.Name
+        member this.ResourceId = dataCollectionEndpoints.resourceId this.Name
         member this.BuildResources location = [
             {
                 Name = this.Name
@@ -78,33 +78,33 @@ type DataCollectionRuleBuilder() =
         { state with Name = ResourceName name }
 
     /// Sets the Data Collection Endpoint Resource ID.
-    [<CustomOperation "dce_id">]
-    member _.DceResourceId(state: DataCollectionRuleConfig, dceResourceId: ResourceId) =
+    [<CustomOperation "data_collection_endpoint">]
+    member _.DataCollectionEndpoint(state: DataCollectionRuleConfig, dceResourceId: ResourceId) =
         if dceResourceId.Type.Type <> Arm.Insights.dataCollectionEndpoints.Type then
             raiseFarmer $"given resource was not of type '{Arm.Insights.dataCollectionEndpoints.Type}'."
         { state with DceResourceId = dceResourceId }
 
     /// Sets the Log Analytics Workspace Resource ID.
-    [<CustomOperation "log_analytics_id">]
-    member _.LogAnalyticsWorkspaceResourceId(state: DataCollectionRuleConfig, logAnalyticsWorkspaceResourceId: ResourceId) =
+    [<CustomOperation "log_analytics">]
+    member _.LogAnalytics(state: DataCollectionRuleConfig, logAnalyticsWorkspaceResourceId: ResourceId) =
         if logAnalyticsWorkspaceResourceId.Type.Type <> Arm.LogAnalytics.workspaces.Type then
             raiseFarmer $"given resource was not of type '{Arm.LogAnalytics.workspaces.Type}'."
         { state with LogAnalyticsWorkspaceResourceId = Some logAnalyticsWorkspaceResourceId }
 
     /// Adds stream declarations.
     [<CustomOperation "stream_declarations">]
-    member _.StreamDeclarations(state: DataCollectionRuleConfig, streams: Map<string, Column list>) =
-        { state with StreamDeclarations = streams }
+    member _.StreamDeclarations(state: DataCollectionRuleConfig, streams: List<string * Column list>) =
+        { state with StreamDeclarations = streams |> List.map (fun (k, v) -> $"Custom-{k}_CL", v) |> Map.ofList  }
 
     /// Adds data sources.
     [<CustomOperation "data_sources">]
-    member _.DataSources(state: DataCollectionRuleConfig, dataSources: Map<string, Map<string, string> list>) =
-        { state with DataSources = dataSources }
+    member _.DataSources(state: DataCollectionRuleConfig, dataSources: List<string * List<string * string> list>) =
+        { state with DataSources = dataSources |> List.map (fun (k, v) -> k, v |> List.map Map.ofList) |> Map.ofList }
 
     /// Adds destinations.
     [<CustomOperation "destinations">]
-    member _.Destinations(state: DataCollectionRuleConfig, destinations: Map<string, Map<string, string> list>) =
-        { state with Destinations = destinations }
+    member _.Destinations(state: DataCollectionRuleConfig, destinations: List<string * List<string * string> list>) =
+        { state with Destinations = destinations |> List.map (fun (k, v) -> k, v |> List.map Map.ofList) |> Map.ofList }
 
     /// Adds data flows.
     [<CustomOperation "data_flows">]
