@@ -78,7 +78,9 @@ type DataCollectionEndpoint = {
 } with
     interface IArmResource with
         member this.ResourceId = dataCollectionEndpoints.resourceId this.Name
-        member this.JsonModel = dataCollectionEndpoints.Create(this.Name, this.Location)
+        member this.JsonModel = {|
+            dataCollectionEndpoints.Create(this.Name, this.Location) with properties = {||}
+        |}
 
 type DataFlow = {
     Streams : string list
