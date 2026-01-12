@@ -19,7 +19,7 @@ type DataCollectionEndpoint = {
         member this.JsonModel = {|
             dataCollectionEndpoints.Create(this.Name, this.Location, tags = this.Tags) with
                 kind = string this.OsType
-                properties = {||}
+                properties = {| |}
         |}
 
 let dataCollectionRules =
@@ -97,10 +97,12 @@ module Destinations =
         WorkspaceResourceId: ResourceId
         Name: ResourceName
     } with
+
         static member Default = {
             WorkspaceResourceId = ResourceId.Empty
             Name = ResourceName.Empty
         }
+
         member this.ToArmJson = {|
             workspaceResourceId = this.WorkspaceResourceId.Eval()
             name = this.Name.Value
@@ -111,7 +113,10 @@ module Destinations =
         LogAnalytics: (LogAnalytics list) option
     } with
 
-        static member Default = { MonitoringAccounts = None; LogAnalytics = None }
+        static member Default = {
+            MonitoringAccounts = None
+            LogAnalytics = None
+        }
 
     let ToArmJson (destinations: Destination) = {|
         monitoringAccounts =
@@ -129,7 +134,7 @@ type DataCollectionRule = {
     OsType: OS option
     Location: Location
     Endpoint: ResourceId
-    StreamDeclarations : Map<Stream, Column list>
+    StreamDeclarations: Map<Stream, Column list>
     DataFlows: (DataFlow list) option
     DataSources: DataSources.DataSource option
     Destinations: Destinations.Destination option
@@ -156,12 +161,10 @@ type DataCollectionRule = {
                                 {|
                                     columns =
                                         columns
-                                        |> List.map (fun col ->
-                                            {|
-                                                name = col.Name
-                                                ``type`` = col.Type.ArmValue
-                                            |}
-                                        )
+                                        |> List.map (fun col -> {|
+                                            name = col.Name
+                                            ``type`` = col.Type.ArmValue
+                                        |})
                                 |})
                             |> Map.ofList
                         dataFlows =

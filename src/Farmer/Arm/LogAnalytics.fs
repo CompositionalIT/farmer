@@ -10,24 +10,24 @@ let tables =
     ResourceType("Microsoft.OperationalInsights/workspaces/tables", "2023-09-01")
 
 type Plan =
-    | Analytics of RetentionInDays : int<Days> option
+    | Analytics of RetentionInDays: int<Days> option
     | Auxiliary
     | Basic
-    with
-        member this.ArmValue =
-            match this with
-            | Analytics _ -> "Analytics"
-            | Auxiliary -> "Auxiliary"
-            | Basic -> "Basic"
 
-        member this.RetentionInDays =
-            match this with
-            | Analytics days ->
-                match days with
-                | Some d -> Some d
-                | None -> Some -1<Days>
-            | Auxiliary -> None
-            | Basic -> None
+    member this.ArmValue =
+        match this with
+        | Analytics _ -> "Analytics"
+        | Auxiliary -> "Auxiliary"
+        | Basic -> "Basic"
+
+    member this.RetentionInDays =
+        match this with
+        | Analytics days ->
+            match days with
+            | Some d -> Some d
+            | None -> Some -1<Days>
+        | Auxiliary -> None
+        | Basic -> None
 
 type Table = {
     Name: ResourceName
@@ -35,18 +35,21 @@ type Table = {
     Columns: Column list
     TotalRetentionInDays: int<Days> option
     LogAnalyticsWorkspace: ResourceId
-} with 
+} with
+
     interface IArmResource with
-        member this.ResourceId = tables.resourceId (this.LogAnalyticsWorkspace.Name/this.Name)
+        member this.ResourceId =
+            tables.resourceId (this.LogAnalyticsWorkspace.Name / this.Name)
+
         member this.JsonModel = {|
-            tables.Create(this.LogAnalyticsWorkspace.Name/this.Name, dependsOn = [ this.LogAnalyticsWorkspace ]) with
+            tables.Create(this.LogAnalyticsWorkspace.Name / this.Name, dependsOn = [ this.LogAnalyticsWorkspace ]) with
                 properties = {|
                     plan = this.Plan.ArmValue
                     retentionInDays = this.Plan.RetentionInDays |> Option.toNullable
                     totalRetentionInDays = this.TotalRetentionInDays |> Option.defaultValue -1<Days>
                     schema = {|
                         name = this.Name.Value
-                        columns = 
+                        columns =
                             this.Columns
                             |> List.map (fun c -> {|
                                 name = c.Name

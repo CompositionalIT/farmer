@@ -15,6 +15,7 @@ type TableConfig = {
     Columns: Column list
     TotalRetentionInDays: int<Days> option
 } with
+
     member this.BuildResources logAnalyticsWorkspace = [
         {
             Name = ResourceName $"{this.Name.Value}_CL"
@@ -22,7 +23,8 @@ type TableConfig = {
             Columns = this.Columns
             TotalRetentionInDays = this.TotalRetentionInDays
             LogAnalyticsWorkspace = logAnalyticsWorkspace
-        } :> IArmResource
+        }
+        :> IArmResource
     ]
 
 type WorkspaceConfig = {
@@ -31,7 +33,7 @@ type WorkspaceConfig = {
     IngestionSupport: FeatureFlag option
     QuerySupport: FeatureFlag option
     DailyCap: int<Gb> option
-    CustomTables : TableConfig list
+    CustomTables: TableConfig list
     Tags: Map<string, string>
 } with
 

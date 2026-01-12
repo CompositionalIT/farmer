@@ -68,8 +68,7 @@ type DestinationConfig =
             destinations
             |> List.tryFind (function
                 | MonitoringAccounts _ -> true
-                | _ -> false
-            )
+                | _ -> false)
             |> function
                 | Some(MonitoringAccounts accounts) -> Some accounts
                 | _ -> None
@@ -77,8 +76,7 @@ type DestinationConfig =
             destinations
             |> List.tryFind (function
                 | LogAnalytics _ -> true
-                | _ -> false
-            )
+                | _ -> false)
             |> function
                 | Some(LogAnalytics workspaces) -> Some workspaces
                 | _ -> None

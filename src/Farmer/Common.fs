@@ -10,21 +10,18 @@ type ColumnType =
     | Long
     | Real
     | String
-    with
-        member this.ArmValue =
-            match this with
-            | Boolean -> "boolean"
-            | DateTime -> "datetime"
-            | Dynamic -> "dynamic"
-            | Int -> "int"
-            | Long -> "long"
-            | Real -> "real"
-            | String -> "string"
 
-type Column = {
-    Name: string
-    Type: ColumnType
-}
+    member this.ArmValue =
+        match this with
+        | Boolean -> "boolean"
+        | DateTime -> "datetime"
+        | Dynamic -> "dynamic"
+        | Int -> "int"
+        | Long -> "long"
+        | Real -> "real"
+        | String -> "string"
+
+type Column = { Name: string; Type: ColumnType }
 
 type NonEmptyList<'T> =
     private
