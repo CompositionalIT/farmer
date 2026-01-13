@@ -65,16 +65,23 @@ type Stream =
         | Perf -> "Microsoft-Perf"
         | Syslog -> "Microsoft-Syslog"
         | WindowsEvent -> "Microsoft-WindowsEvent"
-        | CustomStream name -> name
+        | CustomStream tableName -> $"Custom-{tableName}_CL"
 
 type DataFlow = {
     Destinations: string list
     Streams: Stream list
+    TransformKQL: string option
+    OutputStream: Stream option
 } with
 
     member this.ToArmJson = {|
         destinations = this.Destinations
         streams = this.Streams |> List.map Stream.Print
+        transformKql = this.TransformKQL |> Option.defaultValue Unchecked.defaultof<_>
+        outputStream =
+            this.OutputStream
+            |> Option.map Stream.Print
+            |> Option.defaultValue Unchecked.defaultof<_>
     |}
 
 module Destinations =
@@ -173,8 +180,8 @@ type DataCollectionRule = {
                             |> Option.defaultValue Unchecked.defaultof<_>
                         dataSources =
                             this.DataSources
-                            |> Option.map DataSources.ToArmJson
-                            |> Option.defaultValue Unchecked.defaultof<_>
+                            |> Option.defaultValue DataSources.DataSource.Default
+                            |> DataSources.ToArmJson
                         destinations =
                             this.Destinations
                             |> Option.map Destinations.ToArmJson
