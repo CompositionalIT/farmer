@@ -7,7 +7,7 @@ open System
 let private createComponents version =
     ResourceType("Microsoft.Insights/components", version)
 
-let private scheduledQueryRules version =
+let scheduledQueryRules =
     ResourceType("Microsoft.Insights/scheduledQueryRules", "2021-08-01")
 
 /// Classic AI instance
@@ -161,7 +161,7 @@ type Condition = {
     |}
 
 type Actions = {
-    ActionGroups: ResourceId list
+    ActionGroups: string list // ActionGroupConfig.ActionGroupId is a string instead of a ResourceId for some reason
 }
 
 type ScheduledQueryRule = {
@@ -179,13 +179,14 @@ type ScheduledQueryRule = {
     CheckWorkspaceAlertsStorageConfigured: bool option
     Actions: Actions
     Tags: Map<string, string>
+    Dependencies: ResourceId Set
 } with
 
     interface IArmResource with
-        member this.ResourceId = workspaces.resourceId this.Name
+        member this.ResourceId = scheduledQueryRules.resourceId this.Name
 
         member this.JsonModel = {|
-            workspaces.Create(this.Name, this.Location, tags = this.Tags) with
+            scheduledQueryRules.Create(this.Name, this.Location, this.Dependencies, tags = this.Tags) with
                 properties = {|
                     description = this.Description
                     severity = this.Severity |> Option.map (function Zero -> 0 | One -> 1 | Two -> 2 | Three -> 3 | Four -> 4) |> Option.toNullable
@@ -198,7 +199,7 @@ type ScheduledQueryRule = {
                     autoMitigate = this.AutoMitigate |> Option.toNullable
                     checkWorkspaceAlertsStorageConfigured = this.CheckWorkspaceAlertsStorageConfigured |> Option.toNullable
                     actions = {|
-                        actionGroups = this.Actions.ActionGroups |> List.map (fun r -> r.Eval())
+                        actionGroups = this.Actions.ActionGroups
                         customProperties = {||}
                     |}
                 |}
