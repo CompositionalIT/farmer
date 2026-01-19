@@ -46,23 +46,22 @@ type ScheduledQueryRuleConfig = {
         ]
 
 type ScheduledQueryRuleBuilder() =
-    member _.Yield _ : ScheduledQueryRuleConfig =
-        {
-            Name = ResourceName.Empty
-            Description = ""
-            Severity = None
-            Enabled = true
-            Scopes = []
-            EvaluationFrequency = None
-            WindowSize = None
-            MuteActionsDuration = None
-            Criteria = []
-            AutoMitigate = None
-            CheckWorkspaceAlertsStorageConfigured = None
-            Actions = { ActionGroups = [] }
-            Dependencies = Set.empty
-            Tags = Map.empty
-        }
+    member _.Yield _ : ScheduledQueryRuleConfig = {
+        Name = ResourceName.Empty
+        Description = ""
+        Severity = None
+        Enabled = true
+        Scopes = []
+        EvaluationFrequency = None
+        WindowSize = None
+        MuteActionsDuration = None
+        Criteria = []
+        AutoMitigate = None
+        CheckWorkspaceAlertsStorageConfigured = None
+        Actions = { ActionGroups = [] }
+        Dependencies = Set.empty
+        Tags = Map.empty
+    }
 
     [<CustomOperation "name">]
     member _.Name(state: ScheduledQueryRuleConfig, name) = { state with Name = ResourceName name }
@@ -80,41 +79,52 @@ type ScheduledQueryRuleBuilder() =
     member _.Scopes(state: ScheduledQueryRuleConfig, scopes) = { state with Scopes = scopes }
 
     [<CustomOperation "evaluation_frequency">]
-    member _.EvaluationFrequency(state: ScheduledQueryRuleConfig, frequency) =
-        { state with EvaluationFrequency = Some frequency }
+    member _.EvaluationFrequency(state: ScheduledQueryRuleConfig, frequency) = {
+        state with
+            EvaluationFrequency = Some frequency
+    }
 
-    member _.EvaluationFrequency(state: ScheduledQueryRuleConfig, frequency : string) =
-        { state with EvaluationFrequency = Some (Xml.XmlConvert.ToTimeSpan frequency) }
+    member _.EvaluationFrequency(state: ScheduledQueryRuleConfig, frequency: string) = {
+        state with
+            EvaluationFrequency = Some(Xml.XmlConvert.ToTimeSpan frequency)
+    }
 
     [<CustomOperation "window_size">]
-    member _.WindowSize(state: ScheduledQueryRuleConfig, size) =
-        { state with WindowSize = Some size }
+    member _.WindowSize(state: ScheduledQueryRuleConfig, size) = { state with WindowSize = Some size }
 
-    member _.WindowSize(state: ScheduledQueryRuleConfig, size : string) =
-        { state with WindowSize = Some (Xml.XmlConvert.ToTimeSpan size) }
+    member _.WindowSize(state: ScheduledQueryRuleConfig, size: string) = {
+        state with
+            WindowSize = Some(Xml.XmlConvert.ToTimeSpan size)
+    }
 
     [<CustomOperation "mute_actions_duration">]
-    member _.MuteActionsDuration(state: ScheduledQueryRuleConfig, duration) =
-        { state with MuteActionsDuration = Some duration }
+    member _.MuteActionsDuration(state: ScheduledQueryRuleConfig, duration) = {
+        state with
+            MuteActionsDuration = Some duration
+    }
 
-    member _.MuteActionsDuration(state: ScheduledQueryRuleConfig, duration : string) =
-        { state with MuteActionsDuration = Some (Xml.XmlConvert.ToTimeSpan duration) }
+    member _.MuteActionsDuration(state: ScheduledQueryRuleConfig, duration: string) = {
+        state with
+            MuteActionsDuration = Some(Xml.XmlConvert.ToTimeSpan duration)
+    }
 
     [<CustomOperation "criteria">]
-    member _.Criteria(state: ScheduledQueryRuleConfig, criteria: Condition list) =
-        { state with Criteria = criteria }
+    member _.Criteria(state: ScheduledQueryRuleConfig, criteria: Condition list) = { state with Criteria = criteria }
 
     [<CustomOperation "auto_mitigate">]
-    member _.AutoMitigate(state: ScheduledQueryRuleConfig, autoMitigate) =
-        { state with AutoMitigate = Some autoMitigate }
+    member _.AutoMitigate(state: ScheduledQueryRuleConfig, autoMitigate) = {
+        state with
+            AutoMitigate = Some autoMitigate
+    }
 
     [<CustomOperation "check_workspace_alerts_storage_configured">]
-    member _.CheckWorkspaceAlertsStorageConfigured(state: ScheduledQueryRuleConfig, check) =
-        { state with CheckWorkspaceAlertsStorageConfigured = Some check }
+    member _.CheckWorkspaceAlertsStorageConfigured(state: ScheduledQueryRuleConfig, check) = {
+        state with
+            CheckWorkspaceAlertsStorageConfigured = Some check
+    }
 
     [<CustomOperation "actions">]
-    member _.Actions(state: ScheduledQueryRuleConfig, actions) =
-        { state with Actions = actions }
+    member _.Actions(state: ScheduledQueryRuleConfig, actions) = { state with Actions = actions }
 
     interface ITaggable<ScheduledQueryRuleConfig> with
         member _.Add state tags = {

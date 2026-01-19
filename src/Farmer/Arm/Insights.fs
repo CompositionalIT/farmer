@@ -88,9 +88,13 @@ type Dimension = {
     Operator: DimensionOperator
     Values: string list option
 } with
+
     member this.JsonModel = {|
         name = this.Name
-        operator = match this.Operator with Include -> "Include" | Exclude -> "Exclude"
+        operator =
+            match this.Operator with
+            | Include -> "Include"
+            | Exclude -> "Exclude"
         values = this.Values |> Option.defaultValue List.empty
     |}
 
@@ -98,9 +102,11 @@ type ConditionFailingPeriods = {
     MinFailingPeriodsToAlert: int
     NumberOfEvaluationPeriods: int
 } with
+
     member this.JsonModel =
         if this.MinFailingPeriodsToAlert > this.NumberOfEvaluationPeriods then
             failwith "MinFailingPeriodsToAlert cannot be greater than NumberOfEvaluationPeriods."
+
         {|
             minFailingPeriodsToAlert = this.MinFailingPeriodsToAlert
             numberOfEvaluationPeriods = this.NumberOfEvaluationPeriods
@@ -130,11 +136,15 @@ type Condition = {
     TimeAggregation: TimeAggregation option
     FailingPeriods: ConditionFailingPeriods option
 } with
+
     member this.JsonModel = {|
         query = this.Query
         metricMeasureColumn = this.MetricMeasureColumn |> Option.toObj
         resourceIdColumn = this.ResourceIdColumn |> Option.toObj
-        dimensions = this.Dimensions |> Option.map (List.map (fun d -> d.JsonModel)) |> Option.defaultValue List.empty
+        dimensions =
+            this.Dimensions
+            |> Option.map (List.map (fun d -> d.JsonModel))
+            |> Option.defaultValue List.empty
         operator =
             this.Operator
             |> Option.map (function
@@ -189,18 +199,29 @@ type ScheduledQueryRule = {
             scheduledQueryRules.Create(this.Name, this.Location, this.Dependencies, tags = this.Tags) with
                 properties = {|
                     description = this.Description
-                    severity = this.Severity |> Option.map (function Zero -> 0 | One -> 1 | Two -> 2 | Three -> 3 | Four -> 4) |> Option.toNullable
+                    severity =
+                        this.Severity
+                        |> Option.map (function
+                            | Zero -> 0
+                            | One -> 1
+                            | Two -> 2
+                            | Three -> 3
+                            | Four -> 4)
+                        |> Option.toNullable
                     enabled = this.Enabled
-                    scopes  = this.Scopes |> List.map (fun r -> r.Eval())
+                    scopes = this.Scopes |> List.map (fun r -> r.Eval())
                     evaluationFrequency = this.EvaluationFrequency |> Option.map Xml.XmlConvert.ToString |> Option.toObj
                     windowSize = this.WindowSize |> Option.map Xml.XmlConvert.ToString |> Option.toObj
                     muteActionsDuration = this.MuteActionsDuration |> Option.map Xml.XmlConvert.ToString |> Option.toObj
-                    criteria = {| allOf = this.Criteria |> List.map (fun c -> c.JsonModel) |}
+                    criteria = {|
+                        allOf = this.Criteria |> List.map (fun c -> c.JsonModel)
+                    |}
                     autoMitigate = this.AutoMitigate |> Option.toNullable
-                    checkWorkspaceAlertsStorageConfigured = this.CheckWorkspaceAlertsStorageConfigured |> Option.toNullable
+                    checkWorkspaceAlertsStorageConfigured =
+                        this.CheckWorkspaceAlertsStorageConfigured |> Option.toNullable
                     actions = {|
                         actionGroups = this.Actions.ActionGroups
-                        customProperties = {||}
+                        customProperties = {| |}
                     |}
                 |}
         |}
