@@ -64,6 +64,7 @@
 
         <Compile Include="Writer.fs" />
         <Compile Include="Deploy.fs" />
+        <Compile Include="Arm\ConfigurationStore.fs" />
         <Compile Include="Arm\ActionGroup.fs" />
         <Compile Include="Arm\AutomationAccount.fs" />
         <Compile Include="Arm\AutoscaleSettings.fs" />
@@ -126,6 +127,7 @@
         <Compile Include="Arm\B2cTenant.fs" />
         <Compile Include="IdentityExtensions.fs" />
         <Compile Include="Builders/Extensions.fs" />
+        <Compile Include="Builders\Builders.ConfigurationStore.fs" />
         <Compile Include="Builders\Builders.ActionGroup.fs" />
         <Compile Include="Builders\Builders.AutoscaleSettings.fs" />
         <Compile Include="Builders/Builders.AlertsManagement.fs" />
