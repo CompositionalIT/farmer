@@ -16,12 +16,20 @@ type AzFeatureFlag = {
     State: bool
     ConfigurationStoreId: ResourceId
 } with
-    member this.ResourceName = ResourceName $"[format('{{0}}/{{1}}', '{this.ConfigurationStoreId.Name.Value}', format('.appconfig.featureflag~2F{{0}}${{1}}', '{this.Name}', '{this.Label}'))]"
+
+    member this.ResourceName =
+        ResourceName
+            $"[format('{{0}}/{{1}}', '{this.ConfigurationStoreId.Name.Value}', format('.appconfig.featureflag~2F{{0}}${{1}}', '{this.Name}', '{this.Label}'))]"
+
     interface IArmResource with
         member this.ResourceId = keyValues.resourceId this.ResourceName
+
         member this.JsonModel =
             let enabled = this.State |> string |> _.ToLower()
-            let featureFlagValue = $"""{{"id":"{this.Name}","description":"{this.Description}","enabled":{enabled}}}"""
+
+            let featureFlagValue =
+                $"""{{"id":"{this.Name}","description":"{this.Description}","enabled":{enabled}}}"""
+
             {|
                 keyValues.Create(this.ResourceName, dependsOn = [ this.ConfigurationStoreId ]) with
                     properties = {|
@@ -35,6 +43,7 @@ type ConfigSku =
     | Developer
     | Standard
     | Premium
+
     member this.ArmValue =
         match this with
         | Free -> "free"
@@ -45,6 +54,7 @@ type ConfigSku =
 type DataPlaneAuthenticationMode =
     | Local
     | Passthrough
+
     member this.ArmValue =
         match this with
         | Local -> "Local"
@@ -58,15 +68,13 @@ type ConfigurationStore = {
     DataPlaneAuthenticationMode: DataPlaneAuthenticationMode
     Tags: Map<string, string>
 } with
-    
+
     interface IArmResource with
         member this.ResourceId = configurationStores.resourceId this.Name
 
         member this.JsonModel = {|
             configurationStores.Create(this.Name, this.Location, tags = this.Tags) with
-                sku =  {|
-                    name = this.Sku.ArmValue
-                |}
+                sku = {| name = this.Sku.ArmValue |}
                 properties = {|
                     disableLocalAuth = this.DisableLocalAuth
                     dataPlaneProxy = {|

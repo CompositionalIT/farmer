@@ -4,14 +4,14 @@ module Farmer.Builders.ConfigurationStore
 open Farmer
 open Farmer.Arm.ConfigurationStore
 
-type FeatureFlagConfig =
-    {
-        Name: string
-        Description: string
-        Label: string
-        State: bool
-    }
-    member this.BuildResource (configurationStore: ResourceId) =
+type FeatureFlagConfig = {
+    Name: string
+    Description: string
+    Label: string
+    State: bool
+} with
+
+    member this.BuildResource(configurationStore: ResourceId) =
         {
             Name = this.Name
             Description = this.Description
@@ -21,19 +21,20 @@ type FeatureFlagConfig =
         }
         :> IArmResource
 
-type ConfigurationStoreConfig =
-    {
-        Name: ResourceName
-        Location: Location
-        Sku: ConfigSku
-        DisableLocalAuth: bool
-        DataPlaneAuthenticationMode: DataPlaneAuthenticationMode
-        FeatureFlags: FeatureFlagConfig list
-        Tags: Map<string, string>
-    }
+type ConfigurationStoreConfig = {
+    Name: ResourceName
+    Location: Location
+    Sku: ConfigSku
+    DisableLocalAuth: bool
+    DataPlaneAuthenticationMode: DataPlaneAuthenticationMode
+    FeatureFlags: FeatureFlagConfig list
+    Tags: Map<string, string>
+} with
+
     interface IBuilder with
         member this.ResourceId = configurationStores.resourceId this.Name
-        member this.BuildResources location  = [
+
+        member this.BuildResources location = [
             {
                 Name = this.Name
                 Location = location
@@ -42,7 +43,9 @@ type ConfigurationStoreConfig =
                 DataPlaneAuthenticationMode = this.DataPlaneAuthenticationMode
                 Tags = this.Tags
             }
-            yield! this.FeatureFlags |> List.map (fun ff -> ff.BuildResource (configurationStores.resourceId this.Name))
+            yield!
+                this.FeatureFlags
+                |> List.map (fun ff -> ff.BuildResource(configurationStores.resourceId this.Name))
         ]
 
 type ConfigurationStoreBuilder() =
@@ -70,15 +73,24 @@ type ConfigurationStoreBuilder() =
 
     /// Disables local authentication for the configuration store.
     [<CustomOperation "disable_local_auth">]
-    member _.DisableLocalAuth(state: ConfigurationStoreConfig, disable: bool) = { state with DisableLocalAuth = disable }
+    member _.DisableLocalAuth(state: ConfigurationStoreConfig, disable: bool) = {
+        state with
+            DisableLocalAuth = disable
+    }
 
     /// Sets the data plane authentication mode for the configuration store.
     [<CustomOperation "data_plane_authentication_mode">]
-    member _.DataPlaneAuthenticationMode(state: ConfigurationStoreConfig, mode) = { state with DataPlaneAuthenticationMode = mode }
+    member _.DataPlaneAuthenticationMode(state: ConfigurationStoreConfig, mode) = {
+        state with
+            DataPlaneAuthenticationMode = mode
+    }
 
     /// Adds a feature flag to the configuration store.
     [<CustomOperation "feature_flags">]
-    member _.FeatureFlags(state: ConfigurationStoreConfig, featureFlags: FeatureFlagConfig list) = { state with FeatureFlags = featureFlags }
+    member _.FeatureFlags(state: ConfigurationStoreConfig, featureFlags: FeatureFlagConfig list) = {
+        state with
+            FeatureFlags = featureFlags
+    }
 
     interface ITaggable<ConfigurationStoreConfig> with
         /// Adds a tag to this Configuration Store.
