@@ -23,8 +23,3 @@ identifier = "nuget"
 url = "https://www.nuget.org/packages/Farmer/"
 weight = 10
 
-[[Languages.en.menu.shortcuts]]
-name = "<img src='/farmer/images/cit.png'></img> Compositional IT"
-identifier = "cit"
-url = "https://compositional-it.com"
-weight = 11
