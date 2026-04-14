@@ -4,8 +4,7 @@
         <AssemblyName>Farmer</AssemblyName>
         <Version>1.9.26</Version>
         <Description>Farmer makes authoring ARM templates easy!</Description>
-        <Copyright>Copyright 2019-2025 Compositional IT Ltd.</Copyright>
-        <Company>Compositional IT</Company>
+        <Copyright>Copyright 2019-2026 Compositional IT Ltd.</Copyright>
         <Authors>Isaac Abraham and contributors</Authors>
 
         <!-- Build settings -->
