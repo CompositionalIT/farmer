@@ -11,5 +11,3 @@ The creators of Farmer, Compositional IT, offer a professional fully managed sup
 * **Prioritised feature requests**: Get new features that are important to you added first.
 * **Personalised support** and guidance via email, telephone or video. Speak to one of our team for advice and best practices on how to best manage deployments.
 * **Discounts** on our F# and Azure training and coaching services
-
-#### Please [contact us](mailto:info@compositional-it.com) to find out more!
