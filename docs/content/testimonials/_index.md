@@ -10,7 +10,7 @@ weight: 7
 > particularly with the SAFE Stack. It's helping our team adopt best practices without passing on
 > expense to our customers."
 >
-> **Isaac Abraham, Director, [Compositional IT](https://compositional-it.com)**
+> **Isaac Abraham, Director, Compositional IT**
 
 
 > "Farmer quickly became an essential tool for Continuous Deployment at our F# projects.
