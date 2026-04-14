@@ -8,7 +8,6 @@ In this page, you can find blog posts, videos and tweets on Farmer that will giv
 
 
 #### Blog Posts
-* [Compositional IT articles on Farmer](https://www.compositional-it.com/news-blog/tag/farmer/)
 * [Azure SQL Database deployment with Farmer, DbUp and GitHub Actions](https://www.azurefromthetrenches.com/azure-sql-database-deployment-with-farmer-dbup-and-github-actions/)
 * [Introduction to Farmer - IaC with Azure](https://www.svenmalvik.com/azure-first-farmer-project/)
 * [Farmer: Simpler ARM deployments with Octopus Deploy](https://octopus.com/blog/farmer-and-octopus-deploy)
