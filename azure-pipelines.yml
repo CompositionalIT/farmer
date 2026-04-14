@@ -123,9 +123,9 @@ stages:
         deploy:
           steps:
           - task: NuGetToolInstaller@1
-            displayName: "Install nuget 4.9.x"
+            displayName: "Install nuget 7.3.x"
             inputs:
-              versionSpec: 4.9.x # Needed to publish symbols (.snupkg)
+              versionSpec: 7.3.x # Needed to publish symbols (.snupkg)
           - task: NuGetCommand@2
             displayName: "Push to NuGet"
             inputs:

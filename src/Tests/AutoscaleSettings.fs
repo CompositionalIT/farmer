@@ -59,11 +59,11 @@ let tests =
                                         Statistic = MetricTriggerStatistic.Average
                                         Threshold = 60
                                         TimeAggregation = MetricTriggerTimeAggregation.Average
-                                        TimeGrain = TimeSpan.FromMinutes 5
-                                        TimeWindow = TimeSpan.FromMinutes 10
+                                        TimeGrain = TimeSpan.FromMinutes 5.
+                                        TimeWindow = TimeSpan.FromMinutes 10.
                                     }
                                     ScaleAction = {
-                                        Cooldown = TimeSpan.FromMinutes 10
+                                        Cooldown = TimeSpan.FromMinutes 10.
                                         Direction = ScaleActionDirection.Increase
                                         Type = ScaleActionType.ChangeCount
                                         Value = 1
@@ -81,11 +81,11 @@ let tests =
                                         Statistic = MetricTriggerStatistic.Average
                                         Threshold = 30
                                         TimeAggregation = MetricTriggerTimeAggregation.Average
-                                        TimeGrain = TimeSpan.FromMinutes 5
-                                        TimeWindow = TimeSpan.FromMinutes 10
+                                        TimeGrain = TimeSpan.FromMinutes 5.
+                                        TimeWindow = TimeSpan.FromMinutes 10.
                                     }
                                     ScaleAction = {
-                                        Cooldown = TimeSpan.FromMinutes 10
+                                        Cooldown = TimeSpan.FromMinutes 10.
                                         Direction = ScaleActionDirection.Decrease
                                         Type = ScaleActionType.ChangeCount
                                         Value = 1
@@ -252,14 +252,14 @@ let tests =
 
                                                         time_aggregation MetricTriggerTimeAggregation.Average
 
-                                                        time_grain (TimeSpan.FromMinutes 5)
-                                                        time_window (TimeSpan.FromMinutes 10)
+                                                        time_grain (TimeSpan.FromMinutes 5.)
+                                                        time_window (TimeSpan.FromMinutes 10.)
                                                     }
                                                 )
 
                                                 scale_action (
                                                     scaleAction {
-                                                        cooldown (TimeSpan.FromMinutes 10)
+                                                        cooldown (TimeSpan.FromMinutes 10.)
                                                         direction ScaleActionDirection.Increase
                                                         action_type ScaleActionType.ChangeCount
                                                         value 2
