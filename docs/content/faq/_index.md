@@ -42,5 +42,3 @@ Yes. You can use some adapters that Farmer provides to generate resources using 
 #### The resource I need isn't included!
 Create an issue on our [github repository](https://github.com/CompositionalIT/farmer/issues), ideally with a sample ARM template and a link to the official Microsoft documentation on the resource. We can't promise we'll look at it immediately, but raising the issue is an important first step to getting more resources supported.
 
-#### But our organisation really needs that resource enhancement today!
-Drop us [an email](mailto:info@compositional-it.com) explaining what you need; we're happy to discuss a commercial support arrangement to provide you with features that you need in a more timely fashion.
