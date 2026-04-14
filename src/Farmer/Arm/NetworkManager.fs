@@ -5,23 +5,23 @@ open Farmer
 
 // https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networkmanagers
 let networkManagers =
-    ResourceType("Microsoft.Network/networkManagers", "2023-02-01")
+    ResourceType("Microsoft.Network/networkManagers", "2025-05-01")
 
 // https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networkmanagers/networkgroups
 let networkManagerGroups =
-    ResourceType("Microsoft.Network/networkManagers/networkGroups", "2023-02-01")
+    ResourceType("Microsoft.Network/networkManagers/networkGroups", "2025-05-01")
 
 // https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networkmanagers/securityadminconfigurations
 let securityAdminConfigurations =
-    ResourceType("Microsoft.Network/networkManagers/securityAdminConfigurations", "2023-02-01")
+    ResourceType("Microsoft.Network/networkManagers/securityAdminConfigurations", "2025-05-01")
 
 // https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networkmanagers/securityadminconfigurations/rulecollections
 let securityAdminRuleCollections =
-    ResourceType("Microsoft.Network/networkManagers/securityAdminConfigurations/ruleCollections", "2023-02-01")
+    ResourceType("Microsoft.Network/networkManagers/securityAdminConfigurations/ruleCollections", "2025-05-01")
 
 // https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networkmanagers/securityadminconfigurations/rulecollections/rules
 let securityAdminRules =
-    ResourceType("Microsoft.Network/networkManagers/securityAdminConfigurations/ruleCollections/rules", "2023-02-01")
+    ResourceType("Microsoft.Network/networkManagers/securityAdminConfigurations/ruleCollections/rules", "2025-05-01")
 
 /// Scope access type for a network manager
 type NetworkManagerScopeAccess =
