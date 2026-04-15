@@ -114,6 +114,7 @@ let tests =
             let ruleCollection = networkManagerSecurityAdminRuleCollection {
                 name "baseline-rules"
                 description "Baseline security rules"
+                add_applies_to_group (networkManagerGroups.resourceId (ResourceName "my-manager/prod-vnets"))
                 add_rules [ denyInternetInbound; allowVnetInbound ]
             }
 
@@ -316,6 +317,7 @@ let tests =
 
             let ruleCollection = networkManagerSecurityAdminRuleCollection {
                 name "my-collection"
+                add_applies_to_group (networkManagerGroups.resourceId (ResourceName "my-manager/my-group"))
                 add_rules [ rule ]
             }
 
@@ -352,6 +354,7 @@ let tests =
 
             let ruleCollection = networkManagerSecurityAdminRuleCollection {
                 name "my-rules"
+                add_applies_to_group (networkManagerGroups.resourceId (ResourceName "existing-manager/prod-vnets"))
                 add_rules [ rule ]
             }
 
@@ -405,5 +408,16 @@ let tests =
                 (groupResource.["type"].ToString())
                 "Microsoft.Network/networkManagers/networkGroups"
                 "Type should be networkGroups"
+        }
+
+        test "Rule collection with no applies_to_group raises an error" {
+            Expect.throws
+                (fun _ ->
+                    networkManagerSecurityAdminRuleCollection {
+                        name "empty-collection"
+                        add_rules []
+                    }
+                    |> ignore)
+                "Should raise an error when AppliesToGroups is empty"
         }
     ]

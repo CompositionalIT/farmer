@@ -207,6 +207,13 @@ type SecurityAdminRuleCollectionBuilder() =
             Rules = state.Rules @ rules
     }
 
+    member _.Run(state: SecurityAdminRuleCollectionConfig) =
+        if state.AppliesToGroups.IsEmpty then
+            raiseFarmer
+                $"SecurityAdminRuleCollection '{state.Name.Value}' must specify at least one network group via 'add_applies_to_group'."
+
+        state
+
 let networkManagerSecurityAdminRuleCollection = SecurityAdminRuleCollectionBuilder()
 
 /// Configuration for a security admin configuration
