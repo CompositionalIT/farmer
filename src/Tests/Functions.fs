@@ -182,7 +182,7 @@ let tests =
 
             let wa = functions {
                 name "testfunc"
-                setting "storage" sa.Key
+                setting "storage" sa.ConnectionString
                 secret_setting "secret"
                 setting "literal" "value"
                 link_to_keyvault (ResourceName "testfuncvault")
@@ -224,7 +224,7 @@ let tests =
                 "Incorrect secret dependencies"
 
             Expect.equal secrets.[1].Name.Value "testfuncvault/storage" "Incorrect secret name"
-            Expect.equal secrets.[1].Value (ExpressionSecret sa.Key) "Incorrect secret value"
+            Expect.equal secrets.[1].Value (ExpressionSecret sa.ConnectionString) "Incorrect secret value"
 
             Expect.sequenceEqual
                 secrets.[1].Dependencies
@@ -622,7 +622,7 @@ let tests =
                 {|
                     name = "AzureWebJobsDashboard"
                     value =
-                        "[concat('DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=', listKeys(resourceId('shared-group', 'Microsoft.Storage/storageAccounts', 'accountName'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
+                        "[concat('DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=', listKeys(resourceId('shared-group', 'Microsoft.Storage/storageAccounts', 'accountName'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
                 |}
                 "Invalid value for AzureWebJobsDashboard"
 
@@ -663,7 +663,7 @@ let tests =
                     functions {
                         name "test"
                         connection_string "a"
-                        connection_string ("b", sa.Key)
+                        connection_string ("b", sa.ConnectionString)
                     }
                     |> getResources
 
@@ -671,7 +671,7 @@ let tests =
 
             let expected = [
                 "a", (ParameterSetting(SecureParameter "a"), Custom)
-                "b", (ExpressionSetting sa.Key, Custom)
+                "b", (ExpressionSetting sa.ConnectionString, Custom)
             ]
 
             let parameters = wa :> IParameters

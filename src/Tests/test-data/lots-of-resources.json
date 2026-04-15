@@ -275,11 +275,11 @@
             },
             {
               "name": "AzureWebJobsDashboard",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=farmerfuncs1979storage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'farmerfuncs1979storage'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=farmerfuncs1979storage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'farmerfuncs1979storage'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
             },
             {
               "name": "AzureWebJobsStorage",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=farmerfuncs1979storage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'farmerfuncs1979storage'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=farmerfuncs1979storage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'farmerfuncs1979storage'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
             },
             {
               "name": "FUNCTIONS_EXTENSION_VERSION",
@@ -291,7 +291,7 @@
             },
             {
               "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=farmerfuncs1979storage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'farmerfuncs1979storage'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=farmerfuncs1979storage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'farmerfuncs1979storage'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
             },
             {
               "name": "WEBSITE_CONTENTSHARE",
@@ -811,7 +811,7 @@
           "appSettings": [
             {
               "name": "AzureWebJobsStorage",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=dockerfuncstorage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=dockerfuncstorage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
             },
             {
               "name": "DOCKER_REGISTRY_SERVER_PASSWORD",
@@ -835,7 +835,7 @@
             },
             {
               "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=dockerfuncstorage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=dockerfuncstorage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
             },
             {
               "name": "WEBSITE_CONTENTSHARE",

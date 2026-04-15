@@ -18,7 +18,7 @@ let makeSafeApp (environment: string) theLocation storageSku webAppSku =
 
         website_node_default_version "8.1.4"
         setting "public_path" "./public"
-        setting "STORAGE_CONNECTIONSTRING" myStorageAccount.Key
+        setting "STORAGE_CONNECTIONSTRING" myStorageAccount.ConnectionString
     }
 
     arm {

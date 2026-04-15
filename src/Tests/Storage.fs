@@ -410,12 +410,12 @@ let tests =
                 StorageAccount.getConnectionString (StorageAccountName.Create("account").OkValue, "rg")
 
             Expect.equal
-                "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)"
+                "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)"
                 strongConn.Value
                 "Strong connection string"
 
             Expect.equal
-                "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('rg', 'Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)"
+                "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('rg', 'Microsoft.Storage/storageAccounts', 'account'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)"
                 rgConn.Value
                 "Complex connection string"
         }
@@ -957,5 +957,25 @@ let tests =
                 (jobj.SelectToken("resources[0].properties.defaultToOAuthAuthentication").ToString())
                 "false"
                 "default to OAuth should be disabled"
+        }
+        test "AccountKey returns just the storage account key" {
+            let account = storageAccount { name "account" }
+
+            let accountKeyExpression = account.AccountKey.Value
+
+            Expect.equal
+                accountKeyExpression
+                "listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2025-06-01').keys[0].value"
+                "AccountKey should return only the key"
+        }
+        test "ConnectionString returns the full connection string" {
+            let account = storageAccount { name "account" }
+
+            let connectionStringExpression = account.ConnectionString.Value
+
+            Expect.equal
+                connectionStringExpression
+                "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)"
+                "ConnectionString should return the full connection string"
         }
     ]

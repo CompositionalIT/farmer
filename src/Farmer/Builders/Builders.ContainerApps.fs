@@ -374,7 +374,7 @@ type ContainerAppBuilder() =
         let secretRef = $"scalerule-{name}-connection"
 
         let state: ContainerAppConfig =
-            this.AddSecretExpression(state, secretRef, storageAccount.Key)
+            this.AddSecretExpression(state, secretRef, storageAccount.ConnectionString)
 
         let queueRule = {
             QueueName = queueName
