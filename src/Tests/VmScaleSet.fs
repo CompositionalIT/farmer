@@ -253,7 +253,7 @@ let tests =
                         scale_in_policy OldestVM
                         scale_in_force_deletion Enabled
                         upgrade_mode Rolling
-                        automatic_repair_enabled_after (System.TimeSpan.FromMinutes 10)
+                        automatic_repair_enabled_after (System.TimeSpan.FromMinutes 10.)
 
                         add_extensions [
                             applicationHealthExtension {
@@ -382,7 +382,7 @@ let tests =
                         rolling_upgrade_max_surge true
                         rolling_upgrade_max_unhealthy_instance_percent 20
                         rolling_upgrade_max_unhealthy_upgraded_instance_percent 20
-                        rolling_upgrade_pause_time_between_batches (System.TimeSpan.FromSeconds 30)
+                        rolling_upgrade_pause_time_between_batches (System.TimeSpan.FromSeconds 30.)
                         rolling_upgrade_prioritize_unhealthy_instances true
                         rolling_upgrade_rollback_failed_instances_on_policy_breach false
                     }
