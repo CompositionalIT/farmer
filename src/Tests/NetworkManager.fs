@@ -462,4 +462,54 @@ let tests =
 
             Expect.equal rule.Name (ResourceName "mixed-ok") "Rule should be created without error"
         }
+
+        test "Subscription scope is auto-prefixed when missing /subscriptions/ prefix" {
+            let manager = networkManager {
+                name "test-manager"
+                add_scope_subscription "00000000-0000-0000-0000-000000000000"
+                add_scope_access SecurityAdmin
+            }
+
+            let template = arm { add_resource manager }
+            let json = template.Template |> Writer.toJson
+            let jobj = JObject.Parse json
+            let resources = jobj.["resources"] :?> JArray
+
+            let managerResource =
+                resources
+                |> Seq.find (fun r -> r.["type"].ToString() = "Microsoft.Network/networkManagers")
+
+            let subscriptions =
+                managerResource.["properties"].["networkManagerScopes"].["subscriptions"] :?> JArray
+
+            Expect.equal
+                (subscriptions.[0].ToString())
+                "/subscriptions/00000000-0000-0000-0000-000000000000"
+                "Subscription should be auto-prefixed with /subscriptions/"
+        }
+
+        test "Subscription scope with /subscriptions/ prefix is not double-prefixed" {
+            let manager = networkManager {
+                name "test-manager2"
+                add_scope_subscription "/subscriptions/00000000-0000-0000-0000-000000000000"
+                add_scope_access SecurityAdmin
+            }
+
+            let template = arm { add_resource manager }
+            let json = template.Template |> Writer.toJson
+            let jobj = JObject.Parse json
+            let resources = jobj.["resources"] :?> JArray
+
+            let managerResource =
+                resources
+                |> Seq.find (fun r -> r.["type"].ToString() = "Microsoft.Network/networkManagers")
+
+            let subscriptions =
+                managerResource.["properties"].["networkManagerScopes"].["subscriptions"] :?> JArray
+
+            Expect.equal
+                (subscriptions.[0].ToString())
+                "/subscriptions/00000000-0000-0000-0000-000000000000"
+                "Subscription should not be double-prefixed"
+        }
     ]

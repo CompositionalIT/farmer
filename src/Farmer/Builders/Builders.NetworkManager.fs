@@ -467,18 +467,34 @@ type NetworkManagerBuilder() =
     }
 
     /// Adds subscriptions to the scope of this network manager.
+    /// Values that do not start with "/subscriptions/" will be automatically prefixed.
     [<CustomOperation "add_scope_subscriptions">]
-    member _.AddScopeSubscriptions(state: NetworkManagerConfig, subscriptions: string list) = {
-        state with
-            ScopeSubscriptions = state.ScopeSubscriptions @ subscriptions
-    }
+    member _.AddScopeSubscriptions(state: NetworkManagerConfig, subscriptions: string list) =
+        let normalize (s: string) =
+            if s.StartsWith("/subscriptions/") then
+                s
+            else
+                $"/subscriptions/{s}"
+
+        {
+            state with
+                ScopeSubscriptions = state.ScopeSubscriptions @ (subscriptions |> List.map normalize)
+        }
 
     /// Adds a subscription to the scope of this network manager.
+    /// Values that do not start with "/subscriptions/" will be automatically prefixed.
     [<CustomOperation "add_scope_subscription">]
-    member _.AddScopeSubscription(state: NetworkManagerConfig, subscription: string) = {
-        state with
-            ScopeSubscriptions = state.ScopeSubscriptions @ [ subscription ]
-    }
+    member _.AddScopeSubscription(state: NetworkManagerConfig, subscription: string) =
+        let normalized =
+            if subscription.StartsWith("/subscriptions/") then
+                subscription
+            else
+                $"/subscriptions/{subscription}"
+
+        {
+            state with
+                ScopeSubscriptions = state.ScopeSubscriptions @ [ normalized ]
+        }
 
     /// Adds management groups to the scope of this network manager.
     [<CustomOperation "add_scope_management_groups">]
