@@ -111,6 +111,7 @@
         <Compile Include="Arm/SignalR.fs" />
         <Compile Include="Arm/EventGrid.fs" />
         <Compile Include="Arm/NetworkSecurityGroup.fs" />
+        <Compile Include="Arm/NetworkManager.fs" />
         <Compile Include="Arm/DeploymentScript.fs" />
         <Compile Include="Arm/Databricks.fs" />
         <Compile Include="Arm/VirtualWan.fs" />
@@ -156,6 +157,7 @@
         <Compile Include="Builders\Builders.NatGateway.fs" />
         <Compile Include="Builders\Builders.NetworkSecurityGroup.fs" />
         <Compile Include="Builders\Builders.RouteTable.fs" />
+        <Compile Include="Builders\Builders.NetworkManager.fs" />
         <Compile Include="Builders/Builders.VirtualNetwork.fs" />
         <Compile Include="Builders\Builders.LoadBalancer.fs" />
         <Compile Include="Builders/Builders.Vm.fs" />

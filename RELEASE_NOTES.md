@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.27
+* Network Manager: Add support for Azure Network Manager with security admin configurations, rule collections, rules with IP ranges and service tags, and network groups.
+
 ## 1.9.26
 * Virtual Machine Scale Sets: Add support for rolling upgrade policy configuration.
 

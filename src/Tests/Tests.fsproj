@@ -43,6 +43,7 @@
         <Compile Include="Network.fs" />
         <Compile Include="LoadBalancer.fs" />
         <Compile Include="NetworkSecurityGroup.fs" />
+        <Compile Include="NetworkManager.fs" />
         <Compile Include="OperationsManagement.fs" />
         <Compile Include="PrivateLink.fs" />
         <Compile Include="PrometheusRuleGroup.fs" />

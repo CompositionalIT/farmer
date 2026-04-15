@@ -62,6 +62,7 @@ let allTests =
             LogicApps.tests
             Maps.tests
             NetworkSecurityGroup.tests
+            NetworkManager.tests
             OperationsManagement.tests
             PostgreSQL.tests
             PrivateLink.tests
