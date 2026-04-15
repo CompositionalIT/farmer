@@ -2,7 +2,7 @@
     <PropertyGroup>
         <!-- General -->
         <AssemblyName>Farmer</AssemblyName>
-        <Version>1.9.26</Version>
+        <Version>1.9.27</Version>
         <Description>Farmer makes authoring ARM templates easy!</Description>
         <Copyright>Copyright 2019-2026 Compositional IT Ltd.</Copyright>
         <Authors>Isaac Abraham and contributors</Authors>
