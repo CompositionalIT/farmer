@@ -148,12 +148,12 @@ type SecurityAdminRule = {
                     destinations = this.Destinations |> List.map (fun d -> d.JsonModel)
                     sourcePortRanges =
                         if this.SourcePortRanges.IsEmpty then
-                            [ "*" ]
+                            [ "0-65535" ]
                         else
                             this.SourcePortRanges
                     destinationPortRanges =
                         if this.DestinationPortRanges.IsEmpty then
-                            [ "*" ]
+                            [ "0-65535" ]
                         else
                             this.DestinationPortRanges
                 |}

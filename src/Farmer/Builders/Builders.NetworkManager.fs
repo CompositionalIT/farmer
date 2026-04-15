@@ -124,14 +124,14 @@ type SecurityAdminRuleBuilder() =
             Destinations = state.Destinations @ [ AddressPrefix.OfServiceTag tag ]
     }
 
-    /// Adds a source port range (e.g. "80", "443", "1024-65535", "*").
+    /// Adds a source port range (e.g. "80", "443", "1024-65535").
     [<CustomOperation "add_source_port_range">]
     member _.AddSourcePortRange(state: SecurityAdminRuleConfig, range: string) = {
         state with
             SourcePortRanges = state.SourcePortRanges @ [ range ]
     }
 
-    /// Adds a destination port range (e.g. "80", "443", "1024-65535", "*").
+    /// Adds a destination port range (e.g. "80", "443", "1024-65535").
     [<CustomOperation "add_destination_port_range">]
     member _.AddDestinationPortRange(state: SecurityAdminRuleConfig, range: string) = {
         state with

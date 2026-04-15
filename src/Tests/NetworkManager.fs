@@ -259,8 +259,8 @@ let tests =
             let jobj = JObject.Parse json
             let srcPorts = jobj.["properties"].["sourcePortRanges"] :?> JArray
             let dstPorts = jobj.["properties"].["destinationPortRanges"] :?> JArray
-            Expect.equal (srcPorts.[0].ToString()) "*" "Source port should default to *"
-            Expect.equal (dstPorts.[0].ToString()) "*" "Destination port should default to *"
+            Expect.equal (srcPorts.[0].ToString()) "0-65535" "Source port should default to 0-65535"
+            Expect.equal (dstPorts.[0].ToString()) "0-65535" "Destination port should default to 0-65535"
         }
 
         test "Can create a network manager with multiple scope subscriptions" {
