@@ -215,6 +215,7 @@ type SecurityAdminConfigurationConfig = {
     Description: string option
     ApplyOnNetworkIntentPolicyBasedServices: string list
     RuleCollections: SecurityAdminRuleCollectionConfig list
+    NetworkManagerId: LinkedResource option
 } with
 
     member internal this.BuildConfiguration(networkManagerId: LinkedResource) : SecurityAdminConfiguration =
@@ -231,12 +232,38 @@ type SecurityAdminConfigurationConfig = {
                 |> List.map (fun rc -> rc.BuildRuleCollection securityAdminConfigId)
         }
 
+    interface IBuilder with
+        member this.ResourceId =
+            match this.NetworkManagerId with
+            | Some nmId -> securityAdminConfigurations.resourceId (armName nmId.ResourceId / this.Name)
+            | None ->
+                raiseFarmer
+                    $"SecurityAdminConfiguration '{this.Name.Value}' requires link_to_network_manager or link_to_unmanaged_network_manager"
+
+        member this.BuildResources _ =
+            match this.NetworkManagerId with
+            | None ->
+                raiseFarmer
+                    $"SecurityAdminConfiguration '{this.Name.Value}' requires link_to_network_manager or link_to_unmanaged_network_manager"
+            | Some nmId ->
+                let config = this.BuildConfiguration nmId
+
+                [
+                    yield config :> IArmResource
+                    for ruleCollection in config.RuleCollections do
+                        yield ruleCollection :> IArmResource
+
+                        for rule in ruleCollection.Rules do
+                            yield rule :> IArmResource
+                ]
+
 type SecurityAdminConfigurationBuilder() =
     member _.Yield _ = {
         SecurityAdminConfigurationConfig.Name = ResourceName.Empty
         Description = None
         ApplyOnNetworkIntentPolicyBasedServices = []
         RuleCollections = []
+        NetworkManagerId = None
     }
 
     /// Sets the name of the security admin configuration.
@@ -260,12 +287,27 @@ type SecurityAdminConfigurationBuilder() =
                 RuleCollections = state.RuleCollections @ ruleCollections
         }
 
+    /// Links this configuration to a Farmer-managed Network Manager in the same deployment.
+    [<CustomOperation "link_to_network_manager">]
+    member _.LinkToNetworkManager(state: SecurityAdminConfigurationConfig, networkManager: IBuilder) = {
+        state with
+            NetworkManagerId = Some(Managed networkManager.ResourceId)
+    }
+
+    /// Links this configuration to an existing Network Manager outside this deployment.
+    [<CustomOperation "link_to_unmanaged_network_manager">]
+    member _.LinkToUnmanagedNetworkManager(state: SecurityAdminConfigurationConfig, resourceId: ResourceId) = {
+        state with
+            NetworkManagerId = Some(Unmanaged resourceId)
+    }
+
 let networkManagerSecurityAdminConfiguration = SecurityAdminConfigurationBuilder()
 
 /// Configuration for a network group
 type NetworkManagerGroupConfig = {
     Name: ResourceName
     Description: string option
+    NetworkManagerId: LinkedResource option
 } with
 
     member internal this.BuildGroup(networkManagerId: LinkedResource) : NetworkManagerGroup = {
@@ -274,10 +316,26 @@ type NetworkManagerGroupConfig = {
         Description = this.Description
     }
 
+    interface IBuilder with
+        member this.ResourceId =
+            match this.NetworkManagerId with
+            | Some nmId -> networkManagerGroups.resourceId (armName nmId.ResourceId / this.Name)
+            | None ->
+                raiseFarmer
+                    $"NetworkManagerGroup '{this.Name.Value}' requires link_to_network_manager or link_to_unmanaged_network_manager"
+
+        member this.BuildResources _ =
+            match this.NetworkManagerId with
+            | None ->
+                raiseFarmer
+                    $"NetworkManagerGroup '{this.Name.Value}' requires link_to_network_manager or link_to_unmanaged_network_manager"
+            | Some nmId -> [ this.BuildGroup nmId :> IArmResource ]
+
 type NetworkManagerGroupBuilder() =
     member _.Yield _ = {
         NetworkManagerGroupConfig.Name = ResourceName.Empty
         Description = None
+        NetworkManagerId = None
     }
 
     /// Sets the name of the network group.
@@ -289,6 +347,20 @@ type NetworkManagerGroupBuilder() =
     member _.Description(state: NetworkManagerGroupConfig, description: string) = {
         state with
             Description = Some description
+    }
+
+    /// Links this group to a Farmer-managed Network Manager in the same deployment.
+    [<CustomOperation "link_to_network_manager">]
+    member _.LinkToNetworkManager(state: NetworkManagerGroupConfig, networkManager: IBuilder) = {
+        state with
+            NetworkManagerId = Some(Managed networkManager.ResourceId)
+    }
+
+    /// Links this group to an existing Network Manager outside this deployment.
+    [<CustomOperation "link_to_unmanaged_network_manager">]
+    member _.LinkToUnmanagedNetworkManager(state: NetworkManagerGroupConfig, resourceId: ResourceId) = {
+        state with
+            NetworkManagerId = Some(Unmanaged resourceId)
     }
 
 let networkManagerGroup = NetworkManagerGroupBuilder()

@@ -340,4 +340,70 @@ let tests =
             // Total resources: 1 manager + 1 group + 1 config + 1 collection + 1 rule = 5
             Expect.equal (resources.Count) 5 "Should have 5 resources in total"
         }
+
+        test "Can create a security admin configuration linked to an unmanaged network manager" {
+            let rule = networkManagerSecurityAdminRule {
+                name "deny-inbound"
+                priority 100
+                deny_traffic
+                add_source_service_tag "Internet"
+                add_destination_ip_prefix "10.0.0.0/8"
+            }
+
+            let ruleCollection = networkManagerSecurityAdminRuleCollection {
+                name "my-rules"
+                add_rules [ rule ]
+            }
+
+            let config = networkManagerSecurityAdminConfiguration {
+                name "my-config"
+                link_to_unmanaged_network_manager (networkManagers.resourceId (ResourceName "existing-manager"))
+                add_rule_collections [ ruleCollection ]
+            }
+
+            let template = arm { add_resource config }
+            let json = template.Template |> Writer.toJson
+            let jobj = JObject.Parse json
+            let resources = jobj.["resources"] :?> JArray
+
+            // Should have 3 resources: config + rule collection + rule (not the external NM)
+            Expect.equal resources.Count 3 "Should have 3 resources"
+
+            let configResource =
+                resources
+                |> Seq.find (fun r ->
+                    r.["type"].ToString() = "Microsoft.Network/networkManagers/securityAdminConfigurations")
+
+            Expect.equal
+                (configResource.["name"].ToString())
+                "existing-manager/my-config"
+                "Config name should reference the existing manager"
+        }
+
+        test "Can create a network group linked to an unmanaged network manager" {
+            let group = networkManagerGroup {
+                name "prod-vnets"
+                description "Production VNets"
+                link_to_unmanaged_network_manager (networkManagers.resourceId (ResourceName "existing-manager"))
+            }
+
+            let template = arm { add_resource group }
+            let json = template.Template |> Writer.toJson
+            let jobj = JObject.Parse json
+            let resources = jobj.["resources"] :?> JArray
+
+            Expect.equal resources.Count 1 "Should have 1 resource"
+
+            let groupResource = resources.[0]
+
+            Expect.equal
+                (groupResource.["name"].ToString())
+                "existing-manager/prod-vnets"
+                "Group name should reference the existing manager"
+
+            Expect.equal
+                (groupResource.["type"].ToString())
+                "Microsoft.Network/networkManagers/networkGroups"
+                "Type should be networkGroups"
+        }
     ]

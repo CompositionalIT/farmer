@@ -201,7 +201,11 @@ type SecurityAdminConfiguration = {
         member this.JsonModel = {|
             securityAdminConfigurations.Create(
                 armName this.NetworkManagerId.ResourceId / this.Name,
-                dependsOn = [ this.NetworkManagerId.ResourceId ]
+                dependsOn = [
+                    match this.NetworkManagerId with
+                    | Managed resId -> resId
+                    | Unmanaged _ -> ()
+                ]
             ) with
                 properties = {|
                     description = this.Description |> Option.toObj
@@ -227,7 +231,11 @@ type NetworkManagerGroup = {
         member this.JsonModel = {|
             networkManagerGroups.Create(
                 armName this.NetworkManagerId.ResourceId / this.Name,
-                dependsOn = [ this.NetworkManagerId.ResourceId ]
+                dependsOn = [
+                    match this.NetworkManagerId with
+                    | Managed resId -> resId
+                    | Unmanaged _ -> ()
+                ]
             ) with
                 properties = {|
                     description = this.Description |> Option.toObj
