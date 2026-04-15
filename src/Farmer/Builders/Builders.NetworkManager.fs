@@ -152,6 +152,23 @@ type SecurityAdminRuleBuilder() =
             DestinationPortRanges = state.DestinationPortRanges @ ranges
     }
 
+    member _.Run(state: SecurityAdminRuleConfig) =
+        let hasMixedPrefixTypes prefixes =
+            let types =
+                prefixes |> List.map (fun (p: AddressPrefix) -> p.PrefixType) |> List.distinct
+
+            List.length types > 1
+
+        if hasMixedPrefixTypes state.Sources then
+            raiseFarmer
+                $"SecurityAdminRule '{state.Name.Value}': sources cannot mix IPPrefixes and ServiceTags. Please create separate rules."
+
+        if hasMixedPrefixTypes state.Destinations then
+            raiseFarmer
+                $"SecurityAdminRule '{state.Name.Value}': destinations cannot mix IPPrefixes and ServiceTags. Please create separate rules."
+
+        state
+
 let networkManagerSecurityAdminRule = SecurityAdminRuleBuilder()
 
 /// Configuration for a security admin rule collection

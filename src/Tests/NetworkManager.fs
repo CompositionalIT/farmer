@@ -420,4 +420,46 @@ let tests =
                     |> ignore)
                 "Should raise an error when AppliesToGroups is empty"
         }
+
+        test "Security admin rule with mixed source prefix types raises an error" {
+            Expect.throws
+                (fun _ ->
+                    networkManagerSecurityAdminRule {
+                        name "mixed-sources"
+                        priority 100
+                        deny_traffic
+                        add_source_service_tag "Internet"
+                        add_source_ip_prefix "10.0.0.0/8"
+                        add_destination_ip_prefix "192.168.0.0/24"
+                    }
+                    |> ignore)
+                "Should raise an error when sources mix IPPrefixes and ServiceTags"
+        }
+
+        test "Security admin rule with mixed destination prefix types raises an error" {
+            Expect.throws
+                (fun _ ->
+                    networkManagerSecurityAdminRule {
+                        name "mixed-destinations"
+                        priority 100
+                        deny_traffic
+                        add_source_service_tag "Internet"
+                        add_destination_ip_prefix "10.0.0.0/8"
+                        add_destination_service_tag "VirtualNetwork"
+                    }
+                    |> ignore)
+                "Should raise an error when destinations mix IPPrefixes and ServiceTags"
+        }
+
+        test "Security admin rule allows source service tag with destination IP prefix" {
+            let rule = networkManagerSecurityAdminRule {
+                name "mixed-ok"
+                priority 100
+                deny_traffic
+                add_source_service_tag "Internet"
+                add_destination_ip_prefix "10.0.0.0/8"
+            }
+
+            Expect.equal rule.Name (ResourceName "mixed-ok") "Rule should be created without error"
+        }
     ]
