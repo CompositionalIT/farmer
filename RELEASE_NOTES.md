@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.28
+* App Configuration: Add support for Azure App Configuration stores, key-value items, and feature flags.
+
 ## 1.9.27
 * Storage Accounts: Add `AccountKey` member to return just the storage account key and `ConnectionString` member to return the connection string. The existing `Key` member is now obsolete (it incorrectly returned a connection string instead of just the key).
 * Network Manager: Add support for Azure Network Manager with security admin configurations, rule collections, rules with IP ranges and service tags, and network groups.

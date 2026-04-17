@@ -1903,6 +1903,19 @@ module CognitiveServices =
         | TextAnalytics
         | TextTranslation
 
+module ConfigurationStore =
+    /// SKU for Azure App Configuration stores.
+    type Sku =
+        | Free
+        | Developer
+        | Standard
+        | Premium
+
+    /// Data plane authentication mode for Azure App Configuration stores.
+    type DataPlaneAuthenticationMode =
+        | Local
+        | Passthrough
+
 module BingSearch =
     /// Type of SKU. See https://www.microsoft.com/en-us/bing/apis/pricing
     type Sku =
