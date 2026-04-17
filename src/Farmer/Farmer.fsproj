@@ -79,6 +79,7 @@
         <Compile Include="Arm/CognitiveServices.fs" />
         <Compile Include="Arm/CommunicationServices.fs" />
         <Compile Include="Arm/BingSearch.fs" />
+        <Compile Include="Arm/ConfigurationStore.fs" />
         <Compile Include="Arm/Dns.fs" />
         <Compile Include="Arm\AVS.fs" />
         <Compile Include="Arm\Network.fs" />
@@ -127,6 +128,7 @@
         <Compile Include="IdentityExtensions.fs" />
         <Compile Include="Builders/Extensions.fs" />
         <Compile Include="Builders\Builders.ActionGroup.fs" />
+        <Compile Include="Builders\Builders.ConfigurationStore.fs" />
         <Compile Include="Builders\Builders.AutoscaleSettings.fs" />
         <Compile Include="Builders/Builders.AlertsManagement.fs" />
         <Compile Include="Builders/Builders.AzureMonitor.fs" />
