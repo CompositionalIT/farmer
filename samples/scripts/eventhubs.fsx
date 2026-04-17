@@ -30,6 +30,8 @@ let deployment = arm {
     location Location.NorthEurope
     add_resource myEh
     add_resource secondHub
+    output "EventHubDefaultConnectionString" myEh.DefaultConnectionString
+    output "EventHubFirstRuleConnectionString" (myEh.GetConnectionString "FirstRule")
 }
 
 // Generate the ARM template here...

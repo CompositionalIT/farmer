@@ -36,7 +36,9 @@ The Event Hub builder creates event hub namespaces, event hubs, consumer groups 
 | Member | Purpose |
 |-|-|
 | DefaultKey | Gets an ARM expression for the root namespace key of the Event Hub namespace. |
+| DefaultConnectionString | Gets an ARM expression for the connection string of the default RootManageSharedAccessKey for the entire namespace. |
 | GetKey | Gets an ARM expression for a named key on this event hub. |
+| GetConnectionString | Gets an ARM expression for the connection string of a specific authorization rule for this event hub. |
 
 #### Example
 
@@ -68,5 +70,13 @@ let secondHub = eventHub {
     partitions 1
     message_retention_days 1
     capture_to_storage myStorageAccount "mycontainer"
+}
+
+let deployment = arm {
+    location Location.NorthEurope
+    add_resource primaryHub
+    add_resource secondHub
+    output "EventHubDefaultConnectionString" primaryHub.DefaultConnectionString
+    output "EventHubFirstRuleConnectionString" (primaryHub.GetConnectionString "FirstRule")
 }
 ```
