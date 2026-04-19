@@ -20,25 +20,6 @@ let tests =
                 "listkeys(resourceId('Microsoft.EventHub/namespaces/AuthorizationRules', 'foo-ns', 'RootManageSharedAccessKey'), '2017-04-01').primaryConnectionString"
                 "Incorrect key"
         }
-        test "Gets default connection string on a Hub correctly" {
-            let hub = eventHub { name "foo" }
-
-            Expect.equal
-                hub.DefaultConnectionString.Value
-                "listkeys(resourceId('Microsoft.EventHub/namespaces/AuthorizationRules', 'foo-ns', 'RootManageSharedAccessKey'), '2017-04-01').primaryConnectionString"
-                "Incorrect default connection string"
-        }
-        test "Gets connection string for named authorization rule correctly" {
-            let hub = eventHub {
-                name "foo"
-                add_authorization_rule "MyRule" [ Listen; Send ]
-            }
-
-            Expect.equal
-                (hub.GetConnectionString "MyRule").Value
-                "listkeys(resourceId('Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules', 'foo-ns', 'foo', 'MyRule'), '2017-04-01').primaryConnectionString"
-                "Incorrect connection string for named rule"
-        }
         test "Does not explicitly create default consumer group" {
             let hub = eventHub {
                 name "test-event-hub"

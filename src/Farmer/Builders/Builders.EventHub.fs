@@ -41,14 +41,8 @@ type EventHubConfig = {
 
         this.CreateKeyExpression ruleResource
 
-    /// Gets an ARM expression for the connection string of a specific authorization rule for this event hub.
-    member this.GetConnectionString(ruleName: string) = this.GetKey ruleName
-
     /// Gets an ARM expression for the path to the key of the default RootManageSharedAccessKey for the entire namespace.
     member this.DefaultKey = this.CreateKeyExpression this.DefaultAuthorizationRule
-
-    /// Gets an ARM expression for the connection string of the default RootManageSharedAccessKey for the entire namespace.
-    member this.DefaultConnectionString = this.DefaultKey
 
     member this.DefaultAuthorizationRule =
         Namespaces.authorizationRules.resourceId (this.EventHubNamespaceName, ResourceName "RootManageSharedAccessKey")
