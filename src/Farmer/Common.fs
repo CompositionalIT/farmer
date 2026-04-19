@@ -4142,6 +4142,50 @@ module ContainerApp =
         /// Mounts an Azure File Share in the same resource group, performing a key lookup.
         | AzureFileShare of ShareName: ResourceName * StorageAccountName: Storage.StorageAccountName * StorageAccessMode
 
+    /// Defines valid resource allocations for containers on consumption plans.
+    /// Consumption plans require specific combinations of CPU (vCores) and memory (Gi).
+    /// See https://learn.microsoft.com/en-us/azure/container-apps/containers#allocations
+    [<RequireQualifiedAccess>]
+    type ConsumptionPlanResources =
+        /// 0.25 vCPU, 0.5 Gi memory
+        | Cores0_25
+        /// 0.5 vCPU, 1.0 Gi memory
+        | Cores0_5
+        /// 0.75 vCPU, 1.5 Gi memory
+        | Cores0_75
+        /// 1.0 vCPU, 2.0 Gi memory
+        | Cores1_0
+        /// 1.25 vCPU, 2.5 Gi memory
+        | Cores1_25
+        /// 1.5 vCPU, 3.0 Gi memory
+        | Cores1_5
+        /// 1.75 vCPU, 3.5 Gi memory
+        | Cores1_75
+        /// 2.0 vCPU, 4.0 Gi memory
+        | Cores2_0
+
+        member this.CPU: float<VCores> =
+            match this with
+            | Cores0_25 -> 0.25<VCores>
+            | Cores0_5 -> 0.5<VCores>
+            | Cores0_75 -> 0.75<VCores>
+            | Cores1_0 -> 1.0<VCores>
+            | Cores1_25 -> 1.25<VCores>
+            | Cores1_5 -> 1.5<VCores>
+            | Cores1_75 -> 1.75<VCores>
+            | Cores2_0 -> 2.0<VCores>
+
+        member this.Memory: float<Gb> =
+            match this with
+            | Cores0_25 -> 0.5<Gb>
+            | Cores0_5 -> 1.0<Gb>
+            | Cores0_75 -> 1.5<Gb>
+            | Cores1_0 -> 2.0<Gb>
+            | Cores1_25 -> 2.5<Gb>
+            | Cores1_5 -> 3.0<Gb>
+            | Cores1_75 -> 3.5<Gb>
+            | Cores2_0 -> 4.0<Gb>
+
 namespace Farmer.DiagnosticSettings
 
 open Farmer

@@ -612,6 +612,19 @@ type ContainerBuilder() =
             DockerImage = Some(Containers.PublicImage(containerName, Option.ofObj version))
     }
 
+    /// Sets both CPU and memory for this container using a valid consumption plan resource allocation.
+    /// Use this operation when deploying to a consumption plan to ensure a valid combination is selected.
+    /// For dedicated plans, use the individual 'cpu_cores' and 'memory' operations instead.
+    [<CustomOperation "resources">]
+    member _.ConsumptionPlanResources(state: ContainerConfig, allocation: ContainerApp.ConsumptionPlanResources) = {
+        state with
+            Resources = {|
+                state.Resources with
+                    CPU = allocation.CPU
+                    Memory = allocation.Memory
+            |}
+    }
+
     [<CustomOperation "cpu_cores">]
     member _.CpuCores(state: ContainerConfig, cpuCount: float<VCores>) =
         let numCores = cpuCount / 1.<VCores>
