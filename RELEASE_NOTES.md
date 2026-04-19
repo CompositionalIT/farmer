@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.29
+* Virtual Machines: Add `os_disk_caching` and `data_disk_caching` builder operations to expose the host caching mode (`NoCaching`, `ReadOnly`, `ReadWrite`) for OS and data disks on VMs and VM Scale Sets.
+
 ## 1.9.28
 * Container Apps: Add `resources` operation to the `container` builder to set both CPU and memory together using a `ConsumptionPlanResources` discriminated union. This ensures only valid consumption plan resource combinations can be selected at compile time. The individual `cpu_cores` and `memory` operations remain available for use with dedicated plans.
 
