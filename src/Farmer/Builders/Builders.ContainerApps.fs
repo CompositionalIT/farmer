@@ -262,6 +262,14 @@ let private supportedResourceCombinations =
         1.5<VCores>, 3.0<Gb>
         1.75<VCores>, 3.5<Gb>
         2.0<VCores>, 4.<Gb>
+        2.25<VCores>, 4.5<Gb>
+        2.5<VCores>, 5.0<Gb>
+        2.75<VCores>, 5.5<Gb>
+        3.0<VCores>, 6.0<Gb>
+        3.25<VCores>, 6.5<Gb>
+        3.5<VCores>, 7.0<Gb>
+        3.75<VCores>, 7.5<Gb>
+        4.0<VCores>, 8.0<Gb>
     ]
 
 let private defaultResources = {|
@@ -629,8 +637,8 @@ type ContainerBuilder() =
     member _.CpuCores(state: ContainerConfig, cpuCount: float<VCores>) =
         let numCores = cpuCount / 1.<VCores>
 
-        if numCores > 2. then
-            raiseFarmer $"'{state.ContainerName}' exceeds maximum CPU cores of 2.0 for containers in containerApps."
+        if numCores > 4. then
+            raiseFarmer $"'{state.ContainerName}' exceeds maximum CPU cores of 4.0 for containers in containerApps."
 
         let roundedCpuCount = System.Math.Round(numCores, 2) * 1.<VCores>
 
@@ -660,8 +668,8 @@ type ContainerBuilder() =
     member _.Memory(state: ContainerConfig, memory: float<Gb>) =
         let memory = memory / 1.<Gb>
 
-        if memory > 4. then
-            raiseFarmer $"'{state.ContainerName}' exceeds maximum memory of 4.0 Gb for containers in containerApps."
+        if memory > 8. then
+            raiseFarmer $"'{state.ContainerName}' exceeds maximum memory of 8.0 Gb for containers in containerApps."
 
         let roundedMemory = System.Math.Round(memory, 2) * 1.<Gb>
 

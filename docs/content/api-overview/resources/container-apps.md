@@ -105,6 +105,14 @@ For containers on consumption plans, use the `resources` operation with a `Conta
 | `ConsumptionPlanResources.Cores1_5` | 1.5 | 3.0 |
 | `ConsumptionPlanResources.Cores1_75` | 1.75 | 3.5 |
 | `ConsumptionPlanResources.Cores2_0` | 2.0 | 4.0 |
+| `ConsumptionPlanResources.Cores2_25` | 2.25 | 4.5 |
+| `ConsumptionPlanResources.Cores2_5` | 2.5 | 5.0 |
+| `ConsumptionPlanResources.Cores2_75` | 2.75 | 5.5 |
+| `ConsumptionPlanResources.Cores3_0` | 3.0 | 6.0 |
+| `ConsumptionPlanResources.Cores3_25` | 3.25 | 6.5 |
+| `ConsumptionPlanResources.Cores3_5` | 3.5 | 7.0 |
+| `ConsumptionPlanResources.Cores3_75` | 3.75 | 7.5 |
+| `ConsumptionPlanResources.Cores4_0` | 4.0 | 8.0 |
 
 > See [Azure Container Apps documentation](https://learn.microsoft.com/en-us/azure/container-apps/containers#allocations) for more details on supported allocations.
 

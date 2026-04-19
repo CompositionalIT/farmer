@@ -528,6 +528,14 @@ let tests =
                 ContainerApp.ConsumptionPlanResources.Cores1_5, 1.5<VCores>, 3.0<Gb>
                 ContainerApp.ConsumptionPlanResources.Cores1_75, 1.75<VCores>, 3.5<Gb>
                 ContainerApp.ConsumptionPlanResources.Cores2_0, 2.0<VCores>, 4.0<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores2_25, 2.25<VCores>, 4.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores2_5, 2.5<VCores>, 5.0<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores2_75, 2.75<VCores>, 5.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores3_0, 3.0<VCores>, 6.0<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores3_25, 3.25<VCores>, 6.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores3_5, 3.5<VCores>, 7.0<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores3_75, 3.75<VCores>, 7.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores4_0, 4.0<VCores>, 8.0<Gb>
             ]
 
             for allocation, expectedCpu, expectedMem in allocations do

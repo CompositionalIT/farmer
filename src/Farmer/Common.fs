@@ -4163,6 +4163,22 @@ module ContainerApp =
         | Cores1_75
         /// 2.0 vCPU, 4.0 Gi memory
         | Cores2_0
+        /// 2.25 vCPU, 4.5 Gi memory
+        | Cores2_25
+        /// 2.5 vCPU, 5.0 Gi memory
+        | Cores2_5
+        /// 2.75 vCPU, 5.5 Gi memory
+        | Cores2_75
+        /// 3.0 vCPU, 6.0 Gi memory
+        | Cores3_0
+        /// 3.25 vCPU, 6.5 Gi memory
+        | Cores3_25
+        /// 3.5 vCPU, 7.0 Gi memory
+        | Cores3_5
+        /// 3.75 vCPU, 7.5 Gi memory
+        | Cores3_75
+        /// 4.0 vCPU, 8.0 Gi memory
+        | Cores4_0
 
         member this.CPU: float<VCores> =
             match this with
@@ -4174,6 +4190,14 @@ module ContainerApp =
             | Cores1_5 -> 1.5<VCores>
             | Cores1_75 -> 1.75<VCores>
             | Cores2_0 -> 2.0<VCores>
+            | Cores2_25 -> 2.25<VCores>
+            | Cores2_5 -> 2.5<VCores>
+            | Cores2_75 -> 2.75<VCores>
+            | Cores3_0 -> 3.0<VCores>
+            | Cores3_25 -> 3.25<VCores>
+            | Cores3_5 -> 3.5<VCores>
+            | Cores3_75 -> 3.75<VCores>
+            | Cores4_0 -> 4.0<VCores>
 
         member this.Memory: float<Gb> =
             match this with
@@ -4185,6 +4209,14 @@ module ContainerApp =
             | Cores1_5 -> 3.0<Gb>
             | Cores1_75 -> 3.5<Gb>
             | Cores2_0 -> 4.0<Gb>
+            | Cores2_25 -> 4.5<Gb>
+            | Cores2_5 -> 5.0<Gb>
+            | Cores2_75 -> 5.5<Gb>
+            | Cores3_0 -> 6.0<Gb>
+            | Cores3_25 -> 6.5<Gb>
+            | Cores3_5 -> 7.0<Gb>
+            | Cores3_75 -> 7.5<Gb>
+            | Cores4_0 -> 8.0<Gb>
 
 namespace Farmer.DiagnosticSettings
 
