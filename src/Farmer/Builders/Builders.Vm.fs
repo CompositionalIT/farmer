@@ -413,10 +413,7 @@ type VirtualMachineBuilder() =
             state.OsDisk |> applyDelete |> applyCaching
 
         // Apply DiskDeleteOption and DataDiskCaching to data disks if set
-        let applyDiskCaching diskInfo =
-            match state.DataDiskCaching with
-            | Some caching -> { diskInfo with Caching = Some caching }
-            | None -> diskInfo
+        let applyDiskCaching caching diskInfo = { diskInfo with Caching = Some caching }
 
         let dataDisks =
             state.DataDisks
@@ -424,11 +421,15 @@ type VirtualMachineBuilder() =
                 | [] ->
                     // Create default 1024GB disk
                     let diskInfo =
-                        applyDiskCaching {
+                        let baseDisk = {
                             Size = 1024
                             DiskType = DiskType.Standard_LRS
                             Caching = None
                         }
+
+                        match state.DataDiskCaching with
+                        | Some caching -> applyDiskCaching caching baseDisk
+                        | None -> baseDisk
 
                     [
                         match state.DiskDeleteOption with
@@ -449,10 +450,10 @@ type VirtualMachineBuilder() =
 
                     let applyCaching =
                         match state.DataDiskCaching with
-                        | Some _ ->
+                        | Some caching ->
                             function
-                            | Empty diskInfo -> Empty(applyDiskCaching diskInfo)
-                            | EmptyWithDelete diskInfo -> EmptyWithDelete(applyDiskCaching diskInfo)
+                            | Empty diskInfo -> Empty(applyDiskCaching caching diskInfo)
+                            | EmptyWithDelete diskInfo -> EmptyWithDelete(applyDiskCaching caching diskInfo)
                             | other -> other // Cannot set caching for attached disks
                         | None -> id
 
