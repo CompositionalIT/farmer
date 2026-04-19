@@ -4142,6 +4142,82 @@ module ContainerApp =
         /// Mounts an Azure File Share in the same resource group, performing a key lookup.
         | AzureFileShare of ShareName: ResourceName * StorageAccountName: Storage.StorageAccountName * StorageAccessMode
 
+    /// Defines valid resource allocations for containers on consumption plans.
+    /// Consumption plans require specific combinations of CPU (vCores) and memory (Gi).
+    /// See https://learn.microsoft.com/en-us/azure/container-apps/containers#allocations
+    [<RequireQualifiedAccess>]
+    type ConsumptionPlanResources =
+        /// 0.25 vCPU, 0.5 Gi memory
+        | Cores0_25
+        /// 0.5 vCPU, 1.0 Gi memory
+        | Cores0_5
+        /// 0.75 vCPU, 1.5 Gi memory
+        | Cores0_75
+        /// 1.0 vCPU, 2.0 Gi memory
+        | Cores1_0
+        /// 1.25 vCPU, 2.5 Gi memory
+        | Cores1_25
+        /// 1.5 vCPU, 3.0 Gi memory
+        | Cores1_5
+        /// 1.75 vCPU, 3.5 Gi memory
+        | Cores1_75
+        /// 2.0 vCPU, 4.0 Gi memory
+        | Cores2_0
+        /// 2.25 vCPU, 4.5 Gi memory
+        | Cores2_25
+        /// 2.5 vCPU, 5.0 Gi memory
+        | Cores2_5
+        /// 2.75 vCPU, 5.5 Gi memory
+        | Cores2_75
+        /// 3.0 vCPU, 6.0 Gi memory
+        | Cores3_0
+        /// 3.25 vCPU, 6.5 Gi memory
+        | Cores3_25
+        /// 3.5 vCPU, 7.0 Gi memory
+        | Cores3_5
+        /// 3.75 vCPU, 7.5 Gi memory
+        | Cores3_75
+        /// 4.0 vCPU, 8.0 Gi memory
+        | Cores4_0
+
+        member this.CPU: float<VCores> =
+            match this with
+            | Cores0_25 -> 0.25<VCores>
+            | Cores0_5 -> 0.5<VCores>
+            | Cores0_75 -> 0.75<VCores>
+            | Cores1_0 -> 1.0<VCores>
+            | Cores1_25 -> 1.25<VCores>
+            | Cores1_5 -> 1.5<VCores>
+            | Cores1_75 -> 1.75<VCores>
+            | Cores2_0 -> 2.0<VCores>
+            | Cores2_25 -> 2.25<VCores>
+            | Cores2_5 -> 2.5<VCores>
+            | Cores2_75 -> 2.75<VCores>
+            | Cores3_0 -> 3.0<VCores>
+            | Cores3_25 -> 3.25<VCores>
+            | Cores3_5 -> 3.5<VCores>
+            | Cores3_75 -> 3.75<VCores>
+            | Cores4_0 -> 4.0<VCores>
+
+        member this.Memory: float<Gb> =
+            match this with
+            | Cores0_25 -> 0.5<Gb>
+            | Cores0_5 -> 1.0<Gb>
+            | Cores0_75 -> 1.5<Gb>
+            | Cores1_0 -> 2.0<Gb>
+            | Cores1_25 -> 2.5<Gb>
+            | Cores1_5 -> 3.0<Gb>
+            | Cores1_75 -> 3.5<Gb>
+            | Cores2_0 -> 4.0<Gb>
+            | Cores2_25 -> 4.5<Gb>
+            | Cores2_5 -> 5.0<Gb>
+            | Cores2_75 -> 5.5<Gb>
+            | Cores3_0 -> 6.0<Gb>
+            | Cores3_25 -> 6.5<Gb>
+            | Cores3_5 -> 7.0<Gb>
+            | Cores3_75 -> 7.5<Gb>
+            | Cores4_0 -> 8.0<Gb>
+
 namespace Farmer.DiagnosticSettings
 
 open Farmer

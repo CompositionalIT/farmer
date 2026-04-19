@@ -485,4 +485,92 @@ let tests =
             Expect.equal (probe.Route.ToString()) "/api/healthcheck" "Incorrect probe route"
             Expect.equal probe.Port 443 "Incorrect probe port"
         }
+
+        test "Resources operation sets valid consumption plan CPU and memory" {
+            let app = containerApp {
+                name "resource-test"
+
+                add_containers [
+                    container {
+                        name "mycontainer"
+                        public_docker_image "mcr.microsoft.com/dotnet/samples" "aspnetapp"
+                        resources ContainerApp.ConsumptionPlanResources.Cores0_5
+                    }
+                ]
+            }
+
+            let env: IBuilder = containerEnvironment {
+                name "testenv"
+                add_containers [ app ]
+            }
+
+            let resources = env.BuildResources Location.NorthEurope
+
+            let containerAppResource =
+                resources
+                |> List.pick (function
+                    | :? ContainerApp as c -> Some c
+                    | _ -> None)
+
+            let containerResources = containerAppResource.Containers |> List.head
+
+            Expect.equal containerResources.Resources.CPU 0.5<VCores> "Incorrect CPU for Cores0_5"
+            Expect.equal containerResources.Resources.Memory 1.0<Gb> "Incorrect memory for Cores0_5"
+        }
+
+        test "Resources operation supports all consumption plan allocations" {
+            let allocations = [
+                ContainerApp.ConsumptionPlanResources.Cores0_25, 0.25<VCores>, 0.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores0_5, 0.5<VCores>, 1.0<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores0_75, 0.75<VCores>, 1.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores1_0, 1.0<VCores>, 2.0<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores1_25, 1.25<VCores>, 2.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores1_5, 1.5<VCores>, 3.0<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores1_75, 1.75<VCores>, 3.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores2_0, 2.0<VCores>, 4.0<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores2_25, 2.25<VCores>, 4.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores2_5, 2.5<VCores>, 5.0<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores2_75, 2.75<VCores>, 5.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores3_0, 3.0<VCores>, 6.0<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores3_25, 3.25<VCores>, 6.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores3_5, 3.5<VCores>, 7.0<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores3_75, 3.75<VCores>, 7.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores4_0, 4.0<VCores>, 8.0<Gb>
+            ]
+
+            for allocation, expectedCpu, expectedMem in allocations do
+                let app = containerApp {
+                    name "resource-test"
+
+                    add_containers [
+                        container {
+                            name "mycontainer"
+                            public_docker_image "mcr.microsoft.com/dotnet/samples" "aspnetapp"
+                            resources allocation
+                        }
+                    ]
+                }
+
+                let env: IBuilder = containerEnvironment {
+                    name "testenv"
+                    add_containers [ app ]
+                }
+
+                let resources = env.BuildResources Location.NorthEurope
+
+                let containerAppResource =
+                    resources
+                    |> List.pick (function
+                        | :? ContainerApp as c -> Some c
+                        | _ -> None)
+
+                let containerResources = containerAppResource.Containers |> List.head
+
+                Expect.equal containerResources.Resources.CPU expectedCpu $"Incorrect CPU for allocation {allocation}"
+
+                Expect.equal
+                    containerResources.Resources.Memory
+                    expectedMem
+                    $"Incorrect memory for allocation {allocation}"
+        }
     ]
