@@ -675,6 +675,7 @@ let tests =
             Expect.isEmpty wa.SiteConfig.AppSettings "Should be no settings"
         }
 
+
         test "Supports always on" {
             let template = webApp {
                 name "web"
@@ -685,6 +686,16 @@ let tests =
 
             let w: Site = webApp { name "testDefault" } |> getResourceAtIndex 3
             Expect.equal w.SiteConfig.AlwaysOn (Nullable false) "always on should be false by default"
+        }
+
+        test "Supports conditional always on" {
+            let expected = false
+            let template = webApp {
+                name "web"
+                always_on expected
+            }
+
+            Expect.equal template.CommonWebConfig.AlwaysOn expected $"AlwaysOn should be {expected}"
         }
 
         test "Supports 32 and 64 bit worker processes" {
