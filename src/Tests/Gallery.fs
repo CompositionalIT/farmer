@@ -1,11 +1,11 @@
 module Gallery
 
-open System
 open Expecto
 open Farmer
 open Farmer.Builders
 open Farmer.Arm.Gallery
 open Newtonsoft.Json.Linq
+open System
 
 let tests =
     testList "Image Gallery" [

@@ -2,13 +2,12 @@ module PostgreSQL
 
 #nowarn "0044" // disable obsolete warning as error - needed
 
-open System
-
 open Expecto
 open Farmer
 open Farmer.Arm
 open Farmer.Builders
 open Farmer.PostgreSQL
+open System
 
 type PostgresSku = {
     name: string
