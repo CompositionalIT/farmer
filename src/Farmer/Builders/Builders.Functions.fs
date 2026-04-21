@@ -501,7 +501,9 @@ type FunctionsBuilder() =
             // Warn about unbounded scaling on Consumption plan
             match state.CommonWebConfig.Sku with
             | Dynamic ->
-                printfn "Warning: [%s] Consider setting 'max_scale_out_limit 100' to prevent runaway costs on Consumption plan" state.Name.ResourceName.Value
+                printfn
+                    "Warning: [%s] Consider setting 'max_scale_out_limit 100' to prevent runaway costs on Consumption plan"
+                    state.Name.ResourceName.Value
             | _ -> ()
         | _ -> ()
 

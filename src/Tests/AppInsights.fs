@@ -111,7 +111,7 @@ let tests =
             let ai = appInsights {
                 name "override-ai"
                 production_sampling
-                sampling_percentage 30  // Override the default 20
+                sampling_percentage 30 // Override the default 20
             }
 
             Expect.equal ai.SamplingPercentage 30 "Should allow overriding production sampling"
