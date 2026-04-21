@@ -3,6 +3,7 @@ Release Notes
 
 ## 1.9.28
 * Container Apps: Add `resources` operation to the `container` builder to set both CPU and memory together using a `ConsumptionPlanResources` discriminated union. This ensures only valid consumption plan resource combinations can be selected at compile time. The individual `cpu_cores` and `memory` operations remain available for use with dedicated plans.
+* Container Apps: Add required `Namespace` field to `ServiceBusScaleRule` to associate the scale rule with the correct Service Bus namespace.
 
 ## 1.9.27
 * Storage Accounts: Add `AccountKey` member to return just the storage account key and `ConnectionString` member to return the connection string. The existing `Key` member is now obsolete (it incorrectly returned a connection string instead of just the key).
