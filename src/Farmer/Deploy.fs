@@ -94,7 +94,24 @@ module Az =
 
     /// Logs you into the Az CLI using the supplied service principal credentials.
     let loginWithCredentials appId secret tenantId =
-        az $"login --service-principal --username %s{appId} --password %s{secret} --tenant %s{tenantId}"
+        try
+            // Set credentials in environment variables (process-local, not inherited)
+            Environment.SetEnvironmentVariable("AZURE_CLIENT_ID", appId, EnvironmentVariableTarget.Process)
+            Environment.SetEnvironmentVariable("AZURE_CLIENT_SECRET", secret, EnvironmentVariableTarget.Process)
+            Environment.SetEnvironmentVariable("AZURE_TENANT_ID", tenantId, EnvironmentVariableTarget.Process)
+
+            // Login without password in command line
+            let result =
+                az $"login --service-principal --username %s{appId} --tenant %s{tenantId}"
+
+            // Clean up immediately after use
+            Environment.SetEnvironmentVariable("AZURE_CLIENT_SECRET", null, EnvironmentVariableTarget.Process)
+
+            result
+        with ex ->
+            // Ensure cleanup on error
+            Environment.SetEnvironmentVariable("AZURE_CLIENT_SECRET", null, EnvironmentVariableTarget.Process)
+            reraise ()
 
     /// Gets the version of Az CLI
     let version () = az "--version"
@@ -245,8 +262,7 @@ module Az =
     let tryGetError (error: string) =
         try
             let skip =
-                "Deployment failed. Correlation ID: 3c51a527-c6e2-42a9-acee-7d9c796a626f. "
-                    .Length
+                "Deployment failed. Correlation ID: 3c51a527-c6e2-42a9-acee-7d9c796a626f. ".Length
 
             match Serialization.ofJson<AzureError> error[skip..] with
             | {

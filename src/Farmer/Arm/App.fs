@@ -19,6 +19,21 @@ let daprComponents =
 open Farmer.ContainerAppValidation
 open Farmer.Identity
 
+type HealthProbe =
+    | Liveness
+    | Readiness
+    | Startup
+
+type ProbeMap =
+    Map<
+        HealthProbe,
+        {|
+            Protocol: ProbeProtocol
+            Route: Uri
+            Port: int
+        |}
+     >
+
 type Container = {
     Name: string
     DockerImage: Containers.DockerImage
@@ -28,6 +43,7 @@ type Container = {
         Memory: float<Gb>
         EphemeralStorage: float<Gb> option
     |}
+    Probes: ProbeMap
 }
 
 type ManagedEnvironmentStorage = {
@@ -334,6 +350,26 @@ type ContainerApp = {
                                         |> function
                                             | [] -> Unchecked.defaultof<_>
                                             | vms -> vms
+                                    probes = [
+                                        for probe in container.Probes do
+                                            let endpoint =
+                                                box {|
+                                                    path = probe.Value.Route
+                                                    port = probe.Value.Port
+                                                |}
+
+                                            {|
+                                                ``type`` = box (probe.Key.ToString().ToLower())
+                                                tcpSocket =
+                                                    match probe.Value.Protocol with
+                                                    | ProbeProtocol.TCP -> endpoint
+                                                    | _ -> null
+                                                httpGet =
+                                                    match probe.Value.Protocol with
+                                                    | ProbeProtocol.HTTPS -> endpoint
+                                                    | _ -> null
+                                            |}
+                                    ]
                                 |}
                         |]
                         scale = {|

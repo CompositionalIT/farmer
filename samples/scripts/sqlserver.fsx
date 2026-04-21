@@ -42,6 +42,10 @@ let myDatabases = sqlServer {
             name "serverless4to8cpu"
             sku (GeneralPurpose(S_Gen5(4, 8)))
         }
+        sqlDb {
+            name "serverlessHalfCore"
+            sku (GeneralPurpose(S_Gen5(0.5, 2.0)))
+        }
     ]
 }
 

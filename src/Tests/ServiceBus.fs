@@ -355,8 +355,7 @@ let tests =
                     |> getResourceAtIndex 1
 
                 Expect.equal
-                    (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue)
-                        .TotalMinutes
+                    (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalMinutes
                     5.
                     "TTL from TimeSpan should be 5 minutes"
             }
@@ -476,6 +475,7 @@ let tests =
                 let topic: SBTopic =
                     serviceBus {
                         name "my-bus"
+                        sku Standard
 
                         add_topics [
                             topic {
@@ -504,6 +504,7 @@ let tests =
                 let topic: SBTopic =
                     serviceBus {
                         name "my-bus"
+                        sku Standard
 
                         add_topics [
                             topic {
@@ -523,6 +524,7 @@ let tests =
                 let topic: SBTopic =
                     serviceBus {
                         name "my-bus"
+                        sku Standard
 
                         add_topics [
                             topic {
@@ -545,6 +547,7 @@ let tests =
                 let topic: SBTopic =
                     serviceBus {
                         name "my-bus"
+                        sku (Premium MessagingUnits.OneUnit)
 
                         add_topics [
                             topic {
@@ -562,6 +565,7 @@ let tests =
                 let topic: SBTopic =
                     serviceBus {
                         name "my-bus"
+                        sku Standard
 
                         add_topics [
                             topic {
@@ -579,6 +583,7 @@ let tests =
                 let sub: SBSubscription =
                     serviceBus {
                         name "my-bus"
+                        sku Standard
 
                         add_topics [
                             topic {
@@ -595,6 +600,7 @@ let tests =
                 let sub: SBSubscription =
                     serviceBus {
                         name "my-bus"
+                        sku Standard
 
                         add_topics [
                             topic {
@@ -618,6 +624,7 @@ let tests =
                 let sub: SBSubscription =
                     serviceBus {
                         name "my-bus"
+                        sku Standard
 
                         add_topics [
                             topic {
@@ -717,6 +724,7 @@ let tests =
 
                     serviceBus {
                         name "mynamespace"
+                        sku Standard
                         add_topics [ makeTopic "topicA"; makeTopic "topicB" ]
                     }
 
@@ -744,6 +752,7 @@ let tests =
                 let resource =
                     serviceBus {
                         name "my-bus"
+                        sku Standard
 
                         add_topics [
                             topic {
@@ -776,6 +785,7 @@ let tests =
                     add_resources [
                         serviceBus {
                             name "my-bus"
+                            sku Standard
 
                             add_topics [
                                 topic {
@@ -829,6 +839,7 @@ let tests =
 
                 let svcBus = serviceBus {
                     name "my-bus"
+                    sku Standard
 
                     add_topics [
                         topic {
@@ -851,6 +862,7 @@ let tests =
                 let resource =
                     serviceBus {
                         name "my-bus"
+                        sku Standard
 
                         add_topics [
                             topic {
@@ -868,6 +880,69 @@ let tests =
                     (resource.ResourceId.Eval())
                     $"[resourceId('Microsoft.ServiceBus/namespaces/topics', 'my-bus', '{topicName}')]"
                     ""
+            }
+            test "Cannot create topics on Basic SKU" {
+                Expect.throws
+                    (fun () ->
+                        serviceBus {
+                            name "serviceBus"
+                            sku Basic
+
+                            add_topics [ topic { name "my-topic" } ]
+                        }
+                        |> ignore)
+                    "Topics are not supported on Basic SKU"
+            }
+            test "Cannot set max message size on Basic SKU" {
+                Expect.throws
+                    (fun () ->
+                        serviceBus {
+                            name "serviceBus"
+                            sku Basic
+
+                            add_topics [
+                                topic {
+                                    name "my-topic"
+                                    max_message_size 1024<Kb>
+                                }
+                            ]
+                        }
+                        |> ignore)
+                    "Max message size is not supported on Basic SKU"
+            }
+            test "Cannot set max message size on Standard SKU" {
+                Expect.throws
+                    (fun () ->
+                        serviceBus {
+                            name "serviceBus"
+                            sku Standard
+
+                            add_topics [
+                                topic {
+                                    name "my-topic"
+                                    max_message_size 1024<Kb>
+                                }
+                            ]
+                        }
+                        |> ignore)
+                    "Max message size is not supported on Standard SKU"
+            }
+            test "Can set max message size on Premium SKU" {
+                let topic: SBTopic =
+                    serviceBus {
+                        name "serviceBus"
+                        sku (Premium MessagingUnits.OneUnit)
+
+                        add_topics [
+                            topic {
+                                name "my-topic"
+                                max_message_size 1024<Kb>
+                            }
+                        ]
+                    }
+                    |> getResourceAtIndex 1
+
+                Expect.equal topic.MaxMessageSizeInKilobytes (Nullable 1024) "Max message size should be set"
             }
         ]
 

@@ -1,9 +1,7 @@
 [<AutoOpen>]
 module Farmer.Arm.Network
 
-open System.Net.Mail
 open Farmer
-open Farmer.Arm
 open Farmer.ExpressRoute
 open Farmer.Network
 open Farmer.Route
@@ -28,10 +26,10 @@ let networkProfiles =
     ResourceType("Microsoft.Network/networkProfiles", "2020-04-01")
 
 let publicIPAddresses =
-    ResourceType("Microsoft.Network/publicIPAddresses", "2024-05-01")
+    ResourceType("Microsoft.Network/publicIPAddresses", "2024-07-01")
 
 let publicIPPrefixes =
-    ResourceType("Microsoft.Network/publicIPPrefixes", "2024-05-01")
+    ResourceType("Microsoft.Network/publicIPPrefixes", "2024-07-01")
 
 let serviceEndpointPolicies =
     ResourceType("Microsoft.Network/serviceEndpointPolicies", "2020-07-01")
@@ -48,7 +46,7 @@ let virtualNetworkGateways =
 let localNetworkGateways =
     ResourceType("Microsoft.Network/localNetworkGateways", "")
 
-let natGateways = ResourceType("Microsoft.Network/natGateways", "2021-08-01")
+let natGateways = ResourceType("Microsoft.Network/natGateways", "2024-07-01")
 
 let privateEndpoints =
     ResourceType("Microsoft.Network/privateEndpoints", "2021-05-01")
@@ -651,6 +649,7 @@ type IpConfiguration = {
     PrivateIpAllocation: AllocationMethod option
     PrivateIpAddressVersion: AddressVersion
     Primary: bool option
+    PublicIpAddressDeleteOption: Vm.DeleteOption option
 }
 
 module NetworkInterface =
@@ -706,6 +705,13 @@ type IpConfiguration with
                     ipConfig.PublicIpAddress
                     |> Option.map (fun pip -> {|
                         id = pip.ResourceId.ArmExpression.Eval()
+                        properties =
+                            match ipConfig.PublicIpAddressDeleteOption with
+                            | Some deleteOption ->
+                                box {|
+                                    deleteOption = deleteOption.ArmValue
+                                |}
+                            | None -> null
                     |})
                     |> Option.defaultValue Unchecked.defaultof<_>
                 subnet = {|
@@ -729,6 +735,7 @@ type NetworkInterface = {
     VirtualNetwork: LinkedResource
     NetworkSecurityGroup: LinkedResource option
     Primary: bool option
+    DeleteOption: Vm.DeleteOption option
     Tags: Map<string, string>
 } with
 
@@ -1028,6 +1035,7 @@ type NatGateway = {
     IdleTimeout: int<Minutes>
     PublicIpAddresses: LinkedResource list
     PublicIpPrefixes: LinkedResource list
+    Sku: NatGateway.Sku
     Tags: Map<string, string>
 } with
 
@@ -1046,7 +1054,7 @@ type NatGateway = {
 
             {|
                 natGateways.Create(this.Name, this.Location, dependsOn = dependencies, tags = this.Tags) with
-                    sku = {| name = "Standard" |}
+                    sku = {| name = this.Sku.ArmValue |}
                     properties = {|
                         idleTimeoutInMinutes = this.IdleTimeout
                         publicIpAddresses = this.PublicIpAddresses |> List.map LinkedResource.AsIdObject

@@ -9,6 +9,22 @@ open Farmer.Vm
 let managedClusters =
     ResourceType("Microsoft.ContainerService/managedClusters", "2024-02-01")
 
+module AutoUpgradeProfiles =
+    type AutoUpgradeProfile = {
+        AutoUpgradeChannel: AutoUpgradeChannel
+        NodeOSUpgradeChannel: NodeOSUpgradeChannel
+    } with
+
+        static member Default = {
+            AutoUpgradeChannel = AutoUpgradeChannel.Stable
+            NodeOSUpgradeChannel = NodeOSUpgradeChannel.NodeImage
+        }
+
+    let toArmJson (config: AutoUpgradeProfile) = {|
+        upgradeChannel = config.AutoUpgradeChannel.ArmValue
+        nodeOSUpgradeChannel = config.NodeOSUpgradeChannel.ArmValue
+    |}
+
 module AddonProfiles =
     type AciConnectorLinux = {
         Status: FeatureFlag
@@ -69,12 +85,30 @@ module AddonProfiles =
                   |}
         |}
 
+    type AzureKeyvaultSecretsProvider = {
+        Status: FeatureFlag
+        EnableSecretRotation: bool option
+        RotationPollInterval: string option
+    } with
+
+        member internal this.ToArmJson = {|
+            enabled = this.Status.AsBoolean
+            config =
+                match this.Status with
+                | Disabled -> Unchecked.defaultof<_>
+                | Enabled -> {|
+                    enableSecretRotation = this.EnableSecretRotation |> Option.map string |> Option.defaultValue "false"
+                    rotationPollInterval = this.RotationPollInterval |> Option.defaultValue "2m"
+                  |}
+        |}
+
     type AddonProfileConfig = {
         AciConnectorLinux: AciConnectorLinux option
         HttpApplicationRouting: HttpApplicationRouting option
         IngressApplicationGateway: IngressApplicationGateway option
         KubeDashboard: KubeDashboard option
         OmsAgent: OmsAgent option
+        AzureKeyvaultSecretsProvider: AzureKeyvaultSecretsProvider option
     } with
 
         static member Default = {
@@ -83,6 +117,7 @@ module AddonProfiles =
             IngressApplicationGateway = None
             KubeDashboard = None
             OmsAgent = None
+            AzureKeyvaultSecretsProvider = None
         }
 
     let toArmJson (config: AddonProfileConfig) = {|
@@ -106,6 +141,10 @@ module AddonProfiles =
             match config.OmsAgent with
             | None -> Unchecked.defaultof<_>
             | Some oms -> oms.ToArmJson
+        azureKeyvaultSecretsProvider =
+            match config.AzureKeyvaultSecretsProvider with
+            | None -> Unchecked.defaultof<_>
+            | Some secretsProvider -> secretsProvider.ToArmJson
     |}
 
 type AgentPoolMode =
@@ -144,6 +183,23 @@ type ManagedClusterIdentityProfile = {
 
 type OidcIssuerProfile = { Enabled: FeatureFlag }
 
+type KubeStateMetrics = {
+    MetricLabelsAllowList: string option
+    MetricAnnotationsAllowList: string option
+} with
+
+    static member Default = {
+        MetricLabelsAllowList = None
+        MetricAnnotationsAllowList = None
+    }
+
+type AzureMonitorProfile = {
+    Metrics: {|
+        Enabled: FeatureFlag
+        KubeStateMetrics: KubeStateMetrics option
+    |}
+}
+
 type SecurityProfileSettings = {
     Defender:
         {|
@@ -169,6 +225,47 @@ type ScaleDownMode =
     | Delete
     | Deallocate
 
+type KubernetesVersion = {
+    Major: int
+    Minor: int
+    //Latest patch version selected if not specified
+    Patch: int option
+} with
+
+    static member Create(version: string) =
+        let parts = version.Split('.')
+
+        match parts with
+        | [| majorString; minorString |] ->
+            match System.Int32.TryParse(majorString), System.Int32.TryParse(minorString) with
+            | (false, _), _ -> Result.Error $"Invalid major version: {majorString}."
+            | _, (false, _) -> Result.Error $"Invalid minor version: {minorString}."
+            | (true, major), (true, minor) ->
+                {
+                    Major = major
+                    Minor = minor
+                    Patch = None
+                }
+                |> Result.Ok
+        | [| major; minor; patch |] ->
+            match System.Int32.TryParse(major), System.Int32.TryParse(minor), System.Int32.TryParse(patch) with
+            | (false, _), _, _ -> Result.Error $"Invalid major version: {major}."
+            | _, (false, _), _ -> Result.Error $"Invalid minor version: {minor}."
+            | _, _, (false, _) -> Result.Error $"Invalid patch version: {patch}."
+            | (true, major), (true, minor), (true, patch) ->
+                {
+                    Major = major
+                    Minor = minor
+                    Patch = Some patch
+                }
+                |> Result.Ok
+        | _ -> Result.Error $"Invalid Kubernetes version format: {version}. Expected format is 'major.minor[.patch]'."
+
+    member this.Value =
+        match this.Patch with
+        | Some patch -> $"%i{this.Major}.%i{this.Minor}.%i{patch}"
+        | None -> $"%i{this.Major}.%i{this.Minor}"
+
 type ManagedCluster = {
     Name: ResourceName
     Sku: ContainerServiceSku
@@ -186,6 +283,7 @@ type ManagedCluster = {
             Mode: AgentPoolMode
             OsDiskSize: int<Gb>
             OsType: OS
+            OsSKU: string option
             VmSize: VMSize
             AvailabilityZones: ZoneSelection
             VirtualNetworkName: ResourceName option
@@ -195,9 +293,12 @@ type ManagedCluster = {
             ScaleDownMode: ScaleDownMode option
             MinCount: int option
             MaxCount: int option
+            NodeTaints: string list option
         |} list
     DnsPrefix: string
     EnableRBAC: bool
+    KubernetesVersion: KubernetesVersion option
+    AutoUpgradeProfile: AutoUpgradeProfiles.AutoUpgradeProfile option
     Identity: ManagedIdentity
     IdentityProfile: ManagedClusterIdentityProfile option
     ApiServerAccessProfile:
@@ -218,6 +319,7 @@ type ManagedCluster = {
             ServiceCidr: IPAddressCidr option
         |} option
     OidcIssuerProfile: OidcIssuerProfile option
+    AzureMonitorProfile: AzureMonitorProfile option
     SecurityProfile: SecurityProfileSettings option
     WindowsProfile:
         {|
@@ -228,6 +330,7 @@ type ManagedCluster = {
         ClientId: string
         ClientSecret: SecureParameter option
     |}
+    NodeResourceGroup: ResourceName option
 } with
 
     interface IParameters with
@@ -298,6 +401,7 @@ type ManagedCluster = {
                                 mode = agent.Mode |> string
                                 osDiskSizeGB = agent.OsDiskSize
                                 osType = string agent.OsType
+                                osSKU = agent.OsSKU
                                 vmSize = agent.VmSize.ArmValue
                                 availabilityZones = agent.AvailabilityZones.ArmValue
                                 vnetSubnetID =
@@ -315,9 +419,15 @@ type ManagedCluster = {
                                     | _ -> null
                                 minCount = agent.MinCount |> Option.toNullable
                                 maxCount = agent.MaxCount |> Option.toNullable
+                                nodeTaints = agent.NodeTaints
                             |})
                         dnsPrefix = this.DnsPrefix
                         enableRBAC = this.EnableRBAC
+                        kubernetesVersion =
+                            match this.KubernetesVersion with
+                            | Some version -> version.Value
+                            | None -> null
+                        autoUpgradeProfile = this.AutoUpgradeProfile |> Option.map AutoUpgradeProfiles.toArmJson
                         identityProfile =
                             match this.IdentityProfile with
                             | Some identityProfile -> identityProfile.ToArmJson
@@ -359,6 +469,20 @@ type ManagedCluster = {
                             match this.OidcIssuerProfile with
                             | None -> Unchecked.defaultof<_>
                             | Some oidc -> {| enabled = oidc.Enabled.AsBoolean |}
+                        azureMonitorProfile =
+                            match this.AzureMonitorProfile with
+                            | None -> Unchecked.defaultof<_>
+                            | Some monitorProfile -> {|
+                                metrics = {|
+                                    enabled = monitorProfile.Metrics.Enabled.AsBoolean
+                                    kubeStateMetrics =
+                                        monitorProfile.Metrics.KubeStateMetrics
+                                        |> Option.map (fun kubeStateMetrics -> {|
+                                            metricLabelsAllowList = kubeStateMetrics.MetricLabelsAllowList
+                                            metricAnnotationsAllowList = kubeStateMetrics.MetricAnnotationsAllowList
+                                        |})
+                                |}
+                              |}
                         securityProfile =
                             match this.SecurityProfile with
                             | None -> Unchecked.defaultof<_>
@@ -403,5 +527,6 @@ type ManagedCluster = {
                                 adminPassword = winProfile.AdminPassword.ArmExpression.Eval()
                               |}
                             | None -> Unchecked.defaultof<_>
+                        nodeResourceGroup = this.NodeResourceGroup |> Option.map (fun rg -> rg.Value)
                     |}
             |}

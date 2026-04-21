@@ -1,8 +1,67 @@
 Release Notes
 =============
 
+## 1.9.28
+* Container Apps: Add `resources` operation to the `container` builder to set both CPU and memory together using a `ConsumptionPlanResources` discriminated union. This ensures only valid consumption plan resource combinations can be selected at compile time. The individual `cpu_cores` and `memory` operations remain available for use with dedicated plans.
+* Container Apps: Add required `Namespace` field to `ServiceBusScaleRule` to associate the scale rule with the correct Service Bus namespace.
+
+## 1.9.27
+* Storage Accounts: Add `AccountKey` member to return just the storage account key and `ConnectionString` member to return the connection string. The existing `Key` member is now obsolete (it incorrectly returned a connection string instead of just the key).
+* Network Manager: Add support for Azure Network Manager with security admin configurations, rule collections, rules with IP ranges and service tags, and network groups.
+
+## 1.9.26
+* Virtual Machine Scale Sets: Add support for rolling upgrade policy configuration.
+
+## 1.9.25
+* Service Bus: Support for minimum TLS version of 1.3.
+* Storage Accounts: Support for requesting minimum TLS version of 1.3. The ARM resource itself currently falls back to 1.2.
+* Redis: Support for requesting minimum TLS version of 1.2. TLS 1.3 is supported, but not enforced as a minimum.
+
+### TLS Version Support
+
+**Note:** As of version 1.9.25 (October 2025), Farmer has:
+- Added support for TLS 1.3
+- Deprecated TLS 1.0 and TLS 1.1 (marked as obsolete)
+
+If you see compiler warnings about `Tls10` or `Tls11` being obsolete, these versions now automatically fall back to TLS 1.2 for security reasons. Update your code to use `Tls12` or `Tls13` explicitly to remove the warnings.
+
+## 1.9.24
+* Service Bus: Add validation for SKU-specific features (topics not supported on Basic SKU, max message size only supported on Premium SKU).
+* SQL Azure: Support for fractional VCores such as (0.5, 0.75) in Serverless Gen5 databases.
+* Virtual Machines: Added support for `deleteOption` on VM disks, NICs, and public IP addresses to automatically clean up resources when a VM is deleted.
+  * New builder keywords: `disk_delete_option`, `nic_delete_option`, `public_ip_delete_option`
+  * New convenience keyword: `delete_attached` to set all delete options at once
+  * Simplified type: All delete options now use a single `DeleteOption` type with `Delete` and `Detach` values
+
+## 1.9.23
+* Actions Groups: Bump API version to `2025-09-01-preview`.
+
+## 1.9.22
+* AKS Cluster: Added support for Azure Key Vault provider for Secrets Store CSI Driver
+
+## 1.9.21
+* AKS Cluster: Added auto_upgrade_profile option for managed clusters
+* AKS Cluster: Added os_sku option for agentPool config
+
+## 1.9.20
+* Data Collection: Fixes bug in data collection association by removing location field.
+
+## 1.9.19
+* Data Collection: Adds `dataCollectionRule`, `dataCollectionEndpoint`, `dataCollectionRuleAssociation` builders for Azure Monitor
+* Prometheus Group Rules: Adds `prometheusRuleGroup` builder for prometheus metrics in Azure Monitor
+* Container Service: add ability to specify `enable_azure_monitor` parameter
+* Action Group: adds ability to create Incident Receivers in action group with `add_incident_receivers`
+* NAT Gateways: enables setting the `sku` for the NAT Gateway and the generated Public IP Address resource.
+
+## 1.9.18
+* AKS: add ability to specify `kubernetes_version` parameter
+
+## 1.9.16
+* AKS: add node_resource_group parameter to aks config
+
 ## 1.9.15
-* ACA: Add required namespace field to sbus scale rule
+* Container Apps: Adds health probes.
+* AKS: Add node_taints parameter to agent pool config.
 
 ## 1.9.14
 * VMSS, AKS, Azure Firewall, Managed Clusters (AKS): Adds `pick_zones` to let ARM select the availability zones.

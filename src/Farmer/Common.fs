@@ -131,15 +131,19 @@ type TransmissionProtocol =
     | UDP
 
 type TlsVersion =
-    | Tls10
-    | Tls11
     | Tls12
+    | Tls13
 
     member this.ArmValue =
         match this with
-        | Tls10 -> "1.0"
-        | Tls11 -> "1.1"
         | Tls12 -> "1.2"
+        | Tls13 -> "1.3"
+
+    [<System.Obsolete("TLS 1.0 is deprecated and insecure. Use TLS 1.2 or higher.")>]
+    static member Tls10 = Tls12
+
+    [<System.Obsolete("TLS 1.1 is deprecated and insecure. Use TLS 1.2 or higher.")>]
+    static member Tls11 = Tls12
 
 /// Represents an environment variable that can be set, typically on Docker container services.
 type EnvVar =
@@ -980,6 +984,16 @@ module Vm =
             match this with
             | x -> x.ToString()
 
+    /// Specifies what happens to a resource (disk, NIC, or public IP) when a VM is deleted.
+    type DeleteOption =
+        | Delete
+        | Detach
+
+        member this.ArmValue =
+            match this with
+            | Delete -> "Delete"
+            | Detach -> "Detach"
+
     /// Represents a disk in a VM.
     type DiskInfo = {
         Size: int
@@ -994,20 +1008,27 @@ module Vm =
     /// VM OS disks can be created by attaching an existing disk or from a gallery image.
     type OsDiskCreateOption =
         | AttachOsDisk of OS * ManagedDiskId: LinkedResource
+        | AttachOsDiskWithDelete of OS * ManagedDiskId: LinkedResource
         | FromImage of ImageInfo * DiskInfo
+        | FromImageWithDelete of ImageInfo * DiskInfo
 
     /// VM data disks can be created by attaching an existing disk or generating an empty disk.
     type DataDiskCreateOption =
         | AttachDataDisk of ManagedDiskId: LinkedResource
+        | AttachDataDiskWithDelete of ManagedDiskId: LinkedResource
         /// Indicates the disk being attached is an ultra disk to enable that option on the VM
         | AttachUltra of ManagedDiskId: LinkedResource
+        | AttachUltraWithDelete of ManagedDiskId: LinkedResource
         | Empty of DiskInfo
+        | EmptyWithDelete of DiskInfo
 
         /// Indicates an Ultra SSD will be used so that option should be enabled on the VM.
         member this.IsUltraDisk =
             match this with
-            | AttachUltra _ -> true
-            | Empty diskInfo when diskInfo.IsUltraDisk -> true
+            | AttachUltra _
+            | AttachUltraWithDelete _ -> true
+            | Empty diskInfo
+            | EmptyWithDelete diskInfo when diskInfo.IsUltraDisk -> true
             | _ -> false
 
     type EvictionPolicy =
@@ -2005,7 +2026,7 @@ module Sql =
         | Gen5_32
         | Gen5_40
         | Gen5_80
-        | S_Gen5 of CapacityMin: int * CapacityMax: int
+        | S_Gen5 of CapacityMin: float * CapacityMax: float
 
         member this.Name =
             Reflection.FSharpValue.GetUnionFields(this, typeof<Gen5Series>)
@@ -2243,9 +2264,7 @@ module Identity =
                 | UserAssignedIdentity rid -> rid
                 | LinkedUserAssignedIdentity rid -> rid
 
-            ArmExpression
-                .create($"reference({resourceId.ArmExpression.Value}).%s{field}")
-                .WithOwner(resourceId)
+            ArmExpression.create($"reference({resourceId.ArmExpression.Value}).%s{field}").WithOwner(resourceId)
 
         member this.PrincipalId = this.CreateExpression "principalId" |> PrincipalId
         member this.ClientId = this.CreateExpression "clientId"
@@ -2435,6 +2454,30 @@ module ContainerService =
             | Premium -> "Premium"
 
     type ContainerServiceSku = { Name: Sku; Tier: Tier }
+
+    [<RequireQualifiedAccess>]
+    type AutoUpgradeChannel =
+        | Patch
+        | Stable
+        | Rapid
+
+        member this.ArmValue =
+            match this with
+            | Patch -> "patch"
+            | Stable -> "stable"
+            | Rapid -> "rapid"
+
+    [<RequireQualifiedAccess>]
+    type NodeOSUpgradeChannel =
+        | NodeImage
+        | SecurityPatch
+        | Unmanaged
+
+        member this.ArmValue =
+            match this with
+            | NodeImage -> "NodeImage"
+            | SecurityPatch -> "SecurityPatch"
+            | Unmanaged -> "Unmanaged"
 
 module B2cTenant =
     type Sku =
@@ -2948,6 +2991,16 @@ module ApplicationGateway =
             | TemporaryRedirect -> "TemporaryRedirect"
             | PermanentRedirect -> "PermanentRedirect"
 
+module NatGateway =
+    [<RequireQualifiedAccess>]
+    type Sku =
+        | Standard
+        | StandardV2
+
+        member this.ArmValue =
+            match this with
+            | Standard -> "Standard"
+            | StandardV2 -> "StandardV2"
 
 module VirtualNetworkGateway =
     [<RequireQualifiedAccess>]
@@ -3531,10 +3584,12 @@ module PublicIpAddress =
 
     type Sku =
         | Standard
+        | StandardV2
 
         member this.ArmValue =
             match this with
             | Standard -> "Standard"
+            | StandardV2 -> "StandardV2"
 
 module Cdn =
     type Sku =
@@ -4062,6 +4117,11 @@ module ContainerApp =
         | HTTP2
         | Auto
 
+    [<RequireQualifiedAccess>]
+    type ProbeProtocol =
+        | TCP
+        | HTTPS
+
     type IngressMode =
         | External of port: uint16 * Transport option
         | InternalOnly
@@ -4082,6 +4142,82 @@ module ContainerApp =
         | EmptyDirectory
         /// Mounts an Azure File Share in the same resource group, performing a key lookup.
         | AzureFileShare of ShareName: ResourceName * StorageAccountName: Storage.StorageAccountName * StorageAccessMode
+
+    /// Defines valid resource allocations for containers on consumption plans.
+    /// Consumption plans require specific combinations of CPU (vCores) and memory (Gi).
+    /// See https://learn.microsoft.com/en-us/azure/container-apps/containers#allocations
+    [<RequireQualifiedAccess>]
+    type ConsumptionPlanResources =
+        /// 0.25 vCPU, 0.5 Gi memory
+        | Cores0_25
+        /// 0.5 vCPU, 1.0 Gi memory
+        | Cores0_5
+        /// 0.75 vCPU, 1.5 Gi memory
+        | Cores0_75
+        /// 1.0 vCPU, 2.0 Gi memory
+        | Cores1_0
+        /// 1.25 vCPU, 2.5 Gi memory
+        | Cores1_25
+        /// 1.5 vCPU, 3.0 Gi memory
+        | Cores1_5
+        /// 1.75 vCPU, 3.5 Gi memory
+        | Cores1_75
+        /// 2.0 vCPU, 4.0 Gi memory
+        | Cores2_0
+        /// 2.25 vCPU, 4.5 Gi memory
+        | Cores2_25
+        /// 2.5 vCPU, 5.0 Gi memory
+        | Cores2_5
+        /// 2.75 vCPU, 5.5 Gi memory
+        | Cores2_75
+        /// 3.0 vCPU, 6.0 Gi memory
+        | Cores3_0
+        /// 3.25 vCPU, 6.5 Gi memory
+        | Cores3_25
+        /// 3.5 vCPU, 7.0 Gi memory
+        | Cores3_5
+        /// 3.75 vCPU, 7.5 Gi memory
+        | Cores3_75
+        /// 4.0 vCPU, 8.0 Gi memory
+        | Cores4_0
+
+        member this.CPU: float<VCores> =
+            match this with
+            | Cores0_25 -> 0.25<VCores>
+            | Cores0_5 -> 0.5<VCores>
+            | Cores0_75 -> 0.75<VCores>
+            | Cores1_0 -> 1.0<VCores>
+            | Cores1_25 -> 1.25<VCores>
+            | Cores1_5 -> 1.5<VCores>
+            | Cores1_75 -> 1.75<VCores>
+            | Cores2_0 -> 2.0<VCores>
+            | Cores2_25 -> 2.25<VCores>
+            | Cores2_5 -> 2.5<VCores>
+            | Cores2_75 -> 2.75<VCores>
+            | Cores3_0 -> 3.0<VCores>
+            | Cores3_25 -> 3.25<VCores>
+            | Cores3_5 -> 3.5<VCores>
+            | Cores3_75 -> 3.75<VCores>
+            | Cores4_0 -> 4.0<VCores>
+
+        member this.Memory: float<Gb> =
+            match this with
+            | Cores0_25 -> 0.5<Gb>
+            | Cores0_5 -> 1.0<Gb>
+            | Cores0_75 -> 1.5<Gb>
+            | Cores1_0 -> 2.0<Gb>
+            | Cores1_25 -> 2.5<Gb>
+            | Cores1_5 -> 3.0<Gb>
+            | Cores1_75 -> 3.5<Gb>
+            | Cores2_0 -> 4.0<Gb>
+            | Cores2_25 -> 4.5<Gb>
+            | Cores2_5 -> 5.0<Gb>
+            | Cores2_75 -> 5.5<Gb>
+            | Cores3_0 -> 6.0<Gb>
+            | Cores3_25 -> 6.5<Gb>
+            | Cores3_5 -> 7.0<Gb>
+            | Cores3_75 -> 7.5<Gb>
+            | Cores4_0 -> 8.0<Gb>
 
 namespace Farmer.DiagnosticSettings
 

@@ -19,7 +19,7 @@ let myWebApp = webApp {
     name "mysuperwebapp"
     sku WebApp.Sku.S1
     app_insights_off
-    setting "storage_key" myStorage.Key
+    setting "storage_key" myStorage.ConnectionString
     add_allowed_ip_restriction "allow everything" "0.0.0.0/0"
     add_denied_ip_restriction "deny" "1.2.3.4/31"
 }
@@ -28,7 +28,7 @@ let deployment = arm {
     location Location.NorthEurope
     add_resource myStorage
     add_resource myWebApp
-    output "storage_key" myStorage.Key
+    output "storage_key" myStorage.ConnectionString
     output "web_password" myWebApp.PublishingPassword
 }
 

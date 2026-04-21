@@ -18,6 +18,7 @@ type AgentPoolConfig = {
     Mode: AgentPoolMode
     OsDiskSize: int<Gb>
     OsType: OS
+    OsSKU: string option
     VmSize: VMSize
     AvailabilityZones: ZoneSelection
     VirtualNetworkName: ResourceName option
@@ -27,6 +28,7 @@ type AgentPoolConfig = {
     ScaleDownMode: ScaleDownMode option
     MinCount: int option
     MaxCount: int option
+    NodeTaints: string list
 } with
 
     static member Default = {
@@ -39,6 +41,7 @@ type AgentPoolConfig = {
         Mode = System
         OsDiskSize = 0<Gb>
         OsType = OS.Linux
+        OsSKU = None
         VirtualNetworkName = None
         SubnetName = None
         PodSubnetName = None
@@ -48,6 +51,7 @@ type AgentPoolConfig = {
         ScaleDownMode = None
         MinCount = None
         MaxCount = None
+        NodeTaints = []
     }
 
 type ApiServerAccessProfileConfig = {
@@ -66,12 +70,23 @@ type NetworkProfileConfig = {
     ServiceCidr: IPAddressCidr option
 }
 
+type AutoUpgradeConfig = {
+    AutoUpgradeChannel: AutoUpgradeChannel
+    NodeOSUpgradeChannel: NodeOSUpgradeChannel
+} with
+
+    static member BuildConfig(config: AutoUpgradeConfig) : AutoUpgradeProfiles.AutoUpgradeProfile = {
+        AutoUpgradeChannel = config.AutoUpgradeChannel
+        NodeOSUpgradeChannel = config.NodeOSUpgradeChannel
+    }
+
 type AddonConfig =
     | AciConnectorLinux of FeatureFlag
     | HttpApplicationRouting of FeatureFlag
     | IngressApplicationGateway of IngressApplicationGateway
     | KubeDashboard of FeatureFlag
     | OmsAgent of OmsAgent
+    | AzureKeyvaultSecretsProvider of AzureKeyvaultSecretsProvider
 
     static member BuildConfig(addons: AddonConfig list) : AddonProfileConfig = {
         // TODO: Clean up with active pattern
@@ -118,6 +133,14 @@ type AddonConfig =
             |> function
                 | Some(OmsAgent oms) -> Some oms
                 | _ -> None
+        AzureKeyvaultSecretsProvider =
+            addons
+            |> List.tryFind (function
+                | AzureKeyvaultSecretsProvider _ -> true
+                | _ -> false)
+            |> function
+                | Some(AzureKeyvaultSecretsProvider secretsProvider) -> Some secretsProvider
+                | _ -> None
     }
 
 type AksConfig = {
@@ -129,15 +152,19 @@ type AksConfig = {
     DependencyExpressions: ArmExpression Set
     DnsPrefix: string
     EnableRBAC: bool
+    AutoUpgradeProfiles: AutoUpgradeConfig option
+    KubernetesVersion: KubernetesVersion option
     Identity: ManagedIdentity
     IdentityProfile: ManagedClusterIdentityProfile option
     ApiServerAccessProfile: ApiServerAccessProfileConfig option
     LinuxProfile: (string * string list) option
     NetworkProfile: NetworkProfileConfig option
     OidcIssuerProfile: OidcIssuerProfile option
+    AzureMonitorProfile: AzureMonitorProfile option
     SecurityProfile: SecurityProfileSettings option
     ServicePrincipalClientID: string
     WindowsProfileAdminUserName: string option
+    NodeResourceGroup: ResourceName option
 } with
 
     member private this.ResourceId = managedClusters.resourceId this.Name
@@ -163,6 +190,11 @@ type AksConfig = {
                     else
                         this.DnsPrefix
                 EnableRBAC = this.EnableRBAC
+                AutoUpgradeProfile =
+                    match this.AutoUpgradeProfiles with
+                    | None -> None
+                    | Some config -> config |> AutoUpgradeConfig.BuildConfig |> Some
+                KubernetesVersion = this.KubernetesVersion
                 Identity = this.Identity
                 IdentityProfile = this.IdentityProfile
                 AgentPoolProfiles =
@@ -182,6 +214,7 @@ type AksConfig = {
                         Mode = agentPool.Mode
                         OsDiskSize = agentPool.OsDiskSize
                         OsType = agentPool.OsType
+                        OsSKU = agentPool.OsSKU
                         SubnetName = agentPool.SubnetName
                         PodSubnetName = agentPool.PodSubnetName
                         VmSize = agentPool.VmSize
@@ -191,6 +224,10 @@ type AksConfig = {
                         ScaleDownMode = agentPool.ScaleDownMode
                         MinCount = agentPool.MinCount
                         MaxCount = agentPool.MaxCount
+                        NodeTaints =
+                            match agentPool.NodeTaints with
+                            | [] -> None
+                            | _ -> Some agentPool.NodeTaints
                     |})
                 ApiServerAccessProfile =
                     this.ApiServerAccessProfile
@@ -225,6 +262,7 @@ type AksConfig = {
                         | _ -> Some(SecureParameter $"client-secret-for-{this.Name.Value}")
                 |}
                 OidcIssuerProfile = this.OidcIssuerProfile
+                AzureMonitorProfile = this.AzureMonitorProfile
                 SecurityProfile = this.SecurityProfile
                 WindowsProfile =
                     this.WindowsProfileAdminUserName
@@ -232,6 +270,7 @@ type AksConfig = {
                         AdminUserName = username
                         AdminPassword = SecureParameter $"admin-password-for-{this.Name.Value}"
                     |})
+                NodeResourceGroup = this.NodeResourceGroup
             }
         ]
 
@@ -262,6 +301,9 @@ type AgentPoolBuilder() =
         state with
             EnableFIPS = Some featureFlag
     }
+
+    [<CustomOperation "os_sku">]
+    member _.osSKU(state: AgentPoolConfig, sku) = { state with OsSKU = Some sku }
 
     /// Sets the agent pool to user mode.
     [<CustomOperation "user_mode">]
@@ -336,6 +378,10 @@ type AgentPoolBuilder() =
         state with
             AutoscaleSetting = Some Enabled
     }
+
+    /// Set Node Taints on agent pool
+    [<CustomOperation "node_taints">]
+    member _.NodeTaints(state: AgentPoolConfig, taints) = { state with NodeTaints = taints }
 
     [<CustomOperation "autoscale_scale_down_mode">]
     member _.ScaleDownMode(state: AgentPoolConfig, scaleDownMode) = {
@@ -446,15 +492,19 @@ type AksBuilder() =
         AgentPools = []
         DnsPrefix = ""
         EnableRBAC = false
+        AutoUpgradeProfiles = None
+        KubernetesVersion = None
         Identity = ManagedIdentity.Empty
         IdentityProfile = None
         ApiServerAccessProfile = None
         LinuxProfile = None
         NetworkProfile = None
         OidcIssuerProfile = None
+        AzureMonitorProfile = None
         SecurityProfile = None
         ServicePrincipalClientID = "msi"
         WindowsProfileAdminUserName = None
+        NodeResourceGroup = None
     }
 
     member _.Run(config: AksConfig) =
@@ -473,6 +523,19 @@ type AksBuilder() =
     member _.Sku(state: AksConfig, skuName) = {
         state with
             Sku = { state.Sku with Name = skuName }
+    }
+
+    /// Sets the name of the AKS node resource group
+    [<CustomOperation "node_resource_group">]
+    member _.NodeResourceGroup(state: AksConfig, name) = {
+        state with
+            NodeResourceGroup = Some(name)
+    }
+
+    [<CustomOperation "node_resource_group">]
+    member _.NodeResourceGroup(state: AksConfig, name) = {
+        state with
+            NodeResourceGroup = Some(ResourceName name)
     }
 
     /// Sets the tier of the load balancer (default is 'Free').
@@ -501,6 +564,26 @@ type AksBuilder() =
             state with
                 Dependencies = state.Dependencies + newDeps
         }
+
+    [<CustomOperation "auto_upgrade_profile">]
+    member _.AutoUpgradeChannel(state: AksConfig, channel: AutoUpgradeConfig) = {
+        state with
+            AutoUpgradeProfiles = Some channel
+    }
+
+    [<CustomOperation "kubernetes_version">]
+    member _.KubernetesVersion(state: AksConfig, version: KubernetesVersion) = {
+        state with
+            KubernetesVersion = Some version
+    }
+
+    member _.KubernetesVersion(state: AksConfig, version: string) =
+        match KubernetesVersion.Create version with
+        | Error err -> raiseFarmer $"Invalid Kubernetes version '{version}' specified: {err}"
+        | Ok version -> {
+            state with
+                KubernetesVersion = Some version
+          }
 
     [<CustomOperation "depends_on_expression">]
     member _.DependencyExpressions(state: AksConfig, dependencyExpr: ArmExpression) = {
@@ -648,6 +731,32 @@ type AksBuilder() =
     member _.OidcIssuer(state: AksConfig, featureFlag) = {
         state with
             OidcIssuerProfile = Some { Enabled = featureFlag }
+    }
+
+    /// Enables Azure Monitor for AKS cluster
+    [<CustomOperation "enable_azure_monitor">]
+    member _.EnableAzureMonitor(state: AksConfig) = {
+        state with
+            AzureMonitorProfile =
+                Some {
+                    Metrics = {|
+                        Enabled = Enabled
+                        KubeStateMetrics = None
+                    |}
+                }
+    }
+
+    /// Enables Azure Monitor for AKS cluster with custom metrics.
+    [<CustomOperation "add_kube_state_metrics">]
+    member _.AddKubeStateMetrics(state: AksConfig, kubeStateMetrics) = {
+        state with
+            AzureMonitorProfile =
+                Some {
+                    Metrics = {|
+                        Enabled = Enabled
+                        KubeStateMetrics = Some kubeStateMetrics
+                    |}
+                }
     }
 
     /// Enables Workload Identity for the AKS cluster.

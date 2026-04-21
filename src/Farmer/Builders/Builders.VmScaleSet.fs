@@ -650,4 +650,174 @@ type VirtualMachineScaleSetBuilder() =
                 |> Some
     }
 
+    [<CustomOperation "rolling_upgrade_enable_cross_zone_upgrade">]
+    member _.RollingUpgradeEnableCrossZoneUpgrade(state: VmScaleSetConfig, enabled) = {
+        state with
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> {
+                    x with
+                        RollingUpgradePolicy =
+                            x.RollingUpgradePolicy
+                            |> Option.defaultValue VmssRollingUpgradePolicy.Default
+                            |> (fun x -> {
+                                x with
+                                    EnableCrossZoneUpgrade = Some enabled
+                            })
+                            |> Some
+                })
+                |> Some
+    }
+
+    [<CustomOperation "rolling_upgrade_max_batch_instance_percent">]
+    member _.RollingUpgradeMaxBatchInstancePercent(state: VmScaleSetConfig, percent: int) =
+        if percent < 5 || percent > 100 then
+            raiseFarmer $"rolling_upgrade_max_batch_instance_percent must be between 5 and 100, but was {percent}"
+
+        {
+            state with
+                UpgradePolicy =
+                    state.UpgradePolicy
+                    |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                    |> (fun x -> {
+                        x with
+                            RollingUpgradePolicy =
+                                x.RollingUpgradePolicy
+                                |> Option.defaultValue VmssRollingUpgradePolicy.Default
+                                |> (fun x -> {
+                                    x with
+                                        MaxBatchInstancePercent = Some percent
+                                })
+                                |> Some
+                    })
+                    |> Some
+        }
+
+    [<CustomOperation "rolling_upgrade_max_surge">]
+    member _.RollingUpgradeMaxSurge(state: VmScaleSetConfig, enabled) = {
+        state with
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> {
+                    x with
+                        RollingUpgradePolicy =
+                            x.RollingUpgradePolicy
+                            |> Option.defaultValue VmssRollingUpgradePolicy.Default
+                            |> (fun x -> { x with MaxSurge = Some enabled })
+                            |> Some
+                })
+                |> Some
+    }
+
+    [<CustomOperation "rolling_upgrade_max_unhealthy_instance_percent">]
+    member _.RollingUpgradeMaxUnhealthyInstancePercent(state: VmScaleSetConfig, percent: int) =
+        if percent < 5 || percent > 100 then
+            raiseFarmer $"rolling_upgrade_max_unhealthy_instance_percent must be between 5 and 100, but was {percent}"
+
+        {
+            state with
+                UpgradePolicy =
+                    state.UpgradePolicy
+                    |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                    |> (fun x -> {
+                        x with
+                            RollingUpgradePolicy =
+                                x.RollingUpgradePolicy
+                                |> Option.defaultValue VmssRollingUpgradePolicy.Default
+                                |> (fun x -> {
+                                    x with
+                                        MaxUnhealthyInstancePercent = Some percent
+                                })
+                                |> Some
+                    })
+                    |> Some
+        }
+
+    [<CustomOperation "rolling_upgrade_max_unhealthy_upgraded_instance_percent">]
+    member _.RollingUpgradeMaxUnhealthyUpgradedInstancePercent(state: VmScaleSetConfig, percent: int) =
+        if percent < 0 || percent > 100 then
+            raiseFarmer
+                $"rolling_upgrade_max_unhealthy_upgraded_instance_percent must be between 0 and 100, but was {percent}"
+
+        {
+            state with
+                UpgradePolicy =
+                    state.UpgradePolicy
+                    |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                    |> (fun x -> {
+                        x with
+                            RollingUpgradePolicy =
+                                x.RollingUpgradePolicy
+                                |> Option.defaultValue VmssRollingUpgradePolicy.Default
+                                |> (fun x -> {
+                                    x with
+                                        MaxUnhealthyUpgradedInstancePercent = Some percent
+                                })
+                                |> Some
+                    })
+                    |> Some
+        }
+
+    [<CustomOperation "rolling_upgrade_pause_time_between_batches">]
+    member _.RollingUpgradePauseTimeBetweenBatches(state: VmScaleSetConfig, duration: TimeSpan) = {
+        state with
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> {
+                    x with
+                        RollingUpgradePolicy =
+                            x.RollingUpgradePolicy
+                            |> Option.defaultValue VmssRollingUpgradePolicy.Default
+                            |> (fun x -> {
+                                x with
+                                    PauseTimeBetweenBatches = Some duration
+                            })
+                            |> Some
+                })
+                |> Some
+    }
+
+    [<CustomOperation "rolling_upgrade_prioritize_unhealthy_instances">]
+    member _.RollingUpgradePrioritizeUnhealthyInstances(state: VmScaleSetConfig, enabled) = {
+        state with
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> {
+                    x with
+                        RollingUpgradePolicy =
+                            x.RollingUpgradePolicy
+                            |> Option.defaultValue VmssRollingUpgradePolicy.Default
+                            |> (fun x -> {
+                                x with
+                                    PrioritizeUnhealthyInstances = Some enabled
+                            })
+                            |> Some
+                })
+                |> Some
+    }
+
+    [<CustomOperation "rolling_upgrade_rollback_failed_instances_on_policy_breach">]
+    member _.RollingUpgradeRollbackFailedInstancesOnPolicyBreach(state: VmScaleSetConfig, enabled) = {
+        state with
+            UpgradePolicy =
+                state.UpgradePolicy
+                |> Option.defaultValue ScaleSetUpgradePolicy.Default
+                |> (fun x -> {
+                    x with
+                        RollingUpgradePolicy =
+                            x.RollingUpgradePolicy
+                            |> Option.defaultValue VmssRollingUpgradePolicy.Default
+                            |> (fun x -> {
+                                x with
+                                    RollbackFailedInstancesOnPolicyBreach = Some enabled
+                            })
+                            |> Some
+                })
+                |> Some
+    }
+
 let vmss = VirtualMachineScaleSetBuilder()

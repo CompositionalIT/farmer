@@ -97,9 +97,7 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             let title =
-                jobj
-                    .SelectToken("resources[?(@.name=='myDashboard')].tags.hidden-title")
-                    .ToString()
+                jobj.SelectToken("resources[?(@.name=='myDashboard')].tags.hidden-title").ToString()
 
             Expect.equal title "Monitoring" "Incorrect title"
 
@@ -783,9 +781,7 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             let title =
-                jobj
-                    .SelectToken("resources[?(@.name=='Monitor-MyEnvironment')].tags.hidden-title")
-                    .ToString()
+                jobj.SelectToken("resources[?(@.name=='Monitor-MyEnvironment')].tags.hidden-title").ToString()
 
             Expect.equal title "Monitor-MyEnvironment" "Incorrect title"
 

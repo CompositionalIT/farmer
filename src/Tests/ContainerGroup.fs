@@ -592,7 +592,9 @@ async {
                         add_volume_mount "script" "/app/src"
                         command_line ("dotnet fsi /app/src/main.fsx".Split null |> List.ofArray)
 
-                        env_vars [ EnvVar.createSecureExpression "AZURE_STORAGE_CONNECTION_STRING" storage.Key ]
+                        env_vars [
+                            EnvVar.createSecureExpression "AZURE_STORAGE_CONNECTION_STRING" storage.ConnectionString
+                        ]
                     }
                 ]
 
@@ -621,7 +623,7 @@ async {
 
             Expect.equal
                 (firstEnvVar.["secureValue"] |> string)
-                "[concat('DefaultEndpointsProtocol=https;AccountName=containerdata1234;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'containerdata1234'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
+                "[concat('DefaultEndpointsProtocol=https;AccountName=containerdata1234;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'containerdata1234'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
                 "Incorrect env var expression value"
         }
         test "Container with liveness and readiness probes" {

@@ -276,32 +276,56 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='my37server/mydb22')].sku.name")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='my37server/mydb22')].sku.name").ToString())
                 "GP_S_Gen5"
                 "Not serverless name"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='my37server/mydb22')].sku.capacity")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='my37server/mydb22')].sku.capacity").ToString())
                 "4"
                 "Incorrect max capacity"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='my37server/mydb22')].properties.minCapacity")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='my37server/mydb22')].properties.minCapacity").ToString())
                 "2"
                 "Incorrect min capacity"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='my37server/mydb22')].properties.autoPauseDelay")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='my37server/mydb22')].properties.autoPauseDelay").ToString())
                 "-1"
                 "Incorrect autoPauseDelay"
+        }
+
+        test "Serverless sql supports fractional VCores (0.5 and 0.75)" {
+            let sql = sqlServer {
+                name "my38server"
+                admin_username "isaac"
+
+                add_databases [
+                    sqlDb {
+                        name "mydb23"
+                        sku (GeneralPurpose(S_Gen5(0.5, 1.0)))
+                    }
+                ]
+            }
+
+            let template = arm {
+                location Location.UKSouth
+                add_resources [ sql ]
+            }
+
+            let jsn = template.Template |> Writer.toJson
+            let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+            Expect.equal
+                (jobj.SelectToken("resources[?(@.name=='my38server/mydb23')].sku.capacity").ToString())
+                "1"
+                "Incorrect max capacity"
+
+            Expect.equal
+                (jobj.SelectToken("resources[?(@.name=='my38server/mydb23')].properties.minCapacity").ToString())
+                "0.5"
+                "Incorrect min capacity - should support fractional VCores"
         }
 
         test "Must set either SQL Server or AD authentication" {
@@ -352,8 +376,7 @@ let tests =
             let json = template.Template |> Writer.toJson |> JsonObject.Parse
 
             let azureAdOnlyAuth =
-                json.["resources"].[0].["properties"].["administrators"].["azureADOnlyAuthentication"]
-                    .GetValue()
+                json.["resources"].[0].["properties"].["administrators"].["azureADOnlyAuthentication"].GetValue()
 
             Expect.isFalse azureAdOnlyAuth "Should be mixed authetication."
         }
@@ -368,8 +391,7 @@ let tests =
             let json = template.Template |> Writer.toJson |> JsonObject.Parse
 
             let principalType =
-                json.["resources"].[0].["properties"].["administrators"].["principalType"]
-                    .GetValue()
+                json.["resources"].[0].["properties"].["administrators"].["principalType"].GetValue()
 
             Expect.equal principalType "User" "Principal type should be User"
         }
@@ -384,8 +406,7 @@ let tests =
             let json = template.Template |> Writer.toJson |> JsonObject.Parse
 
             let principalType =
-                json.["resources"].[0].["properties"].["administrators"].["principalType"]
-                    .GetValue()
+                json.["resources"].[0].["properties"].["administrators"].["principalType"].GetValue()
 
             Expect.equal principalType "Group" "Principal type should be Group"
         }

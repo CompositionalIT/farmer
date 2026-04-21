@@ -2,10 +2,9 @@
     <PropertyGroup>
         <!-- General -->
         <AssemblyName>Farmer</AssemblyName>
-        <Version>1.9.14</Version>
+        <Version>1.9.27</Version>
         <Description>Farmer makes authoring ARM templates easy!</Description>
-        <Copyright>Copyright 2019-2025 Compositional IT Ltd.</Copyright>
-        <Company>Compositional IT</Company>
+        <Copyright>Copyright 2019-2026 Compositional IT Ltd.</Copyright>
         <Authors>Isaac Abraham and contributors</Authors>
 
         <!-- Build settings -->
@@ -73,6 +72,7 @@
         <Compile Include="Arm/ManagedIdentity.fs" />
         <Compile Include="Arm/LogAnalytics.fs" />
         <Compile Include="Arm\Alert.fs" />
+        <Compile Include="Arm\AlertsManagement.fs" />
         <Compile Include="Arm/Storage.fs" />
         <Compile Include="Arm/Cache.fs" />
         <Compile Include="Arm/Cdn.fs" />
@@ -107,9 +107,11 @@
         <Compile Include="Arm/App.fs" />
         <Compile Include="Arm/Web.fs" />
         <Compile Include="Arm/Maps.fs" />
+        <Compile Include="Arm/Monitor.fs" />
         <Compile Include="Arm/SignalR.fs" />
         <Compile Include="Arm/EventGrid.fs" />
         <Compile Include="Arm/NetworkSecurityGroup.fs" />
+        <Compile Include="Arm/NetworkManager.fs" />
         <Compile Include="Arm/DeploymentScript.fs" />
         <Compile Include="Arm/Databricks.fs" />
         <Compile Include="Arm/VirtualWan.fs" />
@@ -126,6 +128,8 @@
         <Compile Include="Builders/Extensions.fs" />
         <Compile Include="Builders\Builders.ActionGroup.fs" />
         <Compile Include="Builders\Builders.AutoscaleSettings.fs" />
+        <Compile Include="Builders/Builders.AlertsManagement.fs" />
+        <Compile Include="Builders/Builders.AzureMonitor.fs" />
         <Compile Include="Builders\Builders.B2cTenant.fs" />
         <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
         <Compile Include="Builders/Builders.ResourceGroup.fs" />
@@ -153,6 +157,7 @@
         <Compile Include="Builders\Builders.NatGateway.fs" />
         <Compile Include="Builders\Builders.NetworkSecurityGroup.fs" />
         <Compile Include="Builders\Builders.RouteTable.fs" />
+        <Compile Include="Builders\Builders.NetworkManager.fs" />
         <Compile Include="Builders/Builders.VirtualNetwork.fs" />
         <Compile Include="Builders\Builders.LoadBalancer.fs" />
         <Compile Include="Builders/Builders.Vm.fs" />

@@ -85,9 +85,36 @@ The Container builder (`container`) is used to define one or more containers for
 | name | Sets the name of the container. |
 | public_docker_image | Sets a public container image. |
 | private_docker_image | Sets a private container image. |
-| cpu_cores | Specifies the CPU cores allocated to the container (maximum 2.0). |
-| memory | Specifies the memory in gigabytes allocated to the container (maximum 4.0). |
+| resources | Sets both CPU and memory for the container using a valid consumption plan resource allocation. Use this for consumption plans to ensure only supported combinations are used. |
+| cpu_cores | Specifies the CPU cores allocated to the container (maximum 2.0). Use this for dedicated plans where any combination is valid. |
+| memory | Specifies the memory in gigabytes allocated to the container (maximum 4.0). Use this for dedicated plans where any combination is valid. |
 | add_volume_mount | Adds a volume mount on a container from a volume in the container app. |
+| set_probe | Adds a health probe of the given type, with the given protocol, at the given route, with the given port |
+
+##### Consumption Plan Resource Allocations
+
+For containers on consumption plans, use the `resources` operation with a `ContainerApp.ConsumptionPlanResources` value to select a valid CPU and memory combination:
+
+| Case | CPU (vCores) | Memory (Gi) |
+|-|-|-|
+| `ConsumptionPlanResources.Cores0_25` | 0.25 | 0.5 |
+| `ConsumptionPlanResources.Cores0_5` | 0.5 | 1.0 |
+| `ConsumptionPlanResources.Cores0_75` | 0.75 | 1.5 |
+| `ConsumptionPlanResources.Cores1_0` | 1.0 | 2.0 |
+| `ConsumptionPlanResources.Cores1_25` | 1.25 | 2.5 |
+| `ConsumptionPlanResources.Cores1_5` | 1.5 | 3.0 |
+| `ConsumptionPlanResources.Cores1_75` | 1.75 | 3.5 |
+| `ConsumptionPlanResources.Cores2_0` | 2.0 | 4.0 |
+| `ConsumptionPlanResources.Cores2_25` | 2.25 | 4.5 |
+| `ConsumptionPlanResources.Cores2_5` | 2.5 | 5.0 |
+| `ConsumptionPlanResources.Cores2_75` | 2.75 | 5.5 |
+| `ConsumptionPlanResources.Cores3_0` | 3.0 | 6.0 |
+| `ConsumptionPlanResources.Cores3_25` | 3.25 | 6.5 |
+| `ConsumptionPlanResources.Cores3_5` | 3.5 | 7.0 |
+| `ConsumptionPlanResources.Cores3_75` | 3.75 | 7.5 |
+| `ConsumptionPlanResources.Cores4_0` | 4.0 | 8.0 |
+
+> See [Azure Container Apps documentation](https://learn.microsoft.com/en-us/azure/container-apps/containers#allocations) for more details on supported allocations.
 
 #### Dapr Component Builder
 The Dapr Component builder (`daprComponent`) is used to define one or more dapr components for a container environment.
@@ -113,6 +140,7 @@ The Dapr Component builder (`daprComponent`) is used to define one or more dapr 
 open Farmer
 open Farmer.Builders
 open Farmer.Arm
+open Farmer.ContainerApp
 
 let storageName = $"{Guid.NewGuid().ToString().[0..5]}containerqueue"
 let myStorageAccount = storageAccount {
@@ -136,14 +164,15 @@ containerEnvironment {
                 container {
                     name "myservice1"
                     public_docker_image containerRegistryDomain containerRegistry "myimage1" version
-                    memory 0.2<Gb>
+                    // Use 'resources' with a ConsumptionPlanResources value for consumption plans
+                    // to ensure a valid CPU/memory combination is selected at compile time.
+                    resources ConsumptionPlanResources.Cores0_25
                     add_volume_mounts [ "empty-v", "/tmp" ]
                }
                 container {
                     name "myservice2"
                     public_docker_image containerRegistryDomain containerRegistry "myimage2" version
-                    cpu_cores 0.5<VCores>
-                    memory 1.0<Gb>
+                    resources ConsumptionPlanResources.Cores0_5
                     add_volume_mounts [ "certs-v", "/certs" ]
                 }
             ]

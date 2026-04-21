@@ -410,12 +410,12 @@ let tests =
                 StorageAccount.getConnectionString (StorageAccountName.Create("account").OkValue, "rg")
 
             Expect.equal
-                "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)"
+                "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)"
                 strongConn.Value
                 "Strong connection string"
 
             Expect.equal
-                "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('rg', 'Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)"
+                "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('rg', 'Microsoft.Storage/storageAccounts', 'account'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)"
                 rgConn.Value
                 "Complex connection string"
         }
@@ -456,7 +456,7 @@ let tests =
 
             Expect.equal
                 builder.WebsitePrimaryEndpoint.Value
-                "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2022-05-01').primaryEndpoints.web"
+                "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2025-06-01').primaryEndpoints.web"
                 "Zone names are not fixed and should be related to a storage account name"
         }
         test "Creates different SKU kinds correctly" {
@@ -839,9 +839,7 @@ let tests =
                 "network acl should not define ip restrictions"
 
             Expect.isEmpty
-                (jobj
-                    .SelectToken("resources[0].properties.networkAcls.virtualNetworkRules")
-                    .Values<string>())
+                (jobj.SelectToken("resources[0].properties.networkAcls.virtualNetworkRules").Values<string>())
                 "network acl should not define vnet restrictions"
 
             Expect.equal
@@ -937,9 +935,7 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[0].properties.defaultToOAuthAuthentication")
-                    .ToString())
+                (jobj.SelectToken("resources[0].properties.defaultToOAuthAuthentication").ToString())
                 "true"
                 "default to OAuth should be enabled"
         }
@@ -958,10 +954,28 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[0].properties.defaultToOAuthAuthentication")
-                    .ToString())
+                (jobj.SelectToken("resources[0].properties.defaultToOAuthAuthentication").ToString())
                 "false"
                 "default to OAuth should be disabled"
+        }
+        test "AccountKey returns just the storage account key" {
+            let account = storageAccount { name "account" }
+
+            let accountKeyExpression = account.AccountKey.Value
+
+            Expect.equal
+                accountKeyExpression
+                "listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2025-06-01').keys[0].value"
+                "AccountKey should return only the key"
+        }
+        test "ConnectionString returns the full connection string" {
+            let account = storageAccount { name "account" }
+
+            let connectionStringExpression = account.ConnectionString.Value
+
+            Expect.equal
+                connectionStringExpression
+                "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)"
+                "ConnectionString should return the full connection string"
         }
     ]

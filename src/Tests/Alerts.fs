@@ -38,10 +38,7 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             let isenabled =
-                jobj
-                    .SelectToken("resources[?(@.name=='myVmAlert2')].properties.enabled")
-                    .ToString()
-                    .ToLower()
+                jobj.SelectToken("resources[?(@.name=='myVmAlert2')].properties.enabled").ToString().ToLower()
 
             Expect.equal isenabled "true" "Webtest not enabled"
         }
@@ -97,9 +94,7 @@ let tests =
             Expect.isNotNull allOf "allOf not found"
 
             let targ =
-                jobj
-                    .SelectToken("resources[?(@.name=='myDbAlert')].properties.targetResourceType")
-                    .ToString()
+                jobj.SelectToken("resources[?(@.name=='myDbAlert')].properties.targetResourceType").ToString()
 
             Expect.equal targ Farmer.Arm.Sql.databases.Type "Wrong target resource type"
         }
@@ -137,9 +132,7 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             let freq =
-                jobj
-                    .SelectToken("resources[?(@.name=='myWebAlert')].properties.evaluationFrequency")
-                    .ToString()
+                jobj.SelectToken("resources[?(@.name=='myWebAlert')].properties.evaluationFrequency").ToString()
 
             Expect.equal freq "PT1M" "Wrong frequency"
         }
@@ -188,9 +181,7 @@ let tests =
                 "Wrong value of skipMetricValidation"
 
             let targ =
-                jobj
-                    .SelectToken($"resources[?(@.name=='{alertName}')].properties.targetResourceType")
-                    .ToString()
+                jobj.SelectToken($"resources[?(@.name=='{alertName}')].properties.targetResourceType").ToString()
 
             Expect.equal targ Farmer.Arm.Insights.components.Type "Wrong target resource type"
         }
