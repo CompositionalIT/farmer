@@ -1,0 +1,33 @@
+name: Build, test and package
+on:
+  pull_request:
+  push:
+    branches: [ master ]
+    paths: [ 'src/**', '*.md', '*.png', 'LICENSE', 'Farmer.sln' ]
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+jobs:
+  CI:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Restore .NET Tools
+        run: dotnet tool restore
+      - name: Fantomas Syntax Check
+        run: dotnet fantomas src -r --check
+      - name: Build Farmer
+        run: dotnet build -c release
+      - name: Run Tests
+        run: dotnet test -c release -l trx --collect:"XPlat Code Coverage"
+      - name: Create NuGet Package
+        run: dotnet pack ./src/Farmer --verbosity minimal --configuration Release
+      - name: Upload NuGet Package
+        uses: actions/upload-artifact@v3
+        with:
+          name: farmer-package
+          path: src/Farmer/bin/Release/Farmer*nupkg
