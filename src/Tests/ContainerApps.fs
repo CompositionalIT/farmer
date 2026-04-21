@@ -362,6 +362,16 @@ let tests =
                 "/certs"
                 "Incorrect container volume mount"
 
+            let sbScaleRuleMetadata =
+                serviceBusContainerApp.SelectToken(
+                    "properties.template.scale.rules[0].custom.metadata"
+                )
+
+            Expect.isNotNull sbScaleRuleMetadata "service bus scale rule metadata was null"
+            Expect.equal (sbScaleRuleMetadata["queueName"] |> string) "wishrequests" "Incorrect service bus scale rule queueName"
+            Expect.equal (sbScaleRuleMetadata["messageCount"] |> string) "5" "Incorrect service bus scale rule messageCount"
+            Expect.equal (sbScaleRuleMetadata["namespace"] |> string) "servicebus" "Incorrect service bus scale rule namespace"
+
             let azureQueueContainerApp = jobj.SelectToken("resources[?(@.name=='azurequeue')]")
             Expect.isNotNull azureQueueContainerApp "resources[?(@.name=='azurequeue')] was null"
 
