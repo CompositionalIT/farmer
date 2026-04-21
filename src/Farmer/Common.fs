@@ -1,4 +1,4 @@
-﻿namespace Farmer
+namespace Farmer
 
 open System
 
@@ -1925,6 +1925,25 @@ module ContainerRegistry =
         | Basic
         | Standard
         | Premium
+
+    /// Public network access option for Container Registry
+    type PublicNetworkAccess =
+        | Enabled
+        | Disabled
+
+    /// Network rule action
+    type NetworkRuleAction =
+        | Allow
+        | Deny
+
+    /// IP rule for Container Registry
+    type IPRule = { Value: string }
+
+    /// Network rule set for Container Registry
+    type NetworkRuleSet = {
+        DefaultAction: NetworkRuleAction
+        IpRules: IPRule list
+    }
 
 module ContainerRegistryValidation =
     open Validation

@@ -63,6 +63,17 @@ let shouldHaveAdminUserDisabled (r: RegistryJson) =
     Expect.isFalse b "adminUserEnabled was expected to be disabled"
     r
 
+let shouldHavePublicNetworkAccessDisabled (r: RegistryJson) =
+    let value = resource(r).properties.["publicNetworkAccess"].GetString()
+    Expect.equal value "Disabled" "publicNetworkAccess should be Disabled"
+    r
+
+let shouldHaveIpRules count (r: RegistryJson) =
+    let rules = resource(r).properties.["networkRuleSet"].GetProperty("ipRules")
+    let actualCount = rules.GetArrayLength()
+    Expect.equal actualCount count $"Expected {count} IP rules but found {actualCount}"
+    r
+
 let tests =
     testList "Container Registry" [
         test "Basic resource settings are written to template resource" {
@@ -72,7 +83,7 @@ let tests =
             }
             |> whenWritten
             |> shouldHaveType "Microsoft.ContainerRegistry/registries"
-            |> shouldHaveApiVersion "2019-05-01"
+            |> shouldHaveApiVersion "2023-07-01"
             |> shouldHaveName "validContainerRegistryName"
             |> shouldHaveSku Premium
             |> shouldHaveALocation
@@ -87,6 +98,39 @@ let tests =
             }
             |> whenWritten
             |> shouldHaveAdminUserEnabled
+            |> ignore
+        }
+
+        test "Disabling public network access sets property correctly" {
+            containerRegistry {
+                name "secureRegistry"
+                sku Premium
+                disable_public_network_access
+            }
+            |> whenWritten
+            |> shouldHavePublicNetworkAccessDisabled
+            |> ignore
+        }
+
+        test "Adding IP rules creates network rule set" {
+            containerRegistry {
+                name "restrictedRegistry"
+                sku Premium
+                add_ip_rules [ "203.0.113.0/24"; "198.51.100.5" ]
+            }
+            |> whenWritten
+            |> shouldHaveIpRules 2
+            |> ignore
+        }
+
+        test "Single IP rule can be added" {
+            containerRegistry {
+                name "singleIpRegistry"
+                sku Premium
+                add_ip_rule "203.0.113.10"
+            }
+            |> whenWritten
+            |> shouldHaveIpRules 1
             |> ignore
         }
 
