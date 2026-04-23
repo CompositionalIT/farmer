@@ -76,7 +76,7 @@ let customFunction = functions {
 
 | Setting | Recommended | How to Set | Why |
 |---------|-------------|------------|-----|
-| **Sampling** | Adjust for traffic | `production_sampling` (20%) or custom | Reduce costs while maintaining visibility. Azure samples intelligently - all errors are always captured. |
+| **Sampling** | Adjust for traffic | `production_sampling` (20%) or custom | Reduce costs while maintaining visibility. Sampling reduces telemetry volume; consider increasing or adjusting sampling if you need more complete visibility. |
 | **Log Analytics** | Recommended | `log_analytics_workspace` | Better retention and queries |
 
 ## Cost Optimization
