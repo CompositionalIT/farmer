@@ -858,4 +858,51 @@ let tests =
                 let site = app |> getResources |> getResource<Web.Site> |> List.head
                 Expect.equal site.NetFrameworkVersion.Value expectedVersion "Wrong netFrameworkVersion"
             }
+
+        test "production_defaults enforces HTTPS" {
+            let f: Site =
+                functions {
+                    name "prodfunc"
+                    production_defaults
+                }
+                |> getResourceAtIndex 3
+
+            Expect.equal f.HttpsOnly (Nullable true) "HTTPS should be enforced"
+        }
+
+        test "production_defaults sets scale limit for Consumption plan" {
+            let f =
+                functions {
+                    name "prodfunc2"
+                    production_defaults
+                }
+                :> IBuilder
+
+            let site = f.BuildResources Location.NorthEurope |> List.item 3 :?> Web.Site
+            Expect.equal site.FunctionAppScaleLimit (Some 100) "Should set scale limit to 100 for Consumption plan"
+        }
+
+        test "production_defaults does not enable AlwaysOn for Consumption plan" {
+            let f: Site =
+                functions {
+                    name "prodfunc3"
+                    production_defaults
+                }
+                |> getResourceAtIndex 3
+
+            Expect.equal f.SiteConfig.AlwaysOn (Nullable false) "AlwaysOn should not be enabled for Consumption plan"
+        }
+
+        test "production_defaults can be overridden" {
+            let f =
+                functions {
+                    name "prodfunc4"
+                    production_defaults
+                    max_scale_out_limit 200
+                }
+                :> IBuilder
+
+            let site = f.BuildResources Location.NorthEurope |> List.item 3 :?> Web.Site
+            Expect.equal site.FunctionAppScaleLimit (Some 200) "Should allow overriding scale limit"
+        }
     ]

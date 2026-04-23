@@ -554,6 +554,33 @@ type FunctionsBuilder() =
             FunctionAppScaleLimit = Some limit
     }
 
+    /// Applies production-ready defaults: AlwaysOn (if not Consumption), HTTPS enforcement, scale limit
+    [<CustomOperation "production_defaults">]
+    member _.ProductionDefaults(state: FunctionsConfig) =
+        let isConsumptionPlan =
+            match state.CommonWebConfig.Sku with
+            | Dynamic -> true
+            | _ -> false
+
+        let scaleLimit =
+            match state.FunctionAppScaleLimit with
+            | None when isConsumptionPlan -> Some 100 // Prevent runaway costs
+            | existing -> existing
+
+        {
+            state with
+                CommonWebConfig = {
+                    state.CommonWebConfig with
+                        AlwaysOn =
+                            if isConsumptionPlan then
+                                false // Not supported on Consumption
+                            else
+                                true // Enable for Premium/Dedicated
+                        HTTPSOnly = true
+                }
+                FunctionAppScaleLimit = scaleLimit
+        }
+
     interface ITaggable<FunctionsConfig> with
         member _.Add state tags = {
             state with
