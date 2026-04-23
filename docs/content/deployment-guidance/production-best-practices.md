@@ -131,12 +131,9 @@ let production = functions {
 ```fsharp
 let prodInsights = appInsights {
     name "high-traffic-api-ai"
-    production_sampling  // 20% - Azure intelligently samples (all errors always captured)
+    production_sampling  // 20% - Azure intelligently samples to reduce telemetry volume
     log_analytics_workspace myWorkspace
 }
-```
-
-> **Note**: Application Insights uses adaptive sampling that always captures errors and exceptions, regardless of the sampling percentage. The sampling applies primarily to successful requests. For more control, see [Configure sampling](https://learn.microsoft.com/en-us/azure/azure-monitor/app/sampling).
 
 ### Development
 ```fsharp
