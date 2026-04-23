@@ -101,10 +101,6 @@ type AppInsightsBuilder() =
             raiseFarmer "Sampling Percentage cannot be higher than 100%"
         elif state.SamplingPercentage <= 0 then
             raiseFarmer "Sampling Percentage cannot be lower than or equal to 0%"
-        elif state.SamplingPercentage = 100 then
-            printfn
-                "Warning: [%s] App Insights sampling at 100%%. For high-traffic production apps, consider 'production_sampling' (20%%) to reduce costs."
-                state.Name.Value
 
         state
 
