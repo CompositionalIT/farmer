@@ -497,14 +497,6 @@ type FunctionsBuilder() =
 
         match state.FunctionAppScaleLimit with
         | Some limit when limit < 1 || limit > 200 -> raiseFarmer "Max scale out limit can only be 1-200"
-        | None ->
-            // Warn about unbounded scaling on Consumption plan
-            match state.CommonWebConfig.Sku with
-            | Dynamic ->
-                printfn
-                    "Warning: [%s] Consider setting 'max_scale_out_limit 100' to prevent runaway costs on Consumption plan"
-                    state.Name.ResourceName.Value
-            | _ -> ()
         | _ -> ()
 
         state.CommonWebConfig.Validate()
