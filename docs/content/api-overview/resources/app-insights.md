@@ -62,4 +62,4 @@ let devInsights = appInsights {
 }
 ```
 
-> **Note**: Farmer will warn you if you set sampling to 100% for production workloads, as this can be expensive for high-traffic applications.
+> **Note**: Setting sampling to `100%` can be expensive for high-traffic applications. Use `production_sampling` for production workloads where you want to reduce Application Insights costs.
