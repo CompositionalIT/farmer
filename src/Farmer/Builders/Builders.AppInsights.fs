@@ -77,7 +77,9 @@ type AppInsightsBuilder() =
             SamplingPercentage = samplingPercentage
     }
 
-    /// Sets sampling to 20% - recommended for high-traffic production apps (keeps all errors, samples successes)
+    /// Sets sampling to 20% - commonly recommended for high-traffic production apps to reduce telemetry volume and costs.
+    /// This typically preserves better signal for failures than for routine successful traffic, but does not guarantee that every error will be retained.
+    /// See https://learn.microsoft.com/azure/azure-monitor/app/sampling for details on Application Insights sampling behavior.
     [<CustomOperation "production_sampling">]
     member _.ProductionSampling(state: AppInsightsConfig) = { state with SamplingPercentage = 20 }
 
