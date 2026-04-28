@@ -191,6 +191,7 @@ type EventGridConfig<'T> = {
             Endpoint: EndpointType
             SystemEvents: EventGridEvent<'T> list
         |} list
+    EventDeliverySchema: EventDeliverySchema option
     Tags: Map<string, string>
 } with
 
@@ -213,6 +214,7 @@ type EventGridConfig<'T> = {
                     Destination = sub.Destination
                     DestinationEndpoint = sub.Endpoint
                     Events = sub.SystemEvents
+                    EventDeliverySchema = this.EventDeliverySchema
                 }
         ]
 
@@ -221,6 +223,7 @@ type EventGridBuilder() =
         TopicName = state.TopicName
         Source = source, topic
         Subscriptions = []
+        EventDeliverySchema = None
         Tags = Map.empty
     }
 
@@ -243,6 +246,7 @@ type EventGridBuilder() =
         TopicName = ResourceName.Empty
         Source = ResourceName("[resourceGroup().name]"), Topics.ResourceGroup
         Subscriptions = []
+        EventDeliverySchema = None
         Tags = Map.empty
     }
 
@@ -372,6 +376,50 @@ type EventGridBuilder() =
 
         let name = sprintf $"%s{bus.Name.Value}-servicebus-topic"
         EventGridBuilder.AddSub(state, name, topic.Name, endpoint, events)
+
+    [<CustomOperation "event_delivery_schema">]
+    member _.EventDeliverySchema(state: EventGridConfig<'T>, schema: EventDeliverySchema) = {
+        state with
+            EventDeliverySchema = Some schema
+    }
+
+    [<CustomOperation "add_monitor_alert_subscriber">]
+    member _.AddMonitorAlertSubscription
+        (
+            state: EventGridConfig<'T>,
+            actionGroups: ActionGroupConfig list,
+            severity: MonitorAlertSeverity,
+            events: EventGridEvent<_> list
+        ) =
+        let ids =
+            actionGroups
+            |> List.map (fun ag -> Arm.ActionGroups.actionGroups.resourceId ag.Name)
+
+        let endpoint =
+            MonitorAlert {
+                ActionGroups = ids
+                Severity = severity
+            }
+
+        let destination = actionGroups |> List.head |> (fun ag -> ag.Name)
+        EventGridBuilder.AddSub(state, destination.Value + "-monitor-alert", destination, endpoint, events)
+
+    [<CustomOperation "add_monitor_alert_subscriber">]
+    member _.AddMonitorAlertSubscription
+        (
+            state: EventGridConfig<'T>,
+            actionGroupIds: ResourceId list,
+            severity: MonitorAlertSeverity,
+            events: EventGridEvent<_> list
+        ) =
+        let endpoint =
+            MonitorAlert {
+                ActionGroups = actionGroupIds
+                Severity = severity
+            }
+
+        let destination = actionGroupIds |> List.head |> (fun id -> id.Name)
+        EventGridBuilder.AddSub(state, destination.Value + "-monitor-alert", destination, endpoint, events)
 
     [<CustomOperation "add_tags">]
     member _.Tags(state: EventGridConfig<'T>, pairs) = {
