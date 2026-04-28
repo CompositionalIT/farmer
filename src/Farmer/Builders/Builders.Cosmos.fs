@@ -73,6 +73,8 @@ type CosmosDbConfig = {
     DbName: ResourceName
     DbThroughput: Throughput
     Containers: CosmosDbContainerConfig list
+    BackupRetention: BackupRetention option
+    IpRules: string list
     PublicNetworkAccess: FeatureFlag
     FreeTier: bool
     Tags: Map<string, string>
@@ -116,9 +118,12 @@ type CosmosDbConfig = {
                 Serverless =
                     match this.DbThroughput with
                     | Serverless -> Enabled
-                    | Provisioned _ -> Disabled
+                    | Provisioned _
+                    | Autoscale _ -> Disabled
                 PublicNetworkAccess = this.PublicNetworkAccess
                 FailoverPolicy = this.AccountFailoverPolicy
+                BackupRetention = this.BackupRetention
+                IpRules = this.IpRules
                 FreeTier = this.FreeTier
                 Tags = this.Tags
               }
@@ -242,6 +247,8 @@ type CosmosDbBuilder() =
         AccountFailoverPolicy = NoFailover
         DbThroughput = Provisioned 400<RU>
         Containers = []
+        BackupRetention = None
+        IpRules = []
         PublicNetworkAccess = Enabled
         FreeTier = false
         Tags = Map.empty
@@ -352,6 +359,24 @@ type CosmosDbBuilder() =
     /// Enables the use of CosmosDB free tier (one per subscription).
     [<CustomOperation "free_tier">]
     member _.FreeTier(state: CosmosDbConfig) = { state with FreeTier = true }
+
+    /// Sets the continuous backup retention policy for the account.
+    [<CustomOperation "backup_retention">]
+    member _.BackupRetention(state: CosmosDbConfig, retention: BackupRetention) = {
+        state with
+            BackupRetention = Some retention
+    }
+
+    /// Adds an IP address or CIDR range to the account firewall allowlist.
+    [<CustomOperation "add_firewall_rule">]
+    member _.AddFirewallRule(state: CosmosDbConfig, ipAddressOrRange: string) = {
+        state with
+            IpRules = state.IpRules @ [ ipAddressOrRange ]
+    }
+
+    /// Adds a firewall rule that enables access from other Azure services (0.0.0.0).
+    [<CustomOperation "enable_azure_firewall">]
+    member this.EnableAzureFirewall(state: CosmosDbConfig) = this.AddFirewallRule(state, "0.0.0.0")
 
     interface ITaggable<CosmosDbConfig> with
         member _.Add state tags = {
