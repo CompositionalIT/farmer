@@ -16,10 +16,12 @@ The Event Grid is a simple but powerful builder that links events from Azure ser
 |-|-|
 | topic_name | The name of the topic that will be created. |
 | source | Optional, defaults to the current resource group. The source of the events. See below for the full list of builder configurations that are supported. |
+| event_delivery_schema | Optional. Sets the event delivery schema for all subscriptions on this topic. Valid values: `EventGridSchema` (default), `CloudEventSchemaV1_0`, `CustomInputSchema`. |
 | add_queue_subscriber | Adds a new storage queue subscriber. Requires the storage account config that will receive the events, the queue name and the list of events to subscribe to. |
 | add_webhook_subscriber| Adds a new webhook (HTTP) subscriber. Requires the web app config that will receive the event, associated URI local path and the list of events to subscribe to. Also contains an overload that takes in a Web App name and the full Uri of the webhook. |
 | add_eventhub_subscriber| Adds a new event hub subscriber. Requires the event hub builder config that will receive the events and the list of events to subscribe to. |
 | add_function_subscriber| Adds a new Azure Functions subscriber. Requires the function app, the handler name and the list of events to subscribe to. |
+| add_monitor_alert_subscriber | Adds a new Azure Monitor Alert subscriber. Requires a list of action groups (either `ActionGroupConfig` list or `ResourceId` list), a severity level (`Sev0`–`Sev4`), and the list of events to subscribe to. |
 
 ### Supported Sources
 Farmer supports the following Event Grid sources using Farmer builders:
@@ -36,15 +38,58 @@ Farmer supports the following Event Grid sources using Farmer builders:
 | [IotHub](iot-hub) | SystemEvents.IotHub |
 | [EventHub](eventhub) | SystemEvents.EventHub |
 
-### Suported Destinations
+### Supported Destinations
 
-* EventHub (`add_eventhub_subscriber`),
-* StorageQueue (`add_queue_subscriber`),
-* WebHook (`add_webhook_subscriber`),
-* ServiceBus Queue (`add_servicebus_queue_subscriber`),
-* ServiceBus Topic (`add_servicebus_topic_subscriber`).
+* EventHub (`add_eventhub_subscriber`)
+* StorageQueue (`add_queue_subscriber`)
+* WebHook (`add_webhook_subscriber`)
+* ServiceBus Queue (`add_servicebus_queue_subscriber`)
+* ServiceBus Topic (`add_servicebus_topic_subscriber`)
+* Azure Monitor Alert (`add_monitor_alert_subscriber`)
 
-#### Example
+#### Examples
+
+The following sample routes Key Vault secret expiry events to Azure Monitor Alerts using the CloudEvent schema:
+
+```fsharp
+open Farmer
+open Farmer.Builders
+open Farmer.Arm.EventGrid
+
+let myKeyVault = keyVault { name "mykeyvault" }
+
+// Reference an existing action group by resource ID
+let actionGroupId =
+    Arm.ActionGroups.actionGroups.resourceId (ResourceName "myActionGroup")
+
+let kvExpiryGrid = eventGrid {
+    topic_name "kv-expiry-topic"
+    source myKeyVault
+    event_delivery_schema CloudEventSchemaV1_0
+    add_monitor_alert_subscriber
+        [ actionGroupId ]
+        Sev3
+        [ SystemEvents.KeyVault.SecretNearExpiry
+          SystemEvents.KeyVault.SecretExpired ]
+}
+```
+
+Alternatively, reference a Farmer-managed action group directly:
+
+```fsharp
+let alertGroup = actionGroup {
+    name "myActionGroup"
+    short_name "myAG"
+}
+
+let kvExpiryGrid = eventGrid {
+    topic_name "kv-expiry-topic"
+    source myKeyVault
+    event_delivery_schema CloudEventSchemaV1_0
+    add_monitor_alert_subscriber [ alertGroup ] Sev3 [ SystemEvents.KeyVault.SecretNearExpiry ]
+}
+```
+
 The following sample creates a source storage account that emits events on the event grid topic, whilst two destinations are created: an event hub and a storage queue, each listening for different events.
 
 ```fsharp

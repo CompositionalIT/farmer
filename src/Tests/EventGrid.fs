@@ -4,7 +4,9 @@ open Expecto
 open Farmer
 open Farmer.Builders
 open Farmer.Arm
+open Farmer.Arm.EventGrid
 open Microsoft.Rest
+open Newtonsoft.Json.Linq
 open System
 
 let tests =
@@ -141,5 +143,132 @@ let tests =
                 "Incorrect endpoint type"
 
             Expect.equal sub.Destination t.Name "Incorrect destination"
+        }
+        test "Creates a monitor alert subscriber with ResourceId list correctly" {
+            let actionGroupId =
+                Arm.ActionGroups.actionGroups.resourceId (ResourceName "myActionGroup")
+
+            let kv = keyVault { name "mykv" }
+
+            let grid = eventGrid {
+                topic_name "my-topic"
+                source kv
+
+                add_monitor_alert_subscriber [ actionGroupId ] MonitorAlertSeverity.Sev3 [
+                    SystemEvents.KeyVault.SecretNearExpiry
+                    SystemEvents.KeyVault.SecretExpired
+                ]
+            }
+
+            let sub = grid.Subscriptions.[0]
+
+            Expect.equal
+                sub.Name
+                (ResourceName "myActionGroup-myActionGroup-monitor-alert")
+                "Incorrect subscription name"
+
+            Expect.equal
+                sub.Endpoint
+                (EndpointType.MonitorAlert {
+                    ActionGroups = [ actionGroupId ]
+                    Severity = MonitorAlertSeverity.Sev3
+                })
+                "Incorrect endpoint type"
+        }
+        test "Creates a monitor alert subscriber with ActionGroupConfig correctly" {
+            let ag = actionGroup {
+                name "myActionGroup"
+                short_name "myAG"
+            }
+
+            let kv = keyVault { name "mykv" }
+
+            let grid = eventGrid {
+                topic_name "my-topic"
+                source kv
+                add_monitor_alert_subscriber [ ag ] MonitorAlertSeverity.Sev2 [ SystemEvents.KeyVault.SecretExpired ]
+            }
+
+            let sub = grid.Subscriptions.[0]
+
+            let expectedId =
+                Arm.ActionGroups.actionGroups.resourceId (ResourceName "myActionGroup")
+
+            Expect.equal
+                sub.Endpoint
+                (EndpointType.MonitorAlert {
+                    ActionGroups = [ expectedId ]
+                    Severity = MonitorAlertSeverity.Sev2
+                })
+                "Incorrect endpoint type"
+        }
+        test "Event delivery schema is set on all subscription ARM resources" {
+            let kv = keyVault { name "mykv" }
+
+            let actionGroupId =
+                Arm.ActionGroups.actionGroups.resourceId (ResourceName "myActionGroup")
+
+            let grid = eventGrid {
+                topic_name "my-topic"
+                source kv
+                event_delivery_schema CloudEventSchemaV1_0
+
+                add_monitor_alert_subscriber [ actionGroupId ] MonitorAlertSeverity.Sev3 [
+                    SystemEvents.KeyVault.SecretNearExpiry
+                ]
+            }
+
+            Expect.equal grid.EventDeliverySchema (Some CloudEventSchemaV1_0) "Incorrect delivery schema on config"
+
+            let resources = (grid :> IBuilder).BuildResources Location.WestEurope
+
+            let sub =
+                resources
+                |> List.pick (fun r ->
+                    match r with
+                    | :? Subscription<KeyVaultEvent> as s -> Some s
+                    | _ -> None)
+
+            Expect.equal sub.EventDeliverySchema (Some CloudEventSchemaV1_0) "Incorrect delivery schema on ARM resource"
+        }
+        test "Monitor alert subscriber generates correct JSON" {
+            let kv = keyVault { name "mykv" }
+
+            let actionGroupId =
+                Arm.ActionGroups.actionGroups.resourceId (ResourceName "myActionGroup")
+
+            let grid = eventGrid {
+                topic_name "my-topic"
+                source kv
+                event_delivery_schema CloudEventSchemaV1_0
+
+                add_monitor_alert_subscriber [ actionGroupId ] MonitorAlertSeverity.Sev3 [
+                    SystemEvents.KeyVault.SecretNearExpiry
+                    SystemEvents.KeyVault.SecretExpired
+                ]
+            }
+
+            let json = (arm { add_resource grid }).Template |> Writer.toJson
+            let jobj = JObject.Parse json
+
+            let sub =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.EventGrid/systemTopics/eventSubscriptions')]"
+
+            Expect.isNotNull sub "Event subscription resource not found"
+
+            let endpointType = sub.SelectToken "properties.destination.endpointType"
+            Expect.equal (endpointType.Value<string>()) "MonitorAlert" "Incorrect endpointType"
+
+            let severity = sub.SelectToken "properties.destination.properties.severity"
+            Expect.equal (severity.Value<string>()) "Sev3" "Incorrect severity"
+
+            let schema = sub.SelectToken "properties.eventDeliverySchema"
+            Expect.equal (schema.Value<string>()) "CloudEventSchemaV1_0" "Incorrect eventDeliverySchema"
+
+            let actionGroups =
+                sub.SelectToken "properties.destination.properties.actionGroups" :?> JArray
+
+            Expect.isNotNull actionGroups "Action groups not found"
+            Expect.equal actionGroups.Count 1 "Incorrect action group count"
         }
     ]

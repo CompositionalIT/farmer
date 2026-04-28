@@ -1,6 +1,11 @@
 Release Notes
 =============
 
+## 1.9.29
+* Event Grid: Bump API version from `2022-06-15` to `2025-02-15`.
+* Event Grid: Add `MonitorAlert` endpoint type for event subscriptions with configurable action groups and severity (Sev0–Sev4).
+* Event Grid: Add `event_delivery_schema` keyword to configure the event delivery schema (EventGridSchema, CloudEventSchemaV1_0, CustomInputSchema).
+
 ## 1.9.28
 * Container Apps: Add `resources` operation to the `container` builder to set both CPU and memory together using a `ConsumptionPlanResources` discriminated union. This ensures only valid consumption plan resource combinations can be selected at compile time. The individual `cpu_cores` and `memory` operations remain available for use with dedicated plans.
 
