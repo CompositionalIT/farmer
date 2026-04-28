@@ -1,6 +1,13 @@
 Release Notes
 =============
 
+## 1.9.29
+* Cosmos DB: Add autoscale throughput support via `CosmosDb.Autoscale` throughput option (e.g. throughput (CosmosDb.Autoscale 4000<CosmosDb.RU>)`).
+* Cosmos DB: Add continuous backup retention policy via `backup_retention` keyword (`CosmosDb.Continuous7Days` or `CosmosDb.Continuous30Days`).
+* Cosmos DB: Add IP firewall rules via `add_firewall_rule` and `enable_azure_firewall` keywords.
+* Cosmos DB: Always emit primary location for database accounts, fixing deployment failures on accounts restored from backup (`createMode: "Restore"`).
+* Cosmos DB: Update all DocumentDb ARM resource API versions to `2024-11-15`.
+
 ## 1.9.28
 * Container Apps: Add `resources` operation to the `container` builder to set both CPU and memory together using a `ConsumptionPlanResources` discriminated union. This ensures only valid consumption plan resource combinations can be selected at compile time. The individual `cpu_cores` and `memory` operations remain available for use with dedicated plans.
 
