@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.9.29
+* Container Apps: Add support for setting Dapr protocol.
 
 ## 1.9.28
 * Container Apps: Add `resources` operation to the `container` builder to set both CPU and memory together using a `ConsumptionPlanResources` discriminated union. This ensures only valid consumption plan resource combinations can be selected at compile time. The individual `cpu_cores` and `memory` operations remain available for use with dedicated plans.
