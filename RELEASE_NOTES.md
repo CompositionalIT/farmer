@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.9.29
+* Container Apps: Add support for setting Dapr protocol.
 
 ## 1.9.30
 * Container Apps: Update `Microsoft.App` ARM resource API versions for container apps, managed environments, environment storages, and Dapr components to the latest stable `2026-07-01`.
