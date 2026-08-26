@@ -4218,6 +4218,16 @@ module ContainerApp =
             | Cores3_75 -> 7.5<Gb>
             | Cores4_0 -> 8.0<Gb>
 
+    [<RequireQualifiedAccess>]
+    type DaprProtocol =
+        | Grpc
+        | Http
+
+        member this.ArmValue =
+            match this with
+            | Grpc -> "grpc"
+            | Http -> "http"
+
 namespace Farmer.DiagnosticSettings
 
 open Farmer

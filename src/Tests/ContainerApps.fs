@@ -58,6 +58,8 @@ let fullContainerAppDeployment =
         ingress_target_port 80us
         ingress_transport Auto
         dapr_app_id "http"
+        dapr_app_port 5000us
+        dapr_app_protocol DaprProtocol.Grpc
         add_http_scale_rule "http-rule" { ConcurrentRequests = 100 }
     }
 
@@ -386,6 +388,10 @@ let tests =
             Expect.isNotNull ruleAuth "auth[0] was null"
             Expect.equal (ruleAuth["secretRef"] |> string) connectionSecretName "Incorrect secretRef"
             Expect.equal (ruleAuth["triggerParameter"] |> string) "connection" "Incorrect triggerParameter"
+
+            let daprConfig = httpContainerApp.SelectToken("properties.configuration.dapr")
+            Expect.equal (daprConfig["appPort"] |> uint16) 5000us "Incorrect dapr appPort"
+            Expect.equal (daprConfig["appProtocol"] |> string) "grpc" "Incorrect dapr appProtocol"
         }
 
         test "Makes container app with MSI" {
@@ -572,5 +578,25 @@ let tests =
                     containerResources.Resources.Memory
                     expectedMem
                     $"Incorrect memory for allocation {allocation}"
+        }
+
+        test "Dapr protocol Http is correctly serialized" {
+            let app = containerApp {
+                name "dapr-protocol-test"
+                add_simple_container "mcr.microsoft.com/dotnet/samples" "aspnetapp"
+                dapr_app_id "test-app"
+                dapr_app_protocol DaprProtocol.Http
+            }
+
+            let env = containerEnvironment {
+                name "test-env"
+                add_container app
+            }
+
+            let deployment = arm { add_resource env }
+            let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+            let ca = jobj.SelectToken("resources[?(@.name=='dapr-protocol-test')]")
+            let daprConfig = ca.SelectToken("properties.configuration.dapr")
+            Expect.equal (daprConfig["appProtocol"] |> string) "http" "Incorrect dapr appProtocol for Http"
         }
     ]
