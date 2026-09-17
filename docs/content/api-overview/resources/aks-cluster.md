@@ -94,36 +94,6 @@ The CNI builder (`azureCniNetworkProfile`) creates Azure CNI network profiles on
 | network_dataplane | Sets the dataplane using `NetworkDataplane.Azure` or `NetworkDataplane.Cilium`. Omitted unless explicitly configured. |
 | pod_cidr | Sets the pod address range for Azure CNI overlay. Omitted unless explicitly configured. |
 
-#### Azure CNI Overlay
-
-The following profile is equivalent to `--network-plugin azure --network-plugin-mode overlay --network-dataplane azure --pod-cidr 10.244.0.0/16`:
-
-```fsharp
-open Farmer
-open Farmer.Builders
-open Farmer.ContainerService
-
-let myAks = aks {
-    name "overlay-cluster"
-    dns_prefix "overlayaks"
-    service_principal_use_msi
-
-    network_profile (
-        azureCniNetworkProfile {
-            network_plugin_mode NetworkPluginMode.Overlay
-            network_dataplane NetworkDataplane.Azure
-            pod_cidr "10.244.0.0/16"
-        }
-    )
-}
-
-let deployment = arm { add_resource myAks }
-```
-
-The pod CIDR is separate from the VNet node subnet and the service CIDR. Choose ranges that do not overlap with each other or with connected networks. The existing service CIDR and DNS defaults are unchanged.
-
-When attaching overlay nodes to an existing VNet, use the agent pool's `vnet` and `subnet` operations. Do not set `pod_subnet`: overlay pods use the configured pod CIDR instead, and Farmer rejects that combination. Omitting the new options preserves the existing Azure CNI and kubenet behavior.
-
 #### Basic Example
 
 The simplest cluster uses a system assigned managed identity and
