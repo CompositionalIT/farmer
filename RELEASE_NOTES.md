@@ -2,6 +2,7 @@ Release Notes
 =============
 
 ## 1.9.28
+* AKS Cluster: Add native Azure CNI overlay support with `network_plugin_mode`, `network_dataplane`, and `pod_cidr` network profile options. The `pod_cidr` option is also available for kubenet.
 * Container Apps: Add `resources` operation to the `container` builder to set both CPU and memory together using a `ConsumptionPlanResources` discriminated union. This ensures only valid consumption plan resource combinations can be selected at compile time. The individual `cpu_cores` and `memory` operations remain available for use with dedicated plans.
 
 ## 1.9.27

@@ -2432,6 +2432,24 @@ module ContainerService =
             | AzureCni -> "azure"
 
     [<RequireQualifiedAccess>]
+    type NetworkPluginMode =
+        | Overlay
+
+        member this.ArmValue =
+            match this with
+            | Overlay -> "overlay"
+
+    [<RequireQualifiedAccess>]
+    type NetworkDataplane =
+        | Azure
+        | Cilium
+
+        member this.ArmValue =
+            match this with
+            | Azure -> "azure"
+            | Cilium -> "cilium"
+
+    [<RequireQualifiedAccess>]
     type Sku =
         | Automatic
         | Base
