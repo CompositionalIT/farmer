@@ -994,10 +994,23 @@ module Vm =
             | Delete -> "Delete"
             | Detach -> "Detach"
 
+    /// Specifies the host caching mode for a disk.
+    type CachingType =
+        | NoCaching
+        | ReadOnly
+        | ReadWrite
+
+        member this.ArmValue =
+            match this with
+            | NoCaching -> "None"
+            | ReadOnly -> "ReadOnly"
+            | ReadWrite -> "ReadWrite"
+
     /// Represents a disk in a VM.
     type DiskInfo = {
         Size: int
         DiskType: DiskType
+        Caching: CachingType option
     } with
 
         member this.IsUltraDisk =

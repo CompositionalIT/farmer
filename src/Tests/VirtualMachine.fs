@@ -1560,4 +1560,143 @@ let tests =
             let dataDiskSize = vmProps.SelectToken("storageProfile.dataDisks[0].diskSizeGB")
             Expect.equal (int dataDiskSize) 1024 "Default data disk should be 1024GB"
         }
+        test "VM with OS disk caching" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1s
+                        operating_system UbuntuServer_2204LTS
+                        os_disk 128 Standard_LRS
+                        os_disk_caching ReadWrite
+                        no_data_disk
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+            Expect.isNotNull vmProps "VM properties missing from template"
+
+            let osDiskCaching = vmProps.SelectToken("storageProfile.osDisk.caching")
+            Expect.isNotNull osDiskCaching "OS disk caching should be set"
+            Expect.equal (string osDiskCaching) "ReadWrite" "OS disk caching should be 'ReadWrite'"
+        }
+        test "VM without OS disk caching has no caching property" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1s
+                        operating_system UbuntuServer_2204LTS
+                        os_disk 128 Standard_LRS
+                        no_data_disk
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+            Expect.isNotNull vmProps "VM properties missing from template"
+
+            let osDiskCaching = vmProps.SelectToken("storageProfile.osDisk.caching")
+            Expect.isNull osDiskCaching "OS disk caching should not be set when not specified"
+        }
+        test "VM with data disk caching" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1s
+                        operating_system UbuntuServer_2204LTS
+                        os_disk 128 Standard_LRS
+                        add_ssd_disk 128
+                        data_disk_caching ReadOnly
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+            Expect.isNotNull vmProps "VM properties missing from template"
+
+            let dataDiskCaching = vmProps.SelectToken("storageProfile.dataDisks[0].caching")
+            Expect.isNotNull dataDiskCaching "Data disk caching should be set"
+            Expect.equal (string dataDiskCaching) "ReadOnly" "Data disk caching should be 'ReadOnly'"
+        }
+        test "VM with NoCaching on data disk" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1s
+                        operating_system UbuntuServer_2204LTS
+                        os_disk 128 Standard_LRS
+                        add_ssd_disk 128
+                        data_disk_caching NoCaching
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+            Expect.isNotNull vmProps "VM properties missing from template"
+
+            let dataDiskCaching = vmProps.SelectToken("storageProfile.dataDisks[0].caching")
+            Expect.isNotNull dataDiskCaching "Data disk caching should be set"
+            Expect.equal (string dataDiskCaching) "None" "Data disk caching should be 'None'"
+        }
+        test "VM with OS and data disk caching set together with disk_delete_option" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    vm {
+                        name "my-vm"
+                        username "azureuser"
+                        vm_size Standard_B1s
+                        operating_system UbuntuServer_2204LTS
+                        os_disk 128 Standard_LRS
+                        os_disk_caching ReadOnly
+                        add_ssd_disk 128
+                        data_disk_caching ReadOnly
+                        disk_delete_option DeleteOption.Delete
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JToken.Parse
+            let vmProps = jobj.SelectToken("resources[?(@.name=='my-vm')].properties")
+            Expect.isNotNull vmProps "VM properties missing from template"
+
+            let osDiskCaching = vmProps.SelectToken("storageProfile.osDisk.caching")
+            Expect.isNotNull osDiskCaching "OS disk caching should be set"
+            Expect.equal (string osDiskCaching) "ReadOnly" "OS disk caching should be 'ReadOnly'"
+
+            let osDiskDeleteOption = vmProps.SelectToken("storageProfile.osDisk.deleteOption")
+            Expect.isNotNull osDiskDeleteOption "OS disk deleteOption should be set"
+            Expect.equal (string osDiskDeleteOption) "Delete" "OS disk deleteOption should be 'Delete'"
+
+            let dataDiskCaching = vmProps.SelectToken("storageProfile.dataDisks[0].caching")
+            Expect.isNotNull dataDiskCaching "Data disk caching should be set"
+            Expect.equal (string dataDiskCaching) "ReadOnly" "Data disk caching should be 'ReadOnly'"
+
+            let dataDiskDeleteOption =
+                vmProps.SelectToken("storageProfile.dataDisks[0].deleteOption")
+
+            Expect.isNotNull dataDiskDeleteOption "Data disk deleteOption should be set"
+            Expect.equal (string dataDiskDeleteOption) "Delete" "Data disk deleteOption should be 'Delete'"
+        }
     ]
