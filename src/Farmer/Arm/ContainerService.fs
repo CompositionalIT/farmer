@@ -314,6 +314,9 @@ type ManagedCluster = {
     NetworkProfile:
         {|
             NetworkPlugin: ContainerService.NetworkPlugin option
+            NetworkPluginMode: ContainerService.NetworkPluginMode option
+            NetworkDataplane: ContainerService.NetworkDataplane option
+            PodCidr: IPAddressCidr option
             DnsServiceIP: System.Net.IPAddress option
             LoadBalancerSku: LoadBalancer.Sku option
             ServiceCidr: IPAddressCidr option
@@ -461,6 +464,15 @@ type ManagedCluster = {
                                     networkProfile.NetworkPlugin
                                     |> Option.map (fun plugin -> plugin.ArmValue)
                                     |> Option.toObj
+                                networkPluginMode =
+                                    networkProfile.NetworkPluginMode
+                                    |> Option.map (fun mode -> mode.ArmValue)
+                                    |> Option.toObj
+                                networkDataplane =
+                                    networkProfile.NetworkDataplane
+                                    |> Option.map (fun dataplane -> dataplane.ArmValue)
+                                    |> Option.toObj
+                                podCidr = networkProfile.PodCidr |> Option.map IPAddressCidr.format |> Option.toObj
                                 serviceCidr =
                                     networkProfile.ServiceCidr |> Option.map IPAddressCidr.format |> Option.toObj
                               |}

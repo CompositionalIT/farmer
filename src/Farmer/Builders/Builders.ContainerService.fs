@@ -61,6 +61,9 @@ type ApiServerAccessProfileConfig = {
 
 type NetworkProfileConfig = {
     NetworkPlugin: ContainerService.NetworkPlugin option
+    NetworkPluginMode: ContainerService.NetworkPluginMode option
+    NetworkDataplane: ContainerService.NetworkDataplane option
+    PodCidr: IPAddressCidr option
     /// If no address is specified, this will use the 2nd address in the service address CIDR
     DnsServiceIP: System.Net.IPAddress option
     /// Load balancer SKU (defaults to basic)
@@ -245,6 +248,9 @@ type AksConfig = {
                     this.NetworkProfile
                     |> Option.map (fun netProfile -> {|
                         NetworkPlugin = netProfile.NetworkPlugin
+                        NetworkPluginMode = netProfile.NetworkPluginMode
+                        NetworkDataplane = netProfile.NetworkDataplane
+                        PodCidr = netProfile.PodCidr
                         DnsServiceIP =
                             match netProfile.DnsServiceIP with
                             | Some ip -> Some ip
@@ -406,6 +412,12 @@ type AgentPoolBuilder() =
 let agentPool = AgentPoolBuilder()
 
 type NetworkProfileBuilder() =
+    [<CustomOperation "pod_cidr">]
+    member _.PodCidr(state: NetworkProfileConfig, podCidr: string) = {
+        state with
+            PodCidr = IPAddressCidr.parse podCidr |> Some
+    }
+
     /// Sets the SKU to be used for the load balancer.
     [<CustomOperation "load_balancer_sku">]
     member _.LoadBalancerSku(state: NetworkProfileConfig, sku: LoadBalancer.Sku) = {
@@ -419,6 +431,9 @@ type KubenetBuilder() =
 
     member _.Yield _ = {
         NetworkPlugin = Some ContainerService.NetworkPlugin.Kubenet
+        NetworkPluginMode = None
+        NetworkDataplane = None
+        PodCidr = None
         LoadBalancerSku = None
         DnsServiceIP = None
         ServiceCidr = None
@@ -432,6 +447,9 @@ type AzureCniBuilder() =
 
     member _.Yield _ = {
         NetworkPlugin = Some ContainerService.NetworkPlugin.AzureCni
+        NetworkPluginMode = None
+        NetworkDataplane = None
+        PodCidr = None
         LoadBalancerSku = None
         DnsServiceIP = None
         ServiceCidr = IPAddressCidr.parse "10.224.0.0/16" |> Some
@@ -445,6 +463,18 @@ type AzureCniBuilder() =
                 | None ->
                     config.ServiceCidr
                     |> Option.map (IPAddressCidr.addresses >> Seq.skip 2 >> Seq.head)
+    }
+
+    [<CustomOperation "network_plugin_mode">]
+    member _.NetworkPluginMode(state: NetworkProfileConfig, mode: ContainerService.NetworkPluginMode) = {
+        state with
+            NetworkPluginMode = Some mode
+    }
+
+    [<CustomOperation "network_dataplane">]
+    member _.NetworkDataplane(state: NetworkProfileConfig, dataplane: ContainerService.NetworkDataplane) = {
+        state with
+            NetworkDataplane = Some dataplane
     }
 
     /// Sets the DNS service IP - must be within the service CIDR, default is the second address in the service CIDR.
@@ -511,6 +541,13 @@ type AksBuilder() =
         if String.IsNullOrWhiteSpace config.ServicePrincipalClientID then
             raiseFarmer
                 "Missing ServicePrincipalClientID on ManagedCluster - specify 'service_principal_use_msi' or 'service_principal_client_id' to assign one."
+
+        match config.NetworkProfile with
+        | Some profile when profile.NetworkPluginMode = Some ContainerService.NetworkPluginMode.Overlay ->
+            if config.AgentPools |> List.exists (fun pool -> pool.PodSubnetName.IsSome) then
+                raiseFarmer
+                    "Azure CNI overlay cannot be combined with an agent pool 'pod_subnet'. Use 'pod_cidr' instead."
+        | _ -> ()
 
         config
 

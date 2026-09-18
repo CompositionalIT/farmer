@@ -80,6 +80,7 @@ The Kubenet builder (`kubenetNetworkProfile`) creates Kubenet network profiles o
 | Keyword | Purpose |
 |-|-|
 | load_balancer_sku | SKU for the Load Balancer - defaults to 'Standard' |
+| pod_cidr | Sets the CIDR range used to assign pod IP addresses. Omitted unless explicitly configured. |
 
 #### CNI Builder
 The CNI builder (`azureCniNetworkProfile`) creates Azure CNI network profiles on the AKS cluster.
@@ -89,6 +90,9 @@ The CNI builder (`azureCniNetworkProfile`) creates Azure CNI network profiles on
 | dns_service | Sets the DNS service IP - must be within the service CIDR, default is the second address in the service CIDR. |
 | service_cidr | Sets the service cidr to a network other than the default 10.224.0.0/16. |
 | load_balancer_sku | SKU for the Load Balancer - defaults to 'Standard' |
+| network_plugin_mode | Sets the Azure CNI plugin mode using `NetworkPluginMode.Overlay`. Omitted unless explicitly configured. |
+| network_dataplane | Sets the dataplane using `NetworkDataplane.Azure` or `NetworkDataplane.Cilium`. Omitted unless explicitly configured. |
+| pod_cidr | Sets the pod address range for Azure CNI overlay. Omitted unless explicitly configured. |
 
 #### Basic Example
 
