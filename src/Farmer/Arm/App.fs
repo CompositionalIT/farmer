@@ -417,6 +417,7 @@ type ContainerApp = {
                                                 metadata = {|
                                                     queueName = settings.QueueName
                                                     messageCount = string settings.MessageCount
+                                                    ``namespace`` = settings.Namespace
                                                 |}
                                                 auth = [|
                                                     {|
