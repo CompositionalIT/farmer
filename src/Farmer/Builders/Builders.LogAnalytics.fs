@@ -9,12 +9,31 @@ let private (|InBounds|OutOfBounds|) days =
     elif days > 730<Days> then OutOfBounds days
     else InBounds days
 
+type TableConfig = {
+    Name: ResourceName
+    Plan: Plan
+    Columns: Column list
+    TotalRetentionInDays: int<Days> option
+} with
+
+    member this.BuildResources logAnalyticsWorkspace = [
+        {
+            Name = ResourceName $"{this.Name.Value}_CL"
+            Plan = this.Plan
+            Columns = this.Columns
+            TotalRetentionInDays = this.TotalRetentionInDays
+            LogAnalyticsWorkspace = logAnalyticsWorkspace
+        }
+        :> IArmResource
+    ]
+
 type WorkspaceConfig = {
     Name: ResourceName
     RetentionPeriod: int<Days> option
     IngestionSupport: FeatureFlag option
     QuerySupport: FeatureFlag option
     DailyCap: int<Gb> option
+    CustomTables: TableConfig list
     Tags: Map<string, string>
 } with
 
@@ -37,6 +56,8 @@ type WorkspaceConfig = {
                 DailyCap = this.DailyCap
                 Tags = this.Tags
             }
+            for table in this.CustomTables do
+                yield! table.BuildResources (this :> IBuilder).ResourceId
         ]
 
 type WorkspaceBuilder() =
@@ -46,6 +67,7 @@ type WorkspaceBuilder() =
         DailyCap = None
         IngestionSupport = None
         QuerySupport = None
+        CustomTables = []
         Tags = Map.empty
     }
 
@@ -86,6 +108,13 @@ type WorkspaceBuilder() =
     /// Specifies the daily cap of ingested data.
     [<CustomOperation "daily_cap">]
     member _.DailyCap(state: WorkspaceConfig, cap) = { state with DailyCap = Some cap }
+
+    /// Adds tables to the Log Analytics workspace.
+    [<CustomOperation "custom_tables">]
+    member _.CustomTables(state: WorkspaceConfig, customTables: TableConfig list) = {
+        state with
+            CustomTables = customTables
+    }
 
     interface ITaggable<WorkspaceConfig> with
         member _.Add state tags = {

@@ -61,21 +61,32 @@ type DataSourceConfig =
 
 type DestinationConfig =
     | MonitoringAccounts of MonitoringAccount list
+    | LogAnalytics of LogAnalytics list
 
     static member BuildConfig(destinations: DestinationConfig list) : Destinations.Destination = {
         MonitoringAccounts =
             destinations
             |> List.tryFind (function
-                | MonitoringAccounts _ -> true)
+                | MonitoringAccounts _ -> true
+                | _ -> false)
             |> function
                 | Some(MonitoringAccounts accounts) -> Some accounts
-                | None -> None
+                | _ -> None
+        LogAnalytics =
+            destinations
+            |> List.tryFind (function
+                | LogAnalytics _ -> true
+                | _ -> false)
+            |> function
+                | Some(LogAnalytics workspaces) -> Some workspaces
+                | _ -> None
     }
 
 type DataCollectionRuleConfig = {
     Name: ResourceName
-    OsType: OS
+    OsType: OS option
     Endpoint: ResourceId
+    StreamDeclarations: (Stream * Column list) list
     DataFlows: (DataFlow list) option
     DataSources: DataSourceConfig list
     Destinations: DestinationConfig list
@@ -92,6 +103,7 @@ type DataCollectionRuleConfig = {
                 OsType = this.OsType
                 Location = location
                 Endpoint = this.Endpoint
+                StreamDeclarations = this.StreamDeclarations |> Map.ofList
                 DataFlows = this.DataFlows
                 DataSources =
                     match this.DataSources with
@@ -109,8 +121,9 @@ type DataCollectionRuleConfig = {
 type DataCollectionRuleBuilder() =
     member _.Yield _ = {
         Name = ResourceName.Empty
-        OsType = Linux
+        OsType = None
         Endpoint = ResourceId.Empty
+        StreamDeclarations = []
         DataFlows = None
         DataSources = []
         Destinations = []
@@ -129,11 +142,18 @@ type DataCollectionRuleBuilder() =
 
     /// Sets the kind for the data collection rule (Windows or Linux).
     [<CustomOperation "os_type">]
-    member _.OsType(state: DataCollectionRuleConfig, osType) = { state with OsType = osType }
+    member _.OsType(state: DataCollectionRuleConfig, osType) = { state with OsType = Some osType }
 
     /// Sets the endpoint for the data collection rule.
     [<CustomOperation "endpoint">]
     member _.Endpoint(state: DataCollectionRuleConfig, endpoint) = { state with Endpoint = endpoint }
+
+    /// Sets the stream declarations for the data collection rule.
+    [<CustomOperation "stream_declarations">]
+    member _.StreamDeclarations(state: DataCollectionRuleConfig, streamDeclarations) = {
+        state with
+            StreamDeclarations = streamDeclarations
+    }
 
     /// Sets the data flows for the data collection rule.
     [<CustomOperation "data_flows">]
