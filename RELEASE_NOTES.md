@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.9.29
+* Container Apps: Add support for setting Dapr protocol.
 
 ## 1.9.28
 * AKS Cluster: Add native Azure CNI overlay support with `network_plugin_mode`, `network_dataplane`, and `pod_cidr` network profile options. The `pod_cidr` option is also available for kubenet.
