@@ -402,7 +402,7 @@ type EventGridBuilder() =
             }
 
         let destination = actionGroups |> List.head |> (fun ag -> ag.Name)
-        EventGridBuilder.AddSub(state, destination.Value + "-monitor-alert", destination, endpoint, events)
+        EventGridBuilder.AddSub(state, "monitor-alert", destination, endpoint, events)
 
     [<CustomOperation "add_monitor_alert_subscriber">]
     member _.AddMonitorAlertSubscription
@@ -419,7 +419,7 @@ type EventGridBuilder() =
             }
 
         let destination = actionGroupIds |> List.head |> (fun id -> id.Name)
-        EventGridBuilder.AddSub(state, destination.Value + "-monitor-alert", destination, endpoint, events)
+        EventGridBuilder.AddSub(state, "monitor-alert", destination, endpoint, events)
 
     [<CustomOperation "add_tags">]
     member _.Tags(state: EventGridConfig<'T>, pairs) = {

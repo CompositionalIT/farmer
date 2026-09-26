@@ -162,10 +162,7 @@ let tests =
 
             let sub = grid.Subscriptions.[0]
 
-            Expect.equal
-                sub.Name
-                (ResourceName "myActionGroup-myActionGroup-monitor-alert")
-                "Incorrect subscription name"
+            Expect.equal sub.Name (ResourceName "myActionGroup-monitor-alert") "Incorrect subscription name"
 
             Expect.equal
                 sub.Endpoint
