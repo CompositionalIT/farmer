@@ -206,6 +206,137 @@ let tests =
                 "10.250.0.2"
                 "DNS service IP should be .2 in service_cidr"
         }
+        test "AKS cluster using Azure CNI overlay" {
+            let network = azureCniNetworkProfile {
+                network_plugin_mode ContainerService.NetworkPluginMode.Overlay
+                network_dataplane ContainerService.NetworkDataplane.Azure
+                pod_cidr "10.244.0.0/16"
+            }
+
+            let myAks = aks {
+                name "overlay-cluster"
+                network_profile network
+
+                add_agent_pools [
+                    agentPool {
+                        name "nodepool"
+                        vnet "my-vnet"
+                        subnet "nodes"
+                    }
+                ]
+            }
+
+            let template = arm { add_resource myAks }
+
+            let cluster =
+                (template.Template |> Writer.toJson |> JObject.Parse)
+                    .SelectToken("resources[?(@.name=='overlay-cluster')].properties")
+
+            for propertyName, expected in
+                [
+                    "networkPlugin", "azure"
+                    "networkPluginMode", "overlay"
+                    "networkDataplane", "azure"
+                    "podCidr", "10.244.0.0/16"
+                    "serviceCidr", "10.224.0.0/16"
+                    "dnsServiceIP", "10.224.0.2"
+                ] do
+                Expect.equal
+                    (cluster.SelectToken $"networkProfile.{propertyName}" |> string)
+                    expected
+                    $"Incorrect network profile {propertyName}."
+
+            Expect.equal
+                (cluster.SelectToken "agentPoolProfiles[0].vnetSubnetID" |> string)
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'my-vnet', 'nodes')]"
+                "Overlay nodes should retain their VNet subnet."
+
+            Expect.isNull
+                (cluster.SelectToken "agentPoolProfiles[0].podSubnetID")
+                "Overlay pods should not use a VNet pod subnet."
+        }
+        test "Network profiles omit new options unless configured" {
+            for profile, plugin in
+                [
+                    azureCniNetworkProfile { service_cidr "10.250.0.0/16" }, "azure"
+                    kubenetNetworkProfile { load_balancer_sku LoadBalancer.Sku.Standard }, "kubenet"
+                ] do
+                let myAks = aks {
+                    name "aks-cluster"
+                    network_profile profile
+                }
+
+                let template = arm { add_resource myAks }
+
+                let network =
+                    (template.Template |> Writer.toJson |> JObject.Parse)
+                        .SelectToken("resources[?(@.name=='aks-cluster')].properties.networkProfile")
+
+                Expect.equal (network.SelectToken "networkPlugin" |> string) plugin "Preserve the selected plugin."
+
+                for propertyName in [ "networkPluginMode"; "networkDataplane"; "podCidr" ] do
+                    Expect.isNull (network.SelectToken propertyName) $"Unset {propertyName} must be omitted."
+        }
+        test "Azure CNI supports the Cilium dataplane" {
+            let myAks = aks {
+                name "aks-cluster"
+                network_profile (azureCniNetworkProfile { network_dataplane ContainerService.NetworkDataplane.Cilium })
+            }
+
+            let template = arm { add_resource myAks }
+            let json = template.Template |> Writer.toJson |> JObject.Parse
+
+            Expect.equal
+                (json.SelectToken "resources[?(@.name=='aks-cluster')].properties.networkProfile.networkDataplane"
+                 |> string)
+                "cilium"
+                "Serialize the selected dataplane using its ARM value."
+        }
+        test "Kubenet supports an explicit pod CIDR" {
+            let myAks = aks {
+                name "aks-cluster"
+                network_profile (kubenetNetworkProfile { pod_cidr "10.240.0.0/16" })
+            }
+
+            let template = arm { add_resource myAks }
+            let json = template.Template |> Writer.toJson |> JObject.Parse
+
+            Expect.equal
+                (json.SelectToken "resources[?(@.name=='aks-cluster')].properties.networkProfile.podCidr"
+                 |> string)
+                "10.240.0.0/16"
+                "The pod CIDR operation should also be available for kubenet."
+        }
+        test "Pod CIDR uses the existing CIDR validation" {
+            Expect.throws
+                (fun () -> azureCniNetworkProfile { pod_cidr "not-a-cidr" } |> ignore)
+                "Reject a malformed pod network."
+        }
+        test "Azure CNI overlay rejects a VNet pod subnet" {
+            Expect.throws
+                (fun () ->
+                    aks {
+                        name "aks-cluster"
+
+                        network_profile (
+                            azureCniNetworkProfile {
+                                network_plugin_mode ContainerService.NetworkPluginMode.Overlay
+                                pod_cidr "10.244.0.0/16"
+                            }
+                        )
+
+                        add_agent_pools [
+                            agentPool {
+                                name "nodepool"
+                                vnet "my-vnet"
+                                subnet "nodes"
+                                pod_subnet "pods"
+                            }
+                        ]
+                    }
+                    |> ignore)
+                "Overlay pods must use the pod CIDR, not a VNet pod subnet."
+        }
         test "AKS cluster on Private VNet" {
             let myAks = aks {
                 name "private-k8s-cluster"
