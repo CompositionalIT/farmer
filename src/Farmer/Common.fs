@@ -2445,6 +2445,24 @@ module ContainerService =
             | AzureCni -> "azure"
 
     [<RequireQualifiedAccess>]
+    type NetworkPluginMode =
+        | Overlay
+
+        member this.ArmValue =
+            match this with
+            | Overlay -> "overlay"
+
+    [<RequireQualifiedAccess>]
+    type NetworkDataplane =
+        | Azure
+        | Cilium
+
+        member this.ArmValue =
+            match this with
+            | Azure -> "azure"
+            | Cilium -> "cilium"
+
+    [<RequireQualifiedAccess>]
     type Sku =
         | Automatic
         | Base
@@ -3167,7 +3185,18 @@ module CosmosDb =
     /// The throughput for CosmosDB account
     type Throughput =
         | Provisioned of int<RU>
+        | Autoscale of int<RU>
         | Serverless
+
+    /// Continuous backup retention tier for a CosmosDB account.
+    type BackupRetention =
+        | Continuous7Days
+        | Continuous30Days
+
+        member this.ArmValue =
+            match this with
+            | Continuous7Days -> "Continuous7Days"
+            | Continuous30Days -> "Continuous30Days"
 
 module PostgreSQL =
     open Vm
