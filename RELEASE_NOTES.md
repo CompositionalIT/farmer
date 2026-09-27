@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.30
+* App Configuration: Add support for Azure App Configuration stores, key-value items, and feature flags.
+
 ## 1.9.29
 * Virtual Machines: Add `os_disk_caching` and `data_disk_caching` builder operations to expose the host caching mode (`NoCaching`, `ReadOnly`, `ReadWrite`) for OS and data disks on VMs and VM Scale Sets.
 * Cosmos DB: Add autoscale throughput support via `CosmosDb.Autoscale` throughput option (e.g. throughput (CosmosDb.Autoscale 4000<CosmosDb.RU>)`).

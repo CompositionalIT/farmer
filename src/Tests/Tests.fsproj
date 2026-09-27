@@ -28,6 +28,7 @@
         <Compile Include="Bastion.fs" />
         <Compile Include="CommunicationServices.fs" />
         <Compile Include="BingSearch.fs" />
+        <Compile Include="ConfigurationStore.fs" />
         <Compile Include="Cdn.fs" />
         <Compile Include="ContainerApps.fs" />
         <Compile Include="ContainerGroup.fs" />
