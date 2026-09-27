@@ -68,7 +68,6 @@ open Farmer.ConfigurationStore
 let myConfig = configurationStore {
     name "my-app-config"
     sku Standard
-    disable_local_auth
     add_tags [ "env", "prod"; "team", "platform" ]
 
     add_feature_flags [
