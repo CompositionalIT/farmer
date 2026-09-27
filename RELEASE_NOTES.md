@@ -2,6 +2,7 @@ Release Notes
 =============
 
 ## 1.9.29
+* Virtual Machines: Add `os_disk_caching` and `data_disk_caching` builder operations to expose the host caching mode (`NoCaching`, `ReadOnly`, `ReadWrite`) for OS and data disks on VMs and VM Scale Sets.
 * Cosmos DB: Add autoscale throughput support via `CosmosDb.Autoscale` throughput option (e.g. throughput (CosmosDb.Autoscale 4000<CosmosDb.RU>)`).
 * Cosmos DB: Add continuous backup retention policy via `backup_retention` keyword (`CosmosDb.Continuous7Days` or `CosmosDb.Continuous30Days`).
 * Cosmos DB: Add IP firewall rules via `add_firewall_rule` and `enable_azure_firewall` keywords.
