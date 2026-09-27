@@ -1,8 +1,23 @@
 Release Notes
 =============
 
-## 1.9.28
+## 1.9.30
 * App Configuration: Add support for Azure App Configuration stores, key-value items, and feature flags.
+
+## 1.9.29
+* Virtual Machines: Add `os_disk_caching` and `data_disk_caching` builder operations to expose the host caching mode (`NoCaching`, `ReadOnly`, `ReadWrite`) for OS and data disks on VMs and VM Scale Sets.
+* Cosmos DB: Add autoscale throughput support via `CosmosDb.Autoscale` throughput option (e.g. throughput (CosmosDb.Autoscale 4000<CosmosDb.RU>)`).
+* Cosmos DB: Add continuous backup retention policy via `backup_retention` keyword (`CosmosDb.Continuous7Days` or `CosmosDb.Continuous30Days`).
+* Cosmos DB: Add IP firewall rules via `add_firewall_rule` and `enable_azure_firewall` keywords.
+* Cosmos DB: Always emit primary location for database accounts, fixing deployment failures on accounts restored from backup (`createMode: "Restore"`).
+* Cosmos DB: Update all DocumentDb ARM resource API versions to `2024-11-15`.
+* Event Grid: Bump API version from `2022-06-15` to `2025-02-15`.
+* Event Grid: Add `MonitorAlert` endpoint type for event subscriptions with configurable action groups and severity (Sev0–Sev4).
+* Event Grid: Add `event_delivery_schema` keyword to configure the event delivery schema (EventGridSchema, CloudEventSchemaV1_0, CustomInputSchema).
+
+## 1.9.28
+* AKS Cluster: Add native Azure CNI overlay support with `network_plugin_mode`, `network_dataplane`, and `pod_cidr` network profile options. The `pod_cidr` option is also available for kubenet.
+* Container Apps: Add `resources` operation to the `container` builder to set both CPU and memory together using a `ConsumptionPlanResources` discriminated union. This ensures only valid consumption plan resource combinations can be selected at compile time. The individual `cpu_cores` and `memory` operations remain available for use with dedicated plans.
 
 ## 1.9.27
 * Storage Accounts: Add `AccountKey` member to return just the storage account key and `ConnectionString` member to return the connection string. The existing `Key` member is now obsolete (it incorrectly returned a connection string instead of just the key).

@@ -380,6 +380,7 @@ module VirtualMachine =
                         createOption = "FromImage"
                         name = if isScaleSet then null else $"{vmNameLowerCase}-osdisk"
                         diskSizeGB = diskInfo.Size
+                        caching = diskInfo.Caching |> Option.map (fun c -> c.ArmValue) |> Option.toObj
                         managedDisk = {|
                             storageAccountType = diskInfo.DiskType.ArmValue
                         |}
@@ -391,6 +392,7 @@ module VirtualMachine =
                             createOption = "FromImage"
                             name = null
                             diskSizeGB = diskInfo.Size
+                            caching = diskInfo.Caching |> Option.map (fun c -> c.ArmValue) |> Option.toObj
                             managedDisk = {|
                                 storageAccountType = diskInfo.DiskType.ArmValue
                             |}
@@ -402,6 +404,7 @@ module VirtualMachine =
                             name = $"{vmNameLowerCase}-osdisk"
                             diskSizeGB = diskInfo.Size
                             deleteOption = "Delete"
+                            caching = diskInfo.Caching |> Option.map (fun c -> c.ArmValue) |> Option.toObj
                             managedDisk = {|
                                 storageAccountType = diskInfo.DiskType.ArmValue
                             |}
@@ -515,6 +518,7 @@ module VirtualMachine =
                                     null
                             diskSizeGB = diskInfo.Size
                             lun = lun
+                            caching = diskInfo.Caching |> Option.map (fun c -> c.ArmValue) |> Option.toObj
                             managedDisk = {|
                                 storageAccountType = diskInfo.DiskType.ArmValue
                             |}
@@ -527,6 +531,7 @@ module VirtualMachine =
                                 name = null
                                 diskSizeGB = diskInfo.Size
                                 lun = lun
+                                caching = diskInfo.Caching |> Option.map (fun c -> c.ArmValue) |> Option.toObj
                                 managedDisk = {|
                                     storageAccountType = diskInfo.DiskType.ArmValue
                                 |}
@@ -539,6 +544,7 @@ module VirtualMachine =
                                 diskSizeGB = diskInfo.Size
                                 lun = lun
                                 deleteOption = "Delete"
+                                caching = diskInfo.Caching |> Option.map (fun c -> c.ArmValue) |> Option.toObj
                                 managedDisk = {|
                                     storageAccountType = diskInfo.DiskType.ArmValue
                                 |}

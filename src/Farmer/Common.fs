@@ -994,10 +994,23 @@ module Vm =
             | Delete -> "Delete"
             | Detach -> "Detach"
 
+    /// Specifies the host caching mode for a disk.
+    type CachingType =
+        | NoCaching
+        | ReadOnly
+        | ReadWrite
+
+        member this.ArmValue =
+            match this with
+            | NoCaching -> "None"
+            | ReadOnly -> "ReadOnly"
+            | ReadWrite -> "ReadWrite"
+
     /// Represents a disk in a VM.
     type DiskInfo = {
         Size: int
         DiskType: DiskType
+        Caching: CachingType option
     } with
 
         member this.IsUltraDisk =
@@ -2445,6 +2458,24 @@ module ContainerService =
             | AzureCni -> "azure"
 
     [<RequireQualifiedAccess>]
+    type NetworkPluginMode =
+        | Overlay
+
+        member this.ArmValue =
+            match this with
+            | Overlay -> "overlay"
+
+    [<RequireQualifiedAccess>]
+    type NetworkDataplane =
+        | Azure
+        | Cilium
+
+        member this.ArmValue =
+            match this with
+            | Azure -> "azure"
+            | Cilium -> "cilium"
+
+    [<RequireQualifiedAccess>]
     type Sku =
         | Automatic
         | Base
@@ -3167,7 +3198,18 @@ module CosmosDb =
     /// The throughput for CosmosDB account
     type Throughput =
         | Provisioned of int<RU>
+        | Autoscale of int<RU>
         | Serverless
+
+    /// Continuous backup retention tier for a CosmosDB account.
+    type BackupRetention =
+        | Continuous7Days
+        | Continuous30Days
+
+        member this.ArmValue =
+            match this with
+            | Continuous7Days -> "Continuous7Days"
+            | Continuous30Days -> "Continuous30Days"
 
 module PostgreSQL =
     open Vm
@@ -4154,6 +4196,82 @@ module ContainerApp =
         | EmptyDirectory
         /// Mounts an Azure File Share in the same resource group, performing a key lookup.
         | AzureFileShare of ShareName: ResourceName * StorageAccountName: Storage.StorageAccountName * StorageAccessMode
+
+    /// Defines valid resource allocations for containers on consumption plans.
+    /// Consumption plans require specific combinations of CPU (vCores) and memory (Gi).
+    /// See https://learn.microsoft.com/en-us/azure/container-apps/containers#allocations
+    [<RequireQualifiedAccess>]
+    type ConsumptionPlanResources =
+        /// 0.25 vCPU, 0.5 Gi memory
+        | Cores0_25
+        /// 0.5 vCPU, 1.0 Gi memory
+        | Cores0_5
+        /// 0.75 vCPU, 1.5 Gi memory
+        | Cores0_75
+        /// 1.0 vCPU, 2.0 Gi memory
+        | Cores1_0
+        /// 1.25 vCPU, 2.5 Gi memory
+        | Cores1_25
+        /// 1.5 vCPU, 3.0 Gi memory
+        | Cores1_5
+        /// 1.75 vCPU, 3.5 Gi memory
+        | Cores1_75
+        /// 2.0 vCPU, 4.0 Gi memory
+        | Cores2_0
+        /// 2.25 vCPU, 4.5 Gi memory
+        | Cores2_25
+        /// 2.5 vCPU, 5.0 Gi memory
+        | Cores2_5
+        /// 2.75 vCPU, 5.5 Gi memory
+        | Cores2_75
+        /// 3.0 vCPU, 6.0 Gi memory
+        | Cores3_0
+        /// 3.25 vCPU, 6.5 Gi memory
+        | Cores3_25
+        /// 3.5 vCPU, 7.0 Gi memory
+        | Cores3_5
+        /// 3.75 vCPU, 7.5 Gi memory
+        | Cores3_75
+        /// 4.0 vCPU, 8.0 Gi memory
+        | Cores4_0
+
+        member this.CPU: float<VCores> =
+            match this with
+            | Cores0_25 -> 0.25<VCores>
+            | Cores0_5 -> 0.5<VCores>
+            | Cores0_75 -> 0.75<VCores>
+            | Cores1_0 -> 1.0<VCores>
+            | Cores1_25 -> 1.25<VCores>
+            | Cores1_5 -> 1.5<VCores>
+            | Cores1_75 -> 1.75<VCores>
+            | Cores2_0 -> 2.0<VCores>
+            | Cores2_25 -> 2.25<VCores>
+            | Cores2_5 -> 2.5<VCores>
+            | Cores2_75 -> 2.75<VCores>
+            | Cores3_0 -> 3.0<VCores>
+            | Cores3_25 -> 3.25<VCores>
+            | Cores3_5 -> 3.5<VCores>
+            | Cores3_75 -> 3.75<VCores>
+            | Cores4_0 -> 4.0<VCores>
+
+        member this.Memory: float<Gb> =
+            match this with
+            | Cores0_25 -> 0.5<Gb>
+            | Cores0_5 -> 1.0<Gb>
+            | Cores0_75 -> 1.5<Gb>
+            | Cores1_0 -> 2.0<Gb>
+            | Cores1_25 -> 2.5<Gb>
+            | Cores1_5 -> 3.0<Gb>
+            | Cores1_75 -> 3.5<Gb>
+            | Cores2_0 -> 4.0<Gb>
+            | Cores2_25 -> 4.5<Gb>
+            | Cores2_5 -> 5.0<Gb>
+            | Cores2_75 -> 5.5<Gb>
+            | Cores3_0 -> 6.0<Gb>
+            | Cores3_25 -> 6.5<Gb>
+            | Cores3_5 -> 7.0<Gb>
+            | Cores3_75 -> 7.5<Gb>
+            | Cores4_0 -> 8.0<Gb>
 
 namespace Farmer.DiagnosticSettings
 
