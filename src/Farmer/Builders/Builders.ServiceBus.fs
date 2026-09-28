@@ -325,6 +325,7 @@ type ServiceBusTopicConfig = {
     MaxMessageSizeInKilobytes: int<Kb> option
     MaxSizeInMegabytes: int<Mb> option
     Subscriptions: Map<ResourceName, ServiceBusSubscriptionConfig>
+    AuthorizationRules: Map<ResourceName, AuthorizationRuleRight Set>
 } with
 
     member this.ResourceId = topics.resourceId (this.Namespace.Name, this.Name)
@@ -352,6 +353,17 @@ type ServiceBusTopicConfig = {
                 MaxMessageSizeInKilobytes = this.MaxMessageSizeInKilobytes
                 MaxSizeInMegabytes = this.MaxSizeInMegabytes
             }
+            for rule in this.AuthorizationRules do
+                {
+                    TopicAuthorizationRule.Name =
+                        rule.Key.Map(fun name -> $"{this.Namespace.Name.Value}/{this.Name.Value}/%s{name}")
+                    Location = location
+                    Dependencies = [
+                        namespaces.resourceId this.Namespace.Name
+                        topics.resourceId (this.Namespace.Name, this.Name)
+                    ]
+                    Rights = rule.Value
+                }
             for subscription in this.Subscriptions do
                 let subscription =
                     {
@@ -373,6 +385,7 @@ type ServiceBusTopicBuilder() =
         MaxMessageSizeInKilobytes = None
         MaxSizeInMegabytes = None
         Subscriptions = Map.empty
+        AuthorizationRules = Map.empty
     }
 
     /// The name of the queue.
@@ -444,6 +457,13 @@ type ServiceBusTopicBuilder() =
                 (state.Subscriptions, subscriptions)
                 ||> List.fold (fun state (subscription: ServiceBusSubscriptionConfig) ->
                     state.Add(subscription.Name, subscription))
+    }
+
+    /// Add authorization rule on the topic.
+    [<CustomOperation "add_authorization_rule">]
+    member _.AddAuthorizationRule(state: ServiceBusTopicConfig, name, rights) = {
+        state with
+            AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights)
     }
 
     /// Instead of creating or modifying a namespace, configure this topic to point to another unmanaged namespace instance.

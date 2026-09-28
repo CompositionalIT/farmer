@@ -47,6 +47,7 @@ The Service Bus builder creates service bus namespaces and their associated queu
 | Topic | max_message_size | The maximum size of the message payload that can be accepted by the topic in Kilobytes e.g `1024<Kb>`. **Requires Premium SKU.** |
 | Topic | max_topic_size | Maximum size for the topic in Megabytes e.g. `1024<Mb>`. |
 | Topic | message_ttl | Time To Live (TTL) value for messages expressed as a TimeSpan or a TimeSpan string, such as '01:30:00' 1 hour, 30 minutes, or as an integer days e.g. `4<Days>`. |
+| Topic | add_authorization_rule | Adds an authorization rule to the topic. |
 | Topic | link_to_unmanaged_namespace | Instead of creating or modifying a namespace, configure this topic to point to another unmanaged namespace instance. |
 | Namespace | sku | The ServiceBusNamespaceSku e.g. Standard |
 | Namespace | namespace_name | The name of the namespace that holds the queue. |
