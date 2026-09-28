@@ -115,11 +115,14 @@ let fullContainerAppDeployment =
                 add_env_variable "ServiceBusQueueName" "wishrequests"
                 add_secret_parameter "servicebusconnectionkey"
 
-                add_servicebus_scale_rule "sb-keda-scale" {
-                    QueueName = "wishrequests"
-                    MessageCount = 5
-                    SecretRef = "servicebusconnectionkey"
-                }
+                add_servicebus_scale_rule
+                    "sb-keda-scale"
+                    (serviceBusScaleRule {
+                        queue_name "wishrequests"
+                        message_count 5
+                        secret_ref "servicebusconnectionkey"
+                        servicebus_namespace "servicebus"
+                    })
             }
             containerApp {
                 name "azurequeue"
@@ -192,9 +195,15 @@ let tests =
                 "Incorrect type for kuberenetes environment"
 
             Expect.equal
-                (kubeEnv.["kind"] |> string)
-                "containerenvironment"
-                "Incorrect kind for kuberenetes environment"
+                (kubeEnv.["apiVersion"] |> string)
+                "2026-07-01"
+                "Incorrect API version for kuberenetes environment"
+
+            Expect.isNull (kubeEnv.SelectToken "kind") "Managed environment should not emit kind for 2026-07-01"
+
+            Expect.isNotNull
+                (kubeEnv.SelectToken("properties.vnetConfiguration"))
+                "Managed environment should emit vnetConfiguration for 2026-07-01"
 
             let kubeEnvAppLogConfig =
                 jobj.SelectToken("resources[?(@.name=='kubecontainerenv')].properties.appLogsConfiguration")
@@ -223,6 +232,8 @@ let tests =
                 (daprComponent["type"] |> string)
                 "Microsoft.App/managedEnvironments/daprComponents"
                 "Incorrect type for dapr component"
+
+            Expect.equal (daprComponent["apiVersion"] |> string) "2026-07-01" "Incorrect API version for dapr component"
 
             let daprComponentProperties = daprComponent["properties"]
 
@@ -264,6 +275,11 @@ let tests =
                 (httpContainerApp.["type"] |> string)
                 "Microsoft.App/containerApps"
                 "Incorrect type for containerApps"
+
+            Expect.equal
+                (httpContainerApp.["apiVersion"] |> string)
+                "2026-07-01"
+                "Incorrect API version for containerApps"
 
             Expect.equal (httpContainerApp.["kind"] |> string) "containerapp" "Incorrect kind for containerApps"
 
@@ -361,6 +377,26 @@ let tests =
                 "/certs"
                 "Incorrect container volume mount"
 
+            let sbScaleRuleMetadata =
+                serviceBusContainerApp.SelectToken("properties.template.scale.rules[0].custom.metadata")
+
+            Expect.isNotNull sbScaleRuleMetadata "service bus scale rule metadata was null"
+
+            Expect.equal
+                (sbScaleRuleMetadata["queueName"] |> string)
+                "wishrequests"
+                "Incorrect service bus scale rule queueName"
+
+            Expect.equal
+                (sbScaleRuleMetadata["messageCount"] |> string)
+                "5"
+                "Incorrect service bus scale rule messageCount"
+
+            Expect.equal
+                (sbScaleRuleMetadata["namespace"] |> string)
+                "servicebus"
+                "Incorrect service bus scale rule namespace"
+
             let azureQueueContainerApp = jobj.SelectToken("resources[?(@.name=='azurequeue')]")
             Expect.isNotNull azureQueueContainerApp "resources[?(@.name=='azurequeue')] was null"
 
@@ -409,6 +445,14 @@ let tests =
                 fullContainerAppDeployment.Template.Resources
                 |> List.find (fun r -> r.ResourceId.Name.Value = "certs-v")
                 :?> Farmer.Arm.App.ManagedEnvironmentStorage
+
+            let certsStorageJson =
+                jobj.SelectToken("resources[?(@.name=='kubecontainerenv/certs-v')]")
+
+            Expect.equal
+                (certsStorageJson.["apiVersion"] |> string)
+                "2026-07-01"
+                "Incorrect API version for managed environment storage"
 
             Expect.equal
                 certsStorage.AzureFile.AccessMode

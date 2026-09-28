@@ -2,6 +2,9 @@ Release Notes
 =============
 
 ## 1.9.30
+* Container Apps: Update `Microsoft.App` ARM resource API versions for container apps, managed environments, environment storages, and Dapr components to the latest stable `2026-07-01`.
+* Container Apps: Add a `serviceBusScaleRule` builder for `add_servicebus_scale_rule` so Service Bus scale rules no longer need direct record construction.
+* Container Apps: Add required `Namespace` field to `ServiceBusScaleRule` to associate the scale rule with the correct Service Bus namespace.
 * App Configuration: Add support for Azure App Configuration stores, key-value items, and feature flags.
 
 ## 1.9.29

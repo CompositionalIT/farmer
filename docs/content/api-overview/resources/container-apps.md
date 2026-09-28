@@ -8,13 +8,15 @@ weight: 3
 #### Overview
 The Container Apps builder is used to create Azure Container Apps.
 
-* Container Environment (`Microsoft.Web/kubeEnvironments`)
-* Container App (`Microsoft.Web/containerApps`)
+* Container Environment (`Microsoft.App/managedEnvironments`)
+* Container App (`Microsoft.App/containerApps`)
+
+Farmer currently emits Azure Container Apps resources using the latest stable `2026-07-01` Microsoft.App ARM API version.
 
 ### Turn on Resource Provider
 Before you deploy your container app, you need to turn on the Container Apps resource provider in your Azure subscription.
 
-Get sure you have the following providers registered: `Microsoft.Kubernetes` and `Microsoft.ContainerService`.
+Make sure you have the `Microsoft.App` provider registered.
 
 #### Container Environment Builder
 The Container Environment builder (`containerEnvironment`) defines settings for the Kubernetes environment that hosts the container apps.
@@ -74,6 +76,28 @@ The Container App Builder supports a number of KEDA scale rules out of the box:
 | add_eventhub_scale_rule | Adds a scale rule for event hub events. |
 | add_queue_scale_rule | Adds a scale rule for Azure Storage Queue length. |
 | add_custom_scale_rule | Adds a custom scale rule. Provide an object that matches the KEDA specification. |
+
+The `add_servicebus_scale_rule` keyword takes a name and a `ServiceBusScaleRule`. Prefer the `serviceBusScaleRule` builder so callers are insulated from future record shape changes:
+
+```fsharp
+add_servicebus_scale_rule "sb-keda-scale" (
+    serviceBusScaleRule {
+        queue_name "wishrequests"
+        servicebus_namespace "servicebus"
+        message_count 5
+        secret_ref "servicebusconnectionkey"
+    }
+)
+```
+
+The builder supports the following fields:
+
+| Field | Purpose |
+|-|-|
+| queue_name | The name of the Service Bus queue to monitor. |
+| servicebus_namespace | The Service Bus namespace to associate with the scale rule. |
+| message_count | The number of messages in the queue that triggers scaling. |
+| secret_ref | The name of the secret containing the Service Bus connection string. |
 
 > The Azure Storage Queue Scale Rule integration is "smart" - provide a reference to the storage account, queue name and length threshold; all appropriate settings and secrets will be automatically configured for you.
 

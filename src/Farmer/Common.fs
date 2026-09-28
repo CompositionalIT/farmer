@@ -4136,6 +4136,7 @@ module ContainerApp =
 
     type ServiceBusScaleRule = {
         QueueName: string
+        Namespace: string
         MessageCount: int
         SecretRef: string
     }

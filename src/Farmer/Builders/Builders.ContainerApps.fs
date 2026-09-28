@@ -703,6 +703,32 @@ type ContainerBuilder() =
                 )
     }
 
+type ServiceBusScaleRuleBuilder() =
+    member _.Yield _ = {
+        QueueName = ""
+        Namespace = ""
+        MessageCount = 0
+        SecretRef = ""
+    }
+
+    [<CustomOperation "queue_name">]
+    member _.QueueName(state: ServiceBusScaleRule, queueName: string) = { state with QueueName = queueName }
+
+    [<CustomOperation "servicebus_namespace">]
+    member _.Namespace(state: ServiceBusScaleRule, serviceBusNamespace: string) = {
+        state with
+            Namespace = serviceBusNamespace
+    }
+
+    [<CustomOperation "message_count">]
+    member _.MessageCount(state: ServiceBusScaleRule, messageCount: int) = {
+        state with
+            MessageCount = messageCount
+    }
+
+    [<CustomOperation "secret_ref">]
+    member _.SecretRef(state: ServiceBusScaleRule, secretRef: string) = { state with SecretRef = secretRef }
+
 type DaprComponentBuilder() =
     member _.Yield _ = {
         Name = ResourceName.Empty
@@ -878,4 +904,5 @@ type DaprComponentBuilder() =
 let containerEnvironment = ContainerEnvironmentBuilder()
 let containerApp = ContainerAppBuilder()
 let container = ContainerBuilder()
+let serviceBusScaleRule = ServiceBusScaleRuleBuilder()
 let daprComponent = DaprComponentBuilder()
