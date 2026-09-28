@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.9.31
+* Communication Services: Update `Microsoft.Communication/communicationServices` to the stable `2020-08-20` ARM API version instead of the retired preview API.
+
 ## 1.9.29
 * Container Apps: Add support for setting Dapr protocol.
 
