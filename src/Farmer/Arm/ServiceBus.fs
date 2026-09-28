@@ -22,6 +22,9 @@ let namespaces =
 let queueAuthorizationRules =
     ResourceType("Microsoft.ServiceBus/namespaces/queues/authorizationRules", "2022-01-01-preview")
 
+let topicAuthorizationRules =
+    ResourceType("Microsoft.ServiceBus/namespaces/topics/authorizationRules", "2022-01-01-preview")
+
 let namespaceAuthorizationRules =
     ResourceType("Microsoft.ServiceBus/namespaces/AuthorizationRules", "2022-01-01-preview")
 
@@ -148,6 +151,23 @@ module Namespaces =
 
             member this.JsonModel = {|
                 queueAuthorizationRules.Create(this.Name, this.Location, this.Dependencies) with
+                    properties = {|
+                        rights = this.Rights |> Set.map string |> Set.toList
+                    |}
+            |}
+
+    type TopicAuthorizationRule = {
+        Name: ResourceName
+        Location: Location
+        Dependencies: ResourceId list
+        Rights: AuthorizationRuleRight Set
+    } with
+
+        interface IArmResource with
+            member this.ResourceId = topicAuthorizationRules.resourceId this.Name
+
+            member this.JsonModel = {|
+                topicAuthorizationRules.Create(this.Name, this.Location, this.Dependencies) with
                     properties = {|
                         rights = this.Rights |> Set.map string |> Set.toList
                     |}

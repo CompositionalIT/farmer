@@ -579,6 +579,47 @@ let tests =
                 Expect.equal topic.Name "my-bus/my-topic" "Name not set"
                 Expect.equal topic.MaxSizeInMegabytes (Nullable 10240) "Max size not set"
             }
+            test "Topic authorization rule should not be present by default" {
+                let sbAuthorizationRules =
+                    arm {
+                        add_resource (
+                            serviceBus {
+                                name "serviceBus"
+                                sku Standard
+                                add_topics [ topic { name "my-topic" } ]
+                            }
+                        )
+                    }
+                    |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
+                    |> List.filter (fun x -> (=) x.Type topicAuthorizationRules.Type)
+
+                Expect.equal sbAuthorizationRules.Length 0 "Topic authorization rule should not be present"
+            }
+            test "Topic authorization rule should write correct ARM template" {
+                let sbAuthorizationRule =
+                    arm {
+                        add_resource (
+                            serviceBus {
+                                name "serviceBus"
+                                sku Standard
+
+                                add_topics [
+                                    topic {
+                                        name "my-topic"
+                                        add_authorization_rule "my-rule" [ Manage ]
+                                    }
+                                ]
+                            }
+                        )
+                    }
+                    |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
+                    |> List.filter (fun x -> (=) x.Type topicAuthorizationRules.Type)
+                    |> List.head
+
+                Expect.equal sbAuthorizationRule.Name "serviceBus/my-topic/my-rule" "Name is wrong"
+                Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
+                Expect.equal sbAuthorizationRule.Rights.[0] AccessRights.Manage "Wrong rights"
+            }
             test "Can create a basic subscription" {
                 let sub: SBSubscription =
                     serviceBus {
