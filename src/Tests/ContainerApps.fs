@@ -115,12 +115,14 @@ let fullContainerAppDeployment =
                 add_env_variable "ServiceBusQueueName" "wishrequests"
                 add_secret_parameter "servicebusconnectionkey"
 
-                add_servicebus_scale_rule "sb-keda-scale" {
-                    QueueName = "wishrequests"
-                    MessageCount = 5
-                    SecretRef = "servicebusconnectionkey"
-                    Namespace = "servicebus"
-                }
+                add_servicebus_scale_rule
+                    "sb-keda-scale"
+                    (serviceBusScaleRule {
+                        queue_name "wishrequests"
+                        message_count 5
+                        secret_ref "servicebusconnectionkey"
+                        servicebus_namespace "servicebus"
+                    })
             }
             containerApp {
                 name "azurequeue"

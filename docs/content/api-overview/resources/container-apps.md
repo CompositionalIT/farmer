@@ -75,14 +75,27 @@ The Container App Builder supports a number of KEDA scale rules out of the box:
 | add_queue_scale_rule | Adds a scale rule for Azure Storage Queue length. |
 | add_custom_scale_rule | Adds a custom scale rule. Provide an object that matches the KEDA specification. |
 
-The `add_servicebus_scale_rule` keyword takes a name and a `ServiceBusScaleRule` record with the following fields:
+The `add_servicebus_scale_rule` keyword takes a name and a `ServiceBusScaleRule`. Prefer the `serviceBusScaleRule` builder so callers are insulated from future record shape changes:
+
+```fsharp
+add_servicebus_scale_rule "sb-keda-scale" (
+    serviceBusScaleRule {
+        queue_name "wishrequests"
+        servicebus_namespace "servicebus"
+        message_count 5
+        secret_ref "servicebusconnectionkey"
+    }
+)
+```
+
+The builder supports the following fields:
 
 | Field | Purpose |
 |-|-|
-| QueueName | The name of the Service Bus queue to monitor. |
-| Namespace | The Service Bus namespace to associate with the scale rule. |
-| MessageCount | The number of messages in the queue that triggers scaling. |
-| SecretRef | The name of the secret containing the Service Bus connection string. |
+| queue_name | The name of the Service Bus queue to monitor. |
+| servicebus_namespace | The Service Bus namespace to associate with the scale rule. |
+| message_count | The number of messages in the queue that triggers scaling. |
+| secret_ref | The name of the secret containing the Service Bus connection string. |
 
 > The Azure Storage Queue Scale Rule integration is "smart" - provide a reference to the storage account, queue name and length threshold; all appropriate settings and secrets will be automatically configured for you.
 
