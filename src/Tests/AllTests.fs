@@ -35,6 +35,7 @@ let allTests =
             Cdn.tests
             CognitiveServices.tests
             CommunicationServices.tests
+            ConfigurationStore.tests
             ContainerApps.tests
             ContainerGroup.tests
             ContainerRegistry.tests

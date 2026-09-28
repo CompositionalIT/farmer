@@ -5,22 +5,22 @@ open Farmer
 open Farmer.CosmosDb
 
 let containers =
-    ResourceType("Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers", "2021-04-15")
+    ResourceType("Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers", "2024-11-15")
 
 let sqlDatabases =
-    ResourceType("Microsoft.DocumentDb/databaseAccounts/sqlDatabases", "2021-04-15")
+    ResourceType("Microsoft.DocumentDb/databaseAccounts/sqlDatabases", "2024-11-15")
 
 let mongoDatabases =
-    ResourceType("Microsoft.DocumentDb/databaseAccounts/mongodbDatabases", "2021-04-15")
+    ResourceType("Microsoft.DocumentDb/databaseAccounts/mongodbDatabases", "2024-11-15")
 
 let databaseAccounts =
-    ResourceType("Microsoft.DocumentDb/databaseAccounts", "2021-04-15")
+    ResourceType("Microsoft.DocumentDb/databaseAccounts", "2024-11-15")
 
 let gremlinDatabases =
-    ResourceType("Microsoft.DocumentDb/databaseAccounts/gremlinDatabases", "2022-05-15")
+    ResourceType("Microsoft.DocumentDb/databaseAccounts/gremlinDatabases", "2024-11-15")
 
 let graphs =
-    ResourceType("Microsoft.DocumentDb/databaseAccounts/gremlinDatabases/graphs", "2022-05-15")
+    ResourceType("Microsoft.DocumentDb/databaseAccounts/gremlinDatabases/graphs", "2024-11-15")
 
 type DatabaseKind =
     | Document
@@ -128,12 +128,14 @@ module DatabaseAccounts =
                     resource.Create(this.Account / this.Name, dependsOn = [ databaseAccounts.resourceId this.Account ]) with
                         properties = {|
                             resource = {| id = this.Name.Value |}
-                            options = {|
-                                throughput =
-                                    match this.Throughput with
-                                    | Provisioned t -> string t
-                                    | Serverless -> null
-                            |}
+                            options =
+                                match this.Throughput with
+                                | Provisioned t -> box {| throughput = string t |}
+                                | Autoscale t ->
+                                    box {|
+                                        autoscaleSettings = {| maxThroughput = int t |}
+                                    |}
+                                | Serverless -> null
                         |}
                 |}
 
@@ -143,6 +145,8 @@ type DatabaseAccount = {
     ConsistencyPolicy: ConsistencyPolicy
     FailoverPolicy: FailoverPolicy
     PublicNetworkAccess: FeatureFlag
+    BackupRetention: BackupRetention option
+    IpRules: string list
     FreeTier: bool
     Serverless: FeatureFlag
     Kind: DatabaseKind
@@ -215,22 +219,37 @@ type DatabaseAccount = {
                             maxIntervalInSeconds = this.MaxInterval |> Option.toNullable
                         |}
                         databaseAccountOfferType = "Standard"
+                        backupPolicy =
+                            match this.BackupRetention with
+                            | Some retention ->
+                                box {|
+                                    ``type`` = "Continuous"
+                                    continuousModeProperties = {| tier = retention.ArmValue |}
+                                |}
+                            | None -> null
                         enableAutomaticFailover = this.EnableAutomaticFailover |> Option.toNullable
                         enableMultipleWriteLocations = this.EnableMultipleWriteLocations |> Option.toNullable
+                        // Always include a primary location: required for Gremlin accounts and restored
+                        // accounts (createMode: "Restore") where Azure locks location to restore-point values.
                         locations =
-                            // Locations has to be specified for the account to be gremlin enabled.
-                            // Otherwise graph database provisioning fails.
-                            match this.FailoverLocations, (this.Serverless = Enabled || this.Kind = Gremlin) with
-                            | [], true ->
+                            match this.FailoverLocations with
+                            | [] ->
                                 box [
                                     {|
                                         locationName = this.Location.ArmValue
                                     |}
                                 ]
-                            | [], false -> null
-                            | locations, _ -> box locations
+                            | locations -> box locations
                         publicNetworkAccess = string this.PublicNetworkAccess
                         enableFreeTier = this.FreeTier
+                        ipRules =
+                            match this.IpRules with
+                            | [] -> null
+                            | rules ->
+                                box [
+                                    for ipRule in rules do
+                                        {| ipAddressOrRange = ipRule |}
+                                ]
                         capabilities =
                             if this.Serverless = Enabled || this.Kind = Gremlin then
                                 box [

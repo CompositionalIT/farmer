@@ -60,6 +60,8 @@ type VmConfig = {
     DiskDeleteOption: DeleteOption option
     NicDeleteOption: DeleteOption option
     PublicIpDeleteOption: DeleteOption option
+    OsDiskCaching: CachingType option
+    DataDiskCaching: CachingType option
 
     Tags: Map<string, string>
 } with
@@ -347,7 +349,15 @@ type VirtualMachineBuilder() =
         DisablePasswordAuthentication = None
         SshPathAndPublicKeys = None
         AadSshLogin = FeatureFlag.Disabled
-        OsDisk = FromImage(ImageDefinition WindowsServer_2012Datacenter, { Size = 128; DiskType = Standard_LRS })
+        OsDisk =
+            FromImage(
+                ImageDefinition WindowsServer_2012Datacenter,
+                {
+                    Size = 128
+                    DiskType = Standard_LRS
+                    Caching = None
+                }
+            )
         AddressPrefix = "10.0.0.0/16"
         SubnetPrefix = "10.0.0.0/24"
         VNet = derived (fun config -> config.DeriveResourceName virtualNetworks "vnet")
@@ -365,6 +375,8 @@ type VirtualMachineBuilder() =
         DiskDeleteOption = None
         NicDeleteOption = None
         PublicIpDeleteOption = None
+        OsDiskCaching = None
+        DataDiskCaching = None
         Tags = Map.empty
     }
 
@@ -377,26 +389,47 @@ type VirtualMachineBuilder() =
             | NetworkInterface.AcceleratedNetworkingSupported -> ()
         | _ -> ()
 
-        // Apply DiskDeleteOption to OS disk if set
+        // Apply DiskDeleteOption and OsDiskCaching to OS disk if set
         let osDisk =
-            match state.DiskDeleteOption with
-            | Some DeleteOption.Delete ->
-                match state.OsDisk with
-                | FromImage(image, diskInfo) -> FromImageWithDelete(image, diskInfo)
-                | AttachOsDisk(os, diskId) -> AttachOsDiskWithDelete(os, diskId)
-                | other -> other // Already has WithDelete variant
-            | _ -> state.OsDisk
+            let applyDelete disk =
+                match state.DiskDeleteOption with
+                | Some DeleteOption.Delete ->
+                    match disk with
+                    | FromImage(image, diskInfo) -> FromImageWithDelete(image, diskInfo)
+                    | AttachOsDisk(os, diskId) -> AttachOsDiskWithDelete(os, diskId)
+                    | other -> other // Already has WithDelete variant
+                | _ -> disk
 
-        // Apply DiskDeleteOption to data disks if set
+            let applyCaching disk =
+                match state.OsDiskCaching with
+                | Some caching ->
+                    match disk with
+                    | FromImage(image, diskInfo) -> FromImage(image, { diskInfo with Caching = Some caching })
+                    | FromImageWithDelete(image, diskInfo) ->
+                        FromImageWithDelete(image, { diskInfo with Caching = Some caching })
+                    | other -> other // Cannot set caching for attached disks
+                | None -> disk
+
+            state.OsDisk |> applyDelete |> applyCaching
+
+        // Apply DiskDeleteOption and DataDiskCaching to data disks if set
+        let applyDiskCaching caching diskInfo = { diskInfo with Caching = Some caching }
+
         let dataDisks =
             state.DataDisks
             |> Option.map (function
                 | [] ->
                     // Create default 1024GB disk
-                    let diskInfo = {
-                        Size = 1024
-                        DiskType = DiskType.Standard_LRS
-                    }
+                    let diskInfo =
+                        let baseDisk = {
+                            Size = 1024
+                            DiskType = DiskType.Standard_LRS
+                            Caching = None
+                        }
+
+                        match state.DataDiskCaching with
+                        | Some caching -> applyDiskCaching caching baseDisk
+                        | None -> baseDisk
 
                     [
                         match state.DiskDeleteOption with
@@ -404,17 +437,27 @@ type VirtualMachineBuilder() =
                         | _ -> DataDiskCreateOption.Empty diskInfo
                     ]
                 | disks ->
-                    // Apply DiskDeleteOption to existing disks
-                    match state.DiskDeleteOption with
-                    | Some DeleteOption.Delete ->
-                        disks
-                        |> List.map (function
+                    // Apply DiskDeleteOption and DataDiskCaching to existing disks
+                    let applyDelete =
+                        match state.DiskDeleteOption with
+                        | Some DeleteOption.Delete ->
+                            function
                             | Empty diskInfo -> EmptyWithDelete diskInfo
                             | AttachDataDisk diskId -> AttachDataDiskWithDelete diskId
                             | AttachUltra diskId -> AttachUltraWithDelete diskId
                             | other -> other // Already has WithDelete variant
-                        )
-                    | _ -> disks)
+                        | _ -> id
+
+                    let applyCaching =
+                        match state.DataDiskCaching with
+                        | Some caching ->
+                            function
+                            | Empty diskInfo -> Empty(applyDiskCaching caching diskInfo)
+                            | EmptyWithDelete diskInfo -> EmptyWithDelete(applyDiskCaching caching diskInfo)
+                            | other -> other // Cannot set caching for attached disks
+                        | None -> id
+
+                    disks |> List.map (applyDelete >> applyCaching))
 
         {
             state with
@@ -736,7 +779,12 @@ type VirtualMachineBuilder() =
             | Some disks -> disks
             | None -> []
 
-        let newDisk = DataDiskCreateOption.Empty { Size = size; DiskType = diskType }
+        let newDisk =
+            DataDiskCreateOption.Empty {
+                Size = size
+                DiskType = diskType
+                Caching = None
+            }
 
         {
             state with
@@ -1086,6 +1134,20 @@ type VirtualMachineBuilder() =
     member _.DiskDeleteOption(state: VmConfig, deleteOption: DeleteOption) = {
         state with
             DiskDeleteOption = Some deleteOption
+    }
+
+    /// Sets the host caching mode for the OS disk.
+    [<CustomOperation "os_disk_caching">]
+    member _.OsDiskCaching(state: VmConfig, caching: CachingType) = {
+        state with
+            OsDiskCaching = Some caching
+    }
+
+    /// Sets the host caching mode for all data disks.
+    [<CustomOperation "data_disk_caching">]
+    member _.DataDiskCaching(state: VmConfig, caching: CachingType) = {
+        state with
+            DataDiskCaching = Some caching
     }
 
     /// Sets the delete option for the network interface(s).

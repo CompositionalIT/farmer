@@ -994,10 +994,23 @@ module Vm =
             | Delete -> "Delete"
             | Detach -> "Detach"
 
+    /// Specifies the host caching mode for a disk.
+    type CachingType =
+        | NoCaching
+        | ReadOnly
+        | ReadWrite
+
+        member this.ArmValue =
+            match this with
+            | NoCaching -> "None"
+            | ReadOnly -> "ReadOnly"
+            | ReadWrite -> "ReadWrite"
+
     /// Represents a disk in a VM.
     type DiskInfo = {
         Size: int
         DiskType: DiskType
+        Caching: CachingType option
     } with
 
         member this.IsUltraDisk =
@@ -1903,6 +1916,19 @@ module CognitiveServices =
         | TextAnalytics
         | TextTranslation
 
+module ConfigurationStore =
+    /// SKU for Azure App Configuration stores.
+    type Sku =
+        | Free
+        | Developer
+        | Standard
+        | Premium
+
+    /// Data plane authentication mode for Azure App Configuration stores.
+    type DataPlaneAuthenticationMode =
+        | Local
+        | Passthrough
+
 module BingSearch =
     /// Type of SKU. See https://www.microsoft.com/en-us/bing/apis/pricing
     type Sku =
@@ -2430,6 +2456,24 @@ module ContainerService =
             match this with
             | Kubenet -> "kubenet"
             | AzureCni -> "azure"
+
+    [<RequireQualifiedAccess>]
+    type NetworkPluginMode =
+        | Overlay
+
+        member this.ArmValue =
+            match this with
+            | Overlay -> "overlay"
+
+    [<RequireQualifiedAccess>]
+    type NetworkDataplane =
+        | Azure
+        | Cilium
+
+        member this.ArmValue =
+            match this with
+            | Azure -> "azure"
+            | Cilium -> "cilium"
 
     [<RequireQualifiedAccess>]
     type Sku =
@@ -3154,7 +3198,18 @@ module CosmosDb =
     /// The throughput for CosmosDB account
     type Throughput =
         | Provisioned of int<RU>
+        | Autoscale of int<RU>
         | Serverless
+
+    /// Continuous backup retention tier for a CosmosDB account.
+    type BackupRetention =
+        | Continuous7Days
+        | Continuous30Days
+
+        member this.ArmValue =
+            match this with
+            | Continuous7Days -> "Continuous7Days"
+            | Continuous30Days -> "Continuous30Days"
 
 module PostgreSQL =
     open Vm

@@ -85,7 +85,7 @@ let tests =
 
             Expect.equal
                 (db.Endpoint.Eval())
-                "[reference(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), '2021-04-15').documentEndpoint]"
+                "[reference(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), '2024-11-15').documentEndpoint]"
                 "Endpoint is incorrect"
 
             Expect.equal
@@ -274,4 +274,109 @@ let tests =
                         why
                 }
         ]
+
+        test "Autoscale template should include autoscaleSettings and not throughput" {
+            let t = arm {
+                add_resource (
+                    cosmosDb {
+                        name "foo"
+                        throughput (CosmosDb.Autoscale 4000<CosmosDb.RU>)
+                    }
+                )
+            }
+
+            let jobj = t.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+            let dbOptions =
+                jobj.SelectToken(
+                    "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts/sqlDatabases')].properties.options"
+                )
+
+            Expect.isNotNull dbOptions "Database resource should have options."
+
+            Expect.isNotNull
+                (dbOptions.SelectToken("autoscaleSettings.maxThroughput"))
+                "Autoscale options should contain autoscaleSettings.maxThroughput."
+
+            Expect.equal
+                (dbOptions.SelectToken("autoscaleSettings.maxThroughput") |> string)
+                "4000"
+                "maxThroughput should be 4000."
+
+            Expect.isNull (dbOptions.SelectToken("throughput")) "Autoscale options should not contain throughput."
+        }
+
+        test "Continuous backup retention should emit backupPolicy in template" {
+            let t = arm {
+                add_resource (
+                    cosmosDb {
+                        name "foo"
+                        backup_retention CosmosDb.Continuous7Days
+                    }
+                )
+            }
+
+            let json = t.Template |> Writer.toJson
+
+            Expect.isTrue (json.Contains("backupPolicy")) "Should contain backupPolicy."
+            Expect.isTrue (json.Contains("Continuous")) "Should contain Continuous backup type."
+            Expect.isTrue (json.Contains("Continuous7Days")) "Should contain Continuous7Days tier."
+        }
+
+        test "IP firewall rules should emit ipRules in template" {
+            let t = arm {
+                add_resource (
+                    cosmosDb {
+                        name "foo"
+                        add_firewall_rule "10.0.0.1"
+                        add_firewall_rule "10.0.0.2"
+                    }
+                )
+            }
+
+            let json = t.Template |> Writer.toJson
+
+            Expect.isTrue (json.Contains("ipRules")) "Should contain ipRules."
+            Expect.isTrue (json.Contains("10.0.0.1")) "Should contain first firewall IP."
+            Expect.isTrue (json.Contains("10.0.0.2")) "Should contain second firewall IP."
+        }
+
+        test "Enable Azure firewall should add 0.0.0.0 to IP rules" {
+            let t = arm {
+                add_resource (
+                    cosmosDb {
+                        name "foo"
+                        enable_azure_firewall
+                    }
+                )
+            }
+
+            let json = t.Template |> Writer.toJson
+
+            Expect.isTrue (json.Contains("0.0.0.0")) "Should contain 0.0.0.0 for Azure services access."
+        }
+
+        test "Provisioned account without failover should still emit a locations array" {
+            let t = arm {
+                add_resource (
+                    cosmosDb {
+                        name "foo"
+                        throughput 400<CosmosDb.RU>
+                    }
+                )
+            }
+
+            let jobj = t.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+            let locationToken =
+                jobj.SelectToken(
+                    "$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts')].properties.locations[0]"
+                )
+
+            Expect.isNotNull locationToken "Provisioned account should emit a locations array."
+
+            let locationName = locationToken.SelectToken("locationName") |> string
+
+            Expect.isNotEmpty locationName "Location name should not be empty."
+        }
     ]
