@@ -5,16 +5,16 @@ open System
 open Farmer.ContainerApp
 open Farmer
 
-let containerApps = ResourceType("Microsoft.App/containerApps", "2022-03-01")
+let containerApps = ResourceType("Microsoft.App/containerApps", "2026-07-01")
 
 let managedEnvironments =
-    ResourceType("Microsoft.App/managedEnvironments", "2022-03-01")
+    ResourceType("Microsoft.App/managedEnvironments", "2026-07-01")
 
 let storages =
-    ResourceType("Microsoft.App/managedEnvironments/storages", "2022-03-01")
+    ResourceType("Microsoft.App/managedEnvironments/storages", "2026-07-01")
 
 let daprComponents =
-    ResourceType("Microsoft.App/managedEnvironments/daprComponents", "2022-10-01")
+    ResourceType("Microsoft.App/managedEnvironments/daprComponents", "2026-07-01")
 
 open Farmer.ContainerAppValidation
 open Farmer.Identity

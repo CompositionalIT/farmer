@@ -8,13 +8,15 @@ weight: 3
 #### Overview
 The Container Apps builder is used to create Azure Container Apps.
 
-* Container Environment (`Microsoft.Web/kubeEnvironments`)
-* Container App (`Microsoft.Web/containerApps`)
+* Container Environment (`Microsoft.App/managedEnvironments`)
+* Container App (`Microsoft.App/containerApps`)
+
+Farmer currently emits Azure Container Apps resources using the latest stable `2026-07-01` Microsoft.App ARM API version.
 
 ### Turn on Resource Provider
 Before you deploy your container app, you need to turn on the Container Apps resource provider in your Azure subscription.
 
-Get sure you have the following providers registered: `Microsoft.Kubernetes` and `Microsoft.ContainerService`.
+Make sure you have the `Microsoft.App` provider registered.
 
 #### Container Environment Builder
 The Container Environment builder (`containerEnvironment`) defines settings for the Kubernetes environment that hosts the container apps.

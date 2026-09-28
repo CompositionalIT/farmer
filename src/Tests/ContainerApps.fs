@@ -195,6 +195,11 @@ let tests =
                 "Incorrect type for kuberenetes environment"
 
             Expect.equal
+                (kubeEnv.["apiVersion"] |> string)
+                "2026-07-01"
+                "Incorrect API version for kuberenetes environment"
+
+            Expect.equal
                 (kubeEnv.["kind"] |> string)
                 "containerenvironment"
                 "Incorrect kind for kuberenetes environment"
@@ -226,6 +231,8 @@ let tests =
                 (daprComponent["type"] |> string)
                 "Microsoft.App/managedEnvironments/daprComponents"
                 "Incorrect type for dapr component"
+
+            Expect.equal (daprComponent["apiVersion"] |> string) "2026-07-01" "Incorrect API version for dapr component"
 
             let daprComponentProperties = daprComponent["properties"]
 
@@ -267,6 +274,11 @@ let tests =
                 (httpContainerApp.["type"] |> string)
                 "Microsoft.App/containerApps"
                 "Incorrect type for containerApps"
+
+            Expect.equal
+                (httpContainerApp.["apiVersion"] |> string)
+                "2026-07-01"
+                "Incorrect API version for containerApps"
 
             Expect.equal (httpContainerApp.["kind"] |> string) "containerapp" "Incorrect kind for containerApps"
 
@@ -432,6 +444,14 @@ let tests =
                 fullContainerAppDeployment.Template.Resources
                 |> List.find (fun r -> r.ResourceId.Name.Value = "certs-v")
                 :?> Farmer.Arm.App.ManagedEnvironmentStorage
+
+            let certsStorageJson =
+                jobj.SelectToken("resources[?(@.name=='kubecontainerenv/certs-v')]")
+
+            Expect.equal
+                (certsStorageJson.["apiVersion"] |> string)
+                "2026-07-01"
+                "Incorrect API version for managed environment storage"
 
             Expect.equal
                 certsStorage.AzureFile.AccessMode
