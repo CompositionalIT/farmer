@@ -199,10 +199,11 @@ let tests =
                 "2026-07-01"
                 "Incorrect API version for kuberenetes environment"
 
-            Expect.equal
-                (kubeEnv.["kind"] |> string)
-                "containerenvironment"
-                "Incorrect kind for kuberenetes environment"
+            Expect.isNull (kubeEnv.SelectToken "kind") "Managed environment should not emit kind for 2026-07-01"
+
+            Expect.isNotNull
+                (kubeEnv.SelectToken("properties.vnetConfiguration"))
+                "Managed environment should emit vnetConfiguration for 2026-07-01"
 
             let kubeEnvAppLogConfig =
                 jobj.SelectToken("resources[?(@.name=='kubecontainerenv')].properties.appLogsConfiguration")

@@ -526,10 +526,7 @@ type ManagedEnvironment = {
 
         member this.JsonModel = {|
             managedEnvironments.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
-                kind = "containerenvironment"
                 properties = {|
-                    ``type`` = "managed"
-                    internalLoadBalancerEnabled = this.InternalLoadBalancerState.AsBoolean
                     daprAIInstrumentationKey =
                         this.AppInsightsInstrumentationKey
                         |> Option.map (fun key -> key.Eval())
@@ -541,5 +538,9 @@ type ManagedEnvironment = {
                             sharedKey = LogAnalytics.getPrimarySharedKey(this.LogAnalytics).Eval()
                         |}
                     |}
+                    vnetConfiguration =
+                        match this.InternalLoadBalancerState with
+                        | Enabled -> box {| ``internal`` = true |}
+                        | Disabled -> box {| |}
                 |}
         |}
