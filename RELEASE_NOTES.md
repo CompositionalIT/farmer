@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.9.32
+* Service Bus: Add plural `add_authorization_rules` helpers for queues, topics, and namespaces.
+
 ## 1.9.31
 * Communication Services: Update `Microsoft.Communication/communicationServices` to the stable `2020-08-20` ARM API version instead of the retired preview API.
 * Service Bus: Add topic-level authorization rules with `add_authorization_rule` on the `topic` builder.

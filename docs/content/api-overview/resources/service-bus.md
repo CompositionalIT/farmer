@@ -27,6 +27,7 @@ The Service Bus builder creates service bus namespaces and their associated queu
 | Queue | message_ttl | Time To Live (TTL) value for messages expressed as a TimeSpan or a TimeSpan string, such as '01:30:00' 1 hour, 30 minutes. |
 | Queue | message_ttl_days | Time To Live (TTL) value for messages in days. |
 | Queue | add_authorization_rule | Adds an authorization rule to the queue. |
+| Queue | add_authorization_rules | Adds multiple authorization rules to the queue. |
 | Subscription | name | The name of the subscription. |
 | Subscription | lock_duration_minutes | The length of time that a lock can be held on a message. |
 | Subscription | max_delivery_count | The maximum number of times a message can be delivered before dead lettering. |
@@ -48,9 +49,12 @@ The Service Bus builder creates service bus namespaces and their associated queu
 | Topic | max_topic_size | Maximum size for the topic in Megabytes e.g. `1024<Mb>`. |
 | Topic | message_ttl | Time To Live (TTL) value for messages expressed as a TimeSpan or a TimeSpan string, such as '01:30:00' 1 hour, 30 minutes, or as an integer days e.g. `4<Days>`. |
 | Topic | add_authorization_rule | Adds an authorization rule to the topic. |
+| Topic | add_authorization_rules | Adds multiple authorization rules to the topic. |
 | Topic | link_to_unmanaged_namespace | Instead of creating or modifying a namespace, configure this topic to point to another unmanaged namespace instance. |
 | Namespace | sku | The ServiceBusNamespaceSku e.g. Standard |
 | Namespace | namespace_name | The name of the namespace that holds the queue. |
+| Namespace | add_authorization_rule | Adds an authorization rule to the namespace. |
+| Namespace | add_authorization_rules | Adds multiple authorization rules to the namespace. |
 | Namespace | depends_on | [Sets dependencies on the service bus namespace.](../../dependencies/) |
 | Namespace | enable_zone_redundancy | Enables zone redundancy. |
 | Namespace | disable_public_network_access | Disables public network access to the namespace. |

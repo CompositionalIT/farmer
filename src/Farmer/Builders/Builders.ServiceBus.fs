@@ -51,7 +51,10 @@ type ServiceBusQueueConfig = {
                     QueueAuthorizationRule.Name =
                         rule.Key.Map(fun name -> $"{this.Namespace.Name.Value}/{this.Name.Value}/%s{name}")
                     Location = location
-                    Dependencies = [ namespaces.resourceId this.Name; queues.resourceId (this.Name, this.Name) ]
+                    Dependencies = [
+                        namespaces.resourceId this.Namespace.Name
+                        queues.resourceId (this.Namespace.Name, this.Name)
+                    ]
                     Rights = rule.Value
                 }
         ]
@@ -157,6 +160,16 @@ type ServiceBusQueueBuilder() =
     member _.AddAuthorizationRule(state: ServiceBusQueueConfig, name, rights) = {
         state with
             AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights)
+    }
+
+    /// Add authorization rules on the queue.
+    [<CustomOperation "add_authorization_rules">]
+    member _.AddAuthorizationRules(state: ServiceBusQueueConfig, rules: (string * AuthorizationRuleRight list) list) = {
+        state with
+            AuthorizationRules =
+                (state.AuthorizationRules, rules)
+                ||> List.fold (fun authorizationRules (name, rights) ->
+                    authorizationRules.Add(ResourceName name, Set rights))
     }
 
     /// Instead of creating or modifying a namespace, configure this subscription to point to another unmanaged namespace instance.
@@ -466,6 +479,16 @@ type ServiceBusTopicBuilder() =
             AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights)
     }
 
+    /// Add authorization rules on the topic.
+    [<CustomOperation "add_authorization_rules">]
+    member _.AddAuthorizationRules(state: ServiceBusTopicConfig, rules: (string * AuthorizationRuleRight list) list) = {
+        state with
+            AuthorizationRules =
+                (state.AuthorizationRules, rules)
+                ||> List.fold (fun authorizationRules (name, rights) ->
+                    authorizationRules.Add(ResourceName name, Set rights))
+    }
+
     /// Instead of creating or modifying a namespace, configure this topic to point to another unmanaged namespace instance.
     [<CustomOperation "link_to_unmanaged_namespace">]
     member this.LinkToUnmanagedNamespace(state: ServiceBusTopicConfig, namespaceName: ResourceName) = {
@@ -665,6 +688,16 @@ type ServiceBusBuilder() =
     member _.AddAuthorizationRule(state: ServiceBusConfig, name, rights) = {
         state with
             AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights)
+    }
+
+    /// Add authorization rules on the namespace.
+    [<CustomOperation "add_authorization_rules">]
+    member _.AddAuthorizationRules(state: ServiceBusConfig, rules: (string * AuthorizationRuleRight list) list) = {
+        state with
+            AuthorizationRules =
+                (state.AuthorizationRules, rules)
+                ||> List.fold (fun authorizationRules (name, rights) ->
+                    authorizationRules.Add(ResourceName name, Set rights))
     }
 
     interface ITaggable<ServiceBusConfig> with
