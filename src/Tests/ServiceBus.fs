@@ -471,7 +471,10 @@ let tests =
                                     queue {
                                         name "my-queue"
 
-                                        add_authorization_rules [ "send-rule", [ Send ]; "listen-rule", [ Listen ] ]
+                                        add_authorization_rules [
+                                            authorizationRule "send-rule" [ Send ]
+                                            authorizationRule "listen-rule" [ Listen ]
+                                        ]
                                     }
                                 ]
                             }
@@ -668,7 +671,10 @@ let tests =
                                     topic {
                                         name "my-topic"
 
-                                        add_authorization_rules [ "send-rule", [ Send ]; "listen-rule", [ Listen ] ]
+                                        add_authorization_rules [
+                                            authorizationRule "send-rule" [ Send ]
+                                            authorizationRule "listen-rule" [ Listen ]
+                                        ]
                                     }
                                 ]
                             }
@@ -1096,7 +1102,10 @@ let tests =
                                 name "serviceBus"
                                 sku Standard
 
-                                add_authorization_rules [ "send-rule", [ Send ]; "listen-rule", [ Listen ] ]
+                                add_authorization_rules [
+                                    authorizationRule "send-rule" [ Send ]
+                                    authorizationRule "listen-rule" [ Listen ]
+                                ]
                             }
                         )
                     }

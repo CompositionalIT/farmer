@@ -77,12 +77,22 @@ open Farmer.ServiceBus
 let myServiceBus = serviceBus {
     name "my-namespace"
     sku Standard
+    add_authorization_rules [
+        authorizationRule "namespace-send" [ Send ]
+        authorizationRule "namespace-listen" [ Listen ]
+    ]
     add_queues [
-        queue { name "queueA" }
+        queue {
+            name "queueA"
+            add_authorization_rules [ authorizationRule "queueA-send" [ Send ] ]
+        }
         queue { name "queueB" }
     ]
     add_topics [
-        topic { name "topicA" }
+        topic {
+            name "topicA"
+            add_authorization_rules [ authorizationRule "topicA-listen" [ Listen ] ]
+        }
         topic { name "topicB" }
     ]
 }
