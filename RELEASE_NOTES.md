@@ -1,14 +1,14 @@
 Release Notes
 =============
+
 ## 1.9.31
 * Communication Services: Update `Microsoft.Communication/communicationServices` to the stable `2020-08-20` ARM API version instead of the retired preview API.
 * Service Bus: Add topic-level authorization rules with `add_authorization_rule` on the `topic` builder.
-
-## 1.9.29
-* Container Apps: Add support for setting Dapr protocol.
+* Service Bus: Add plural `add_authorization_rules` helpers for queues, topics, and namespaces, plus an `authorizationRule` helper for tuple-free rule definitions.
 
 ## 1.9.30
 * Container Apps: Update `Microsoft.App` ARM resource API versions for container apps, managed environments, environment storages, and Dapr components to the latest stable `2026-07-01`.
+* Container Apps: Add support for setting Dapr protocol.
 * Container Apps: Add a `serviceBusScaleRule` builder for `add_servicebus_scale_rule` so Service Bus scale rules no longer need direct record construction.
 * Container Apps: Add required `Namespace` field to `ServiceBusScaleRule` to associate the scale rule with the correct Service Bus namespace.
 * App Configuration: Add support for Azure App Configuration stores, key-value items, and feature flags.

@@ -424,7 +424,43 @@ let tests =
             }
 
             test "Authorization Rule writes correct template" {
-                let thing =
+                let deployment = arm {
+                    add_resource (
+                        serviceBus {
+                            name "serviceBus"
+                            sku Standard
+
+                            add_queues [
+                                queue {
+                                    name "my-queue"
+                                    add_authorization_rule "my-rule" [ Manage ]
+                                }
+                            ]
+                        }
+                    )
+                }
+
+                let sbAuthorizationRule =
+                    deployment
+                    |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
+                    |> List.filter (fun x -> (=) x.Type queueAuthorizationRules.Type)
+                    |> List.head
+
+                Expect.equal sbAuthorizationRule.Name "serviceBus/my-queue/my-rule" "Name is wrong"
+                Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
+                Expect.equal sbAuthorizationRule.Rights.[0] AccessRights.Manage "Wrong rights"
+
+                Expect.sequenceEqual
+                    (getResourceDependsOnByName deployment (ResourceName "serviceBus/my-queue/my-rule"))
+                    [
+                        "[resourceId('Microsoft.ServiceBus/namespaces', 'serviceBus')]"
+                        "[resourceId('Microsoft.ServiceBus/namespaces/queues', 'serviceBus', 'my-queue')]"
+                    ]
+                    "Wrong dependencies"
+            }
+
+            test "Authorization Rules write correct templates" {
+                let authorizationRules =
                     arm {
                         add_resource (
                             serviceBus {
@@ -434,22 +470,25 @@ let tests =
                                 add_queues [
                                     queue {
                                         name "my-queue"
-                                        add_authorization_rule "my-rule" [ Manage ]
+
+                                        add_authorization_rules [
+                                            authorizationRule "send-rule" [ Send ]
+                                            authorizationRule "listen-rule" [ Listen ]
+                                        ]
                                     }
                                 ]
                             }
                         )
                     }
                     |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
-
-                let sbAuthorizationRule =
-                    thing
                     |> List.filter (fun x -> (=) x.Type queueAuthorizationRules.Type)
-                    |> List.head
 
-                Expect.equal sbAuthorizationRule.Name "serviceBus/my-queue/my-rule" "Name is wrong"
-                Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
-                Expect.equal sbAuthorizationRule.Rights.[0] AccessRights.Manage "Wrong rights"
+                Expect.hasLength authorizationRules 2 "Wrong number of authorization rules"
+
+                Expect.sequenceEqual
+                    (authorizationRules |> List.map _.Name |> List.sort)
+                    [ "serviceBus/my-queue/listen-rule"; "serviceBus/my-queue/send-rule" ]
+                    "Wrong rule names"
             }
 
             test "Queue IArmResource has correct resourceId for unmanaged namespace" {
@@ -619,6 +658,37 @@ let tests =
                 Expect.equal sbAuthorizationRule.Name "serviceBus/my-topic/my-rule" "Name is wrong"
                 Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
                 Expect.equal sbAuthorizationRule.Rights.[0] AccessRights.Manage "Wrong rights"
+            }
+            test "Topic authorization rules should write correct ARM templates" {
+                let authorizationRules =
+                    arm {
+                        add_resource (
+                            serviceBus {
+                                name "serviceBus"
+                                sku Standard
+
+                                add_topics [
+                                    topic {
+                                        name "my-topic"
+
+                                        add_authorization_rules [
+                                            authorizationRule "send-rule" [ Send ]
+                                            authorizationRule "listen-rule" [ Listen ]
+                                        ]
+                                    }
+                                ]
+                            }
+                        )
+                    }
+                    |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
+                    |> List.filter (fun x -> (=) x.Type topicAuthorizationRules.Type)
+
+                Expect.hasLength authorizationRules 2 "Wrong number of authorization rules"
+
+                Expect.sequenceEqual
+                    (authorizationRules |> List.map _.Name |> List.sort)
+                    [ "serviceBus/my-topic/listen-rule"; "serviceBus/my-topic/send-rule" ]
+                    "Wrong rule names"
             }
             test "Can create a basic subscription" {
                 let sub: SBSubscription =
@@ -1023,6 +1093,31 @@ let tests =
                 Expect.equal sbAuthorizationRule.Name "serviceBus/my-rule" "Wrong name"
                 Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
                 Expect.equal sbAuthorizationRule.Rights.[0] AccessRights.Manage "Wrong rights"
+            }
+            test "AuthorizationRules should write correct ARM templates" {
+                let authorizationRules =
+                    arm {
+                        add_resource (
+                            serviceBus {
+                                name "serviceBus"
+                                sku Standard
+
+                                add_authorization_rules [
+                                    authorizationRule "send-rule" [ Send ]
+                                    authorizationRule "listen-rule" [ Listen ]
+                                ]
+                            }
+                        )
+                    }
+                    |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
+                    |> List.filter (fun x -> (=) x.Type namespaceAuthorizationRules.Type)
+
+                Expect.hasLength authorizationRules 2 "Wrong number of authorization rules"
+
+                Expect.sequenceEqual
+                    (authorizationRules |> List.map _.Name |> List.sort)
+                    [ "serviceBus/listen-rule"; "serviceBus/send-rule" ]
+                    "Wrong rule names"
             }
         ]
     ]

@@ -3166,6 +3166,8 @@ module ServiceBus =
         | Send
         | Listen
 
+    let authorizationRule name rights = name, rights
+
 module CosmosDb =
     /// The consistency policy of a CosmosDB account.
     type ConsistencyPolicy =
