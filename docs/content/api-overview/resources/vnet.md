@@ -89,6 +89,8 @@ The Virtual Network module contains four builders
 | --------------------------------------- | ---------------------------------------------------------------------- |
 | SubnetIds                               | Gets a map of subnet ResourceIds by subnet name                        |
 
+To create the policies referenced by `associate_service_endpoint_policies` or `add_service_endpoint_policies`, use the [`serviceEndpointPolicy`](../service-endpoint-policies/) builder.
+
 #### Example - Manual Subnets
 
 A virtual network is defined with the `vnet` builder. Address spaces and

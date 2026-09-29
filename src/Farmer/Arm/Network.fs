@@ -159,6 +159,60 @@ type RouteTable = {
                 properties = this.JsonModelProperties
         |}
 
+type ServiceEndpointPolicyDefinition = {
+    Name: ResourceName
+    Description: string option
+    Service: EndpointServiceType
+    ServiceResources: LinkedResource list
+} with
+
+    member internal this.Dependencies =
+        this.ServiceResources
+        |> List.fold (fun dependencies resource -> LinkedResource.addToSetIfManaged resource dependencies) Set.empty
+
+    member internal this.JsonModel =
+        let (EndpointServiceType service) = this.Service
+
+        {|
+            name = this.Name.Value
+            properties = {|
+                description = this.Description |> Option.toObj
+                service = service
+                serviceResources = this.ServiceResources |> List.map (fun resource -> resource.ResourceId.Eval())
+            |}
+        |}
+
+type ServiceEndpointPolicy = {
+    Name: ResourceName
+    Location: Location
+    ServiceEndpointPolicyDefinitions: ServiceEndpointPolicyDefinition list
+    Dependencies: ResourceId Set
+    Tags: Map<string, string>
+} with
+
+    member internal this.JsonModelProperties = {|
+        serviceEndpointPolicyDefinitions =
+            if this.ServiceEndpointPolicyDefinitions.IsEmpty then
+                Unchecked.defaultof<_>
+            else
+                this.ServiceEndpointPolicyDefinitions |> List.map _.JsonModel
+    |}
+
+    interface IArmResource with
+        member this.ResourceId = serviceEndpointPolicies.resourceId this.Name
+
+        member this.JsonModel =
+            let dependencies =
+                this.ServiceEndpointPolicyDefinitions
+                |> List.fold
+                    (fun dependencies definition -> Set.union dependencies definition.Dependencies)
+                    this.Dependencies
+
+            {|
+                serviceEndpointPolicies.Create(this.Name, this.Location, dependsOn = dependencies, tags = this.Tags) with
+                    properties = this.JsonModelProperties
+            |}
+
 type RouteServer = {
     Name: ResourceName
     Location: Location
@@ -331,7 +385,7 @@ type Subnet = {
     Delegations: SubnetDelegation list
     NatGateway: LinkedResource option
     ServiceEndpoints: (Network.EndpointServiceType * Location list) list
-    AssociatedServiceEndpointPolicies: ResourceId list
+    AssociatedServiceEndpointPolicies: LinkedResource list
     PrivateEndpointNetworkPolicies: FeatureFlag option
     PrivateLinkServiceNetworkPolicies: FeatureFlag option
     Dependencies: ResourceId Set
@@ -383,8 +437,7 @@ type Subnet = {
                 if this.AssociatedServiceEndpointPolicies.IsEmpty then
                     Unchecked.defaultof<_>
                 else
-                    this.AssociatedServiceEndpointPolicies
-                    |> List.map (fun policyId -> {| id = policyId.ArmExpression.Eval() |})
+                    this.AssociatedServiceEndpointPolicies |> List.map LinkedResource.AsIdObject
             privateEndpointNetworkPolicies =
                 this.PrivateEndpointNetworkPolicies
                 |> Option.map _.ArmValue
@@ -397,13 +450,19 @@ type Subnet = {
 
     interface IArmResource with
         member this.JsonModel =
+            let dependencies =
+                this.AssociatedServiceEndpointPolicies
+                |> List.fold
+                    (fun dependencies policy -> LinkedResource.addToSetIfManaged policy dependencies)
+                    this.Dependencies
+
             match this.VirtualNetwork with
             | Some(Managed vnet) -> {|
-                subnets.Create(vnet.Name / this.Name, dependsOn = (this.Dependencies |> Set.add vnet)) with
+                subnets.Create(vnet.Name / this.Name, dependsOn = (dependencies |> Set.add vnet)) with
                     properties = this.JsonModelProperties
               |}
             | Some(Unmanaged vnet) -> {|
-                subnets.Create(vnet.Name / this.Name, dependsOn = this.Dependencies) with
+                subnets.Create(vnet.Name / this.Name, dependsOn = dependencies) with
                     properties = this.JsonModelProperties
               |}
             | None -> raiseFarmer "Subnet record must be linked to a virtual network to properly assign the resourceId."
@@ -440,6 +499,11 @@ type VirtualNetwork = {
                         match subnet.RouteTable with
                         | Some(Managed id) -> id
                         | _ -> ()
+
+                        for policy in subnet.AssociatedServiceEndpointPolicies do
+                            match policy with
+                            | Managed id -> id
+                            | _ -> ()
                 }
                 |> Set
 

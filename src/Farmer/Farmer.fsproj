@@ -159,6 +159,7 @@
         <Compile Include="Builders\Builders.NatGateway.fs" />
         <Compile Include="Builders\Builders.NetworkSecurityGroup.fs" />
         <Compile Include="Builders\Builders.RouteTable.fs" />
+        <Compile Include="Builders\Builders.ServiceEndpointPolicy.fs" />
         <Compile Include="Builders\Builders.NetworkManager.fs" />
         <Compile Include="Builders/Builders.VirtualNetwork.fs" />
         <Compile Include="Builders\Builders.LoadBalancer.fs" />

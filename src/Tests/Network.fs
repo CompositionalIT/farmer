@@ -195,6 +195,74 @@ let tests =
                 "Incorrect PrivateEndpointNetworkPolicies"
         }
 
+        test "Can create a service endpoint policy resource and associate it with a subnet" {
+            let storage = storageAccount { name "policyteststorage" }
+
+            let policy = serviceEndpointPolicy {
+                name "storage-policy"
+
+                add_definitions [
+                    serviceEndpointPolicyDefinition {
+                        name "allow-storage"
+                        description "Allow access to a specific storage account"
+                        service EndpointServiceType.Storage
+                        add_service_resources [ storage ]
+                    }
+                ]
+            }
+
+            let myNet = vnet {
+                name "my-vnet"
+                add_address_spaces [ "10.28.0.0/16" ]
+
+                add_subnets [
+                    subnet {
+                        name "services"
+                        prefix "10.28.0.0/24"
+                        add_service_endpoints [ EndpointServiceType.Storage, [ Location.EastUS ] ]
+                        associate_service_endpoint_policies [ policy ]
+                    }
+                ]
+            }
+
+            let deployment = arm { add_resources [ storage; policy; myNet ] }
+
+            let jobj = JObject.Parse(deployment.Template |> Writer.toJson)
+
+            let policyResource =
+                jobj.SelectToken("resources[?(@.type=='Microsoft.Network/serviceEndpointPolicies')]")
+
+            let linkedSubnetPolicyId =
+                jobj.SelectToken(
+                    "resources[?(@.type=='Microsoft.Network/virtualNetworks')].properties.subnets[0].properties.serviceEndpointPolicies[0].id"
+                )
+
+            Expect.isNotNull policyResource "Expected a service endpoint policy resource"
+
+            Expect.equal (string policyResource["name"]) "storage-policy" "Incorrect service endpoint policy name"
+
+            Expect.equal
+                (string ((policyResource["properties"]).["serviceEndpointPolicyDefinitions"]).[0].["name"])
+                "allow-storage"
+                "Incorrect service endpoint policy definition name"
+
+            Expect.equal
+                (string
+                    ((policyResource["properties"]).["serviceEndpointPolicyDefinitions"]).[0].["properties"].["service"])
+                "Microsoft.Storage"
+                "Incorrect service endpoint policy definition service"
+
+            Expect.equal
+                (string
+                    ((policyResource["properties"]).["serviceEndpointPolicyDefinitions"]).[0].["properties"].["serviceResources"].[0])
+                "[resourceId('Microsoft.Storage/storageAccounts', 'policyteststorage')]"
+                "Incorrect service endpoint policy definition service resource"
+
+            Expect.equal
+                (string linkedSubnetPolicyId)
+                "[resourceId('Microsoft.Network/serviceEndpointPolicies', 'storage-policy')]"
+                "Incorrect subnet service endpoint policy reference"
+        }
 
         test "Manually defined subnets with private endpoint support" {
             let vnetName = "my-vnet"
