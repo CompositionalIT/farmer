@@ -19,6 +19,7 @@ type DataCollectionEndpoint = {
         member this.JsonModel = {|
             dataCollectionEndpoints.Create(this.Name, this.Location, tags = this.Tags) with
                 kind = string this.OsType
+                properties = {| |}
         |}
 
 let dataCollectionRules =
@@ -64,16 +65,23 @@ type Stream =
         | Perf -> "Microsoft-Perf"
         | Syslog -> "Microsoft-Syslog"
         | WindowsEvent -> "Microsoft-WindowsEvent"
-        | CustomStream name -> name
+        | CustomStream tableName -> $"Custom-{tableName}_CL"
 
 type DataFlow = {
     Destinations: string list
     Streams: Stream list
+    TransformKQL: string option
+    OutputStream: Stream option
 } with
 
     member this.ToArmJson = {|
         destinations = this.Destinations
         streams = this.Streams |> List.map Stream.Print
+        transformKql = this.TransformKQL |> Option.defaultValue Unchecked.defaultof<_>
+        outputStream =
+            this.OutputStream
+            |> Option.map Stream.Print
+            |> Option.defaultValue Unchecked.defaultof<_>
     |}
 
 module Destinations =
@@ -92,24 +100,48 @@ module Destinations =
             accountResourceId = this.AccountResourceId.Eval()
         |}
 
-    type Destination = {
-        MonitoringAccounts: (MonitoringAccount list) option
+    type LogAnalytics = {
+        WorkspaceResourceId: ResourceId
+        Name: ResourceName
     } with
 
-        static member Default = { MonitoringAccounts = None }
+        static member Default = {
+            WorkspaceResourceId = ResourceId.Empty
+            Name = ResourceName.Empty
+        }
+
+        member this.ToArmJson = {|
+            workspaceResourceId = this.WorkspaceResourceId.Eval()
+            name = this.Name.Value
+        |}
+
+    type Destination = {
+        MonitoringAccounts: (MonitoringAccount list) option
+        LogAnalytics: (LogAnalytics list) option
+    } with
+
+        static member Default = {
+            MonitoringAccounts = None
+            LogAnalytics = None
+        }
 
     let ToArmJson (destinations: Destination) = {|
         monitoringAccounts =
             destinations.MonitoringAccounts
             |> Option.map (List.map (fun d -> d.ToArmJson))
             |> Option.defaultValue Unchecked.defaultof<_>
+        logAnalytics =
+            destinations.LogAnalytics
+            |> Option.map (List.map (fun d -> d.ToArmJson))
+            |> Option.defaultValue Unchecked.defaultof<_>
     |}
 
 type DataCollectionRule = {
     Name: ResourceName
-    OsType: OS
+    OsType: OS option
     Location: Location
     Endpoint: ResourceId
+    StreamDeclarations: Map<Stream, Column list>
     DataFlows: (DataFlow list) option
     DataSources: DataSources.DataSource option
     Destinations: Destinations.Destination option
@@ -125,17 +157,31 @@ type DataCollectionRule = {
 
             {|
                 dataCollectionRules.Create(this.Name, this.Location, dependencies, this.Tags) with
-                    kind = string this.OsType
+                    kind = this.OsType |> Option.map string |> Option.defaultValue Unchecked.defaultof<_>
                     properties = {|
                         dataCollectionEndpointId = this.Endpoint.Eval()
+                        streamDeclarations =
+                            this.StreamDeclarations
+                            |> Map.toList
+                            |> List.map (fun (stream, columns) ->
+                                Stream.Print stream,
+                                {|
+                                    columns =
+                                        columns
+                                        |> List.map (fun col -> {|
+                                            name = col.Name
+                                            ``type`` = col.Type.ArmValue
+                                        |})
+                                |})
+                            |> Map.ofList
                         dataFlows =
                             this.DataFlows
                             |> Option.map (List.map (fun flow -> flow.ToArmJson))
                             |> Option.defaultValue Unchecked.defaultof<_>
                         dataSources =
                             this.DataSources
-                            |> Option.map DataSources.ToArmJson
-                            |> Option.defaultValue Unchecked.defaultof<_>
+                            |> Option.defaultValue DataSources.DataSource.Default
+                            |> DataSources.ToArmJson
                         destinations =
                             this.Destinations
                             |> Option.map Destinations.ToArmJson
