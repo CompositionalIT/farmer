@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+## 1.9.32
+* API Management: Add service builder support for publisher, SKU, capacity, public network access, virtual network type, gateway, custom properties, and tags.
+* API Management: Add typed builders for API, operation, product, backend, named value, and policy child resources with compile-time-safe operations and automatic parent naming/dependencies. A raw child-resource escape hatch remains for unsupported future ARM types.
+
 ## 1.9.31
 * Virtual Networks: Add `serviceEndpointPolicy` and `serviceEndpointPolicyDefinition` builders for Azure service endpoint policies, plus direct subnet association helpers.
 * Communication Services: Update `Microsoft.Communication/communicationServices` to the stable `2020-08-20` ARM API version instead of the retired preview API.

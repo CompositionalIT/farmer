@@ -23,6 +23,7 @@ let allTests =
         testList "Builders" [
             AppGateway.tests
             AppInsights.tests
+            ApiManagement.tests
             AppInsightsAvailability.tests
             // Temporarily disabling end to end tests while transitioning to new subscription.
             //if Build.isCiMaster then
