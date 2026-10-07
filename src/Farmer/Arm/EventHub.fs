@@ -54,6 +54,7 @@ module Namespaces =
 
     type EventHub = {
         Name: ResourceName
+        Namespace: LinkedResource
         Location: Location
         MessageRetentionDays: int option
         Partitions: int
@@ -62,11 +63,18 @@ module Namespaces =
         Tags: Map<string, string>
     } with
 
+        member private this.ResourceName = this.Namespace.Name / this.Name
+
         interface IArmResource with
-            member this.ResourceId = eventHubs.resourceId this.Name
+            member this.ResourceId = eventHubs.resourceId this.ResourceName
 
             member this.JsonModel = {|
-                eventHubs.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+                eventHubs.Create(
+                    this.ResourceName,
+                    this.Location,
+                    dependsOn = LinkedResource.addToSetIfManaged this.Namespace this.Dependencies,
+                    tags = this.Tags
+                ) with
                     properties = {|
                         messageRetentionInDays = this.MessageRetentionDays |> Option.toNullable
                         partitionCount = this.Partitions

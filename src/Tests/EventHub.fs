@@ -12,7 +12,7 @@ let tests =
 
             Expect.equal
                 hub.DefaultKey.Owner.Value.ArmExpression.Value
-                "resourceId('Microsoft.EventHub/namespaces/eventhubs', 'foo')"
+                "resourceId('Microsoft.EventHub/namespaces/eventhubs', 'foo-ns', 'foo')"
                 "Incorrect owner"
 
             Expect.equal
@@ -31,5 +31,17 @@ let tests =
             let defaultResourceName = ResourceName "$Default"
             let defaultConsumerGroupExists = hub.ConsumerGroups.Contains defaultResourceName
             Expect.isFalse defaultConsumerGroupExists "Created a default consumer group"
+        }
+        test "Adds the namespace as a dependency of the event hub" {
+            let hub = eventHub { name "foo" }
+            let template = arm { add_resource hub }
+            let json = Newtonsoft.Json.Linq.JObject.Parse(template.Template |> Writer.toJson)
+
+            let eventHubResource = json.SelectToken("resources[?(@.name=='foo-ns/foo')]")
+
+            Expect.equal
+                (eventHubResource.SelectToken("dependsOn[0]").ToString())
+                "[resourceId('Microsoft.EventHub/namespaces', 'foo-ns')]"
+                "Event hub should depend on its namespace"
         }
     ]
