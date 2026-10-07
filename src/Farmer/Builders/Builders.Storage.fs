@@ -56,6 +56,8 @@ type StorageAccountConfig = {
     Name: StorageAccountName
     /// The sku of the storage account.
     Sku: Sku
+    /// The name of the extended location (edge zone) for the storage account.
+    ExtendedLocation: string option
     /// Whether to enable Data Lake Storage Gen2.
     EnableDataLake: bool option
     /// Containers for the storage account.
@@ -129,6 +131,7 @@ type StorageAccountConfig = {
             {
                 Name = this.Name
                 Location = location
+                ExtendedLocation = this.ExtendedLocation
                 Sku = this.Sku
                 EnableHierarchicalNamespace = this.EnableDataLake
                 Dependencies =
@@ -246,6 +249,7 @@ type StorageAccountBuilder() =
     member _.Yield _ = {
         Name = StorageAccountName.Empty
         Sku = Sku.Standard_LRS
+        ExtendedLocation = None
         EnableDataLake = None
         Containers = []
         FileShares = []
@@ -314,6 +318,13 @@ type StorageAccountBuilder() =
     /// Sets the sku of the storage account.
     [<CustomOperation "sku">]
     member _.Sku(state: StorageAccountConfig, sku) = { state with Sku = sku }
+
+    /// Sets the extended location (edge zone) of the storage account.
+    [<CustomOperation "extended_location">]
+    member _.ExtendedLocation(state: StorageAccountConfig, name: string) = {
+        state with
+            ExtendedLocation = Some name
+    }
 
     /// Adds private container.
     [<CustomOperation "add_private_container">]

@@ -96,6 +96,7 @@ let private subnets = ResourceType("Microsoft.Network/virtualNetworks/subnets", 
 type StorageAccount = {
     Name: StorageAccountName
     Location: Location
+    ExtendedLocation: string option
     Sku: Sku
     Dependencies: ResourceId list
     EnableHierarchicalNamespace: bool option
@@ -121,6 +122,10 @@ type StorageAccount = {
 
         member this.JsonModel = {|
             storageAccounts.Create(this.Name.ResourceName, this.Location, this.Dependencies, this.Tags) with
+                extendedLocation =
+                    match this.ExtendedLocation with
+                    | Some name -> box {| name = name; ``type`` = "EdgeZone" |}
+                    | None -> null
                 sku = {|
                     name =
                         let performanceTier =
