@@ -119,6 +119,7 @@
         <Compile Include="Arm/TrafficManager.fs" />
         <Compile Include="Arm/AzureFirewall.fs" />
         <Compile Include="Arm/ApplicationGateway.fs" />
+        <Compile Include="Arm/ApiManagement.fs" />
         <Compile Include="Arm/VirtualHub.fs" />
         <Compile Include="Arm\Dashboard.fs" />
         <Compile Include="Arm/LogicApps.fs" />
@@ -142,6 +143,7 @@
         <Compile Include="Builders/Builders.Cdn.fs" />
         <Compile Include="Builders\Builders.Storage.fs" />
         <Compile Include="Builders/Builders.AppInsights.fs" />
+        <Compile Include="Builders/Builders.ApiManagement.fs" />
         <Compile Include="Builders\Builders.ServiceBus.fs" />
         <Compile Include="Builders\Builders.ContainerApps.fs" />
         <Compile Include="Builders/Builders.ContainerGroups.fs" />

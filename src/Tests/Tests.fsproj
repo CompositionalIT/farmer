@@ -14,6 +14,7 @@
         <Compile Include="Helpers.fs" />
         <Compile Include="AppGateway.fs" />
         <Compile Include="AppInsights.fs" />
+        <Compile Include="ApiManagement.fs" />
         <Compile Include="Alerts.fs" />
         <Compile Include="AutoscaleSettings.fs" />
         <Compile Include="AvailabilityTests.fs" />
