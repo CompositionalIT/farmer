@@ -18,6 +18,8 @@ The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azu
 | add_firewall_rules | As add_firewall_rule but a list of rules |
 | enable_azure_firewall | Adds a firewall rule that enables access to other Azure services. |
 | admin_username | Sets the admin username of the server. The password is supplied as a secret parameter at runtime. |
+| system_identity | Enables a system-assigned managed identity for the SQL server. |
+| add_identity | Adds a user-assigned managed identity to the SQL server. |
 | entra_id_admin | Activates Entra ID authentication using the supplied login name, associated objectId and principal type of the administrator account. |
 | entra_id_admin_user | Activates Entra ID authentication for the User Principal Type using the supplied user's login name. You can determine the ObjectId using `Farmer.Builders.AccessPolicy.findUsers`. |
 | entra_id_admin_group | Activates Entra ID authentication for the Group Principal Type using the supplied group's login name. You can determine the ObjectId using `Farmer.Builders.AccessPolicy.findGroups`. |
