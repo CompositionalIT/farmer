@@ -9,13 +9,16 @@ open System.Net
 let servers = ResourceType("Microsoft.Sql/servers", "2022-05-01-preview")
 
 let elasticPools =
-    ResourceType("Microsoft.Sql/servers/elasticPools", "2017-10-01-preview")
+    ResourceType("Microsoft.Sql/servers/elasticPools", "2026-08-01-preview")
 
 let firewallRules =
     ResourceType("Microsoft.Sql/servers/firewallrules", "2014-04-01")
 
 let databases =
     ResourceType("Microsoft.Sql/servers/databases", "2019-06-01-preview")
+
+let virtualNetworkRules =
+    ResourceType("Microsoft.Sql/servers/virtualNetworkRules", "2025-01-01")
 
 let transparentDataEncryption =
     ResourceType("Microsoft.Sql/servers/databases/transparentDataEncryption", "2014-04-01-preview")
@@ -46,6 +49,7 @@ type Server = {
     Location: Location
     Credentials: SqlCredentials
     MinTlsVersion: TlsVersion option
+    Identity: Identity.ManagedIdentity
     Tags: Map<string, string>
 } with
 
@@ -65,6 +69,11 @@ type Server = {
                 this.Location,
                 tags = (this.Tags |> Map.add "displayName" this.ServerName.ResourceName.Value)
             ) with
+                identity =
+                    if this.Identity = Identity.ManagedIdentity.Empty then
+                        Unchecked.defaultof<_>
+                    else
+                        this.Identity.ToArmJson
                 properties =
                     Map [
                         "version", box "12.0"
@@ -100,6 +109,42 @@ type Server = {
                     ]
         |}
 
+type VirtualNetworkRule = {
+    Name: ResourceName
+    SqlServer: LinkedResource
+    VNet: LinkedResource
+    Subnet: ResourceName
+    IgnoreMissingVnetServiceEndpoint: bool option
+    Tags: Map<string, string>
+} with
+
+    interface IArmResource with
+        member this.ResourceId =
+            virtualNetworkRules.resourceId (this.SqlServer.Name / this.Name)
+
+        member this.JsonModel =
+            let name = ResourceName $"{this.SqlServer.Name.Value}/{this.Name.Value}"
+
+            let subnet = {
+                this.VNet.ResourceId with
+                    Type = Network.subnets
+                    Segments = [ this.Subnet ]
+            }
+
+            let dependsOn =
+                Set.empty
+                |> LinkedResource.addToSetIfManaged this.SqlServer
+                |> LinkedResource.addToSetIfManaged this.VNet
+                |> Set.toList
+
+            {|
+                virtualNetworkRules.Create(name, dependsOn = dependsOn, tags = this.Tags) with
+                    properties = {|
+                        virtualNetworkSubnetId = subnet.Eval()
+                        ignoreMissingVnetServiceEndpoint = this.IgnoreMissingVnetServiceEndpoint |> Option.toNullable
+                    |}
+            |}
+
 module Servers =
     type ElasticPool = {
         Name: ResourceName
@@ -108,6 +153,7 @@ module Servers =
         Sku: PoolSku
         MinMax: (int<DTU> * int<DTU>) option
         MaxSizeBytes: int64 option
+        HighAvailabilityReplicaCount: int option
     } with
 
         interface IArmResource with
@@ -121,6 +167,7 @@ module Servers =
                 ) with
                     properties = {|
                         maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
+                        highAvailabilityReplicaCount = this.HighAvailabilityReplicaCount |> Option.toNullable
                         perDatabaseSettings =
                             match this.MinMax with
                             | Some(min, max) ->

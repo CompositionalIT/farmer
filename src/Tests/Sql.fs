@@ -10,6 +10,7 @@ open System
 open Microsoft.Rest
 open System.Text.Json
 open System.Text.Json.Nodes
+open Newtonsoft.Json.Linq
 
 let client =
     new SqlManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
@@ -115,6 +116,33 @@ let tests =
             Expect.equal model.Sku.Capacity (Nullable 200) "Incorrect Elastic Pool SKU size"
         }
 
+        test "Creates a Hyperscale elastic pool with high availability replicas" {
+            let sql = sqlServer {
+                name "server"
+                admin_username "isaac"
+                elastic_pool_sku PoolSku.Hyperscale4
+                elastic_pool_high_availability_replica_count 2
+                add_databases [ sqlDb { name "db" } ]
+            }
+
+            let template = arm {
+                location Location.NorthEurope
+                add_resource sql
+            }
+
+            let json = template.Template |> Writer.toJson |> JObject.Parse
+            let pool = json.SelectToken("resources[?(@.name=='server/server-pool')]")
+
+            Expect.equal (pool.SelectToken("sku.name").ToString()) "HS_Gen5" "Incorrect Hyperscale SKU name"
+            Expect.equal (pool.SelectToken("sku.tier").ToString()) "Hyperscale" "Incorrect Hyperscale SKU tier"
+            Expect.equal (pool.SelectToken("sku.capacity").ToObject<int>()) 4 "Incorrect Hyperscale SKU capacity"
+
+            Expect.equal
+                (pool.SelectToken("properties.highAvailabilityReplicaCount").ToObject<int>())
+                2
+                "Incorrect high availability replica count"
+        }
+
         test "Works with VCore databases" {
             let sql = sqlServer {
                 name "server"
@@ -204,6 +232,66 @@ let tests =
 
             Expect.equal model.StartIpAddress "0.0.0.0" "Incorrect start IP"
             Expect.equal model.EndIpAddress "255.255.255.255" "Incorrect end IP"
+        }
+
+        test "SQL virtual network rule is correctly configured" {
+            let rule = sqlVirtualNetworkRule {
+                name "rule"
+                sql_server "server"
+                virtual_network "vnet"
+                subnet "default"
+                ignore_missing_vnet_service_endpoint true
+                add_tags [ "environment", "test" ]
+            }
+
+            let actual =
+                (rule :> IBuilder).BuildResources Location.NorthEurope
+                |> List.head
+                |> _.JsonModel
+                |> convertTo<
+                    {|
+                        name: string
+                        ``type``: string
+                        apiVersion: string
+                        dependsOn: string array
+                        tags: Map<string, string>
+                        properties:
+                            {|
+                                virtualNetworkSubnetId: string
+                                ignoreMissingVnetServiceEndpoint: bool
+                            |}
+                    |}
+                    >
+
+            Expect.equal actual.name "server/rule" "Incorrect virtual network rule name"
+            Expect.equal actual.``type`` "Microsoft.Sql/servers/virtualNetworkRules" "Incorrect resource type"
+            Expect.equal actual.apiVersion "2025-01-01" "Incorrect API version"
+            Expect.hasLength actual.dependsOn 2 "Managed resources should be dependencies"
+            Expect.equal actual.tags (Map [ "environment", "test" ]) "Incorrect tags"
+
+            Expect.equal
+                actual.properties.virtualNetworkSubnetId
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'vnet', 'default')]"
+                "Incorrect subnet"
+
+            Expect.isTrue actual.properties.ignoreMissingVnetServiceEndpoint "Incorrect endpoint setting"
+        }
+
+        test "SQL virtual network rule can link unmanaged resources" {
+            let rule = sqlVirtualNetworkRule {
+                name "rule"
+                link_to_sql_server "server"
+                link_to_virtual_network "vnet"
+                subnet "default"
+            }
+
+            let actual =
+                (rule :> IBuilder).BuildResources Location.NorthEurope
+                |> List.head
+                |> _.JsonModel
+                |> convertTo<{| dependsOn: string array |}>
+
+            Expect.isEmpty actual.dependsOn "Unmanaged resources should not be dependencies"
         }
 
         test "Validation occurs on account name" {
@@ -381,6 +469,34 @@ let tests =
             Expect.equal (adminToken["principalType"].GetValue()) "User" "Incorrect principal type"
             Expect.equal (adminToken["sid"].GetValue()) "f9d49c34-01ba-4897-b7e2-3694bf3de2cf" "Incorrect SID"
             Expect.isTrue (adminToken["azureADOnlyAuthentication"].GetValue()) "Should only have AD auth."
+        }
+
+        test "Can use a system assigned identity" {
+            let server = sqlServer {
+                name "my-sql-server"
+                admin_username "test"
+                system_identity
+            }
+
+            let template = arm { add_resource server }
+            let json = template.Template |> Writer.toJson |> JsonObject.Parse
+            let identity = json.["resources"].[0].["identity"]
+
+            Expect.equal (identity["type"].GetValue()) "SystemAssigned" "Incorrect identity type"
+        }
+
+        test "Can use a user assigned identity" {
+            let server = sqlServer {
+                name "my-sql-server"
+                admin_username "test"
+                add_identity (createUserAssignedIdentity "sql-identity")
+            }
+
+            let template = arm { add_resource server }
+            let json = template.Template |> Writer.toJson |> JsonObject.Parse
+            let identity = json.["resources"].[0].["identity"]
+
+            Expect.equal (identity["type"].GetValue()) "UserAssigned" "Incorrect identity type"
         }
 
         test "No Entra ARM when just using SQL auth" {

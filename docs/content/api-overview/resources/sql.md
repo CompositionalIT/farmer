@@ -9,6 +9,7 @@ weight: 18
 The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azure servers, and `sqlDb`, used to create individual databases. It supports features such as encryption, firewalls and automatic pool creation. Every SQL Azure server you create will automatically create a SecureString parameter for the admin account password.
 
 * SQL Azure server (`Microsoft.Sql/servers`)
+* SQL Azure virtual network rule (`Microsoft.Sql/servers/virtualNetworkRules`)
 
 #### SQL Server Builder Keywords
 | Keyword | Purpose |
@@ -18,6 +19,8 @@ The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azu
 | add_firewall_rules | As add_firewall_rule but a list of rules |
 | enable_azure_firewall | Adds a firewall rule that enables access to other Azure services. |
 | admin_username | Sets the admin username of the server. The password is supplied as a secret parameter at runtime. |
+| system_identity | Enables a system-assigned managed identity for the SQL server. |
+| add_identity | Adds a user-assigned managed identity to the SQL server. |
 | entra_id_admin | Activates Entra ID authentication using the supplied login name, associated objectId and principal type of the administrator account. |
 | entra_id_admin_user | Activates Entra ID authentication for the User Principal Type using the supplied user's login name. You can determine the ObjectId using `Farmer.Builders.AccessPolicy.findUsers`. |
 | entra_id_admin_group | Activates Entra ID authentication for the Group Principal Type using the supplied group's login name. You can determine the ObjectId using `Farmer.Builders.AccessPolicy.findGroups`. |
@@ -25,8 +28,34 @@ The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azu
 | elastic_pool_sku | Sets the sku of the elastic pool, if required. If not set, Farmer will default to Basic 50. |
 | elastic_pool_database_min_max | Sets the optional minimum and maximum DTUs for the elastic pool for each database. |
 | elastic_pool_capacity | Sets the optional disk size in MB for the elastic pool for each database. |
+| elastic_pool_high_availability_replica_count | Sets the number of high availability replicas for a Hyperscale elastic pool. |
 | min_tls_version | Sets the minimum TLS version for the SQL server |
 | geo_replicate | Geo-replicate all the databases in this server to another location, having NameSuffix after the original server and database names. |
+
+#### SQL Virtual Network Rules
+
+Virtual network rules use the `sqlVirtualNetworkRule` builder. The `sql_server` and `virtual_network` operations create managed links, adding dependencies when those resources are in the same template. Use `link_to_sql_server` and `link_to_virtual_network` with resource IDs for resources deployed separately; these unmanaged links do not add `dependsOn` entries.
+
+```fsharp
+let rule = sqlVirtualNetworkRule {
+    name "allow-vnet"
+    sql_server "my-server"
+    virtual_network "my-vnet"
+    subnet "default"
+    ignore_missing_vnet_service_endpoint false
+}
+```
+
+For resources that are already deployed separately:
+
+```fsharp
+let rule = sqlVirtualNetworkRule {
+    name "allow-vnet"
+    link_to_sql_server "my-server"
+    link_to_virtual_network "my-vnet"
+    subnet "default"
+}
+```
 
 > You must set at least one of SQL user / pass (using `admin_username`) or Entra ID login (using one of the `entra_id_admin` variants).
 > Setting both will leave both activated; setting only Entra ID will automatically explicitly deactivate user / pass authentication.
@@ -88,6 +117,21 @@ sqlDb {
 sqlDb {
     name "serverlessDb2"
     sku (GeneralPurpose(S_Gen5(1, 4)))  // min: 1 VCore, max: 4 VCores
+}
+```
+
+#### Hyperscale Elastic Pool
+
+Hyperscale elastic pools use the `PoolSku.Hyperscale*` values and can configure
+high availability replicas:
+
+```fsharp
+sqlServer {
+    name "my_server"
+    admin_username "admin_username"
+    elastic_pool_sku PoolSku.Hyperscale4
+    elastic_pool_high_availability_replica_count 2
+    add_databases [ sqlDb { name "poolDb" } ]
 }
 ```
 

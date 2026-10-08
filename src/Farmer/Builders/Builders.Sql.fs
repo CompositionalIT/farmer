@@ -6,6 +6,7 @@ open Farmer.Arm
 open Farmer.Arm.Sql.Servers
 open Farmer.Arm.Sql.Servers.Databases
 open Farmer.Sql
+open Farmer.Identity
 open System
 open System.Net
 
@@ -73,6 +74,7 @@ type SqlAzureConfig = {
     Name: SqlAccountName
     Credentials: SqlCredentials option
     MinTlsVersion: TlsVersion option
+    Identity: ManagedIdentity
     FirewallRules:
         {|
             Name: ResourceName
@@ -84,6 +86,7 @@ type SqlAzureConfig = {
         Sku: PoolSku
         PerDbLimits: {| Min: int<DTU>; Max: int<DTU> |} option
         Capacity: int<Mb> option
+        HighAvailabilityReplicaCount: int option
     |}
     Databases: SqlAzureDbConfig list
     GeoReplicaServer: GeoReplicationSettings option
@@ -138,6 +141,7 @@ type SqlAzureConfig = {
                     | Some credentials -> credentials
                     | None -> raiseFarmer "No credentials have been set for the SQL Server instance."
                 MinTlsVersion = this.MinTlsVersion
+                Identity = this.Identity
                 Tags = this.Tags
             }
 
@@ -182,6 +186,7 @@ type SqlAzureConfig = {
                     Sku = this.ElasticPoolSettings.Sku
                     MaxSizeBytes = this.ElasticPoolSettings.Capacity |> Option.map Mb.toBytes
                     MinMax = this.ElasticPoolSettings.PerDbLimits |> Option.map (fun l -> l.Min, l.Max)
+                    HighAvailabilityReplicaCount = this.ElasticPoolSettings.HighAvailabilityReplicaCount
                 }
 
             match this.GeoReplicaServer with
@@ -203,6 +208,7 @@ type SqlAzureConfig = {
                             | Some credentials -> credentials
                             | None -> raiseFarmer "No credentials have been set for the SQL Server instance."
                         MinTlsVersion = this.MinTlsVersion
+                        Identity = this.Identity
                         Tags = this.Tags
                     }
 
@@ -339,6 +345,154 @@ type SqlDbBuilder() =
 
         state
 
+type SqlVirtualNetworkRuleConfig = {
+    Name: ResourceName
+    SqlServer: LinkedResource
+    VNet: LinkedResource
+    Subnet: ResourceName
+    IgnoreMissingVnetServiceEndpoint: bool option
+    Tags: Map<string, string>
+} with
+
+    interface IBuilder with
+        member this.ResourceId =
+            virtualNetworkRules.resourceId (this.SqlServer.Name / this.Name)
+
+        member this.BuildResources _ = [
+            let resource: IArmResource = {
+                Farmer.Arm.Sql.VirtualNetworkRule.Name = this.Name
+                SqlServer = this.SqlServer
+                VNet = this.VNet
+                Subnet = this.Subnet
+                IgnoreMissingVnetServiceEndpoint = this.IgnoreMissingVnetServiceEndpoint
+                Tags = this.Tags
+            }
+
+            resource
+        ]
+
+    interface ITaggable<SqlVirtualNetworkRuleConfig> with
+        member _.Add state tags = {
+            state with
+                Tags = state.Tags |> Map.merge tags
+        }
+
+type SqlVirtualNetworkRuleBuilder() =
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        SqlServer = Managed(servers.resourceId ResourceName.Empty)
+        VNet = Managed(Network.virtualNetworks.resourceId ResourceName.Empty)
+        Subnet = ResourceName.Empty
+        IgnoreMissingVnetServiceEndpoint = None
+        Tags = Map.empty
+    }
+
+    member _.Run state =
+        if state.Name = ResourceName.Empty then
+            raiseFarmer "You must set a virtual network rule name."
+
+        if state.SqlServer.Name = ResourceName.Empty then
+            raiseFarmer "You must set a SQL server name."
+
+        if state.VNet.Name = ResourceName.Empty then
+            raiseFarmer "You must set a virtual network."
+
+        if state.Subnet = ResourceName.Empty then
+            raiseFarmer "You must set a subnet name."
+
+        state
+
+    [<CustomOperation "name">]
+    member _.Name(state: SqlVirtualNetworkRuleConfig, name: string) = { state with Name = ResourceName name }
+
+    [<CustomOperation "sql_server">]
+    member _.SqlServer(state: SqlVirtualNetworkRuleConfig, sqlServer: string) = {
+        state with
+            SqlServer = Managed(servers.resourceId (ResourceName sqlServer))
+    }
+
+    member _.SqlServer(state: SqlVirtualNetworkRuleConfig, sqlServer: ResourceName) = {
+        state with
+            SqlServer = Managed(servers.resourceId sqlServer)
+    }
+
+    member _.SqlServer<'T when 'T :> IBuilder>(state: SqlVirtualNetworkRuleConfig, sqlServer: 'T) = {
+        state with
+            SqlServer = Managed sqlServer.ResourceId
+    }
+
+    [<CustomOperation "link_to_sql_server">]
+    member _.LinkToSqlServer(state: SqlVirtualNetworkRuleConfig, sqlServer: ResourceId) = {
+        state with
+            SqlServer = Unmanaged sqlServer
+    }
+
+    member _.LinkToSqlServer<'T when 'T :> IBuilder>(state: SqlVirtualNetworkRuleConfig, sqlServer: 'T) = {
+        state with
+            SqlServer = Unmanaged sqlServer.ResourceId
+    }
+
+    member _.LinkToSqlServer(state: SqlVirtualNetworkRuleConfig, sqlServer: string) = {
+        state with
+            SqlServer = Unmanaged(servers.resourceId (ResourceName sqlServer))
+    }
+
+    [<CustomOperation "virtual_network">]
+    member _.VirtualNetwork(state: SqlVirtualNetworkRuleConfig, vnet: ResourceId) = { state with VNet = Managed vnet }
+
+    member _.VirtualNetwork(state: SqlVirtualNetworkRuleConfig, vnet: ResourceName) = {
+        state with
+            VNet = Managed(Network.virtualNetworks.resourceId vnet)
+    }
+
+    member _.VirtualNetwork<'T when 'T :> IBuilder>(state: SqlVirtualNetworkRuleConfig, vnet: 'T) = {
+        state with
+            VNet = Managed vnet.ResourceId
+    }
+
+    member _.VirtualNetwork(state: SqlVirtualNetworkRuleConfig, vnet: string) = {
+        state with
+            VNet = Managed(Network.virtualNetworks.resourceId (ResourceName vnet))
+    }
+
+    [<CustomOperation "link_to_virtual_network">]
+    member _.LinkToVirtualNetwork(state: SqlVirtualNetworkRuleConfig, vnet: ResourceId) = {
+        state with
+            VNet = Unmanaged vnet
+    }
+
+    member _.LinkToVirtualNetwork<'T when 'T :> IBuilder>(state: SqlVirtualNetworkRuleConfig, vnet: 'T) = {
+        state with
+            VNet = Unmanaged vnet.ResourceId
+    }
+
+    member _.LinkToVirtualNetwork(state: SqlVirtualNetworkRuleConfig, vnet: string) = {
+        state with
+            VNet = Unmanaged(Network.virtualNetworks.resourceId (ResourceName vnet))
+    }
+
+    [<CustomOperation "subnet">]
+    member _.Subnet(state: SqlVirtualNetworkRuleConfig, subnet: string) = {
+        state with
+            Subnet = ResourceName subnet
+    }
+
+    member _.Subnet(state: SqlVirtualNetworkRuleConfig, subnet: ResourceName) = { state with Subnet = subnet }
+
+    [<CustomOperation "ignore_missing_vnet_service_endpoint">]
+    member _.IgnoreMissingVnetServiceEndpoint(state: SqlVirtualNetworkRuleConfig, value: bool) = {
+        state with
+            IgnoreMissingVnetServiceEndpoint = Some value
+    }
+
+    [<CustomOperation "add_tags">]
+    member _.AddTags(state: SqlVirtualNetworkRuleConfig, tags) = {
+        state with
+            Tags = state.Tags |> Map.merge tags
+    }
+
+let sqlVirtualNetworkRule = SqlVirtualNetworkRuleBuilder()
+
 type SqlServerBuilder() =
     let makeIp (text: string) = IPAddress.Parse text
 
@@ -350,15 +504,17 @@ type SqlServerBuilder() =
             Sku = PoolSku.Basic50
             PerDbLimits = None
             Capacity = None
+            HighAvailabilityReplicaCount = None
         |}
         Databases = []
         FirewallRules = []
         MinTlsVersion = None
+        Identity = ManagedIdentity.Empty
         GeoReplicaServer = None
         Tags = Map.empty
     }
 
-    member _.Run state : SqlAzureConfig =
+    member _.Run(state: SqlAzureConfig) : SqlAzureConfig =
         if state.Name.ResourceName = ResourceName.Empty then
             raiseFarmer "No SQL Server account name has been set."
 
@@ -413,6 +569,16 @@ type SqlServerBuilder() =
             ElasticPoolSettings = {|
                 state.ElasticPoolSettings with
                     Capacity = Some capacity
+            |}
+    }
+
+    /// Sets the number of high availability replicas for a Hyperscale elastic pool.
+    [<CustomOperation "elastic_pool_high_availability_replica_count">]
+    member _.HighAvailabilityReplicaCount(state: SqlAzureConfig, count) = {
+        state with
+            ElasticPoolSettings = {|
+                state.ElasticPoolSettings with
+                    HighAvailabilityReplicaCount = Some count
             |}
     }
 
@@ -481,6 +647,26 @@ type SqlServerBuilder() =
     member _.SetMinTlsVersion(state: SqlAzureConfig, minTlsVersion) = {
         state with
             MinTlsVersion = Some minTlsVersion
+    }
+
+    /// Adds a user-assigned managed identity to the SQL server.
+    [<CustomOperation "add_identity">]
+    member _.AddIdentity(state: SqlAzureConfig, identity: UserAssignedIdentity) = {
+        state with
+            Identity = state.Identity + identity
+    }
+
+    member this.AddIdentity(state, identity: UserAssignedIdentityConfig) =
+        this.AddIdentity(state, identity.UserAssignedIdentity)
+
+    /// Adds a system-assigned managed identity to the SQL server.
+    [<CustomOperation "system_identity">]
+    member _.SystemIdentity(state: SqlAzureConfig) = {
+        state with
+            Identity = {
+                state.Identity with
+                    SystemAssigned = Enabled
+            }
     }
 
     /// Geo-replicate all the databases in this server to another location, having NameSuffix after original server and database names.
