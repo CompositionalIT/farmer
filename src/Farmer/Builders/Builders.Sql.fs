@@ -6,6 +6,7 @@ open Farmer.Arm
 open Farmer.Arm.Sql.Servers
 open Farmer.Arm.Sql.Servers.Databases
 open Farmer.Sql
+open Farmer.Identity
 open System
 open System.Net
 
@@ -21,6 +22,7 @@ type SqlAzureConfig = {
     Name: SqlAccountName
     Credentials: SqlCredentials option
     MinTlsVersion: TlsVersion option
+    Identity: ManagedIdentity
     FirewallRules:
         {|
             Name: ResourceName
@@ -32,6 +34,7 @@ type SqlAzureConfig = {
         Sku: PoolSku
         PerDbLimits: {| Min: int<DTU>; Max: int<DTU> |} option
         Capacity: int<Mb> option
+        HighAvailabilityReplicaCount: int option
     |}
     Databases: SqlAzureDbConfig list
     GeoReplicaServer: GeoReplicationSettings option
@@ -86,6 +89,7 @@ type SqlAzureConfig = {
                     | Some credentials -> credentials
                     | None -> raiseFarmer "No credentials have been set for the SQL Server instance."
                 MinTlsVersion = this.MinTlsVersion
+                Identity = this.Identity
                 Tags = this.Tags
             }
 
@@ -129,6 +133,7 @@ type SqlAzureConfig = {
                     Sku = this.ElasticPoolSettings.Sku
                     MaxSizeBytes = this.ElasticPoolSettings.Capacity |> Option.map Mb.toBytes
                     MinMax = this.ElasticPoolSettings.PerDbLimits |> Option.map (fun l -> l.Min, l.Max)
+                    HighAvailabilityReplicaCount = this.ElasticPoolSettings.HighAvailabilityReplicaCount
                 }
 
             match this.GeoReplicaServer with
@@ -150,6 +155,7 @@ type SqlAzureConfig = {
                             | Some credentials -> credentials
                             | None -> raiseFarmer "No credentials have been set for the SQL Server instance."
                         MinTlsVersion = this.MinTlsVersion
+                        Identity = this.Identity
                         Tags = this.Tags
                     }
 
@@ -422,10 +428,12 @@ type SqlServerBuilder() =
             Sku = PoolSku.Basic50
             PerDbLimits = None
             Capacity = None
+            HighAvailabilityReplicaCount = None
         |}
         Databases = []
         FirewallRules = []
         MinTlsVersion = None
+        Identity = ManagedIdentity.Empty
         GeoReplicaServer = None
         Tags = Map.empty
     }
@@ -485,6 +493,16 @@ type SqlServerBuilder() =
             ElasticPoolSettings = {|
                 state.ElasticPoolSettings with
                     Capacity = Some capacity
+            |}
+    }
+
+    /// Sets the number of high availability replicas for a Hyperscale elastic pool.
+    [<CustomOperation "elastic_pool_high_availability_replica_count">]
+    member _.HighAvailabilityReplicaCount(state: SqlAzureConfig, count) = {
+        state with
+            ElasticPoolSettings = {|
+                state.ElasticPoolSettings with
+                    HighAvailabilityReplicaCount = Some count
             |}
     }
 
@@ -553,6 +571,26 @@ type SqlServerBuilder() =
     member _.SetMinTlsVersion(state: SqlAzureConfig, minTlsVersion) = {
         state with
             MinTlsVersion = Some minTlsVersion
+    }
+
+    /// Adds a user-assigned managed identity to the SQL server.
+    [<CustomOperation "add_identity">]
+    member _.AddIdentity(state: SqlAzureConfig, identity: UserAssignedIdentity) = {
+        state with
+            Identity = state.Identity + identity
+    }
+
+    member this.AddIdentity(state, identity: UserAssignedIdentityConfig) =
+        this.AddIdentity(state, identity.UserAssignedIdentity)
+
+    /// Adds a system-assigned managed identity to the SQL server.
+    [<CustomOperation "system_identity">]
+    member _.SystemIdentity(state: SqlAzureConfig) = {
+        state with
+            Identity = {
+                state.Identity with
+                    SystemAssigned = Enabled
+            }
     }
 
     /// Geo-replicate all the databases in this server to another location, having NameSuffix after original server and database names.

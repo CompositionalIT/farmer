@@ -2178,6 +2178,7 @@ module Sql =
         | BasicPool of int
         | StandardPool of int
         | PremiumPool of int
+        | HyperscalePool of Gen5Series
 
         static member Standard50 = StandardPool 50
         static member Standard100 = StandardPool 100
@@ -2208,24 +2209,57 @@ module Sql =
         static member Basic800 = BasicPool 800
         static member Basic1200 = BasicPool 1200
         static member Basic1600 = BasicPool 1600
+        static member Hyperscale2 = HyperscalePool Gen5_2
+        static member Hyperscale4 = HyperscalePool Gen5_4
+        static member Hyperscale6 = HyperscalePool Gen5_6
+        static member Hyperscale8 = HyperscalePool Gen5_8
+        static member Hyperscale10 = HyperscalePool Gen5_10
+        static member Hyperscale12 = HyperscalePool Gen5_12
+        static member Hyperscale14 = HyperscalePool Gen5_14
+        static member Hyperscale16 = HyperscalePool Gen5_16
+        static member Hyperscale18 = HyperscalePool Gen5_18
+        static member Hyperscale20 = HyperscalePool Gen5_20
+        static member Hyperscale24 = HyperscalePool Gen5_24
+        static member Hyperscale32 = HyperscalePool Gen5_32
+        static member Hyperscale40 = HyperscalePool Gen5_40
+        static member Hyperscale80 = HyperscalePool Gen5_80
 
         member this.Name =
             match this with
             | BasicPool _ -> "BasicPool"
             | StandardPool _ -> "StandardPool"
             | PremiumPool _ -> "PremiumPool"
+            | HyperscalePool _ -> "HS_Gen5"
 
         member this.Edition =
             match this with
             | BasicPool _ -> "Basic"
             | StandardPool _ -> "Standard"
             | PremiumPool _ -> "Premium"
+            | HyperscalePool _ -> "Hyperscale"
 
         member this.Capacity =
             match this with
             | BasicPool c
             | StandardPool c
             | PremiumPool c -> c
+            | HyperscalePool c ->
+                match c with
+                | Gen5_2 -> 2
+                | Gen5_4 -> 4
+                | Gen5_6 -> 6
+                | Gen5_8 -> 8
+                | Gen5_10 -> 10
+                | Gen5_12 -> 12
+                | Gen5_14 -> 14
+                | Gen5_16 -> 16
+                | Gen5_18 -> 18
+                | Gen5_20 -> 20
+                | Gen5_24 -> 24
+                | Gen5_32 -> 32
+                | Gen5_40 -> 40
+                | Gen5_80 -> 80
+                | S_Gen5 _ -> raiseFarmer "Serverless capacity is not supported for Hyperscale elastic pools"
 
     open Validation
 
