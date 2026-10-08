@@ -47,6 +47,31 @@ The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azu
 | db_size | Sets the maximum database size. |
 | collation | Sets the collation of the database. |
 | use_encryption | Enables transparent data encryption of the database. |
+| link_to_sql_server | Links a standalone database to an existing SQL server. Pass a `ResourceId` to reference a server in another resource group or subscription. |
+| link_to_elastic_pool | Links a database to an existing elastic pool. This takes precedence over `sku`; pass the pool `ResourceId` when the pool is managed outside the template. |
+
+To add a database to infrastructure that already exists, link both the server and
+pool and add the database directly to the ARM template. Linked resources do not
+produce `dependsOn` entries, so Farmer will not try to deploy the existing server
+or pool:
+
+```fsharp
+let database = sqlDb {
+    name "project-db"
+    link_to_sql_server (Sql.servers.resourceId("shared-sql", "shared-infrastructure"))
+    link_to_elastic_pool (Sql.elasticPools.resourceId "shared-sql/shared-pool")
+}
+
+arm {
+    location Location.NorthEurope
+    add_resource database
+}
+```
+
+For a database on an existing server but not an elastic pool, use
+`link_to_sql_server` together with a normal `sku` instead. `ResourceId` values
+can include the existing resource group and subscription when those differ from
+the deployment scope.
 
 #### Serverless Gen5 SKU
 

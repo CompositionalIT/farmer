@@ -11,11 +11,63 @@ open System.Net
 
 type SqlAzureDbConfig = {
     Name: ResourceName
+    Server: LinkedResource option
+    ElasticPool: LinkedResource option
     Sku: DbPurchaseModel option
     MaxSize: int<Mb> option
     Collation: string
     Encryption: FeatureFlag
-}
+} with
+
+    interface IBuilder with
+        member this.ResourceId =
+            match this.Server with
+            | Some server -> {
+                Type = databases
+                ResourceGroup = server.ResourceId.ResourceGroup
+                Subscription = server.ResourceId.Subscription
+                Name = server.Name
+                Segments = [ this.Name ]
+              }
+            | None -> raiseFarmer "You must link the SQL database to a SQL server before adding it as a resource."
+
+        member this.BuildResources location = [
+            let server =
+                this.Server
+                |> Option.defaultWith (fun _ ->
+                    raiseFarmer "You must link the SQL database to a SQL server before adding it as a resource.")
+
+            let serverName =
+                match SqlAccountName.Create server.Name.Value with
+                | Ok name -> name
+                | Error error -> raiseFarmer error
+
+            let sku =
+                match this.ElasticPool, this.Sku with
+                | Some pool, _ -> LinkedPool pool
+                | None, Some dbSku -> Standalone dbSku
+                | None, None -> raiseFarmer "A standalone SQL database must have a SKU."
+
+            let database = {
+                Name = this.Name
+                Server = serverName
+                ServerResource = server
+                Location = location
+                MaxSizeBytes = this.MaxSize |> Option.map Mb.toBytes
+                Sku = sku
+                Collation = this.Collation
+            }
+
+            yield database
+
+            match this.Encryption with
+            | Enabled ->
+                yield {
+                    Server = serverName
+                    Database = this.Name
+                }
+            | Disabled -> ()
+        ]
 
 type SqlAzureConfig = {
     Name: SqlAccountName
@@ -93,6 +145,7 @@ type SqlAzureConfig = {
                 {
                     Name = database.Name
                     Server = this.Name
+                    ServerResource = Managed(servers.resourceId this.Name.ResourceName)
                     Location = location
                     MaxSizeBytes =
                         match database.Sku, database.MaxSize with
@@ -200,6 +253,8 @@ type SqlAzureConfig = {
 type SqlDbBuilder() =
     member _.Yield _ = {
         Name = ResourceName ""
+        Server = None
+        ElasticPool = None
         Collation = "SQL_Latin1_General_CP1_CI_AS"
         Sku = None
         MaxSize = None
@@ -211,6 +266,27 @@ type SqlDbBuilder() =
     member _.DbName(state: SqlAzureDbConfig, name) = { state with Name = name }
 
     member this.DbName(state: SqlAzureDbConfig, name: string) = this.DbName(state, ResourceName name)
+
+    /// Links the database to a SQL server that is managed outside this builder.
+    [<CustomOperation "link_to_sql_server">]
+    member _.LinkToSqlServer(state: SqlAzureDbConfig, server: ResourceId) = {
+        state with
+            Server = Some(Unmanaged server)
+    }
+
+    member this.LinkToSqlServer(state: SqlAzureDbConfig, server: string) =
+        this.LinkToSqlServer(state, servers.resourceId (ResourceName server))
+
+    /// Links the database to an elastic pool that is managed outside this builder.
+    [<CustomOperation "link_to_elastic_pool">]
+    member _.LinkToElasticPool(state: SqlAzureDbConfig, pool: ResourceId) = {
+        state with
+            ElasticPool = Some(Unmanaged pool)
+            Sku = None
+    }
+
+    member this.LinkToElasticPool(state: SqlAzureDbConfig, pool: string) =
+        this.LinkToElasticPool(state, elasticPools.resourceId (ResourceName pool))
 
     /// Sets the sku of the database
     [<CustomOperation "sku">]
