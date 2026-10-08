@@ -68,7 +68,7 @@
       "type": "Microsoft.Sql/servers/firewallrules"
     },
     {
-      "apiVersion": "2017-10-01-preview",
+      "apiVersion": "2026-08-01-preview",
       "dependsOn": [
         "[resourceId('Microsoft.Sql/servers', 'farmersql1979')]"
       ],
