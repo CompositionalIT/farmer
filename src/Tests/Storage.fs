@@ -51,6 +51,11 @@ type PropertiesResource = {|
         |}
 |}
 
+type StorageResource = {|
+    ``type``: string
+    extendedLocation: {| name: string; ``type``: string |} option
+|}
+
 let findPropertiesResource typeName x =
     x
     |> toTemplate Location.NorthEurope
@@ -73,6 +78,27 @@ let tests =
             Expect.equal resource.Kind "StorageV2" "Kind"
             Expect.equal resource.IsHnsEnabled (Nullable<bool>()) "Hierarchical namespace shouldn't be included"
             Expect.equal resource.MinimumTlsVersion null "Minimum TLS version shouldn't be included"
+        }
+        test "Can create a storage account in an extended location" {
+            let resource =
+                storageAccount {
+                    name "mystorage123"
+                    extended_location "microsoftlosangeles"
+                }
+                |> toTemplate Location.NorthEurope
+                |> Writer.toJson
+                |> Serialization.ofJson<TypedArmTemplate<StorageResource>>
+                |> fun template ->
+                    template.Resources
+                    |> Seq.find (fun resource -> resource.``type`` = "Microsoft.Storage/storageAccounts")
+
+            Expect.equal
+                resource.extendedLocation
+                (Some {|
+                    name = "microsoftlosangeles"
+                    ``type`` = "EdgeZone"
+                |})
+                "Extended location is wrong"
         }
         test "Data lake is not enabled by default" {
             let resource =
