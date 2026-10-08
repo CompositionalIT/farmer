@@ -1,14 +1,15 @@
 Release Notes
 =============
 
-## Next
-* SQL Azure: Add support for system-assigned and user-assigned managed identities on SQL servers (closes #1094).
+## 1.9.33
+* SQL Azure: Add support for virtual network rules on SQL servers.
+* SQL Azure: Add support for system-assigned and user-assigned managed identities on SQL servers.
 * SQL Azure: Add Hyperscale elastic pool SKUs and support configuring high availability replica counts.
 
 ## 1.9.32
 * API Management: Add service builder support for publisher, SKU, capacity, public network access, virtual network type, gateway, custom properties, and tags.
 * API Management: Add typed builders for API, operation, product, backend, named value, and policy child resources with compile-time-safe operations and automatic parent naming/dependencies. A raw child-resource escape hatch remains for unsupported future ARM types.
-* Event Hub: Fix generated event hub resource IDs and namespace dependencies (closes #1086).
+* Event Hub: Fix generated event hub resource IDs and namespace dependencies.
 * Storage Accounts: Add `extended_location` support for deploying to an Azure Edge Zone.
 
 ## 1.9.31

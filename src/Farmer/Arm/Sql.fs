@@ -17,6 +17,9 @@ let firewallRules =
 let databases =
     ResourceType("Microsoft.Sql/servers/databases", "2019-06-01-preview")
 
+let virtualNetworkRules =
+    ResourceType("Microsoft.Sql/servers/virtualNetworkRules", "2025-01-01")
+
 let transparentDataEncryption =
     ResourceType("Microsoft.Sql/servers/databases/transparentDataEncryption", "2014-04-01-preview")
 
@@ -104,6 +107,42 @@ type Server = {
                               ]
                     ]
         |}
+
+type VirtualNetworkRule = {
+    Name: ResourceName
+    SqlServer: LinkedResource
+    VNet: LinkedResource
+    Subnet: ResourceName
+    IgnoreMissingVnetServiceEndpoint: bool option
+    Tags: Map<string, string>
+} with
+
+    interface IArmResource with
+        member this.ResourceId =
+            virtualNetworkRules.resourceId (this.SqlServer.Name / this.Name)
+
+        member this.JsonModel =
+            let name = ResourceName $"{this.SqlServer.Name.Value}/{this.Name.Value}"
+
+            let subnet = {
+                this.VNet.ResourceId with
+                    Type = Network.subnets
+                    Segments = [ this.Subnet ]
+            }
+
+            let dependsOn =
+                Set.empty
+                |> LinkedResource.addToSetIfManaged this.SqlServer
+                |> LinkedResource.addToSetIfManaged this.VNet
+                |> Set.toList
+
+            {|
+                virtualNetworkRules.Create(name, dependsOn = dependsOn, tags = this.Tags) with
+                    properties = {|
+                        virtualNetworkSubnetId = subnet.Eval()
+                        ignoreMissingVnetServiceEndpoint = this.IgnoreMissingVnetServiceEndpoint |> Option.toNullable
+                    |}
+            |}
 
 module Servers =
     type ElasticPool = {
