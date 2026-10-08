@@ -2,6 +2,7 @@ Release Notes
 =============
 
 ## 1.9.33
+* SQL Azure: Add support for adding databases to existing SQL servers and elastic pools.
 * SQL Azure: Add support for virtual network rules on SQL servers.
 * SQL Azure: Add support for system-assigned and user-assigned managed identities on SQL servers.
 * SQL Azure: Add Hyperscale elastic pool SKUs and support configuring high availability replica counts.

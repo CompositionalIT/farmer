@@ -41,6 +41,36 @@ let tests =
             Expect.equal model.Sku.Name "S0" "Incorrect SKU"
         }
 
+        test "Can add a database to an existing SQL server and elastic pool" {
+            let database = sqlDb {
+                name "existing-db"
+                link_to_sql_server (Sql.servers.resourceId ("existing-server", "shared-infrastructure"))
+
+                link_to_elastic_pool (
+                    {
+                        Type = Sql.elasticPools
+                        ResourceGroup = Some "shared-infrastructure"
+                        Subscription = Some "00000000-0000-0000-0000-000000000000"
+                        Name = ResourceName "existing-server"
+                        Segments = [ ResourceName "existing-pool" ]
+                    }
+                )
+            }
+
+            let template = arm { add_resource database }
+            let json = template.Template |> Writer.toJson |> JsonObject.Parse
+            let resource = json.["resources"].[0]
+
+            Expect.equal (resource.["name"].GetValue()) "existing-server/existing-db" "Incorrect database name"
+
+            Expect.equal
+                (resource.["properties"].["elasticPoolId"].GetValue())
+                "[resourceId('00000000-0000-0000-0000-000000000000', 'shared-infrastructure', 'Microsoft.Sql/servers/elasticPools', 'existing-server', 'existing-pool')]"
+                "Incorrect existing pool reference"
+
+            Expect.equal (resource.["dependsOn"].AsArray().Count) 0 "Unmanaged resources should not be dependencies"
+        }
+
         test "Transparent data encryption name" {
             let sql = sqlServer {
                 name "server"

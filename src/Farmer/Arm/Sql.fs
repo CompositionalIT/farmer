@@ -26,6 +26,7 @@ let transparentDataEncryption =
 type DbKind =
     | Standalone of DbPurchaseModel
     | Pool of ResourceName
+    | LinkedPool of LinkedResource
 
 type EntraAuthentication = {
     Login: string
@@ -210,6 +211,7 @@ module Servers =
     type Database = {
         Name: ResourceName
         Server: SqlAccountName
+        ServerResource: LinkedResource
         Location: Location
         MaxSizeBytes: int64 option
         Sku: DbKind
@@ -217,19 +219,35 @@ module Servers =
     } with
 
         interface IArmResource with
-            member this.ResourceId = databases.resourceId (this.Server.ResourceName / this.Name)
+            member this.ResourceId = {
+                Type = databases
+                ResourceGroup = this.ServerResource.ResourceId.ResourceGroup
+                Subscription = this.ServerResource.ResourceId.Subscription
+                Name = this.ServerResource.Name
+                Segments = [ this.Name ]
+            }
 
             member this.JsonModel =
                 let dependsOn = [
-                    servers.resourceId this.Server.ResourceName
+                    match this.ServerResource with
+                    | Managed server -> server
+                    | Unmanaged _ -> ()
                     match this.Sku with
                     | Pool poolName -> elasticPools.resourceId (this.Server.ResourceName, poolName)
+                    | LinkedPool(Managed pool) -> pool
+                    | LinkedPool(Unmanaged _)
                     | Standalone _ -> ()
                 ]
 
+                let poolId =
+                    match this.Sku with
+                    | Pool poolName -> (elasticPools.resourceId (this.Server.ResourceName, poolName)).Eval()
+                    | LinkedPool pool -> pool.ResourceId.Eval()
+                    | Standalone _ -> null
+
                 {|
                     databases.Create(
-                        this.Server.ResourceName / this.Name,
+                        this.ServerResource.Name / this.Name,
                         this.Location,
                         dependsOn,
                         tags = Map [ "displayName", this.Name.Value ]
@@ -250,7 +268,8 @@ module Servers =
                                     name = sku.Name
                                     tier = sku.Edition
                                 |}
-                            | Pool _ -> null
+                            | Pool _
+                            | LinkedPool _ -> null
                         properties = {|
                             collation = this.Collation
                             maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
@@ -258,11 +277,13 @@ module Servers =
                                 match this.Sku with
                                 | Standalone(VCore(_, license)) -> license.ArmValue
                                 | Standalone(DTU _)
-                                | Pool _ -> null
+                                | Pool _
+                                | LinkedPool _ -> null
                             elasticPoolId =
                                 match this.Sku with
                                 | Standalone _ -> null
                                 | Pool pool -> elasticPools.resourceId(this.Server.ResourceName, pool).Eval()
+                                | LinkedPool _ -> poolId
                             autoPauseDelay =
                                 match this.Sku with
                                 | Standalone(VCore(GeneralPurpose(S_Gen5 _), _))
