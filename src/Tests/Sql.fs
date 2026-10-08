@@ -176,6 +176,66 @@ let tests =
             Expect.equal model.EndIpAddress "255.255.255.255" "Incorrect end IP"
         }
 
+        test "SQL virtual network rule is correctly configured" {
+            let rule = sqlVirtualNetworkRule {
+                name "rule"
+                sql_server "server"
+                virtual_network "vnet"
+                subnet "default"
+                ignore_missing_vnet_service_endpoint true
+                add_tags [ "environment", "test" ]
+            }
+
+            let actual =
+                (rule :> IBuilder).BuildResources Location.NorthEurope
+                |> List.head
+                |> _.JsonModel
+                |> convertTo<
+                    {|
+                        name: string
+                        ``type``: string
+                        apiVersion: string
+                        dependsOn: string array
+                        tags: Map<string, string>
+                        properties:
+                            {|
+                                virtualNetworkSubnetId: string
+                                ignoreMissingVnetServiceEndpoint: bool
+                            |}
+                    |}
+                    >
+
+            Expect.equal actual.name "server/rule" "Incorrect virtual network rule name"
+            Expect.equal actual.``type`` "Microsoft.Sql/servers/virtualNetworkRules" "Incorrect resource type"
+            Expect.equal actual.apiVersion "2025-01-01" "Incorrect API version"
+            Expect.hasLength actual.dependsOn 2 "Managed resources should be dependencies"
+            Expect.equal actual.tags (Map [ "environment", "test" ]) "Incorrect tags"
+
+            Expect.equal
+                actual.properties.virtualNetworkSubnetId
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'vnet', 'default')]"
+                "Incorrect subnet"
+
+            Expect.isTrue actual.properties.ignoreMissingVnetServiceEndpoint "Incorrect endpoint setting"
+        }
+
+        test "SQL virtual network rule can link unmanaged resources" {
+            let rule = sqlVirtualNetworkRule {
+                name "rule"
+                link_to_sql_server "server"
+                link_to_virtual_network "vnet"
+                subnet "default"
+            }
+
+            let actual =
+                (rule :> IBuilder).BuildResources Location.NorthEurope
+                |> List.head
+                |> _.JsonModel
+                |> convertTo<{| dependsOn: string array |}>
+
+            Expect.isEmpty actual.dependsOn "Unmanaged resources should not be dependencies"
+        }
+
         test "Validation occurs on account name" {
             let check (v: string) m =
                 Expect.equal (SqlAccountName.Create v) (Error("SQL account names " + m))

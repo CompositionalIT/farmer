@@ -263,6 +263,154 @@ type SqlDbBuilder() =
 
         state
 
+type SqlVirtualNetworkRuleConfig = {
+    Name: ResourceName
+    SqlServer: LinkedResource
+    VNet: LinkedResource
+    Subnet: ResourceName
+    IgnoreMissingVnetServiceEndpoint: bool option
+    Tags: Map<string, string>
+} with
+
+    interface IBuilder with
+        member this.ResourceId =
+            virtualNetworkRules.resourceId (this.SqlServer.Name / this.Name)
+
+        member this.BuildResources _ = [
+            let resource: IArmResource = {
+                Farmer.Arm.Sql.VirtualNetworkRule.Name = this.Name
+                SqlServer = this.SqlServer
+                VNet = this.VNet
+                Subnet = this.Subnet
+                IgnoreMissingVnetServiceEndpoint = this.IgnoreMissingVnetServiceEndpoint
+                Tags = this.Tags
+            }
+
+            resource
+        ]
+
+    interface ITaggable<SqlVirtualNetworkRuleConfig> with
+        member _.Add state tags = {
+            state with
+                Tags = state.Tags |> Map.merge tags
+        }
+
+type SqlVirtualNetworkRuleBuilder() =
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        SqlServer = Managed(servers.resourceId ResourceName.Empty)
+        VNet = Managed(Network.virtualNetworks.resourceId ResourceName.Empty)
+        Subnet = ResourceName.Empty
+        IgnoreMissingVnetServiceEndpoint = None
+        Tags = Map.empty
+    }
+
+    member _.Run state =
+        if state.Name = ResourceName.Empty then
+            raiseFarmer "You must set a virtual network rule name."
+
+        if state.SqlServer.Name = ResourceName.Empty then
+            raiseFarmer "You must set a SQL server name."
+
+        if state.VNet.Name = ResourceName.Empty then
+            raiseFarmer "You must set a virtual network."
+
+        if state.Subnet = ResourceName.Empty then
+            raiseFarmer "You must set a subnet name."
+
+        state
+
+    [<CustomOperation "name">]
+    member _.Name(state: SqlVirtualNetworkRuleConfig, name: string) = { state with Name = ResourceName name }
+
+    [<CustomOperation "sql_server">]
+    member _.SqlServer(state: SqlVirtualNetworkRuleConfig, sqlServer: string) = {
+        state with
+            SqlServer = Managed(servers.resourceId (ResourceName sqlServer))
+    }
+
+    member _.SqlServer(state: SqlVirtualNetworkRuleConfig, sqlServer: ResourceName) = {
+        state with
+            SqlServer = Managed(servers.resourceId sqlServer)
+    }
+
+    member _.SqlServer<'T when 'T :> IBuilder>(state: SqlVirtualNetworkRuleConfig, sqlServer: 'T) = {
+        state with
+            SqlServer = Managed sqlServer.ResourceId
+    }
+
+    [<CustomOperation "link_to_sql_server">]
+    member _.LinkToSqlServer(state: SqlVirtualNetworkRuleConfig, sqlServer: ResourceId) = {
+        state with
+            SqlServer = Unmanaged sqlServer
+    }
+
+    member _.LinkToSqlServer<'T when 'T :> IBuilder>(state: SqlVirtualNetworkRuleConfig, sqlServer: 'T) = {
+        state with
+            SqlServer = Unmanaged sqlServer.ResourceId
+    }
+
+    member _.LinkToSqlServer(state: SqlVirtualNetworkRuleConfig, sqlServer: string) = {
+        state with
+            SqlServer = Unmanaged(servers.resourceId (ResourceName sqlServer))
+    }
+
+    [<CustomOperation "virtual_network">]
+    member _.VirtualNetwork(state: SqlVirtualNetworkRuleConfig, vnet: ResourceId) = { state with VNet = Managed vnet }
+
+    member _.VirtualNetwork(state: SqlVirtualNetworkRuleConfig, vnet: ResourceName) = {
+        state with
+            VNet = Managed(Network.virtualNetworks.resourceId vnet)
+    }
+
+    member _.VirtualNetwork<'T when 'T :> IBuilder>(state: SqlVirtualNetworkRuleConfig, vnet: 'T) = {
+        state with
+            VNet = Managed vnet.ResourceId
+    }
+
+    member _.VirtualNetwork(state: SqlVirtualNetworkRuleConfig, vnet: string) = {
+        state with
+            VNet = Managed(Network.virtualNetworks.resourceId (ResourceName vnet))
+    }
+
+    [<CustomOperation "link_to_virtual_network">]
+    member _.LinkToVirtualNetwork(state: SqlVirtualNetworkRuleConfig, vnet: ResourceId) = {
+        state with
+            VNet = Unmanaged vnet
+    }
+
+    member _.LinkToVirtualNetwork<'T when 'T :> IBuilder>(state: SqlVirtualNetworkRuleConfig, vnet: 'T) = {
+        state with
+            VNet = Unmanaged vnet.ResourceId
+    }
+
+    member _.LinkToVirtualNetwork(state: SqlVirtualNetworkRuleConfig, vnet: string) = {
+        state with
+            VNet = Unmanaged(Network.virtualNetworks.resourceId (ResourceName vnet))
+    }
+
+    [<CustomOperation "subnet">]
+    member _.Subnet(state: SqlVirtualNetworkRuleConfig, subnet: string) = {
+        state with
+            Subnet = ResourceName subnet
+    }
+
+    member _.Subnet(state: SqlVirtualNetworkRuleConfig, subnet: ResourceName) = { state with Subnet = subnet }
+
+    [<CustomOperation "ignore_missing_vnet_service_endpoint">]
+    member _.IgnoreMissingVnetServiceEndpoint(state: SqlVirtualNetworkRuleConfig, value: bool) = {
+        state with
+            IgnoreMissingVnetServiceEndpoint = Some value
+    }
+
+    [<CustomOperation "add_tags">]
+    member _.AddTags(state: SqlVirtualNetworkRuleConfig, tags) = {
+        state with
+            Tags = state.Tags |> Map.merge tags
+    }
+
+let sqlVirtualNetworkRule = SqlVirtualNetworkRuleBuilder()
+
 type SqlServerBuilder() =
     let makeIp (text: string) = IPAddress.Parse text
 
@@ -282,7 +430,7 @@ type SqlServerBuilder() =
         Tags = Map.empty
     }
 
-    member _.Run state : SqlAzureConfig =
+    member _.Run(state: SqlAzureConfig) : SqlAzureConfig =
         if state.Name.ResourceName = ResourceName.Empty then
             raiseFarmer "No SQL Server account name has been set."
 
