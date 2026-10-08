@@ -373,6 +373,7 @@ type FunctionsConfig = {
             | DeployableResource this resourceId -> {
                 Name = Storage.StorageAccountName.Create(resourceId.Name).OkValue
                 Location = location
+                ExtendedLocation = None
                 Sku = Storage.Sku.Standard_LRS
                 Dependencies = []
                 NetworkAcls = None

@@ -261,6 +261,7 @@ type VmConfig = {
                 | Some(DeployableResource this resourceId) -> {
                     Name = Storage.StorageAccountName.Create(resourceId.Name).OkValue
                     Location = location
+                    ExtendedLocation = None
                     Dependencies = []
                     Sku = Storage.Sku.Standard_LRS
                     NetworkAcls = None
