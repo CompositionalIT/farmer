@@ -6,6 +6,7 @@ open Farmer.Arm
 open Farmer.Arm.Sql.Servers
 open Farmer.Arm.Sql.Servers.Databases
 open Farmer.Sql
+open Farmer.Identity
 open System
 open System.Net
 
@@ -21,6 +22,7 @@ type SqlAzureConfig = {
     Name: SqlAccountName
     Credentials: SqlCredentials option
     MinTlsVersion: TlsVersion option
+    Identity: ManagedIdentity
     FirewallRules:
         {|
             Name: ResourceName
@@ -86,6 +88,7 @@ type SqlAzureConfig = {
                     | Some credentials -> credentials
                     | None -> raiseFarmer "No credentials have been set for the SQL Server instance."
                 MinTlsVersion = this.MinTlsVersion
+                Identity = this.Identity
                 Tags = this.Tags
             }
 
@@ -150,6 +153,7 @@ type SqlAzureConfig = {
                             | Some credentials -> credentials
                             | None -> raiseFarmer "No credentials have been set for the SQL Server instance."
                         MinTlsVersion = this.MinTlsVersion
+                        Identity = this.Identity
                         Tags = this.Tags
                     }
 
@@ -278,6 +282,7 @@ type SqlServerBuilder() =
         Databases = []
         FirewallRules = []
         MinTlsVersion = None
+        Identity = ManagedIdentity.Empty
         GeoReplicaServer = None
         Tags = Map.empty
     }
@@ -405,6 +410,26 @@ type SqlServerBuilder() =
     member _.SetMinTlsVersion(state: SqlAzureConfig, minTlsVersion) = {
         state with
             MinTlsVersion = Some minTlsVersion
+    }
+
+    /// Adds a user-assigned managed identity to the SQL server.
+    [<CustomOperation "add_identity">]
+    member _.AddIdentity(state: SqlAzureConfig, identity: UserAssignedIdentity) = {
+        state with
+            Identity = state.Identity + identity
+    }
+
+    member this.AddIdentity(state, identity: UserAssignedIdentityConfig) =
+        this.AddIdentity(state, identity.UserAssignedIdentity)
+
+    /// Adds a system-assigned managed identity to the SQL server.
+    [<CustomOperation "system_identity">]
+    member _.SystemIdentity(state: SqlAzureConfig) = {
+        state with
+            Identity = {
+                state.Identity with
+                    SystemAssigned = Enabled
+            }
     }
 
     /// Geo-replicate all the databases in this server to another location, having NameSuffix after original server and database names.

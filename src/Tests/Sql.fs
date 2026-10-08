@@ -353,6 +353,34 @@ let tests =
             Expect.isTrue (adminToken["azureADOnlyAuthentication"].GetValue()) "Should only have AD auth."
         }
 
+        test "Can use a system assigned identity" {
+            let server = sqlServer {
+                name "my-sql-server"
+                admin_username "test"
+                system_identity
+            }
+
+            let template = arm { add_resource server }
+            let json = template.Template |> Writer.toJson |> JsonObject.Parse
+            let identity = json.["resources"].[0].["identity"]
+
+            Expect.equal (identity["type"].GetValue()) "SystemAssigned" "Incorrect identity type"
+        }
+
+        test "Can use a user assigned identity" {
+            let server = sqlServer {
+                name "my-sql-server"
+                admin_username "test"
+                add_identity (createUserAssignedIdentity "sql-identity")
+            }
+
+            let template = arm { add_resource server }
+            let json = template.Template |> Writer.toJson |> JsonObject.Parse
+            let identity = json.["resources"].[0].["identity"]
+
+            Expect.equal (identity["type"].GetValue()) "UserAssigned" "Incorrect identity type"
+        }
+
         test "No Entra ARM when just using SQL auth" {
             let theServer = sqlServer {
                 name "my-sql-server"

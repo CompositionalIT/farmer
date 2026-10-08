@@ -45,6 +45,7 @@ type Server = {
     Location: Location
     Credentials: SqlCredentials
     MinTlsVersion: TlsVersion option
+    Identity: Identity.ManagedIdentity
     Tags: Map<string, string>
 } with
 
@@ -64,6 +65,11 @@ type Server = {
                 this.Location,
                 tags = (this.Tags |> Map.add "displayName" this.ServerName.ResourceName.Value)
             ) with
+                identity =
+                    if this.Identity = Identity.ManagedIdentity.Empty then
+                        Unchecked.defaultof<_>
+                    else
+                        this.Identity.ToArmJson
                 properties =
                     Map [
                         "version", box "12.0"
