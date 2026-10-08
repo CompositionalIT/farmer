@@ -34,6 +34,7 @@ type SqlAzureConfig = {
         Sku: PoolSku
         PerDbLimits: {| Min: int<DTU>; Max: int<DTU> |} option
         Capacity: int<Mb> option
+        HighAvailabilityReplicaCount: int option
     |}
     Databases: SqlAzureDbConfig list
     GeoReplicaServer: GeoReplicationSettings option
@@ -132,6 +133,7 @@ type SqlAzureConfig = {
                     Sku = this.ElasticPoolSettings.Sku
                     MaxSizeBytes = this.ElasticPoolSettings.Capacity |> Option.map Mb.toBytes
                     MinMax = this.ElasticPoolSettings.PerDbLimits |> Option.map (fun l -> l.Min, l.Max)
+                    HighAvailabilityReplicaCount = this.ElasticPoolSettings.HighAvailabilityReplicaCount
                 }
 
             match this.GeoReplicaServer with
@@ -278,6 +280,7 @@ type SqlServerBuilder() =
             Sku = PoolSku.Basic50
             PerDbLimits = None
             Capacity = None
+            HighAvailabilityReplicaCount = None
         |}
         Databases = []
         FirewallRules = []
@@ -342,6 +345,16 @@ type SqlServerBuilder() =
             ElasticPoolSettings = {|
                 state.ElasticPoolSettings with
                     Capacity = Some capacity
+            |}
+    }
+
+    /// Sets the number of high availability replicas for a Hyperscale elastic pool.
+    [<CustomOperation "elastic_pool_high_availability_replica_count">]
+    member _.HighAvailabilityReplicaCount(state: SqlAzureConfig, count) = {
+        state with
+            ElasticPoolSettings = {|
+                state.ElasticPoolSettings with
+                    HighAvailabilityReplicaCount = Some count
             |}
     }
 

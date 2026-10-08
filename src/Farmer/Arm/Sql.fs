@@ -9,7 +9,7 @@ open System.Net
 let servers = ResourceType("Microsoft.Sql/servers", "2022-05-01-preview")
 
 let elasticPools =
-    ResourceType("Microsoft.Sql/servers/elasticPools", "2017-10-01-preview")
+    ResourceType("Microsoft.Sql/servers/elasticPools", "2026-08-01-preview")
 
 let firewallRules =
     ResourceType("Microsoft.Sql/servers/firewallrules", "2014-04-01")
@@ -113,6 +113,7 @@ module Servers =
         Sku: PoolSku
         MinMax: (int<DTU> * int<DTU>) option
         MaxSizeBytes: int64 option
+        HighAvailabilityReplicaCount: int option
     } with
 
         interface IArmResource with
@@ -126,6 +127,7 @@ module Servers =
                 ) with
                     properties = {|
                         maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
+                        highAvailabilityReplicaCount = this.HighAvailabilityReplicaCount |> Option.toNullable
                         perDatabaseSettings =
                             match this.MinMax with
                             | Some(min, max) ->

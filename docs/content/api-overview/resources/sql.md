@@ -27,6 +27,7 @@ The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azu
 | elastic_pool_sku | Sets the sku of the elastic pool, if required. If not set, Farmer will default to Basic 50. |
 | elastic_pool_database_min_max | Sets the optional minimum and maximum DTUs for the elastic pool for each database. |
 | elastic_pool_capacity | Sets the optional disk size in MB for the elastic pool for each database. |
+| elastic_pool_high_availability_replica_count | Sets the number of high availability replicas for a Hyperscale elastic pool. |
 | min_tls_version | Sets the minimum TLS version for the SQL server |
 | geo_replicate | Geo-replicate all the databases in this server to another location, having NameSuffix after the original server and database names. |
 
@@ -65,6 +66,21 @@ sqlDb {
 sqlDb {
     name "serverlessDb2"
     sku (GeneralPurpose(S_Gen5(1, 4)))  // min: 1 VCore, max: 4 VCores
+}
+```
+
+#### Hyperscale Elastic Pool
+
+Hyperscale elastic pools use the `PoolSku.Hyperscale*` values and can configure
+high availability replicas:
+
+```fsharp
+sqlServer {
+    name "my_server"
+    admin_username "admin_username"
+    elastic_pool_sku PoolSku.Hyperscale4
+    elastic_pool_high_availability_replica_count 2
+    add_databases [ sqlDb { name "poolDb" } ]
 }
 ```
 

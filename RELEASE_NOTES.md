@@ -3,6 +3,7 @@ Release Notes
 
 ## Next
 * SQL Azure: Add support for system-assigned and user-assigned managed identities on SQL servers (closes #1094).
+* SQL Azure: Add Hyperscale elastic pool SKUs and support configuring high availability replica counts.
 
 ## 1.9.32
 * API Management: Add service builder support for publisher, SKU, capacity, public network access, virtual network type, gateway, custom properties, and tags.
