@@ -112,7 +112,7 @@
     {
       "apiVersion": "2017-05-01-preview",
       "dependsOn": [
-        "[resourceId('Microsoft.EventHub/namespaces', 'isaacsuperhub-ns')]",
+        "[resourceId('Microsoft.EventHub/namespaces/eventhubs', 'isaacsuperhub-ns', 'isaacsuperhub')]",
         "[resourceId('Microsoft.OperationalInsights/workspaces', 'isaacsuperlogs')]",
         "[resourceId('Microsoft.Storage/storageAccounts', 'isaacsuperdata')]",
         "[resourceId('Microsoft.Web/sites', 'isaacdiagsuperweb')]"

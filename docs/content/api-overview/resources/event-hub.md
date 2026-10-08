@@ -13,7 +13,7 @@ The Event Hub builder creates event hub namespaces, event hubs, consumer groups 
 * Consumer Group (`Microsoft.EventHub/namespaces/eventhubs/consumergroups`)
 * Authorization Rule (`Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules"`)
 
-> The Event Hub builder works in a similar fashion to the [web app](web-app) builder in that it automatically creates the host (in this case, the event hub *namespace*) when creating the event hub. If you wish to create multiple hubs in the same namespace, configure the namespace-level properties in the first event hub; subsequent event hubs should *link* to the namespace of the hub created by the first hub.
+> The Event Hub builder works in a similar fashion to the [web app](web-app) builder in that it automatically creates the host (in this case, the event hub *namespace*) when creating the event hub. The generated event hub resource uses the namespace as its parent and depends on it when the namespace is managed by Farmer. If you wish to create multiple hubs in the same namespace, configure the namespace-level properties in the first event hub; subsequent event hubs should *link* to the namespace of the hub created by the first hub.
 
 #### Builder Keywords
 | Applies To | Keyword | Purpose |
