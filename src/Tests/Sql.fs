@@ -10,6 +10,7 @@ open System
 open Microsoft.Rest
 open System.Text.Json
 open System.Text.Json.Nodes
+open Newtonsoft.Json.Linq
 
 let client =
     new SqlManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
@@ -83,6 +84,33 @@ let tests =
 
             Expect.equal model.Sku.Name "BasicPool" "Incorrect Elastic Pool SKU"
             Expect.equal model.Sku.Capacity (Nullable 200) "Incorrect Elastic Pool SKU size"
+        }
+
+        test "Creates a Hyperscale elastic pool with high availability replicas" {
+            let sql = sqlServer {
+                name "server"
+                admin_username "isaac"
+                elastic_pool_sku PoolSku.Hyperscale4
+                elastic_pool_high_availability_replica_count 2
+                add_databases [ sqlDb { name "db" } ]
+            }
+
+            let template = arm {
+                location Location.NorthEurope
+                add_resource sql
+            }
+
+            let json = template.Template |> Writer.toJson |> JObject.Parse
+            let pool = json.SelectToken("resources[?(@.name=='server/server-pool')]")
+
+            Expect.equal (pool.SelectToken("sku.name").ToString()) "HS_Gen5" "Incorrect Hyperscale SKU name"
+            Expect.equal (pool.SelectToken("sku.tier").ToString()) "Hyperscale" "Incorrect Hyperscale SKU tier"
+            Expect.equal (pool.SelectToken("sku.capacity").ToObject<int>()) 4 "Incorrect Hyperscale SKU capacity"
+
+            Expect.equal
+                (pool.SelectToken("properties.highAvailabilityReplicaCount").ToObject<int>())
+                2
+                "Incorrect high availability replica count"
         }
 
         test "Works with VCore databases" {
