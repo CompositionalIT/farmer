@@ -42,6 +42,8 @@ let tests =
                     {
                         Streams = [ (CustomStream "Microsoft-PrometheusMetrics") ]
                         Destinations = [ "Account1" ]
+                        TransformKQL = None
+                        OutputStream = None
                     }
                 ]
 
