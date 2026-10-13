@@ -88,7 +88,7 @@ type ContainerEnvironmentConfig = {
         member this.BuildResources location = [
             let logAnalyticsResourceId = this.LogAnalytics.resourceId this
 
-            {
+            yield {
                 Name = this.Name
                 InternalLoadBalancerState = this.InternalLoadBalancerState
                 LogAnalytics = logAnalyticsResourceId
@@ -115,7 +115,7 @@ type ContainerEnvironmentConfig = {
             | _ -> ()
 
             for containerApp in this.ContainerApps do
-                {
+                yield {
                     Name = containerApp.Name
                     Environment = managedEnvironments.resourceId this.Name
                     ActiveRevisionsMode = containerApp.ActiveRevisionsMode
@@ -157,12 +157,14 @@ type ContainerEnvironmentConfig = {
                     |> Seq.distinctBy _.Name
 
                 for volume in uniqueVolumes do
-                    volume
+                    yield volume
 
             for daprComponent in this.DaprComponents do
-                {
+                let environment = managedEnvironments.resourceId this.Name
+
+                yield {
                     Name = daprComponent.Name
-                    Environment = managedEnvironments.resourceId this.Name
+                    Environment = environment
                     ComponentType = daprComponent.ComponentType
                     IgnoreErrors = daprComponent.IgnoreErrors
                     InitTimeout = daprComponent.InitTimeout
@@ -173,6 +175,24 @@ type ContainerEnvironmentConfig = {
                     Version = daprComponent.Version
                     ResiliencyPolicy = daprComponent.ResiliencyPolicy
                 }
+
+                if
+                    [
+                        daprComponent.ResiliencyPolicy.InboundTimeoutPolicy.IsSome
+                        daprComponent.ResiliencyPolicy.InboundHttpRetryPolicy.IsSome
+                        daprComponent.ResiliencyPolicy.InboundCircuitBreakerPolicy.IsSome
+                        daprComponent.ResiliencyPolicy.OutboundTimeoutPolicy.IsSome
+                        daprComponent.ResiliencyPolicy.OutboundHttpRetryPolicy.IsSome
+                        daprComponent.ResiliencyPolicy.OutboundCircuitBreakerPolicy.IsSome
+                    ]
+                    |> List.exists id
+                then
+                    yield {
+                        Name = ResourceName "resiliency-policy"
+                        Environment = environment
+                        Component = daprComponent.Name
+                        Policy = daprComponent.ResiliencyPolicy
+                    }
         ]
 
 type ContainerEnvironmentBuilder() =
@@ -666,6 +686,64 @@ type ContainerBuilder() =
                 |> Seq.fold (fun s (volumeName, mountPath) -> s |> Map.add volumeName mountPath) state.VolumeMounts
     }
 
+type TimeoutPolicyBuilder() =
+    member _.Yield _ = { ResponseTimeoutInSeconds = 0 }
+
+    [<CustomOperation "response_timeout_in_seconds">]
+    member _.ResponseTimeoutInSeconds(state: TimeoutPolicy, value: int) = {
+        state with
+            ResponseTimeoutInSeconds = value
+    }
+
+type HttpRetryPolicyBuilder() =
+    member _.Yield _ = {
+        MaxRetries = 0
+        RetryBackOff = {
+            InitialDelayInMilliseconds = 0
+            MaxIntervalInMilliseconds = 0
+        }
+    }
+
+    [<CustomOperation "max_retries">]
+    member _.MaxRetries(state: HttpRetryPolicy, value: int) = { state with MaxRetries = value }
+
+    [<CustomOperation "initial_delay_in_milliseconds">]
+    member _.InitialDelayInMilliseconds(state: HttpRetryPolicy, value: int) = {
+        state with
+            RetryBackOff = {
+                state.RetryBackOff with
+                    InitialDelayInMilliseconds = value
+            }
+    }
+
+    [<CustomOperation "max_interval_in_milliseconds">]
+    member _.MaxIntervalInMilliseconds(state: HttpRetryPolicy, value: int) = {
+        state with
+            RetryBackOff = {
+                state.RetryBackOff with
+                    MaxIntervalInMilliseconds = value
+            }
+    }
+
+type CircuitBreakerPolicyBuilder() =
+    member _.Yield _ = {
+        IntervalInSeconds = None
+        ConsecutiveErrors = 0
+        TimeoutInSeconds = 0
+    }
+
+    [<CustomOperation "interval_in_seconds">]
+    member _.IntervalInSeconds(state: CircuitBreakerPolicy, value: int) = {
+        state with
+            IntervalInSeconds = Some value
+    }
+
+    [<CustomOperation "consecutive_errors">]
+    member _.ConsecutiveErrors(state: CircuitBreakerPolicy, value: int) = { state with ConsecutiveErrors = value }
+
+    [<CustomOperation "timeout_in_seconds">]
+    member _.TimeoutInSeconds(state: CircuitBreakerPolicy, value: int) = { state with TimeoutInSeconds = value }
+
 type DaprComponentBuilder() =
     member _.Yield _ = {
         Name = ResourceName.Empty
@@ -910,3 +988,6 @@ let containerEnvironment = ContainerEnvironmentBuilder()
 let containerApp = ContainerAppBuilder()
 let container = ContainerBuilder()
 let daprComponent = DaprComponentBuilder()
+let timeout_policy = TimeoutPolicyBuilder()
+let http_retry_policy = HttpRetryPolicyBuilder()
+let circuit_breaker_policy = CircuitBreakerPolicyBuilder()
