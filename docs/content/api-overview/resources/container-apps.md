@@ -142,7 +142,7 @@ For containers on consumption plans, use the `resources` operation with a `Conta
 > See [Azure Container Apps documentation](https://learn.microsoft.com/en-us/azure/container-apps/containers#allocations) for more details on supported allocations.
 
 #### Dapr Component Builder
-The Dapr Component builder (`daprComponent`) is used to define one or more dapr components for a container environment.
+The Dapr Component builder (`daprComponent`) is used to define one or more dapr components for a container environment. The resiliency operations emit a separate `Microsoft.App/managedEnvironments/daprComponents/resiliencyPolicies` child resource (API `2023-11-02-preview`) attached to the component.
 
 | Keyword | Purpose |
 |-|-|
@@ -155,9 +155,31 @@ The Dapr Component builder (`daprComponent`) is used to define one or more dapr 
 | add_scope | Adds a scope, can either be a string or a reference to a container app. |
 | add_scopes | Adds one or more scopes, which can either be strings or references to container apps. |
 | version | Sets the dapr component version. |
+| resiliency_policy_inbound_timeout | Sets the inbound timeout policy. |
+| resiliency_policy_inbound_http_retry | Sets the inbound HTTP retry policy. |
+| resiliency_policy_inbound_circuit_breaker | Sets the inbound circuit breaker policy. |
+| resiliency_policy_outbound_timeout | Sets the outbound timeout policy. |
+| resiliency_policy_outbound_http_retry | Sets the outbound HTTP retry policy. |
+| resiliency_policy_outbound_circuit_breaker | Sets the outbound circuit breaker policy. |
 | cron_binding | Helper for setting fields required for a cron binding |
 | azure_storage_queue_binding | Helper for setting fields required for an Azure Storage Queue binding |
 | azure_servicebus_queues_pubsub | Helper for setting fields required for an Azure Service Bus Queue |
+
+Policy operations take the corresponding policy computation expression so each value is named:
+
+```fsharp
+resiliency_policy_inbound_http_retry (http_retry_policy {
+    max_retries 5
+    initial_delay_in_milliseconds 1000
+    max_interval_in_milliseconds 10000
+})
+
+resiliency_policy_inbound_circuit_breaker (circuit_breaker_policy {
+    consecutive_errors 10
+    timeout_in_seconds 5
+    interval_in_seconds 15
+})
+```
 
 #### Example
 
