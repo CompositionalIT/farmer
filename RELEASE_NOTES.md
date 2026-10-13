@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.9.34
+* Container Apps: Add Dapr component resiliency policy support for inbound and outbound timeout, HTTP retry, and circuit breaker policies.
+
 ## 1.9.33
 * SQL Azure: Add support for adding databases to existing SQL servers and elastic pools.
 * SQL Azure: Add support for virtual network rules on SQL servers.
