@@ -195,6 +195,74 @@ let tests =
                 "Incorrect PrivateEndpointNetworkPolicies"
         }
 
+        test "Can create a service endpoint policy resource and associate it with a subnet" {
+            let storage = storageAccount { name "policyteststorage" }
+
+            let policy = serviceEndpointPolicy {
+                name "storage-policy"
+
+                add_definitions [
+                    serviceEndpointPolicyDefinition {
+                        name "allow-storage"
+                        description "Allow access to a specific storage account"
+                        service EndpointServiceType.Storage
+                        add_service_resources [ storage ]
+                    }
+                ]
+            }
+
+            let myNet = vnet {
+                name "my-vnet"
+                add_address_spaces [ "10.28.0.0/16" ]
+
+                add_subnets [
+                    subnet {
+                        name "services"
+                        prefix "10.28.0.0/24"
+                        add_service_endpoints [ EndpointServiceType.Storage, [ Location.EastUS ] ]
+                        associate_service_endpoint_policies [ policy ]
+                    }
+                ]
+            }
+
+            let deployment = arm { add_resources [ storage; policy; myNet ] }
+
+            let jobj = JObject.Parse(deployment.Template |> Writer.toJson)
+
+            let policyResource =
+                jobj.SelectToken("resources[?(@.type=='Microsoft.Network/serviceEndpointPolicies')]")
+
+            let linkedSubnetPolicyId =
+                jobj.SelectToken(
+                    "resources[?(@.type=='Microsoft.Network/virtualNetworks')].properties.subnets[0].properties.serviceEndpointPolicies[0].id"
+                )
+
+            Expect.isNotNull policyResource "Expected a service endpoint policy resource"
+
+            Expect.equal (string policyResource["name"]) "storage-policy" "Incorrect service endpoint policy name"
+
+            Expect.equal
+                (string ((policyResource["properties"]).["serviceEndpointPolicyDefinitions"]).[0].["name"])
+                "allow-storage"
+                "Incorrect service endpoint policy definition name"
+
+            Expect.equal
+                (string
+                    ((policyResource["properties"]).["serviceEndpointPolicyDefinitions"]).[0].["properties"].["service"])
+                "Microsoft.Storage"
+                "Incorrect service endpoint policy definition service"
+
+            Expect.equal
+                (string
+                    ((policyResource["properties"]).["serviceEndpointPolicyDefinitions"]).[0].["properties"].["serviceResources"].[0])
+                "[resourceId('Microsoft.Storage/storageAccounts', 'policyteststorage')]"
+                "Incorrect service endpoint policy definition service resource"
+
+            Expect.equal
+                (string linkedSubnetPolicyId)
+                "[resourceId('Microsoft.Network/serviceEndpointPolicies', 'storage-policy')]"
+                "Incorrect subnet service endpoint policy reference"
+        }
 
         test "Manually defined subnets with private endpoint support" {
             let vnetName = "my-vnet"
@@ -653,6 +721,7 @@ let tests =
                                 name "my-services"
                                 prefix "10.100.12.0/24"
                                 nat_gateway (natGateways.resourceId "my-nat-gateway")
+                                default_outbound_access false
                             }
                         ]
                     }
@@ -685,6 +754,49 @@ let tests =
                 jobj.SelectToken "resources[?(@.type=='Microsoft.Network/publicIPAddresses')]"
 
             Expect.isNotNull publicIp "Public IP should have been generated for the NAT gateway."
+
+            let subnet =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks')].properties.subnets[0]"
+
+            Expect.isNotNull subnet "Subnet resource not generated."
+            let defaultOutbound = subnet.SelectToken "properties.defaultOutboundAccess"
+            Expect.isNotNull defaultOutbound "defaultOutboundAccess should be emitted"
+            Expect.isFalse (defaultOutbound.ToObject<bool>()) "defaultOutboundAccess should be false"
+
+        }
+        test "Creates V2 NAT gateway" {
+            let deployment = arm {
+                location Location.EastUS
+
+                add_resources [
+                    natGateway {
+                        name "my-nat-gateway-v2"
+                        sku NatGateway.Sku.StandardV2
+                    }
+                ]
+            }
+
+            let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+
+            let natGateway =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.Network/natGateways')]"
+
+            Expect.isNotNull natGateway "NAT Gateway is missing from template."
+
+            Expect.equal
+                (string <| natGateway.SelectToken "sku.name")
+                "StandardV2"
+                "Incorrect SKU generated for NAT Gateway"
+
+            let publicIp =
+                jobj.SelectToken "resources[?(@.type=='Microsoft.Network/publicIPAddresses')]"
+
+            Expect.isNotNull publicIp "Public IP is missing from template."
+
+            Expect.equal
+                (string <| publicIp.SelectToken "sku.name")
+                "StandardV2"
+                "Incorrect SKU generated for Public IP"
         }
         test "Creates route table with two routes" {
             let deployment = arm {
@@ -1195,8 +1307,7 @@ let tests =
                 jobj.SelectToken "resources[?(@.type=='Microsoft.Network/networkInterfaces')]"
 
             Expect.equal
-                (networkInterfaceWithNsg.["properties"].["networkSecurityGroup"].["id"]
-                    .ToString())
+                (networkInterfaceWithNsg.["properties"].["networkSecurityGroup"].["id"].ToString())
                 "[resourceId(\u0027Microsoft.Network/networkSecurityGroups\u0027, \u0027my-nsg\u0027)]"
                 "Incorrect networkSecurityGroup for networkInterface"
 
@@ -1236,8 +1347,7 @@ let tests =
                 jobj.SelectToken "resources[?(@.type=='Microsoft.Network/networkInterfaces')]"
 
             Expect.equal
-                (networkInterfaceWithExistingNsg.["properties"].["networkSecurityGroup"].["id"]
-                    .ToString())
+                (networkInterfaceWithExistingNsg.["properties"].["networkSecurityGroup"].["id"].ToString())
                 "[resourceId(\u0027Microsoft.Network/networkSecurityGroups\u0027, \u0027my-nsg\u0027)]"
                 "Incorrect networkSecurityGroup for networkInterface"
 

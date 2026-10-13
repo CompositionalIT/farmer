@@ -51,6 +51,11 @@ type PropertiesResource = {|
         |}
 |}
 
+type StorageResource = {|
+    ``type``: string
+    extendedLocation: {| name: string; ``type``: string |} option
+|}
+
 let findPropertiesResource typeName x =
     x
     |> toTemplate Location.NorthEurope
@@ -73,6 +78,27 @@ let tests =
             Expect.equal resource.Kind "StorageV2" "Kind"
             Expect.equal resource.IsHnsEnabled (Nullable<bool>()) "Hierarchical namespace shouldn't be included"
             Expect.equal resource.MinimumTlsVersion null "Minimum TLS version shouldn't be included"
+        }
+        test "Can create a storage account in an extended location" {
+            let resource =
+                storageAccount {
+                    name "mystorage123"
+                    extended_location "microsoftlosangeles"
+                }
+                |> toTemplate Location.NorthEurope
+                |> Writer.toJson
+                |> Serialization.ofJson<TypedArmTemplate<StorageResource>>
+                |> fun template ->
+                    template.Resources
+                    |> Seq.find (fun resource -> resource.``type`` = "Microsoft.Storage/storageAccounts")
+
+            Expect.equal
+                resource.extendedLocation
+                (Some {|
+                    name = "microsoftlosangeles"
+                    ``type`` = "EdgeZone"
+                |})
+                "Extended location is wrong"
         }
         test "Data lake is not enabled by default" {
             let resource =
@@ -410,12 +436,12 @@ let tests =
                 StorageAccount.getConnectionString (StorageAccountName.Create("account").OkValue, "rg")
 
             Expect.equal
-                "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)"
+                "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)"
                 strongConn.Value
                 "Strong connection string"
 
             Expect.equal
-                "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('rg', 'Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)"
+                "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('rg', 'Microsoft.Storage/storageAccounts', 'account'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)"
                 rgConn.Value
                 "Complex connection string"
         }
@@ -456,7 +482,7 @@ let tests =
 
             Expect.equal
                 builder.WebsitePrimaryEndpoint.Value
-                "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2022-05-01').primaryEndpoints.web"
+                "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2025-06-01').primaryEndpoints.web"
                 "Zone names are not fixed and should be related to a storage account name"
         }
         test "Creates different SKU kinds correctly" {
@@ -839,9 +865,7 @@ let tests =
                 "network acl should not define ip restrictions"
 
             Expect.isEmpty
-                (jobj
-                    .SelectToken("resources[0].properties.networkAcls.virtualNetworkRules")
-                    .Values<string>())
+                (jobj.SelectToken("resources[0].properties.networkAcls.virtualNetworkRules").Values<string>())
                 "network acl should not define vnet restrictions"
 
             Expect.equal
@@ -937,9 +961,7 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[0].properties.defaultToOAuthAuthentication")
-                    .ToString())
+                (jobj.SelectToken("resources[0].properties.defaultToOAuthAuthentication").ToString())
                 "true"
                 "default to OAuth should be enabled"
         }
@@ -958,10 +980,28 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[0].properties.defaultToOAuthAuthentication")
-                    .ToString())
+                (jobj.SelectToken("resources[0].properties.defaultToOAuthAuthentication").ToString())
                 "false"
                 "default to OAuth should be disabled"
+        }
+        test "AccountKey returns just the storage account key" {
+            let account = storageAccount { name "account" }
+
+            let accountKeyExpression = account.AccountKey.Value
+
+            Expect.equal
+                accountKeyExpression
+                "listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2025-06-01').keys[0].value"
+                "AccountKey should return only the key"
+        }
+        test "ConnectionString returns the full connection string" {
+            let account = storageAccount { name "account" }
+
+            let connectionStringExpression = account.ConnectionString.Value
+
+            Expect.equal
+                connectionStringExpression
+                "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)"
+                "ConnectionString should return the full connection string"
         }
     ]

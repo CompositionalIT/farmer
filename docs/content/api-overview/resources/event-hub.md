@@ -13,7 +13,7 @@ The Event Hub builder creates event hub namespaces, event hubs, consumer groups 
 * Consumer Group (`Microsoft.EventHub/namespaces/eventhubs/consumergroups`)
 * Authorization Rule (`Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules"`)
 
-> The Event Hub builder works in a similar fashion to the [web app](web-app) builder in that it automatically creates the host (in this case, the event hub *namespace*) when creating the event hub. If you wish to create multiple hubs in the same namespace, configure the namespace-level properties in the first event hub; subsequent event hubs should *link* to the namespace of the hub created by the first hub.
+> The Event Hub builder works in a similar fashion to the [web app](web-app) builder in that it automatically creates the host (in this case, the event hub *namespace*) when creating the event hub. The generated event hub resource uses the namespace as its parent and depends on it when the namespace is managed by Farmer. If you wish to create multiple hubs in the same namespace, configure the namespace-level properties in the first event hub; subsequent event hubs should *link* to the namespace of the hub created by the first hub.
 
 #### Builder Keywords
 | Applies To | Keyword | Purpose |
@@ -35,8 +35,8 @@ The Event Hub builder creates event hub namespaces, event hubs, consumer groups 
 #### Configuration Members
 | Member | Purpose |
 |-|-|
-| DefaultKey | Gets an ARM expression for the root namespace key of the Event Hub namespace. |
-| GetKey | Gets an ARM expression for a named key on this event hub. |
+| DefaultKey | Gets an ARM expression for the default namespace connection string of the Event Hub namespace. |
+| GetKey | Gets an ARM expression for the connection string of a named authorization rule on this event hub. |
 
 #### Example
 
@@ -67,6 +67,14 @@ let secondHub = eventHub {
     link_to_namespace "allmyevents"
     partitions 1
     message_retention_days 1
-    capture_to_storage myStorageAccount "mycontainer"
+    capture_to_storage storage "mycontainer"
+}
+
+let deployment = arm {
+    location Location.NorthEurope
+    add_resource primaryHub
+    add_resource secondHub
+    output "EventHubDefaultConnectionString" primaryHub.DefaultKey
+    output "EventHubFirstRuleConnectionString" (primaryHub.GetKey "FirstRule")
 }
 ```

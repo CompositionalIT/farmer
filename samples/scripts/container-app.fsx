@@ -47,7 +47,7 @@ let env = containerEnvironment {
 
             replicas 1 10
             add_env_variable "QueueName" queueName
-            add_secret_expression "queueconnectionstring" myStorageAccount.Key
+            add_secret_expression "queueconnectionstring" myStorageAccount.ConnectionString
         }
     ]
 }

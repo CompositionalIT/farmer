@@ -17,10 +17,13 @@ let topics =
     ResourceType("Microsoft.ServiceBus/namespaces/topics", "2022-01-01-preview")
 
 let namespaces =
-    ResourceType("Microsoft.ServiceBus/namespaces", "2022-01-01-preview")
+    ResourceType("Microsoft.ServiceBus/namespaces", "2025-05-01-preview")
 
 let queueAuthorizationRules =
     ResourceType("Microsoft.ServiceBus/namespaces/queues/authorizationRules", "2022-01-01-preview")
+
+let topicAuthorizationRules =
+    ResourceType("Microsoft.ServiceBus/namespaces/topics/authorizationRules", "2022-01-01-preview")
 
 let namespaceAuthorizationRules =
     ResourceType("Microsoft.ServiceBus/namespaces/AuthorizationRules", "2022-01-01-preview")
@@ -153,6 +156,23 @@ module Namespaces =
                     |}
             |}
 
+    type TopicAuthorizationRule = {
+        Name: ResourceName
+        Location: Location
+        Dependencies: ResourceId list
+        Rights: AuthorizationRuleRight Set
+    } with
+
+        interface IArmResource with
+            member this.ResourceId = topicAuthorizationRules.resourceId this.Name
+
+            member this.JsonModel = {|
+                topicAuthorizationRules.Create(this.Name, this.Location, this.Dependencies) with
+                    properties = {|
+                        rights = this.Rights |> Set.map string |> Set.toList
+                    |}
+            |}
+
     type NamespaceAuthorizationRule = {
         Name: ResourceName
         Location: Location
@@ -231,9 +251,8 @@ type Namespace = {
                 properties = {|
                     minimumTlsVersion =
                         match this.MinTlsVersion with
-                        | Some Tls10 -> "1.0"
-                        | Some Tls11 -> "1.1"
                         | Some Tls12 -> "1.2"
+                        | Some Tls13 -> "1.3"
                         | None -> null
                     publicNetworkAccess =
                         match this.DisablePublicNetworkAccess with

@@ -17,10 +17,11 @@ type SubnetConfig = {
     VirtualNetwork: LinkedResource option
     RouteTable: LinkedResource option
     NetworkSecurityGroup: LinkedResource option
+    DefaultOutboundAccess: bool option
     Delegations: SubnetDelegationService list
     NatGateway: LinkedResource option
     ServiceEndpoints: (EndpointServiceType * Location list) list
-    AssociatedServiceEndpointPolicies: ResourceId list
+    AssociatedServiceEndpointPolicies: LinkedResource list
     AllowPrivateEndpoints: FeatureFlag option
     PrivateLinkServiceNetworkPolicies: FeatureFlag option
     Dependencies: ResourceId Set
@@ -32,6 +33,7 @@ type SubnetConfig = {
         VirtualNetwork = this.VirtualNetwork
         RouteTable = this.RouteTable
         NetworkSecurityGroup = this.NetworkSecurityGroup
+        DefaultOutboundAccess = this.DefaultOutboundAccess
         Delegations =
             this.Delegations
             |> List.map (fun (SubnetDelegationService(delegation)) -> {
@@ -63,6 +65,7 @@ type SubnetBuilder() =
         VirtualNetwork = None
         RouteTable = None
         NetworkSecurityGroup = None
+        DefaultOutboundAccess = None
         Delegations = []
         NatGateway = None
         ServiceEndpoints = []
@@ -251,9 +254,17 @@ type SubnetBuilder() =
 
     /// Associates service endpoint policies with this subnet
     [<CustomOperation "associate_service_endpoint_policies">]
-    member _.AssociateServiceEndpointPolicies(state: SubnetConfig, servicePolicyIds) = {
+    member _.AssociateServiceEndpointPolicies(state: SubnetConfig, servicePolicyIds: ResourceId list) = {
         state with
-            AssociatedServiceEndpointPolicies = state.AssociatedServiceEndpointPolicies @ servicePolicyIds
+            AssociatedServiceEndpointPolicies =
+                state.AssociatedServiceEndpointPolicies @ (servicePolicyIds |> List.map Managed)
+    }
+
+    member _.AssociateServiceEndpointPolicies<'T when 'T :> IBuilder>(state: SubnetConfig, servicePolicies: 'T list) = {
+        state with
+            AssociatedServiceEndpointPolicies =
+                state.AssociatedServiceEndpointPolicies
+                @ (servicePolicies |> List.map (fun policy -> Managed policy.ResourceId))
     }
 
     /// Disable private endpoint network policies
@@ -270,6 +281,14 @@ type SubnetBuilder() =
             PrivateLinkServiceNetworkPolicies = Some flag
     }
 
+    /// Set to false to disable default outbound access on the vnet, requiring VMs to
+    /// use their own public IP, a NAT Gateway, or a Load Balancer for outbound access.
+    [<CustomOperation "default_outbound_access">]
+    member _.DefaultOutboundAccess(state: SubnetConfig, defaultOutboundAccess) = {
+        state with
+            DefaultOutboundAccess = Some defaultOutboundAccess
+    }
+
     interface IDependable<SubnetConfig> with
         member _.Add state newDeps = {
             state with
@@ -284,10 +303,11 @@ type SubnetBuildSpec = {
     Size: int
     NetworkSecurityGroup: LinkedResource option
     RouteTable: LinkedResource option
+    DefaultOutboundAccess: bool option
     Delegations: SubnetDelegationService list
     NatGateway: LinkedResource option
     ServiceEndpoints: (EndpointServiceType * Location list) list
-    AssociatedServiceEndpointPolicies: ResourceId list
+    AssociatedServiceEndpointPolicies: LinkedResource list
     AllowPrivateEndpoints: FeatureFlag option
     PrivateLinkServiceNetworkPolicies: FeatureFlag option
 }
@@ -298,6 +318,7 @@ let buildSubnet name size = {
     Size = size
     NetworkSecurityGroup = None
     RouteTable = None
+    DefaultOutboundAccess = None
     Delegations = []
     NatGateway = None
     ServiceEndpoints = []
@@ -312,6 +333,7 @@ let buildSubnetDelegations name size delegations = {
     Size = size
     NetworkSecurityGroup = None
     RouteTable = None
+    DefaultOutboundAccess = None
     Delegations = delegations
     NatGateway = None
     ServiceEndpoints = []
@@ -325,6 +347,7 @@ let buildSubnetAllowPrivateEndpoints name size = {
     Size = size
     NetworkSecurityGroup = None
     RouteTable = None
+    DefaultOutboundAccess = None
     Delegations = []
     NatGateway = None
     ServiceEndpoints = []
@@ -339,6 +362,7 @@ type SubnetSpecBuilder() =
         Size = 24
         NetworkSecurityGroup = None
         RouteTable = None
+        DefaultOutboundAccess = None
         Delegations = []
         NatGateway = None
         ServiceEndpoints = []
@@ -471,9 +495,16 @@ type SubnetSpecBuilder() =
 
     /// Associates the built subnet with service endpoint policies
     [<CustomOperation "add_service_endpoint_policies">]
-    member _.AddAssociatedServiceEndpointPolicies(state: SubnetBuildSpec, policies) = {
+    member _.AddAssociatedServiceEndpointPolicies(state: SubnetBuildSpec, policies: ResourceId list) = {
         state with
-            AssociatedServiceEndpointPolicies = state.AssociatedServiceEndpointPolicies @ policies
+            AssociatedServiceEndpointPolicies = state.AssociatedServiceEndpointPolicies @ (policies |> List.map Managed)
+    }
+
+    member _.AddAssociatedServiceEndpointPolicies<'T when 'T :> IBuilder>(state: SubnetBuildSpec, policies: 'T list) = {
+        state with
+            AssociatedServiceEndpointPolicies =
+                state.AssociatedServiceEndpointPolicies
+                @ (policies |> List.map (fun policy -> Managed policy.ResourceId))
     }
 
     /// Disable private endpoint netwokj security policies to enable use of private endpoints
@@ -488,6 +519,14 @@ type SubnetSpecBuilder() =
     member _.PrivateLinkServiceNetworkPolicies(state: SubnetBuildSpec, flag: FeatureFlag) = {
         state with
             PrivateLinkServiceNetworkPolicies = Some flag
+    }
+
+    /// Set to false to disable default outbound access on the vnet, requiring VMs to
+    /// use their own public IP, a NAT Gateway, or a Load Balancer for outbound access.
+    [<CustomOperation "default_outbound_access">]
+    member _.DefaultOutboundAccess(state: SubnetBuildSpec, defaultOutboundAccess) = {
+        state with
+            DefaultOutboundAccess = Some defaultOutboundAccess
     }
 
 let subnetSpec = SubnetSpecBuilder()
@@ -520,7 +559,7 @@ type AddressSpaceBuilder() =
             size: int,
             ?delegations: SubnetDelegationService list,
             ?serviceEndpoints: (EndpointServiceType * Location list) list,
-            ?associatedServiceEndpointPolicies: ResourceId list,
+            ?associatedServiceEndpointPolicies: LinkedResource list,
             ?allowPrivateEndpoints: FeatureFlag,
             ?privateLinkServiceNetworkPolicies: FeatureFlag,
             ?nsg: LinkedResource,
@@ -531,6 +570,7 @@ type AddressSpaceBuilder() =
             Size = size
             NetworkSecurityGroup = nsg
             RouteTable = rt
+            DefaultOutboundAccess = None
             Delegations = delegations |> Option.defaultValue []
             NatGateway = None
             ServiceEndpoints = serviceEndpoints |> Option.defaultValue []
@@ -741,6 +781,7 @@ type VirtualNetworkBuilder() =
                         VirtualNetwork = Some(Managed(virtualNetworks.resourceId state.Name))
                         NetworkSecurityGroup = nsg
                         RouteTable = rt
+                        DefaultOutboundAccess = None
                         Delegations = delegations
                         NatGateway = natGateway
                         ServiceEndpoints = serviceEndpoints

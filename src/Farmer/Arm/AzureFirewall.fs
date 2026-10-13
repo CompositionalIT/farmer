@@ -50,7 +50,7 @@ type AzureFirewall = {
     FirewallPolicy: ResourceId option
     VirtualHub: ResourceId option
     HubIPAddresses: HubIPAddresses option
-    AvailabilityZones: string list
+    AvailabilityZones: ZoneSelection
     Sku: Sku
 } with
 
@@ -74,9 +74,5 @@ type AzureFirewall = {
                         |> Option.map (fun x -> box x.JsonModel)
                         |> Option.defaultValue null
                 |}
-                zones =
-                    if this.AvailabilityZones.IsEmpty then
-                        null
-                    else
-                        this.AvailabilityZones |> box
+                zones = this.AvailabilityZones.ArmValue
         |}

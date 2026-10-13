@@ -67,6 +67,15 @@ type ResourceType =
         match this with
         | ResourceType(_, v) -> v
 
+    /// Returns the ResourceType as a namespace and the type.
+    member this.NamespaceAndType =
+        match this with
+        | ResourceType(t, _) ->
+            let segments = t.Split '/'
+            let ns = segments |> Seq.head
+            let t = segments |> Seq.skip 1 |> String.concat "/"
+            ns, t
+
     /// Empty resource type for default and comparison purposes.
     static member Empty = ResourceType("", "")
 
@@ -182,9 +191,26 @@ type ArmExpression =
         |> ArmExpression.create
 
     static member string(value: ArmExpression) =
-        value.Value |> sprintf "string(%s)" |> ArmExpression.create
+        $"string(%s{value.Value})" |> ArmExpression.create
 
-type Location =
+    static member pickZones(resourceType: ResourceType, ?location: Location, ?numZones: int, ?offset: int) =
+        let ns, t = resourceType.NamespaceAndType
+
+        let loc =
+            match location with
+            | None -> ArmExpression.create "resourceGroup().location"
+            | Some(Location l) -> ArmExpression.literal l
+            | Some(LocationExpression le) -> le
+
+        match numZones with
+        | None -> $"pickZones('%s{ns}', '%s{t}', {loc.Value})"
+        | Some num ->
+            match offset with
+            | None -> $"pickZones('%s{ns}', '%s{t}', {loc.Value}, %i{num})"
+            | Some off -> $"pickZones('%s{ns}', '%s{t}', {loc.Value}, %i{num}, %i{off})"
+        |> ArmExpression.create
+
+and Location =
     | Location of string
     | LocationExpression of ArmExpression
 
@@ -441,6 +467,21 @@ type PrincipalId =
     member this.ArmExpression =
         match this with
         | PrincipalId e -> e
+
+type ZoneSelection =
+    | ExplicitZones of string seq
+    | ZoneExpression of ArmExpression
+    | NoZone
+
+    member this.ArmValue: obj =
+        match this with
+        | ExplicitZones zones ->
+            if isNull zones || Seq.isEmpty zones then
+                null
+            else
+                ResizeArray(zones)
+        | ZoneExpression armExp -> armExp.Eval()
+        | NoZone -> null
 
 type ObjectId =
     | ObjectId of Guid

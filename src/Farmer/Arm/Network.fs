@@ -1,9 +1,7 @@
 [<AutoOpen>]
 module Farmer.Arm.Network
 
-open System.Net.Mail
 open Farmer
-open Farmer.Arm
 open Farmer.ExpressRoute
 open Farmer.Network
 open Farmer.Route
@@ -28,19 +26,19 @@ let networkProfiles =
     ResourceType("Microsoft.Network/networkProfiles", "2020-04-01")
 
 let publicIPAddresses =
-    ResourceType("Microsoft.Network/publicIPAddresses", "2018-11-01")
+    ResourceType("Microsoft.Network/publicIPAddresses", "2024-07-01")
 
 let publicIPPrefixes =
-    ResourceType("Microsoft.Network/publicIPPrefixes", "2021-08-01")
+    ResourceType("Microsoft.Network/publicIPPrefixes", "2024-07-01")
 
 let serviceEndpointPolicies =
     ResourceType("Microsoft.Network/serviceEndpointPolicies", "2020-07-01")
 
 let subnets =
-    ResourceType("Microsoft.Network/virtualNetworks/subnets", "2020-07-01")
+    ResourceType("Microsoft.Network/virtualNetworks/subnets", "2024-05-01")
 
 let virtualNetworks =
-    ResourceType("Microsoft.Network/virtualNetworks", "2020-07-01")
+    ResourceType("Microsoft.Network/virtualNetworks", "2024-05-01")
 
 let virtualNetworkGateways =
     ResourceType("Microsoft.Network/virtualNetworkGateways", "2020-05-01")
@@ -48,7 +46,7 @@ let virtualNetworkGateways =
 let localNetworkGateways =
     ResourceType("Microsoft.Network/localNetworkGateways", "")
 
-let natGateways = ResourceType("Microsoft.Network/natGateways", "2021-08-01")
+let natGateways = ResourceType("Microsoft.Network/natGateways", "2024-07-01")
 
 let privateEndpoints =
     ResourceType("Microsoft.Network/privateEndpoints", "2021-05-01")
@@ -161,6 +159,60 @@ type RouteTable = {
                 properties = this.JsonModelProperties
         |}
 
+type ServiceEndpointPolicyDefinition = {
+    Name: ResourceName
+    Description: string option
+    Service: EndpointServiceType
+    ServiceResources: LinkedResource list
+} with
+
+    member internal this.Dependencies =
+        this.ServiceResources
+        |> List.fold (fun dependencies resource -> LinkedResource.addToSetIfManaged resource dependencies) Set.empty
+
+    member internal this.JsonModel =
+        let (EndpointServiceType service) = this.Service
+
+        {|
+            name = this.Name.Value
+            properties = {|
+                description = this.Description |> Option.toObj
+                service = service
+                serviceResources = this.ServiceResources |> List.map (fun resource -> resource.ResourceId.Eval())
+            |}
+        |}
+
+type ServiceEndpointPolicy = {
+    Name: ResourceName
+    Location: Location
+    ServiceEndpointPolicyDefinitions: ServiceEndpointPolicyDefinition list
+    Dependencies: ResourceId Set
+    Tags: Map<string, string>
+} with
+
+    member internal this.JsonModelProperties = {|
+        serviceEndpointPolicyDefinitions =
+            if this.ServiceEndpointPolicyDefinitions.IsEmpty then
+                Unchecked.defaultof<_>
+            else
+                this.ServiceEndpointPolicyDefinitions |> List.map _.JsonModel
+    |}
+
+    interface IArmResource with
+        member this.ResourceId = serviceEndpointPolicies.resourceId this.Name
+
+        member this.JsonModel =
+            let dependencies =
+                this.ServiceEndpointPolicyDefinitions
+                |> List.fold
+                    (fun dependencies definition -> Set.union dependencies definition.Dependencies)
+                    this.Dependencies
+
+            {|
+                serviceEndpointPolicies.Create(this.Name, this.Location, dependsOn = dependencies, tags = this.Tags) with
+                    properties = this.JsonModelProperties
+            |}
+
 type RouteServer = {
     Name: ResourceName
     Location: Location
@@ -254,7 +306,7 @@ type RouteServerBGPConnection = {
 
 type PublicIpAddress = {
     Name: ResourceName
-    AvailabilityZone: string option
+    AvailabilityZones: ZoneSelection
     Location: Location
     Sku: PublicIpAddress.Sku
     AllocationMethod: PublicIpAddress.AllocationMethod
@@ -280,7 +332,7 @@ type PublicIpAddress = {
                         | Some label -> box {| domainNameLabel = label.ToLower() |}
                         | None -> null
                 |}
-                zones = this.AvailabilityZone |> Option.map ResizeArray |> Option.toObj
+                zones = this.AvailabilityZones.ArmValue
         |}
 
 /// If using the IPs in the frontend of a cross-region laod balancer, public IPs and prefixes must be in
@@ -329,10 +381,11 @@ type Subnet = {
     VirtualNetwork: LinkedResource option
     RouteTable: LinkedResource option
     NetworkSecurityGroup: LinkedResource option
+    DefaultOutboundAccess: bool option
     Delegations: SubnetDelegation list
     NatGateway: LinkedResource option
     ServiceEndpoints: (Network.EndpointServiceType * Location list) list
-    AssociatedServiceEndpointPolicies: ResourceId list
+    AssociatedServiceEndpointPolicies: LinkedResource list
     PrivateEndpointNetworkPolicies: FeatureFlag option
     PrivateLinkServiceNetworkPolicies: FeatureFlag option
     Dependencies: ResourceId Set
@@ -362,6 +415,7 @@ type Subnet = {
                     id = nsg.ResourceId.ArmExpression.Eval()
                 |})
                 |> Option.defaultValue Unchecked.defaultof<_>
+            defaultOutboundAccess = this.DefaultOutboundAccess |> Option.toNullable
             delegations =
                 this.Delegations
                 |> List.map (fun delegation -> {|
@@ -383,8 +437,7 @@ type Subnet = {
                 if this.AssociatedServiceEndpointPolicies.IsEmpty then
                     Unchecked.defaultof<_>
                 else
-                    this.AssociatedServiceEndpointPolicies
-                    |> List.map (fun policyId -> {| id = policyId.ArmExpression.Eval() |})
+                    this.AssociatedServiceEndpointPolicies |> List.map LinkedResource.AsIdObject
             privateEndpointNetworkPolicies =
                 this.PrivateEndpointNetworkPolicies
                 |> Option.map _.ArmValue
@@ -397,13 +450,19 @@ type Subnet = {
 
     interface IArmResource with
         member this.JsonModel =
+            let dependencies =
+                this.AssociatedServiceEndpointPolicies
+                |> List.fold
+                    (fun dependencies policy -> LinkedResource.addToSetIfManaged policy dependencies)
+                    this.Dependencies
+
             match this.VirtualNetwork with
             | Some(Managed vnet) -> {|
-                subnets.Create(vnet.Name / this.Name, dependsOn = (this.Dependencies |> Set.add vnet)) with
+                subnets.Create(vnet.Name / this.Name, dependsOn = (dependencies |> Set.add vnet)) with
                     properties = this.JsonModelProperties
               |}
             | Some(Unmanaged vnet) -> {|
-                subnets.Create(vnet.Name / this.Name, dependsOn = this.Dependencies) with
+                subnets.Create(vnet.Name / this.Name, dependsOn = dependencies) with
                     properties = this.JsonModelProperties
               |}
             | None -> raiseFarmer "Subnet record must be linked to a virtual network to properly assign the resourceId."
@@ -440,6 +499,11 @@ type VirtualNetwork = {
                         match subnet.RouteTable with
                         | Some(Managed id) -> id
                         | _ -> ()
+
+                        for policy in subnet.AssociatedServiceEndpointPolicies do
+                            match policy with
+                            | Managed id -> id
+                            | _ -> ()
                 }
                 |> Set
 
@@ -649,6 +713,7 @@ type IpConfiguration = {
     PrivateIpAllocation: AllocationMethod option
     PrivateIpAddressVersion: AddressVersion
     Primary: bool option
+    PublicIpAddressDeleteOption: Vm.DeleteOption option
 }
 
 module NetworkInterface =
@@ -704,6 +769,13 @@ type IpConfiguration with
                     ipConfig.PublicIpAddress
                     |> Option.map (fun pip -> {|
                         id = pip.ResourceId.ArmExpression.Eval()
+                        properties =
+                            match ipConfig.PublicIpAddressDeleteOption with
+                            | Some deleteOption ->
+                                box {|
+                                    deleteOption = deleteOption.ArmValue
+                                |}
+                            | None -> null
                     |})
                     |> Option.defaultValue Unchecked.defaultof<_>
                 subnet = {|
@@ -727,6 +799,7 @@ type NetworkInterface = {
     VirtualNetwork: LinkedResource
     NetworkSecurityGroup: LinkedResource option
     Primary: bool option
+    DeleteOption: Vm.DeleteOption option
     Tags: Map<string, string>
 } with
 
@@ -1026,6 +1099,7 @@ type NatGateway = {
     IdleTimeout: int<Minutes>
     PublicIpAddresses: LinkedResource list
     PublicIpPrefixes: LinkedResource list
+    Sku: NatGateway.Sku
     Tags: Map<string, string>
 } with
 
@@ -1044,7 +1118,7 @@ type NatGateway = {
 
             {|
                 natGateways.Create(this.Name, this.Location, dependsOn = dependencies, tags = this.Tags) with
-                    sku = {| name = "Standard" |}
+                    sku = {| name = this.Sku.ArmValue |}
                     properties = {|
                         idleTimeoutInMinutes = this.IdleTimeout
                         publicIpAddresses = this.PublicIpAddresses |> List.map LinkedResource.AsIdObject

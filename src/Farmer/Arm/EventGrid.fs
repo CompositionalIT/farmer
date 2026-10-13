@@ -4,10 +4,10 @@ module Farmer.Arm.EventGrid
 open Farmer
 open EventGrid
 
-let systemTopics = ResourceType("Microsoft.EventGrid/systemTopics", "2022-06-15")
+let systemTopics = ResourceType("Microsoft.EventGrid/systemTopics", "2025-02-15")
 
 let eventSubscriptions =
-    ResourceType("Microsoft.EventGrid/systemTopics/eventSubscriptions", "2022-06-15")
+    ResourceType("Microsoft.EventGrid/systemTopics/eventSubscriptions", "2025-02-15")
 
 type TopicType =
     | TopicType of ResourceType * topic: string
@@ -54,6 +54,37 @@ type AzureFunctionEndpointType = {
     PreferredBatchSizeInKilobytes: uint
 }
 
+type MonitorAlertSeverity =
+    | Sev0
+    | Sev1
+    | Sev2
+    | Sev3
+    | Sev4
+
+    member this.ArmValue =
+        match this with
+        | Sev0 -> "Sev0"
+        | Sev1 -> "Sev1"
+        | Sev2 -> "Sev2"
+        | Sev3 -> "Sev3"
+        | Sev4 -> "Sev4"
+
+type MonitorAlertEndpointType = {
+    ActionGroups: ResourceId list
+    Severity: MonitorAlertSeverity
+}
+
+type EventDeliverySchema =
+    | EventGridSchema
+    | CloudEventSchemaV1_0
+    | CustomInputSchema
+
+    member this.ArmValue =
+        match this with
+        | EventGridSchema -> "EventGridSchema"
+        | CloudEventSchemaV1_0 -> "CloudEventSchemaV1_0"
+        | CustomInputSchema -> "CustomInputSchema"
+
 type ServiceBusEndpointType =
     | Queue of Queue: ServiceBusQueueEndpointType
     | Topic of Topic: ServiceBusTopicEndpointType
@@ -64,6 +95,7 @@ type EndpointType =
     | StorageQueue of queue: ResourceName
     | ServiceBus of bus: ServiceBusEndpointType
     | AzureFunction of AzureFunctionEndpointType
+    | MonitorAlert of MonitorAlertEndpointType
 
 type Topic = {
     Name: ResourceName
@@ -96,6 +128,7 @@ type Subscription<'T> = {
     Destination: ResourceName
     DestinationEndpoint: EndpointType
     Events: EventGridEvent<'T> list
+    EventDeliverySchema: EventDeliverySchema option
 } with
 
     interface IArmResource with
@@ -114,6 +147,7 @@ type Subscription<'T> = {
                 | WebHook _ -> None
                 | ServiceBus(Queue { Queue = queue; Bus = bus }) -> Some(ServiceBus.queues.resourceId (bus, queue))
                 | ServiceBus(Topic { Topic = topic; Bus = bus }) -> Some(ServiceBus.topics.resourceId (bus, topic))
+                | MonitorAlert _ -> None
 
             {|
                 eventSubscriptions.Create(
@@ -169,11 +203,24 @@ type Subscription<'T> = {
                                     queueName = topic.Value
                                 |}
                               |}
+                            | MonitorAlert alert ->
+                                {|
+                                    endpointType = "MonitorAlert"
+                                    properties = {|
+                                        actionGroups = [
+                                            for ag in alert.ActionGroups do
+                                                ag.Eval()
+                                        ]
+                                        severity = alert.Severity.ArmValue
+                                    |}
+                                |}
+                                |> box
                         filter = {|
                             includedEventTypes = [
                                 for event in this.Events do
                                     event.Value
                             ]
                         |}
+                        eventDeliverySchema = this.EventDeliverySchema |> Option.map _.ArmValue |> Option.toObj
                     |}
             |}

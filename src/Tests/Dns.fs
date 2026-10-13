@@ -475,23 +475,17 @@ let tests =
                 "DNS record type is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/www')].dependsOn[0]")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/www')].dependsOn[0]").ToString())
                 "[resourceId('Microsoft.Network/privateDnsZones', 'farmer.com')]"
                 "DNS dependsOn is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/www')].properties.cnameRecord.cname")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/www')].properties.cnameRecord.cname").ToString())
                 "farmer.com"
                 "DNS CNAME record is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/www')].properties.ttl")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/www')].properties.ttl").ToString())
                 "3600"
                 "DNS TTL is wrong"
 
@@ -501,9 +495,7 @@ let tests =
                 "DNS record type is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/aName')].dependsOn[0]")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/aName')].dependsOn[0]").ToString())
                 "[resourceId('Microsoft.Network/privateDnsZones', 'farmer.com')]"
                 "DNS dependsOn is wrong"
 
@@ -515,9 +507,7 @@ let tests =
                 "DNS A record is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/aName')].properties.ttl")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/aName')].properties.ttl").ToString())
                 "7200"
                 "DNS TTL is wrong"
 
@@ -527,9 +517,7 @@ let tests =
                 "DNS record type is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/aaaaName')].dependsOn[0]")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/aaaaName')].dependsOn[0]").ToString())
                 "[resourceId('Microsoft.Network/privateDnsZones', 'farmer.com')]"
                 "DNS dependsOn is wrong"
 
@@ -541,9 +529,7 @@ let tests =
                 "DNS AAAA record is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/aaaaName')].properties.ttl")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/aaaaName')].properties.ttl").ToString())
                 "7200"
                 "DNS TTL is wrong"
 
@@ -553,9 +539,7 @@ let tests =
                 "DNS record type is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/ptrName')].dependsOn[0]")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/ptrName')].dependsOn[0]").ToString())
                 "[resourceId('Microsoft.Network/privateDnsZones', 'farmer.com')]"
                 "DNS dependsOn is wrong"
 
@@ -567,9 +551,7 @@ let tests =
                 "DNS PTR record is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/ptrName')].properties.ttl")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/ptrName')].properties.ttl").ToString())
                 "3600"
                 "DNS TTL is wrong"
 
@@ -579,9 +561,7 @@ let tests =
                 "DNS record type is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/txtName')].dependsOn[0]")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/txtName')].dependsOn[0]").ToString())
                 "[resourceId('Microsoft.Network/privateDnsZones', 'farmer.com')]"
                 "DNS dependsOn is wrong"
 
@@ -593,9 +573,7 @@ let tests =
                 "DNS TXT record is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/txtName')].properties.ttl")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/txtName')].properties.ttl").ToString())
                 "3600"
                 "DNS TTL is wrong"
 
@@ -605,9 +583,7 @@ let tests =
                 "DNS record type is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/mxName')].dependsOn[0]")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/mxName')].dependsOn[0]").ToString())
                 "[resourceId('Microsoft.Network/privateDnsZones', 'farmer.com')]"
                 "DNS dependsOn is wrong"
 
@@ -640,23 +616,17 @@ let tests =
                 "DNS MX record preference is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/mxName')].properties.ttl")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/mxName')].properties.ttl").ToString())
                 "7200"
                 "DNS TTL is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/_sip._tcp.name')].type")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/_sip._tcp.name')].type").ToString())
                 "Microsoft.Network/privateDnsZones/SRV"
                 "DNS record type is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/_sip._tcp.name')].dependsOn[0]")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/_sip._tcp.name')].dependsOn[0]").ToString())
                 "[resourceId('Microsoft.Network/privateDnsZones', 'farmer.com')]"
                 "DNS dependsOn is wrong"
 
@@ -689,9 +659,7 @@ let tests =
                 "DNS SRV record weight is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/_sip._tcp.name')].properties.ttl")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/_sip._tcp.name')].properties.ttl").ToString())
                 "3600"
                 "DNS TTL is wrong"
 
@@ -701,16 +669,12 @@ let tests =
                 "DNS record type is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/soaName')].dependsOn[0]")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/soaName')].dependsOn[0]").ToString())
                 "[resourceId('Microsoft.Network/privateDnsZones', 'farmer.com')]"
                 "DNS dependsOn is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/soaName')].properties.soaRecord.email")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/soaName')].properties.soaRecord.email").ToString())
                 "azuredns-hostmaster.microsoft.com"
                 "DNS SOA record email is wrong"
 
@@ -722,9 +686,7 @@ let tests =
                 "DNS SOA record expireTime is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/soaName')].properties.soaRecord.host")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/soaName')].properties.soaRecord.host").ToString())
                 "azureprivatedns.net"
                 "DNS SOA record host is wrong"
 
@@ -757,9 +719,7 @@ let tests =
                 "DNS SOA record serialNumber is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='farmer.com/soaName')].properties.ttl")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='farmer.com/soaName')].properties.ttl").ToString())
                 "3600"
                 "DNS TTL is wrong"
         }
@@ -871,58 +831,42 @@ let tests =
             let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='private.farmer.com/www')].type")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='private.farmer.com/www')].type").ToString())
                 "Microsoft.Network/privateDnsZones/CNAME"
                 "DNS record type is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='private.farmer.com/aName')].type")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='private.farmer.com/aName')].type").ToString())
                 "Microsoft.Network/privateDnsZones/A"
                 "DNS record type is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='private.farmer.com/aaaaName')].type")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='private.farmer.com/aaaaName')].type").ToString())
                 "Microsoft.Network/privateDnsZones/AAAA"
                 "DNS record type is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='private.farmer.com/ptrName')].type")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='private.farmer.com/ptrName')].type").ToString())
                 "Microsoft.Network/privateDnsZones/PTR"
                 "DNS record type is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='private.farmer.com/txtName')].type")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='private.farmer.com/txtName')].type").ToString())
                 "Microsoft.Network/privateDnsZones/TXT"
                 "DNS record type is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='private.farmer.com/mxName')].type")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='private.farmer.com/mxName')].type").ToString())
                 "Microsoft.Network/privateDnsZones/MX"
                 "DNS record type is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='private.farmer.com/_sip._tcp.name')].type")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='private.farmer.com/_sip._tcp.name')].type").ToString())
                 "Microsoft.Network/privateDnsZones/SRV"
                 "DNS record type is wrong"
 
             Expect.equal
-                (jobj
-                    .SelectToken("resources[?(@.name=='private.farmer.com/soaName')].type")
-                    .ToString())
+                (jobj.SelectToken("resources[?(@.name=='private.farmer.com/soaName')].type").ToString())
                 "Microsoft.Network/privateDnsZones/SOA"
                 "DNS record type is wrong"
         }

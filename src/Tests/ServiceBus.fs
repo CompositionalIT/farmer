@@ -355,8 +355,7 @@ let tests =
                     |> getResourceAtIndex 1
 
                 Expect.equal
-                    (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue)
-                        .TotalMinutes
+                    (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalMinutes
                     5.
                     "TTL from TimeSpan should be 5 minutes"
             }
@@ -425,7 +424,43 @@ let tests =
             }
 
             test "Authorization Rule writes correct template" {
-                let thing =
+                let deployment = arm {
+                    add_resource (
+                        serviceBus {
+                            name "serviceBus"
+                            sku Standard
+
+                            add_queues [
+                                queue {
+                                    name "my-queue"
+                                    add_authorization_rule "my-rule" [ Manage ]
+                                }
+                            ]
+                        }
+                    )
+                }
+
+                let sbAuthorizationRule =
+                    deployment
+                    |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
+                    |> List.filter (fun x -> (=) x.Type queueAuthorizationRules.Type)
+                    |> List.head
+
+                Expect.equal sbAuthorizationRule.Name "serviceBus/my-queue/my-rule" "Name is wrong"
+                Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
+                Expect.equal sbAuthorizationRule.Rights.[0] AccessRights.Manage "Wrong rights"
+
+                Expect.sequenceEqual
+                    (getResourceDependsOnByName deployment (ResourceName "serviceBus/my-queue/my-rule"))
+                    [
+                        "[resourceId('Microsoft.ServiceBus/namespaces', 'serviceBus')]"
+                        "[resourceId('Microsoft.ServiceBus/namespaces/queues', 'serviceBus', 'my-queue')]"
+                    ]
+                    "Wrong dependencies"
+            }
+
+            test "Authorization Rules write correct templates" {
+                let authorizationRules =
                     arm {
                         add_resource (
                             serviceBus {
@@ -435,22 +470,25 @@ let tests =
                                 add_queues [
                                     queue {
                                         name "my-queue"
-                                        add_authorization_rule "my-rule" [ Manage ]
+
+                                        add_authorization_rules [
+                                            authorizationRule "send-rule" [ Send ]
+                                            authorizationRule "listen-rule" [ Listen ]
+                                        ]
                                     }
                                 ]
                             }
                         )
                     }
                     |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
-
-                let sbAuthorizationRule =
-                    thing
                     |> List.filter (fun x -> (=) x.Type queueAuthorizationRules.Type)
-                    |> List.head
 
-                Expect.equal sbAuthorizationRule.Name "serviceBus/my-queue/my-rule" "Name is wrong"
-                Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
-                Expect.equal sbAuthorizationRule.Rights.[0] AccessRights.Manage "Wrong rights"
+                Expect.hasLength authorizationRules 2 "Wrong number of authorization rules"
+
+                Expect.sequenceEqual
+                    (authorizationRules |> List.map _.Name |> List.sort)
+                    [ "serviceBus/my-queue/listen-rule"; "serviceBus/my-queue/send-rule" ]
+                    "Wrong rule names"
             }
 
             test "Queue IArmResource has correct resourceId for unmanaged namespace" {
@@ -476,6 +514,7 @@ let tests =
                 let topic: SBTopic =
                     serviceBus {
                         name "my-bus"
+                        sku Standard
 
                         add_topics [
                             topic {
@@ -504,6 +543,7 @@ let tests =
                 let topic: SBTopic =
                     serviceBus {
                         name "my-bus"
+                        sku Standard
 
                         add_topics [
                             topic {
@@ -523,6 +563,7 @@ let tests =
                 let topic: SBTopic =
                     serviceBus {
                         name "my-bus"
+                        sku Standard
 
                         add_topics [
                             topic {
@@ -545,6 +586,7 @@ let tests =
                 let topic: SBTopic =
                     serviceBus {
                         name "my-bus"
+                        sku (Premium MessagingUnits.OneUnit)
 
                         add_topics [
                             topic {
@@ -562,6 +604,7 @@ let tests =
                 let topic: SBTopic =
                     serviceBus {
                         name "my-bus"
+                        sku Standard
 
                         add_topics [
                             topic {
@@ -575,10 +618,83 @@ let tests =
                 Expect.equal topic.Name "my-bus/my-topic" "Name not set"
                 Expect.equal topic.MaxSizeInMegabytes (Nullable 10240) "Max size not set"
             }
+            test "Topic authorization rule should not be present by default" {
+                let sbAuthorizationRules =
+                    arm {
+                        add_resource (
+                            serviceBus {
+                                name "serviceBus"
+                                sku Standard
+                                add_topics [ topic { name "my-topic" } ]
+                            }
+                        )
+                    }
+                    |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
+                    |> List.filter (fun x -> (=) x.Type topicAuthorizationRules.Type)
+
+                Expect.equal sbAuthorizationRules.Length 0 "Topic authorization rule should not be present"
+            }
+            test "Topic authorization rule should write correct ARM template" {
+                let sbAuthorizationRule =
+                    arm {
+                        add_resource (
+                            serviceBus {
+                                name "serviceBus"
+                                sku Standard
+
+                                add_topics [
+                                    topic {
+                                        name "my-topic"
+                                        add_authorization_rule "my-rule" [ Manage ]
+                                    }
+                                ]
+                            }
+                        )
+                    }
+                    |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
+                    |> List.filter (fun x -> (=) x.Type topicAuthorizationRules.Type)
+                    |> List.head
+
+                Expect.equal sbAuthorizationRule.Name "serviceBus/my-topic/my-rule" "Name is wrong"
+                Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
+                Expect.equal sbAuthorizationRule.Rights.[0] AccessRights.Manage "Wrong rights"
+            }
+            test "Topic authorization rules should write correct ARM templates" {
+                let authorizationRules =
+                    arm {
+                        add_resource (
+                            serviceBus {
+                                name "serviceBus"
+                                sku Standard
+
+                                add_topics [
+                                    topic {
+                                        name "my-topic"
+
+                                        add_authorization_rules [
+                                            authorizationRule "send-rule" [ Send ]
+                                            authorizationRule "listen-rule" [ Listen ]
+                                        ]
+                                    }
+                                ]
+                            }
+                        )
+                    }
+                    |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
+                    |> List.filter (fun x -> (=) x.Type topicAuthorizationRules.Type)
+
+                Expect.hasLength authorizationRules 2 "Wrong number of authorization rules"
+
+                Expect.sequenceEqual
+                    (authorizationRules |> List.map _.Name |> List.sort)
+                    [ "serviceBus/my-topic/listen-rule"; "serviceBus/my-topic/send-rule" ]
+                    "Wrong rule names"
+            }
             test "Can create a basic subscription" {
                 let sub: SBSubscription =
                     serviceBus {
                         name "my-bus"
+                        sku Standard
 
                         add_topics [
                             topic {
@@ -595,6 +711,7 @@ let tests =
                 let sub: SBSubscription =
                     serviceBus {
                         name "my-bus"
+                        sku Standard
 
                         add_topics [
                             topic {
@@ -618,6 +735,7 @@ let tests =
                 let sub: SBSubscription =
                     serviceBus {
                         name "my-bus"
+                        sku Standard
 
                         add_topics [
                             topic {
@@ -717,6 +835,7 @@ let tests =
 
                     serviceBus {
                         name "mynamespace"
+                        sku Standard
                         add_topics [ makeTopic "topicA"; makeTopic "topicB" ]
                     }
 
@@ -744,6 +863,7 @@ let tests =
                 let resource =
                     serviceBus {
                         name "my-bus"
+                        sku Standard
 
                         add_topics [
                             topic {
@@ -776,6 +896,7 @@ let tests =
                     add_resources [
                         serviceBus {
                             name "my-bus"
+                            sku Standard
 
                             add_topics [
                                 topic {
@@ -829,6 +950,7 @@ let tests =
 
                 let svcBus = serviceBus {
                     name "my-bus"
+                    sku Standard
 
                     add_topics [
                         topic {
@@ -851,6 +973,7 @@ let tests =
                 let resource =
                     serviceBus {
                         name "my-bus"
+                        sku Standard
 
                         add_topics [
                             topic {
@@ -868,6 +991,69 @@ let tests =
                     (resource.ResourceId.Eval())
                     $"[resourceId('Microsoft.ServiceBus/namespaces/topics', 'my-bus', '{topicName}')]"
                     ""
+            }
+            test "Cannot create topics on Basic SKU" {
+                Expect.throws
+                    (fun () ->
+                        serviceBus {
+                            name "serviceBus"
+                            sku Basic
+
+                            add_topics [ topic { name "my-topic" } ]
+                        }
+                        |> ignore)
+                    "Topics are not supported on Basic SKU"
+            }
+            test "Cannot set max message size on Basic SKU" {
+                Expect.throws
+                    (fun () ->
+                        serviceBus {
+                            name "serviceBus"
+                            sku Basic
+
+                            add_topics [
+                                topic {
+                                    name "my-topic"
+                                    max_message_size 1024<Kb>
+                                }
+                            ]
+                        }
+                        |> ignore)
+                    "Max message size is not supported on Basic SKU"
+            }
+            test "Cannot set max message size on Standard SKU" {
+                Expect.throws
+                    (fun () ->
+                        serviceBus {
+                            name "serviceBus"
+                            sku Standard
+
+                            add_topics [
+                                topic {
+                                    name "my-topic"
+                                    max_message_size 1024<Kb>
+                                }
+                            ]
+                        }
+                        |> ignore)
+                    "Max message size is not supported on Standard SKU"
+            }
+            test "Can set max message size on Premium SKU" {
+                let topic: SBTopic =
+                    serviceBus {
+                        name "serviceBus"
+                        sku (Premium MessagingUnits.OneUnit)
+
+                        add_topics [
+                            topic {
+                                name "my-topic"
+                                max_message_size 1024<Kb>
+                            }
+                        ]
+                    }
+                    |> getResourceAtIndex 1
+
+                Expect.equal topic.MaxMessageSizeInKilobytes (Nullable 1024) "Max message size should be set"
             }
         ]
 
@@ -907,6 +1093,31 @@ let tests =
                 Expect.equal sbAuthorizationRule.Name "serviceBus/my-rule" "Wrong name"
                 Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
                 Expect.equal sbAuthorizationRule.Rights.[0] AccessRights.Manage "Wrong rights"
+            }
+            test "AuthorizationRules should write correct ARM templates" {
+                let authorizationRules =
+                    arm {
+                        add_resource (
+                            serviceBus {
+                                name "serviceBus"
+                                sku Standard
+
+                                add_authorization_rules [
+                                    authorizationRule "send-rule" [ Send ]
+                                    authorizationRule "listen-rule" [ Listen ]
+                                ]
+                            }
+                        )
+                    }
+                    |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
+                    |> List.filter (fun x -> (=) x.Type namespaceAuthorizationRules.Type)
+
+                Expect.hasLength authorizationRules 2 "Wrong number of authorization rules"
+
+                Expect.sequenceEqual
+                    (authorizationRules |> List.map _.Name |> List.sort)
+                    [ "serviceBus/listen-rule"; "serviceBus/send-rule" ]
+                    "Wrong rule names"
             }
         ]
     ]

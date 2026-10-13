@@ -1,7 +1,114 @@
 Release Notes
 =============
 
+## 1.9.33
+* SQL Azure: Add support for adding databases to existing SQL servers and elastic pools.
+* SQL Azure: Add support for virtual network rules on SQL servers.
+* SQL Azure: Add support for system-assigned and user-assigned managed identities on SQL servers.
+* SQL Azure: Add Hyperscale elastic pool SKUs and support configuring high availability replica counts.
+
+## 1.9.32
+* API Management: Add service builder support for publisher, SKU, capacity, public network access, virtual network type, gateway, custom properties, and tags.
+* API Management: Add typed builders for API, operation, product, backend, named value, and policy child resources with compile-time-safe operations and automatic parent naming/dependencies. A raw child-resource escape hatch remains for unsupported future ARM types.
+* Event Hub: Fix generated event hub resource IDs and namespace dependencies.
+* Storage Accounts: Add `extended_location` support for deploying to an Azure Edge Zone.
+
+## 1.9.31
+* Virtual Networks: Add `serviceEndpointPolicy` and `serviceEndpointPolicyDefinition` builders for Azure service endpoint policies, plus direct subnet association helpers.
+* Communication Services: Update `Microsoft.Communication/communicationServices` to the stable `2020-08-20` ARM API version instead of the retired preview API.
+* Service Bus: Add topic-level authorization rules with `add_authorization_rule` on the `topic` builder.
+* Service Bus: Add plural `add_authorization_rules` helpers for queues, topics, and namespaces, plus an `authorizationRule` helper for tuple-free rule definitions.
+
+## 1.9.30
+* Container Apps: Update `Microsoft.App` ARM resource API versions for container apps, managed environments, environment storages, and Dapr components to the latest stable `2026-07-01`.
+* Container Apps: Add support for setting Dapr protocol.
+* Container Apps: Add a `serviceBusScaleRule` builder for `add_servicebus_scale_rule` so Service Bus scale rules no longer need direct record construction.
+* Container Apps: Add required `Namespace` field to `ServiceBusScaleRule` to associate the scale rule with the correct Service Bus namespace.
+* App Configuration: Add support for Azure App Configuration stores, key-value items, and feature flags.
+
+## 1.9.29
+* Virtual Machines: Add `os_disk_caching` and `data_disk_caching` builder operations to expose the host caching mode (`NoCaching`, `ReadOnly`, `ReadWrite`) for OS and data disks on VMs and VM Scale Sets.
+* Cosmos DB: Add autoscale throughput support via `CosmosDb.Autoscale` throughput option (e.g. throughput (CosmosDb.Autoscale 4000<CosmosDb.RU>)`).
+* Cosmos DB: Add continuous backup retention policy via `backup_retention` keyword (`CosmosDb.Continuous7Days` or `CosmosDb.Continuous30Days`).
+* Cosmos DB: Add IP firewall rules via `add_firewall_rule` and `enable_azure_firewall` keywords.
+* Cosmos DB: Always emit primary location for database accounts, fixing deployment failures on accounts restored from backup (`createMode: "Restore"`).
+* Cosmos DB: Update all DocumentDb ARM resource API versions to `2024-11-15`.
+* Event Grid: Bump API version from `2022-06-15` to `2025-02-15`.
+* Event Grid: Add `MonitorAlert` endpoint type for event subscriptions with configurable action groups and severity (Sev0–Sev4).
+* Event Grid: Add `event_delivery_schema` keyword to configure the event delivery schema (EventGridSchema, CloudEventSchemaV1_0, CustomInputSchema).
+
+## 1.9.28
+* AKS Cluster: Add native Azure CNI overlay support with `network_plugin_mode`, `network_dataplane`, and `pod_cidr` network profile options. The `pod_cidr` option is also available for kubenet.
+* Container Apps: Add `resources` operation to the `container` builder to set both CPU and memory together using a `ConsumptionPlanResources` discriminated union. This ensures only valid consumption plan resource combinations can be selected at compile time. The individual `cpu_cores` and `memory` operations remain available for use with dedicated plans.
+
+## 1.9.27
+* Storage Accounts: Add `AccountKey` member to return just the storage account key and `ConnectionString` member to return the connection string. The existing `Key` member is now obsolete (it incorrectly returned a connection string instead of just the key).
+* Network Manager: Add support for Azure Network Manager with security admin configurations, rule collections, rules with IP ranges and service tags, and network groups.
+
+## 1.9.26
+* Virtual Machine Scale Sets: Add support for rolling upgrade policy configuration.
+
+## 1.9.25
+* Service Bus: Support for minimum TLS version of 1.3.
+* Storage Accounts: Support for requesting minimum TLS version of 1.3. The ARM resource itself currently falls back to 1.2.
+* Redis: Support for requesting minimum TLS version of 1.2. TLS 1.3 is supported, but not enforced as a minimum.
+
+### TLS Version Support
+
+**Note:** As of version 1.9.25 (October 2025), Farmer has:
+- Added support for TLS 1.3
+- Deprecated TLS 1.0 and TLS 1.1 (marked as obsolete)
+
+If you see compiler warnings about `Tls10` or `Tls11` being obsolete, these versions now automatically fall back to TLS 1.2 for security reasons. Update your code to use `Tls12` or `Tls13` explicitly to remove the warnings.
+
+## 1.9.24
+* Service Bus: Add validation for SKU-specific features (topics not supported on Basic SKU, max message size only supported on Premium SKU).
+* SQL Azure: Support for fractional VCores such as (0.5, 0.75) in Serverless Gen5 databases.
+* Virtual Machines: Added support for `deleteOption` on VM disks, NICs, and public IP addresses to automatically clean up resources when a VM is deleted.
+  * New builder keywords: `disk_delete_option`, `nic_delete_option`, `public_ip_delete_option`
+  * New convenience keyword: `delete_attached` to set all delete options at once
+  * Simplified type: All delete options now use a single `DeleteOption` type with `Delete` and `Detach` values
+
+## 1.9.23
+* Actions Groups: Bump API version to `2025-09-01-preview`.
+
+## 1.9.22
+* AKS Cluster: Added support for Azure Key Vault provider for Secrets Store CSI Driver
+
+## 1.9.21
+* AKS Cluster: Added auto_upgrade_profile option for managed clusters
+* AKS Cluster: Added os_sku option for agentPool config
+
+## 1.9.20
+* Data Collection: Fixes bug in data collection association by removing location field.
+
+## 1.9.19
+* Data Collection: Adds `dataCollectionRule`, `dataCollectionEndpoint`, `dataCollectionRuleAssociation` builders for Azure Monitor
+* Prometheus Group Rules: Adds `prometheusRuleGroup` builder for prometheus metrics in Azure Monitor
+* Container Service: add ability to specify `enable_azure_monitor` parameter
+* Action Group: adds ability to create Incident Receivers in action group with `add_incident_receivers`
+* NAT Gateways: enables setting the `sku` for the NAT Gateway and the generated Public IP Address resource.
+
+## 1.9.18
+* AKS: add ability to specify `kubernetes_version` parameter
+
+## 1.9.16
+* AKS: add node_resource_group parameter to aks config
+
+## 1.9.15
+* Container Apps: Adds health probes.
+* AKS: Add node_taints parameter to agent pool config.
+
+## 1.9.14
+* VMSS, AKS, Azure Firewall, Managed Clusters (AKS): Adds `pick_zones` to let ARM select the availability zones.
+* AKS: Remove deprecated `docker_bridge` from Container Services (AKS).
+
+## 1.9.13
+* Subnets: Support for `disable_outbound_access`.
+* Public IP Addresses and Load Balancers: drop `Basic` SKU, support zones.
+
 ## 1.9.12
+* AKS Cluster: Add link_to_kubelet_identity
 * VMSS overprovisioning controls
 
 ## 1.9.11

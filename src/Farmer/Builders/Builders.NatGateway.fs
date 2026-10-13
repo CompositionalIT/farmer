@@ -8,6 +8,7 @@ open Farmer.PublicIpAddress
 type NatGatewayConfig = {
     Name: ResourceName
     IdleTimeout: int<Minutes>
+    Sku: NatGateway.Sku
     Tags: Map<string, string>
 } with
 
@@ -15,12 +16,15 @@ type NatGatewayConfig = {
         member this.ResourceId = natGateways.resourceId this.Name
 
         member this.BuildResources location = [
-            // Currently just generate with a single public IP.
+            // Currently generate with a single public IP.
             {
                 PublicIpAddress.Name = ResourceName $"{this.Name.Value}-publicip-1"
-                AvailabilityZone = None
+                AvailabilityZones = NoZone
                 Location = location
-                Sku = Sku.Standard
+                Sku =
+                    match this.Sku with
+                    | Farmer.NatGateway.Sku.Standard -> PublicIpAddress.Sku.Standard
+                    | Farmer.NatGateway.Sku.StandardV2 -> PublicIpAddress.Sku.StandardV2
                 AllocationMethod = AllocationMethod.Static
                 AddressVersion = Network.AddressVersion.IPv4
                 DomainNameLabel = None
@@ -28,6 +32,7 @@ type NatGatewayConfig = {
             }
             {
                 NatGateway.Name = this.Name
+                Sku = this.Sku
                 Location = location
                 PublicIpAddresses = [
                     LinkedResource.Managed(publicIPAddresses.resourceId $"{this.Name.Value}-publicip-1")
@@ -42,6 +47,7 @@ type NatGatewayBuilder() =
     member _.Yield _ = {
         Name = ResourceName.Empty
         IdleTimeout = 4<Minutes>
+        Sku = NatGateway.Sku.Standard
         Tags = Map.empty
     }
 
@@ -54,5 +60,8 @@ type NatGatewayBuilder() =
             raiseFarmer "Maximum idle timeout is 120 minutes."
 
         { state with IdleTimeout = idleTimeout }
+
+    [<CustomOperation "sku">]
+    member _.Sku(state: NatGatewayConfig, sku: NatGateway.Sku) = { state with Sku = sku }
 
 let natGateway = NatGatewayBuilder()

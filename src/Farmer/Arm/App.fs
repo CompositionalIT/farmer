@@ -5,22 +5,37 @@ open System
 open Farmer.ContainerApp
 open Farmer
 
-let containerApps = ResourceType("Microsoft.App/containerApps", "2022-03-01")
+let containerApps = ResourceType("Microsoft.App/containerApps", "2026-07-01")
 
 let managedEnvironments =
-    ResourceType("Microsoft.App/managedEnvironments", "2022-03-01")
+    ResourceType("Microsoft.App/managedEnvironments", "2026-07-01")
 
 let storages =
-    ResourceType("Microsoft.App/managedEnvironments/storages", "2022-03-01")
+    ResourceType("Microsoft.App/managedEnvironments/storages", "2026-07-01")
 
 let daprComponents =
-    ResourceType("Microsoft.App/managedEnvironments/daprComponents", "2022-10-01")
+    ResourceType("Microsoft.App/managedEnvironments/daprComponents", "2026-07-01")
 
 let daprComponentResiliencyPolicies =
     ResourceType("Microsoft.App/managedEnvironments/daprComponents/resiliencyPolicies", "2023-11-02-preview")
 
 open Farmer.ContainerAppValidation
 open Farmer.Identity
+
+type HealthProbe =
+    | Liveness
+    | Readiness
+    | Startup
+
+type ProbeMap =
+    Map<
+        HealthProbe,
+        {|
+            Protocol: ProbeProtocol
+            Route: Uri
+            Port: int
+        |}
+     >
 
 type Container = {
     Name: string
@@ -31,6 +46,7 @@ type Container = {
         Memory: float<Gb>
         EphemeralStorage: float<Gb> option
     |}
+    Probes: ProbeMap
 }
 
 type ManagedEnvironmentStorage = {
@@ -245,7 +261,12 @@ type ContainerApp = {
     ScaleRules: Map<string, ScaleRule>
     Identity: ManagedIdentity
     Replicas: {| Min: int; Max: int |} option
-    DaprConfig: {| AppId: string; Port: uint16 option |} option
+    DaprConfig:
+        {|
+            AppId: string
+            Port: uint16 option
+            Protocol: DaprProtocol option
+        |} option
     Secrets: Map<ContainerAppSettingKey, SecretValue>
     EnvironmentVariables: Map<string, EnvVar>
     ImageRegistryCredentials: ImageRegistryAuthentication list
@@ -388,6 +409,7 @@ type ContainerApp = {
                                         enabled = true
                                         appId = settings.AppId
                                         appPort = settings.Port |> Option.toNullable
+                                        appProtocol = settings.Protocol |> Option.map _.ArmValue |> Option.toObj
                                     |}
                                     :> obj
                                 | None -> {| enabled = false |}
@@ -438,6 +460,26 @@ type ContainerApp = {
                                         |> function
                                             | [] -> Unchecked.defaultof<_>
                                             | vms -> vms
+                                    probes = [
+                                        for probe in container.Probes do
+                                            let endpoint =
+                                                box {|
+                                                    path = probe.Value.Route
+                                                    port = probe.Value.Port
+                                                |}
+
+                                            {|
+                                                ``type`` = box (probe.Key.ToString().ToLower())
+                                                tcpSocket =
+                                                    match probe.Value.Protocol with
+                                                    | ProbeProtocol.TCP -> endpoint
+                                                    | _ -> null
+                                                httpGet =
+                                                    match probe.Value.Protocol with
+                                                    | ProbeProtocol.HTTPS -> endpoint
+                                                    | _ -> null
+                                            |}
+                                    ]
                                 |}
                         |]
                         scale = {|
@@ -485,6 +527,7 @@ type ContainerApp = {
                                                 metadata = {|
                                                     queueName = settings.QueueName
                                                     messageCount = string settings.MessageCount
+                                                    ``namespace`` = settings.Namespace
                                                 |}
                                                 auth = [|
                                                     {|
@@ -593,10 +636,7 @@ type ManagedEnvironment = {
 
         member this.JsonModel = {|
             managedEnvironments.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
-                kind = "containerenvironment"
                 properties = {|
-                    ``type`` = "managed"
-                    internalLoadBalancerEnabled = this.InternalLoadBalancerState.AsBoolean
                     daprAIInstrumentationKey =
                         this.AppInsightsInstrumentationKey
                         |> Option.map (fun key -> key.Eval())
@@ -608,5 +648,9 @@ type ManagedEnvironment = {
                             sharedKey = LogAnalytics.getPrimarySharedKey(this.LogAnalytics).Eval()
                         |}
                     |}
+                    vnetConfiguration =
+                        match this.InternalLoadBalancerState with
+                        | Enabled -> box {| ``internal`` = true |}
+                        | Disabled -> box {| |}
                 |}
         |}

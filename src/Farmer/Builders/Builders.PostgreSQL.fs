@@ -142,9 +142,7 @@ type PostgreSQLConfig = {
 
     /// Generates an expression for the fully qualified domain name for reaching the postgres server.
     member this.FullyQualifiedDomainName =
-        ArmExpression
-            .reference(this.ResourceType.resourceId this.Name)
-            .Map(sprintf "%s.fullyQualifiedDomainName")
+        ArmExpression.reference(this.ResourceType.resourceId this.Name).Map(sprintf "%s.fullyQualifiedDomainName")
 
 [<AutoOpen>]
 module private Helpers =

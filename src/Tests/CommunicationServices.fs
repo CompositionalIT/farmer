@@ -4,6 +4,7 @@ open Expecto
 open Farmer
 open Farmer.Arm
 open Farmer.Builders
+open Newtonsoft.Json.Linq
 
 let tests =
     testList "Communication Services" [
@@ -31,5 +32,12 @@ let tests =
             Expect.equal bsArm.Name (ResourceName "test") "Name"
             Expect.equal bsArm.DataLocation DataLocation.UnitedStates "Data Location"
             Expect.isEmpty bsArm.Tags "Tags"
+        }
+
+        test "Uses stable API version" {
+            let deployment = arm { add_resource (communicationService { name "test" }) }
+            let json = deployment.Template |> Writer.toJson |> JObject.Parse
+            let version = json.SelectToken("resources[?(@.name=='test')].apiVersion").ToString()
+            Expect.equal version "2020-08-20" "Incorrect API version"
         }
     ]

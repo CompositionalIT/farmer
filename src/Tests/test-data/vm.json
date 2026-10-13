@@ -20,7 +20,7 @@
         "diagnosticsProfile": {
           "bootDiagnostics": {
             "enabled": true,
-            "storageUri": "[reference(resourceId('Microsoft.Storage/storageAccounts', 'isaacsvmstorage'), '2022-05-01').primaryEndpoints.blob]"
+            "storageUri": "[reference(resourceId('Microsoft.Storage/storageAccounts', 'isaacsvmstorage'), '2025-06-01').primaryEndpoints.blob]"
           }
         },
         "hardwareProfile": {
@@ -106,7 +106,7 @@
       "type": "Microsoft.Network/networkInterfaces"
     },
     {
-      "apiVersion": "2020-07-01",
+      "apiVersion": "2024-05-01",
       "dependsOn": [],
       "location": "northeurope",
       "name": "isaacsVM-vnet",
@@ -130,20 +130,20 @@
       "type": "Microsoft.Network/virtualNetworks"
     },
     {
-      "apiVersion": "2018-11-01",
+      "apiVersion": "2024-07-01",
       "location": "northeurope",
       "name": "isaacsVM-ip",
       "properties": {
-        "publicIPAllocationMethod": "Dynamic"
+        "publicIPAllocationMethod": "Static"
       },
       "sku": {
-        "name": "Basic"
+        "name": "Standard"
       },
       "tags": {},
       "type": "Microsoft.Network/publicIPAddresses"
     },
     {
-      "apiVersion": "2022-05-01",
+      "apiVersion": "2025-06-01",
       "dependsOn": [],
       "kind": "StorageV2",
       "location": "northeurope",

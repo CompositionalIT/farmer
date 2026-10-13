@@ -30,7 +30,7 @@ type EventHubConfig = {
     member private this.CreateKeyExpression(resourceId: ResourceId) =
         ArmExpression
             .create($"listkeys({resourceId.ArmExpression.Value}, '2017-04-01').primaryConnectionString")
-            .WithOwner(eventHubs.resourceId this.Name)
+            .WithOwner(eventHubs.resourceId (this.EventHubNamespaceName, this.Name))
 
     member this.EventHubNamespaceName = this.EventHubNamespace.resourceId(this).Name
 
@@ -48,12 +48,9 @@ type EventHubConfig = {
         Namespaces.authorizationRules.resourceId (this.EventHubNamespaceName, ResourceName "RootManageSharedAccessKey")
 
     interface IBuilder with
-        member this.ResourceId = namespaces.resourceId this.EventHubNamespaceName
+        member this.ResourceId = eventHubs.resourceId (this.EventHubNamespaceName, this.Name)
 
         member this.BuildResources location = [
-            let eventHubName =
-                this.Name.Map(fun hubName -> $"{this.EventHubNamespaceName.Value}/{hubName}")
-
             // Namespace
             match this.EventHubNamespace with
             | DeployableResource this _ -> {
@@ -71,14 +68,14 @@ type EventHubConfig = {
 
             // Event hub
             {
-                Name = eventHubName
+                Name = this.Name
+                Namespace = this.EventHubNamespace.toLinkedResource this
                 Location = location
                 MessageRetentionDays = this.MessageRetentionInDays
                 Partitions = this.Partitions
                 CaptureDestination = this.CaptureDestination
                 Dependencies =
                     Set [
-                        namespaces.resourceId this.EventHubNamespaceName
                         yield!
                             this.CaptureDestination
                             |> Option.mapList (fun (StorageAccount(name, _)) -> storageAccounts.resourceId name)
@@ -91,7 +88,7 @@ type EventHubConfig = {
             for consumerGroup in this.ConsumerGroups do
                 {
                     ConsumerGroupName = consumerGroup
-                    EventHub = eventHubName
+                    EventHub = this.Name
                     Location = location
                     Dependencies = [
                         namespaces.resourceId this.EventHubNamespaceName

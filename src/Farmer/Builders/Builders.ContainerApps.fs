@@ -1,7 +1,9 @@
 [<AutoOpen>]
 module Farmer.Builders.ContainerApps
 
+open System
 open Farmer
+open Farmer.ApplicationGateway
 open Farmer.Builders
 open Farmer.ContainerApp
 open Farmer.ContainerAppValidation
@@ -18,6 +20,7 @@ type ContainerConfig = {
         Memory: float<Gb>
         EphemeralStorage: float<Gb> option
     |}
+    Probes: ProbeMap
 } with
 
     member internal this.BuildContainer: Container =
@@ -27,6 +30,7 @@ type ContainerConfig = {
             DockerImage = dockerImage
             Resources = this.Resources
             VolumeMounts = this.VolumeMounts
+            Probes = this.Probes
           }
         | None -> raiseFarmer $"Container '{this.ContainerName}' requires a docker image."
 
@@ -41,6 +45,7 @@ type ContainerAppConfig = {
         {|
             AppId: string option
             Port: uint16 option
+            Protocol: DaprProtocol option
         |} option
     Secrets: Map<ContainerAppSettingKey, SecretValue>
     EnvironmentVariables: Map<string, EnvVar>
@@ -54,9 +59,7 @@ type ContainerAppConfig = {
     member this.ResourceId = containerApps.resourceId this.Name
 
     member this.LatestRevisionFqdn =
-        ArmExpression
-            .reference(containerApps, this.ResourceId)
-            .Map(sprintf "%s.latestRevisionFqdn")
+        ArmExpression.reference(containerApps, this.ResourceId).Map(sprintf "%s.latestRevisionFqdn")
 
 type DaprComponent = {
     Name: ResourceName
@@ -127,7 +130,11 @@ type ContainerEnvironmentConfig = {
                         containerApp.DaprConfig
                         |> Option.map (fun x ->
                             match x.AppId with
-                            | Some appId -> {| AppId = appId; Port = x.Port |}
+                            | Some appId -> {|
+                                AppId = appId
+                                Port = x.Port
+                                Protocol = x.Protocol
+                              |}
                             | None ->
                                 raiseFarmer
                                     $"The container app '{containerApp.Name.Value}' requires a Dapr App ID when Dapr is enabled.")
@@ -282,6 +289,14 @@ let private supportedResourceCombinations =
         1.5<VCores>, 3.0<Gb>
         1.75<VCores>, 3.5<Gb>
         2.0<VCores>, 4.<Gb>
+        2.25<VCores>, 4.5<Gb>
+        2.5<VCores>, 5.0<Gb>
+        2.75<VCores>, 5.5<Gb>
+        3.0<VCores>, 6.0<Gb>
+        3.25<VCores>, 6.5<Gb>
+        3.5<VCores>, 7.0<Gb>
+        3.75<VCores>, 7.5<Gb>
+        4.0<VCores>, 8.0<Gb>
     ]
 
 let private defaultResources = {|
@@ -394,7 +409,7 @@ type ContainerAppBuilder() =
         let secretRef = $"scalerule-{name}-connection"
 
         let state: ContainerAppConfig =
-            this.AddSecretExpression(state, secretRef, storageAccount.Key)
+            this.AddSecretExpression(state, secretRef, storageAccount.ConnectionString)
 
         let queueRule = {
             QueueName = queueName
@@ -460,7 +475,11 @@ type ContainerAppBuilder() =
             DaprConfig =
                 state.DaprConfig
                 |> Option.map (fun x -> {| x with AppId = Some appId |})
-                |> Option.defaultWith (fun () -> {| AppId = Some appId; Port = None |})
+                |> Option.defaultWith (fun () -> {|
+                    AppId = Some appId
+                    Port = None
+                    Protocol = None
+                |})
                 |> Some
     }
 
@@ -471,7 +490,26 @@ type ContainerAppBuilder() =
             DaprConfig =
                 state.DaprConfig
                 |> Option.map (fun x -> {| x with Port = Some port |})
-                |> Option.defaultWith (fun () -> {| AppId = None; Port = Some port |})
+                |> Option.defaultWith (fun () -> {|
+                    AppId = None
+                    Port = Some port
+                    Protocol = None
+                |})
+                |> Some
+    }
+
+    /// Configures Dapr protocol in the Azure Container App.
+    [<CustomOperation "dapr_app_protocol">]
+    member _.SetDaprProtocol(state: ContainerAppConfig, protocol: DaprProtocol) = {
+        state with
+            DaprConfig =
+                state.DaprConfig
+                |> Option.map (fun x -> {| x with Protocol = Some protocol |})
+                |> Option.defaultWith (fun () -> {|
+                    AppId = None
+                    Port = None
+                    Protocol = Some protocol
+                |})
                 |> Some
     }
 
@@ -583,6 +621,7 @@ type ContainerAppBuilder() =
             DockerImage = Some(Containers.PublicImage(dockerImage, Some dockerVersion))
             Resources = defaultResources
             VolumeMounts = Map.empty
+            Probes = Map.empty
         }
 
         this.AddContainers(state, [ container ])
@@ -611,6 +650,7 @@ type ContainerBuilder() =
         DockerImage = None
         Resources = defaultResources
         VolumeMounts = Map.empty
+        Probes = Map.empty
     }
 
     /// Set docker credentials
@@ -630,12 +670,25 @@ type ContainerBuilder() =
             DockerImage = Some(Containers.PublicImage(containerName, Option.ofObj version))
     }
 
+    /// Sets both CPU and memory for this container using a valid consumption plan resource allocation.
+    /// Use this operation when deploying to a consumption plan to ensure a valid combination is selected.
+    /// For dedicated plans, use the individual 'cpu_cores' and 'memory' operations instead.
+    [<CustomOperation "resources">]
+    member _.ConsumptionPlanResources(state: ContainerConfig, allocation: ContainerApp.ConsumptionPlanResources) = {
+        state with
+            Resources = {|
+                state.Resources with
+                    CPU = allocation.CPU
+                    Memory = allocation.Memory
+            |}
+    }
+
     [<CustomOperation "cpu_cores">]
     member _.CpuCores(state: ContainerConfig, cpuCount: float<VCores>) =
         let numCores = cpuCount / 1.<VCores>
 
-        if numCores > 2. then
-            raiseFarmer $"'{state.ContainerName}' exceeds maximum CPU cores of 2.0 for containers in containerApps."
+        if numCores > 4. then
+            raiseFarmer $"'{state.ContainerName}' exceeds maximum CPU cores of 4.0 for containers in containerApps."
 
         let roundedCpuCount = System.Math.Round(numCores, 2) * 1.<VCores>
 
@@ -665,8 +718,8 @@ type ContainerBuilder() =
     member _.Memory(state: ContainerConfig, memory: float<Gb>) =
         let memory = memory / 1.<Gb>
 
-        if memory > 4. then
-            raiseFarmer $"'{state.ContainerName}' exceeds maximum memory of 4.0 Gb for containers in containerApps."
+        if memory > 8. then
+            raiseFarmer $"'{state.ContainerName}' exceeds maximum memory of 8.0 Gb for containers in containerApps."
 
         let roundedMemory = System.Math.Round(memory, 2) * 1.<Gb>
 
@@ -684,6 +737,20 @@ type ContainerBuilder() =
             VolumeMounts =
                 mounts
                 |> Seq.fold (fun s (volumeName, mountPath) -> s |> Map.add volumeName mountPath) state.VolumeMounts
+    }
+
+    [<CustomOperation "set_probe">]
+    member _.SetHealthProbe(state: ContainerConfig, probe, protocol, route, port) = {
+        state with
+            Probes =
+                state.Probes.Add(
+                    probe,
+                    {|
+                        Protocol = protocol
+                        Route = Uri(route, UriKind.Relative)
+                        Port = port
+                    |}
+                )
     }
 
 type TimeoutPolicyBuilder() =
@@ -744,7 +811,34 @@ type CircuitBreakerPolicyBuilder() =
     [<CustomOperation "timeout_in_seconds">]
     member _.TimeoutInSeconds(state: CircuitBreakerPolicy, value: int) = { state with TimeoutInSeconds = value }
 
+type ServiceBusScaleRuleBuilder() =
+    member _.Yield _ = {
+        QueueName = ""
+        Namespace = ""
+        MessageCount = 0
+        SecretRef = ""
+    }
+
+    [<CustomOperation "queue_name">]
+    member _.QueueName(state: ServiceBusScaleRule, queueName: string) = { state with QueueName = queueName }
+
+    [<CustomOperation "servicebus_namespace">]
+    member _.Namespace(state: ServiceBusScaleRule, serviceBusNamespace: string) = {
+        state with
+            Namespace = serviceBusNamespace
+    }
+
+    [<CustomOperation "message_count">]
+    member _.MessageCount(state: ServiceBusScaleRule, messageCount: int) = {
+        state with
+            MessageCount = messageCount
+    }
+
+    [<CustomOperation "secret_ref">]
+    member _.SecretRef(state: ServiceBusScaleRule, secretRef: string) = { state with SecretRef = secretRef }
+
 type DaprComponentBuilder() =
+
     member _.Yield _ = {
         Name = ResourceName.Empty
         ComponentType = ""
@@ -984,10 +1078,10 @@ type DaprComponentBuilder() =
     }
 
 let containerEnvironment = ContainerEnvironmentBuilder()
-
 let containerApp = ContainerAppBuilder()
 let container = ContainerBuilder()
 let daprComponent = DaprComponentBuilder()
 let timeout_policy = TimeoutPolicyBuilder()
 let http_retry_policy = HttpRetryPolicyBuilder()
 let circuit_breaker_policy = CircuitBreakerPolicyBuilder()
+let serviceBusScaleRule = ServiceBusScaleRuleBuilder()

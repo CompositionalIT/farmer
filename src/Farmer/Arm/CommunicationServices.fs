@@ -4,7 +4,7 @@ module Farmer.Arm.Communication
 open Farmer
 
 let communicationServices =
-    ResourceType("Microsoft.Communication/communicationServices", "2020-08-20-preview")
+    ResourceType("Microsoft.Communication/communicationServices", "2020-08-20")
 
 type CommunicationService = {
     Name: ResourceName

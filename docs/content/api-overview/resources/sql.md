@@ -9,6 +9,7 @@ weight: 18
 The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azure servers, and `sqlDb`, used to create individual databases. It supports features such as encryption, firewalls and automatic pool creation. Every SQL Azure server you create will automatically create a SecureString parameter for the admin account password.
 
 * SQL Azure server (`Microsoft.Sql/servers`)
+* SQL Azure virtual network rule (`Microsoft.Sql/servers/virtualNetworkRules`)
 
 #### SQL Server Builder Keywords
 | Keyword | Purpose |
@@ -18,6 +19,8 @@ The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azu
 | add_firewall_rules | As add_firewall_rule but a list of rules |
 | enable_azure_firewall | Adds a firewall rule that enables access to other Azure services. |
 | admin_username | Sets the admin username of the server. The password is supplied as a secret parameter at runtime. |
+| system_identity | Enables a system-assigned managed identity for the SQL server. |
+| add_identity | Adds a user-assigned managed identity to the SQL server. |
 | entra_id_admin | Activates Entra ID authentication using the supplied login name, associated objectId and principal type of the administrator account. |
 | entra_id_admin_user | Activates Entra ID authentication for the User Principal Type using the supplied user's login name. You can determine the ObjectId using `Farmer.Builders.AccessPolicy.findUsers`. |
 | entra_id_admin_group | Activates Entra ID authentication for the Group Principal Type using the supplied group's login name. You can determine the ObjectId using `Farmer.Builders.AccessPolicy.findGroups`. |
@@ -25,8 +28,34 @@ The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azu
 | elastic_pool_sku | Sets the sku of the elastic pool, if required. If not set, Farmer will default to Basic 50. |
 | elastic_pool_database_min_max | Sets the optional minimum and maximum DTUs for the elastic pool for each database. |
 | elastic_pool_capacity | Sets the optional disk size in MB for the elastic pool for each database. |
+| elastic_pool_high_availability_replica_count | Sets the number of high availability replicas for a Hyperscale elastic pool. |
 | min_tls_version | Sets the minimum TLS version for the SQL server |
 | geo_replicate | Geo-replicate all the databases in this server to another location, having NameSuffix after the original server and database names. |
+
+#### SQL Virtual Network Rules
+
+Virtual network rules use the `sqlVirtualNetworkRule` builder. The `sql_server` and `virtual_network` operations create managed links, adding dependencies when those resources are in the same template. Use `link_to_sql_server` and `link_to_virtual_network` with resource IDs for resources deployed separately; these unmanaged links do not add `dependsOn` entries.
+
+```fsharp
+let rule = sqlVirtualNetworkRule {
+    name "allow-vnet"
+    sql_server "my-server"
+    virtual_network "my-vnet"
+    subnet "default"
+    ignore_missing_vnet_service_endpoint false
+}
+```
+
+For resources that are already deployed separately:
+
+```fsharp
+let rule = sqlVirtualNetworkRule {
+    name "allow-vnet"
+    link_to_sql_server "my-server"
+    link_to_virtual_network "my-vnet"
+    subnet "default"
+}
+```
 
 > You must set at least one of SQL user / pass (using `admin_username`) or Entra ID login (using one of the `entra_id_admin` variants).
 > Setting both will leave both activated; setting only Entra ID will automatically explicitly deactivate user / pass authentication.
@@ -47,6 +76,64 @@ The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azu
 | db_size | Sets the maximum database size. |
 | collation | Sets the collation of the database. |
 | use_encryption | Enables transparent data encryption of the database. |
+| link_to_sql_server | Links a standalone database to an existing SQL server. Pass a `ResourceId` to reference a server in another resource group or subscription. |
+| link_to_elastic_pool | Links a database to an existing elastic pool. This takes precedence over `sku`; pass the pool `ResourceId` when the pool is managed outside the template. |
+
+To add a database to infrastructure that already exists, link both the server and
+pool and add the database directly to the ARM template. Linked resources do not
+produce `dependsOn` entries, so Farmer will not try to deploy the existing server
+or pool:
+
+```fsharp
+let database = sqlDb {
+    name "project-db"
+    link_to_sql_server (Sql.servers.resourceId("shared-sql", "shared-infrastructure"))
+    link_to_elastic_pool (Sql.elasticPools.resourceId "shared-sql/shared-pool")
+}
+
+arm {
+    location Location.NorthEurope
+    add_resource database
+}
+```
+
+For a database on an existing server but not an elastic pool, use
+`link_to_sql_server` together with a normal `sku` instead. `ResourceId` values
+can include the existing resource group and subscription when those differ from
+the deployment scope.
+
+#### Serverless Gen5 SKU
+
+The Serverless Gen5 SKU (`S_Gen5`) supports fractional VCores, allowing you to specify capacity as low as 0.5 or 0.75 VCores for cost-effective serverless databases. You can specify both minimum and maximum capacity:
+
+```fsharp
+// Serverless with fractional VCores
+sqlDb {
+    name "serverlessDb"
+    sku (GeneralPurpose(S_Gen5(0.5, 2.0)))  // min: 0.5 VCores, max: 2.0 VCores
+}
+
+// Serverless with integer VCores (also supported)
+sqlDb {
+    name "serverlessDb2"
+    sku (GeneralPurpose(S_Gen5(1, 4)))  // min: 1 VCore, max: 4 VCores
+}
+```
+
+#### Hyperscale Elastic Pool
+
+Hyperscale elastic pools use the `PoolSku.Hyperscale*` values and can configure
+high availability replicas:
+
+```fsharp
+sqlServer {
+    name "my_server"
+    admin_username "admin_username"
+    elastic_pool_sku PoolSku.Hyperscale4
+    elastic_pool_high_availability_replica_count 2
+    add_databases [ sqlDb { name "poolDb" } ]
+}
+```
 
 #### Example
 
@@ -78,6 +165,10 @@ let myDatabases = sqlServer {
             db_size (1024<Mb> * 128)
             hybrid_benefit
         }
+        sqlDb {
+            name "serverlessDb"
+            sku (GeneralPurpose(S_Gen5(0.5, 2.0)))  // Serverless with fractional VCores
+        }
     ]
 }
 
@@ -98,20 +189,12 @@ template
 open Farmer
 open Farmer.Builders
 open Sql
-open Farmer.Arm.Sql
 
-let activeDirectoryAdmin: ActiveDirectoryAdminSettings =
-    {
-        Login = "adadmin"
-        Sid = "F9D49C34-01BA-4897-B7E2-3694BF3DE2CF"
-        PrincipalType = ActiveDirectoryPrincipalType.User
-        AdOnlyAuth = false  // when false, admin_username is required
-                            // when true admin_username is ignored
-    }
+let entraAdminGroup = AccessPolicy.findGroups [ "adadmin" ] |> Array.head
 
 let myDatabases = sqlServer {
     name "my_server"
-    active_directory_admin (Some(activeDirectoryAdmin))
+    entra_id_admin_group entraAdminGroup.DisplayName entraAdminGroup.Id
     admin_username "admin_username"
     enable_azure_firewall
 
@@ -132,6 +215,10 @@ let myDatabases = sqlServer {
             db_size (1024<Mb> * 128)
             hybrid_benefit
         }
+        sqlDb {
+            name "serverlessDb"
+            sku (GeneralPurpose(S_Gen5(0.5, 2.0)))  // Serverless with fractional VCores
+        }
     ]
 }
 
@@ -140,9 +227,9 @@ let template = arm {
     add_resource myDatabases
 }
 
-template
-|> Writer.quickWrite "sql-example"
+template |> Writer.quickWrite "sql-example"
 
 template
 |> Deploy.execute "my-resource-group" [ "password-for-my_server", "*****" ]
+|> ignore
 ```

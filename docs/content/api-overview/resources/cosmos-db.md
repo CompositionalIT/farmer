@@ -24,7 +24,7 @@ The CosmosDB builder abstracts the idea of an account and database into one. If 
 |-|-------------------------------|-|
 | Database | name                          | Sets the name of the database. |
 | Database | link_to_account               | Instructs Farmer to link this database to an existing Cosmos DB account rather than creating a new one. |
-| Database | throughput                    | Sets the throughput with either "provisioned throughput" or "serverless". |
+| Database | throughput                    | Sets the throughput: provisioned (`400<CosmosDb.RU>`), autoscale (`CosmosDb.Autoscale 4000<CosmosDb.RU>`), or serverless (`CosmosDb.Serverless`). |
 | Database | add_containers                | Adds a list of containers to the database. |
 | Account | account_name                  | Sets the name of the CosmosDB account. |
 | Account | kind                          | Sets the API and data model to use -- currently defaults to "Core (SQL)". |
@@ -33,6 +33,9 @@ The CosmosDB builder abstracts the idea of an account and database into one. If 
 | Account | consistency_policy            | Sets the consistency policy of the database. |
 | Account | failover_policy               | Sets the failover policy of the database. |
 | Account | free_tier                     | Registers this server with the free pricing tier, if supported and allowed by Azure. |
+| Account | backup_retention              | Sets the continuous backup retention policy (`CosmosDb.Continuous7Days` or `CosmosDb.Continuous30Days`). |
+| Account | add_firewall_rule             | Adds an IP address or CIDR range to the account firewall allowlist. |
+| Account | enable_azure_firewall         | Shorthand to allow access from other Azure services (adds `0.0.0.0` to firewall rules). |
 
 #### Cosmos Container Builder
 The container builder allows you to create and configure a specific container that is attached to a cosmos database.
@@ -54,17 +57,21 @@ open Farmer.Builders
 let myCosmosDb = cosmosDb {
     name "isaacsappdb"
     account_name "isaacscosmosdb"
-    throughput 400<CosmosDb.RU> // or throughput Serverless
+    throughput 400<CosmosDb.RU>         // or: throughput (CosmosDb.Autoscale 4000<CosmosDb.RU>)
+                                        //     throughput CosmosDb.Serverless
     failover_policy CosmosDb.NoFailover
     consistency_policy (CosmosDb.BoundedStaleness(500, 1000))
-    //kind DatabaseKind.Gremlin //Create a gremlin enabled account
+    backup_retention CosmosDb.Continuous7Days
+    enable_azure_firewall               // allow access from Azure services
+    add_firewall_rule "203.0.113.0"     // allow a specific IP
+    //kind DatabaseKind.Gremlin         // create a Gremlin-enabled account
     add_containers [
         cosmosContainer {
             name "myContainer"
             partition_key [ "/id" ] CosmosDb.Hash
             add_index "/path" [ CosmosDb.Number, CosmosDb.Hash ]
             exclude_path "/excluded/*"
-            //gremlin_graph //Mark this container to be a graph
+            //gremlin_graph             // mark this container as a graph
         }
     ]
 }

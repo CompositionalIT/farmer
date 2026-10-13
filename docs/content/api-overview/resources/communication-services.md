@@ -8,6 +8,8 @@ weight: 3
 #### Overview
 The Communication Services builder is used to create Azure Communication Services instances.
 
+Farmer emits the stable `2020-08-20` ARM API version for `Microsoft.Communication/communicationServices`.
+
 * Communication Services (`Microsoft.Communication/communicationServices`)
 
 #### Builder Keywords

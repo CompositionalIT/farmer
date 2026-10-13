@@ -22,10 +22,7 @@ module TemplateGeneration =
 
 let branding () =
     let version =
-        Assembly
-            .GetExecutingAssembly()
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-            .InformationalVersion
+        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion
 
     printfn "=================================================="
     printfn "Farmer %s" version

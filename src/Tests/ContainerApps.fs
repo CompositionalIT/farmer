@@ -1,5 +1,6 @@
 module ContainerApps
 
+open System
 open Expecto
 open Farmer
 open Farmer.Builders
@@ -41,6 +42,7 @@ let fullContainerAppDeployment =
 
         add_containers [
             container {
+                set_probe Liveness ProbeProtocol.HTTPS "/api/healthcheck" 443
                 name "http"
                 private_docker_image containerRegistryDomain "http" version
                 cpu_cores 0.25<VCores>
@@ -56,6 +58,8 @@ let fullContainerAppDeployment =
         ingress_target_port 80us
         ingress_transport Auto
         dapr_app_id "http"
+        dapr_app_port 5000us
+        dapr_app_protocol DaprProtocol.Grpc
         add_http_scale_rule "http-rule" { ConcurrentRequests = 100 }
     }
 
@@ -70,7 +74,7 @@ let fullContainerAppDeployment =
                 component_type "some.component.type"
                 version "v1"
                 add_metadata "meta1" "value1"
-                add_secret_metadata "meta2" "secret1" storage.Key
+                add_secret_metadata "meta2" "secret1" storage.ConnectionString
                 add_scope httpContainerApp
                 resiliency_policy_inbound_timeout (timeout_policy { response_timeout_in_seconds 15 })
 
@@ -132,11 +136,14 @@ let fullContainerAppDeployment =
                 add_env_variable "ServiceBusQueueName" "wishrequests"
                 add_secret_parameter "servicebusconnectionkey"
 
-                add_servicebus_scale_rule "sb-keda-scale" {
-                    QueueName = "wishrequests"
-                    MessageCount = 5
-                    SecretRef = "servicebusconnectionkey"
-                }
+                add_servicebus_scale_rule
+                    "sb-keda-scale"
+                    (serviceBusScaleRule {
+                        queue_name "wishrequests"
+                        message_count 5
+                        secret_ref "servicebusconnectionkey"
+                        servicebus_namespace "servicebus"
+                    })
             }
             containerApp {
                 name "azurequeue"
@@ -209,9 +216,15 @@ let tests =
                 "Incorrect type for kuberenetes environment"
 
             Expect.equal
-                (kubeEnv.["kind"] |> string)
-                "containerenvironment"
-                "Incorrect kind for kuberenetes environment"
+                (kubeEnv.["apiVersion"] |> string)
+                "2026-07-01"
+                "Incorrect API version for kuberenetes environment"
+
+            Expect.isNull (kubeEnv.SelectToken "kind") "Managed environment should not emit kind for 2026-07-01"
+
+            Expect.isNotNull
+                (kubeEnv.SelectToken("properties.vnetConfiguration"))
+                "Managed environment should emit vnetConfiguration for 2026-07-01"
 
             let kubeEnvAppLogConfig =
                 jobj.SelectToken("resources[?(@.name=='kubecontainerenv')].properties.appLogsConfiguration")
@@ -240,6 +253,8 @@ let tests =
                 (daprComponent["type"] |> string)
                 "Microsoft.App/managedEnvironments/daprComponents"
                 "Incorrect type for dapr component"
+
+            Expect.equal (daprComponent["apiVersion"] |> string) "2026-07-01" "Incorrect API version for dapr component"
 
             let daprComponentProperties = daprComponent["properties"]
 
@@ -277,7 +292,7 @@ let tests =
 
             Expect.equal
                 (firstDaprSecret["value"] |> string)
-                "[concat('DefaultEndpointsProtocol=https;AccountName=storagename;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'storagename'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
+                "[concat('DefaultEndpointsProtocol=https;AccountName=storagename;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'storagename'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
                 "Incorrect value for secrets[0]"
 
             let scope = daprComponentProperties.SelectToken("scopes[0]")
@@ -327,6 +342,11 @@ let tests =
                 (httpContainerApp.["type"] |> string)
                 "Microsoft.App/containerApps"
                 "Incorrect type for containerApps"
+
+            Expect.equal
+                (httpContainerApp.["apiVersion"] |> string)
+                "2026-07-01"
+                "Incorrect API version for containerApps"
 
             Expect.equal (httpContainerApp.["kind"] |> string) "containerapp" "Incorrect kind for containerApps"
 
@@ -424,6 +444,26 @@ let tests =
                 "/certs"
                 "Incorrect container volume mount"
 
+            let sbScaleRuleMetadata =
+                serviceBusContainerApp.SelectToken("properties.template.scale.rules[0].custom.metadata")
+
+            Expect.isNotNull sbScaleRuleMetadata "service bus scale rule metadata was null"
+
+            Expect.equal
+                (sbScaleRuleMetadata["queueName"] |> string)
+                "wishrequests"
+                "Incorrect service bus scale rule queueName"
+
+            Expect.equal
+                (sbScaleRuleMetadata["messageCount"] |> string)
+                "5"
+                "Incorrect service bus scale rule messageCount"
+
+            Expect.equal
+                (sbScaleRuleMetadata["namespace"] |> string)
+                "servicebus"
+                "Incorrect service bus scale rule namespace"
+
             let azureQueueContainerApp = jobj.SelectToken("resources[?(@.name=='azurequeue')]")
             Expect.isNotNull azureQueueContainerApp "resources[?(@.name=='azurequeue')] was null"
 
@@ -435,7 +475,7 @@ let tests =
 
             Expect.equal
                 (queueAppSecrets[1]["value"] |> string)
-                "[concat('DefaultEndpointsProtocol=https;AccountName=storagename;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'storagename'), '2017-10-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
+                "[concat('DefaultEndpointsProtocol=https;AccountName=storagename;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'storagename'), '2025-06-01').keys[0].value, ';EndpointSuffix=', environment().suffixes.storage)]"
                 "Incorrect queue app secret"
 
             let queueAppScaleRules =
@@ -449,6 +489,10 @@ let tests =
             Expect.isNotNull ruleAuth "auth[0] was null"
             Expect.equal (ruleAuth["secretRef"] |> string) connectionSecretName "Incorrect secretRef"
             Expect.equal (ruleAuth["triggerParameter"] |> string) "connection" "Incorrect triggerParameter"
+
+            let daprConfig = httpContainerApp.SelectToken("properties.configuration.dapr")
+            Expect.equal (daprConfig["appPort"] |> uint16) 5000us "Incorrect dapr appPort"
+            Expect.equal (daprConfig["appProtocol"] |> string) "grpc" "Incorrect dapr appProtocol"
         }
 
         test "Makes container app with MSI" {
@@ -473,6 +517,14 @@ let tests =
                 |> List.find (fun r -> r.ResourceId.Name.Value = "certs-v")
                 :?> Farmer.Arm.App.ManagedEnvironmentStorage
 
+            let certsStorageJson =
+                jobj.SelectToken("resources[?(@.name=='kubecontainerenv/certs-v')]")
+
+            Expect.equal
+                (certsStorageJson.["apiVersion"] |> string)
+                "2026-07-01"
+                "Incorrect API version for managed environment storage"
+
             Expect.equal
                 certsStorage.AzureFile.AccessMode
                 StorageAccessMode.ReadOnly
@@ -495,8 +547,7 @@ let tests =
             Expect.isFalse
                 (containerApp.Secrets
                  |> Map.containsKey
-                     (ContainerAppValidation.ContainerAppSettingKey.Create $"{containerRegistryName}-username")
-                         .OkValue)
+                     (ContainerAppValidation.ContainerAppSettingKey.Create $"{containerRegistryName}-username").OkValue)
                 "Container app did not have linked ACR's secret"
         }
 
@@ -529,5 +580,132 @@ let tests =
                     | _ -> None)
 
             Expect.isSome managedEnvironment.AppInsightsInstrumentationKey "Dapr AI key not set"
+        }
+
+        test "Supports Health Probes" {
+            let apps =
+                fullContainerAppDeployment.Template.Resources
+                |> List.choose (function
+                    | (:? ContainerApp as c) -> Some c
+                    | _ -> None)
+
+            let probe =
+                apps
+                |> List.pick (fun app ->
+                    app.Containers
+                    |> List.tryFind (fun c -> not c.Probes.IsEmpty)
+                    |> Option.map (fun c -> c.Probes[Liveness]))
+
+            Expect.equal probe.Protocol ProbeProtocol.HTTPS "Incorrect probe protocol"
+            Expect.equal (probe.Route.ToString()) "/api/healthcheck" "Incorrect probe route"
+            Expect.equal probe.Port 443 "Incorrect probe port"
+        }
+
+        test "Resources operation sets valid consumption plan CPU and memory" {
+            let app = containerApp {
+                name "resource-test"
+
+                add_containers [
+                    container {
+                        name "mycontainer"
+                        public_docker_image "mcr.microsoft.com/dotnet/samples" "aspnetapp"
+                        resources ContainerApp.ConsumptionPlanResources.Cores0_5
+                    }
+                ]
+            }
+
+            let env: IBuilder = containerEnvironment {
+                name "testenv"
+                add_containers [ app ]
+            }
+
+            let resources = env.BuildResources Location.NorthEurope
+
+            let containerAppResource =
+                resources
+                |> List.pick (function
+                    | :? ContainerApp as c -> Some c
+                    | _ -> None)
+
+            let containerResources = containerAppResource.Containers |> List.head
+
+            Expect.equal containerResources.Resources.CPU 0.5<VCores> "Incorrect CPU for Cores0_5"
+            Expect.equal containerResources.Resources.Memory 1.0<Gb> "Incorrect memory for Cores0_5"
+        }
+
+        test "Resources operation supports all consumption plan allocations" {
+            let allocations = [
+                ContainerApp.ConsumptionPlanResources.Cores0_25, 0.25<VCores>, 0.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores0_5, 0.5<VCores>, 1.0<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores0_75, 0.75<VCores>, 1.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores1_0, 1.0<VCores>, 2.0<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores1_25, 1.25<VCores>, 2.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores1_5, 1.5<VCores>, 3.0<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores1_75, 1.75<VCores>, 3.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores2_0, 2.0<VCores>, 4.0<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores2_25, 2.25<VCores>, 4.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores2_5, 2.5<VCores>, 5.0<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores2_75, 2.75<VCores>, 5.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores3_0, 3.0<VCores>, 6.0<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores3_25, 3.25<VCores>, 6.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores3_5, 3.5<VCores>, 7.0<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores3_75, 3.75<VCores>, 7.5<Gb>
+                ContainerApp.ConsumptionPlanResources.Cores4_0, 4.0<VCores>, 8.0<Gb>
+            ]
+
+            for allocation, expectedCpu, expectedMem in allocations do
+                let app = containerApp {
+                    name "resource-test"
+
+                    add_containers [
+                        container {
+                            name "mycontainer"
+                            public_docker_image "mcr.microsoft.com/dotnet/samples" "aspnetapp"
+                            resources allocation
+                        }
+                    ]
+                }
+
+                let env: IBuilder = containerEnvironment {
+                    name "testenv"
+                    add_containers [ app ]
+                }
+
+                let resources = env.BuildResources Location.NorthEurope
+
+                let containerAppResource =
+                    resources
+                    |> List.pick (function
+                        | :? ContainerApp as c -> Some c
+                        | _ -> None)
+
+                let containerResources = containerAppResource.Containers |> List.head
+
+                Expect.equal containerResources.Resources.CPU expectedCpu $"Incorrect CPU for allocation {allocation}"
+
+                Expect.equal
+                    containerResources.Resources.Memory
+                    expectedMem
+                    $"Incorrect memory for allocation {allocation}"
+        }
+
+        test "Dapr protocol Http is correctly serialized" {
+            let app = containerApp {
+                name "dapr-protocol-test"
+                add_simple_container "mcr.microsoft.com/dotnet/samples" "aspnetapp"
+                dapr_app_id "test-app"
+                dapr_app_protocol DaprProtocol.Http
+            }
+
+            let env = containerEnvironment {
+                name "test-env"
+                add_container app
+            }
+
+            let deployment = arm { add_resource env }
+            let jobj = deployment.Template |> Writer.toJson |> JObject.Parse
+            let ca = jobj.SelectToken("resources[?(@.name=='dapr-protocol-test')]")
+            let daprConfig = ca.SelectToken("properties.configuration.dapr")
+            Expect.equal (daprConfig["appProtocol"] |> string) "http" "Incorrect dapr appProtocol for Http"
         }
     ]

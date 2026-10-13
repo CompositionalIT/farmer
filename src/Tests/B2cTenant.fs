@@ -43,9 +43,7 @@ let tests =
                 "`name` should match <initial_domain_name>.onmicrosoft.com"
 
             Expect.equal
-                (generatedTemplate
-                    .SelectToken("properties.createTenantProperties.displayName")
-                    .ToString())
+                (generatedTemplate.SelectToken("properties.createTenantProperties.displayName").ToString())
                 "My B2C tenant"
                 "Invalid display name"
 
@@ -55,9 +53,7 @@ let tests =
                 "`location` should match with the provided `data_residency`"
 
             Expect.equal
-                (generatedTemplate
-                    .SelectToken("properties.createTenantProperties.countryCode")
-                    .ToString())
+                (generatedTemplate.SelectToken("properties.createTenantProperties.countryCode").ToString())
                 "FR"
                 "Invalid country code"
 

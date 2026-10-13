@@ -131,15 +131,19 @@ type TransmissionProtocol =
     | UDP
 
 type TlsVersion =
-    | Tls10
-    | Tls11
     | Tls12
+    | Tls13
 
     member this.ArmValue =
         match this with
-        | Tls10 -> "1.0"
-        | Tls11 -> "1.1"
         | Tls12 -> "1.2"
+        | Tls13 -> "1.3"
+
+    [<System.Obsolete("TLS 1.0 is deprecated and insecure. Use TLS 1.2 or higher.")>]
+    static member Tls10 = Tls12
+
+    [<System.Obsolete("TLS 1.1 is deprecated and insecure. Use TLS 1.2 or higher.")>]
+    static member Tls11 = Tls12
 
 /// Represents an environment variable that can be set, typically on Docker container services.
 type EnvVar =
@@ -923,6 +927,9 @@ module Vm =
     let AzureLinux_3Arm =
         makeLinuxVm "azure-linux-3" "MicrosoftCBLMariner" "azure-linux-3-arm64"
 
+    let AzureLinux_3Fips =
+        makeLinuxVm "azure-linux-3" "MicrosoftCBLMariner" "azure-linux-3-gen2-fips"
+
     let WindowsServer_2022DatacenterAzureEdition =
         makeWindowsVm "2022-datacenter-azure-edition"
 
@@ -977,10 +984,33 @@ module Vm =
             match this with
             | x -> x.ToString()
 
+    /// Specifies what happens to a resource (disk, NIC, or public IP) when a VM is deleted.
+    type DeleteOption =
+        | Delete
+        | Detach
+
+        member this.ArmValue =
+            match this with
+            | Delete -> "Delete"
+            | Detach -> "Detach"
+
+    /// Specifies the host caching mode for a disk.
+    type CachingType =
+        | NoCaching
+        | ReadOnly
+        | ReadWrite
+
+        member this.ArmValue =
+            match this with
+            | NoCaching -> "None"
+            | ReadOnly -> "ReadOnly"
+            | ReadWrite -> "ReadWrite"
+
     /// Represents a disk in a VM.
     type DiskInfo = {
         Size: int
         DiskType: DiskType
+        Caching: CachingType option
     } with
 
         member this.IsUltraDisk =
@@ -991,20 +1021,27 @@ module Vm =
     /// VM OS disks can be created by attaching an existing disk or from a gallery image.
     type OsDiskCreateOption =
         | AttachOsDisk of OS * ManagedDiskId: LinkedResource
+        | AttachOsDiskWithDelete of OS * ManagedDiskId: LinkedResource
         | FromImage of ImageInfo * DiskInfo
+        | FromImageWithDelete of ImageInfo * DiskInfo
 
     /// VM data disks can be created by attaching an existing disk or generating an empty disk.
     type DataDiskCreateOption =
         | AttachDataDisk of ManagedDiskId: LinkedResource
+        | AttachDataDiskWithDelete of ManagedDiskId: LinkedResource
         /// Indicates the disk being attached is an ultra disk to enable that option on the VM
         | AttachUltra of ManagedDiskId: LinkedResource
+        | AttachUltraWithDelete of ManagedDiskId: LinkedResource
         | Empty of DiskInfo
+        | EmptyWithDelete of DiskInfo
 
         /// Indicates an Ultra SSD will be used so that option should be enabled on the VM.
         member this.IsUltraDisk =
             match this with
-            | AttachUltra _ -> true
-            | Empty diskInfo when diskInfo.IsUltraDisk -> true
+            | AttachUltra _
+            | AttachUltraWithDelete _ -> true
+            | Empty diskInfo
+            | EmptyWithDelete diskInfo when diskInfo.IsUltraDisk -> true
             | _ -> false
 
     type EvictionPolicy =
@@ -1879,6 +1916,19 @@ module CognitiveServices =
         | TextAnalytics
         | TextTranslation
 
+module ConfigurationStore =
+    /// SKU for Azure App Configuration stores.
+    type Sku =
+        | Free
+        | Developer
+        | Standard
+        | Premium
+
+    /// Data plane authentication mode for Azure App Configuration stores.
+    type DataPlaneAuthenticationMode =
+        | Local
+        | Passthrough
+
 module BingSearch =
     /// Type of SKU. See https://www.microsoft.com/en-us/bing/apis/pricing
     type Sku =
@@ -2002,7 +2052,7 @@ module Sql =
         | Gen5_32
         | Gen5_40
         | Gen5_80
-        | S_Gen5 of CapacityMin: int * CapacityMax: int
+        | S_Gen5 of CapacityMin: float * CapacityMax: float
 
         member this.Name =
             Reflection.FSharpValue.GetUnionFields(this, typeof<Gen5Series>)
@@ -2128,6 +2178,7 @@ module Sql =
         | BasicPool of int
         | StandardPool of int
         | PremiumPool of int
+        | HyperscalePool of Gen5Series
 
         static member Standard50 = StandardPool 50
         static member Standard100 = StandardPool 100
@@ -2158,24 +2209,57 @@ module Sql =
         static member Basic800 = BasicPool 800
         static member Basic1200 = BasicPool 1200
         static member Basic1600 = BasicPool 1600
+        static member Hyperscale2 = HyperscalePool Gen5_2
+        static member Hyperscale4 = HyperscalePool Gen5_4
+        static member Hyperscale6 = HyperscalePool Gen5_6
+        static member Hyperscale8 = HyperscalePool Gen5_8
+        static member Hyperscale10 = HyperscalePool Gen5_10
+        static member Hyperscale12 = HyperscalePool Gen5_12
+        static member Hyperscale14 = HyperscalePool Gen5_14
+        static member Hyperscale16 = HyperscalePool Gen5_16
+        static member Hyperscale18 = HyperscalePool Gen5_18
+        static member Hyperscale20 = HyperscalePool Gen5_20
+        static member Hyperscale24 = HyperscalePool Gen5_24
+        static member Hyperscale32 = HyperscalePool Gen5_32
+        static member Hyperscale40 = HyperscalePool Gen5_40
+        static member Hyperscale80 = HyperscalePool Gen5_80
 
         member this.Name =
             match this with
             | BasicPool _ -> "BasicPool"
             | StandardPool _ -> "StandardPool"
             | PremiumPool _ -> "PremiumPool"
+            | HyperscalePool _ -> "HS_Gen5"
 
         member this.Edition =
             match this with
             | BasicPool _ -> "Basic"
             | StandardPool _ -> "Standard"
             | PremiumPool _ -> "Premium"
+            | HyperscalePool _ -> "Hyperscale"
 
         member this.Capacity =
             match this with
             | BasicPool c
             | StandardPool c
             | PremiumPool c -> c
+            | HyperscalePool c ->
+                match c with
+                | Gen5_2 -> 2
+                | Gen5_4 -> 4
+                | Gen5_6 -> 6
+                | Gen5_8 -> 8
+                | Gen5_10 -> 10
+                | Gen5_12 -> 12
+                | Gen5_14 -> 14
+                | Gen5_16 -> 16
+                | Gen5_18 -> 18
+                | Gen5_20 -> 20
+                | Gen5_24 -> 24
+                | Gen5_32 -> 32
+                | Gen5_40 -> 40
+                | Gen5_80 -> 80
+                | S_Gen5 _ -> raiseFarmer "Serverless capacity is not supported for Hyperscale elastic pools"
 
     open Validation
 
@@ -2240,9 +2324,7 @@ module Identity =
                 | UserAssignedIdentity rid -> rid
                 | LinkedUserAssignedIdentity rid -> rid
 
-            ArmExpression
-                .create($"reference({resourceId.ArmExpression.Value}).%s{field}")
-                .WithOwner(resourceId)
+            ArmExpression.create($"reference({resourceId.ArmExpression.Value}).%s{field}").WithOwner(resourceId)
 
         member this.PrincipalId = this.CreateExpression "principalId" |> PrincipalId
         member this.ClientId = this.CreateExpression "clientId"
@@ -2410,6 +2492,24 @@ module ContainerService =
             | AzureCni -> "azure"
 
     [<RequireQualifiedAccess>]
+    type NetworkPluginMode =
+        | Overlay
+
+        member this.ArmValue =
+            match this with
+            | Overlay -> "overlay"
+
+    [<RequireQualifiedAccess>]
+    type NetworkDataplane =
+        | Azure
+        | Cilium
+
+        member this.ArmValue =
+            match this with
+            | Azure -> "azure"
+            | Cilium -> "cilium"
+
+    [<RequireQualifiedAccess>]
     type Sku =
         | Automatic
         | Base
@@ -2432,6 +2532,30 @@ module ContainerService =
             | Premium -> "Premium"
 
     type ContainerServiceSku = { Name: Sku; Tier: Tier }
+
+    [<RequireQualifiedAccess>]
+    type AutoUpgradeChannel =
+        | Patch
+        | Stable
+        | Rapid
+
+        member this.ArmValue =
+            match this with
+            | Patch -> "patch"
+            | Stable -> "stable"
+            | Rapid -> "rapid"
+
+    [<RequireQualifiedAccess>]
+    type NodeOSUpgradeChannel =
+        | NodeImage
+        | SecurityPatch
+        | Unmanaged
+
+        member this.ArmValue =
+            match this with
+            | NodeImage -> "NodeImage"
+            | SecurityPatch -> "SecurityPatch"
+            | Unmanaged -> "Unmanaged"
 
 module B2cTenant =
     type Sku =
@@ -2668,12 +2792,10 @@ module PrivateIpAddress =
 module LoadBalancer =
     [<RequireQualifiedAccess>]
     type Sku =
-        | Basic
         | Standard
 
         member this.ArmValue =
             match this with
-            | Basic -> "Basic"
             | Standard -> "Standard"
 
     [<RequireQualifiedAccess>]
@@ -2947,6 +3069,16 @@ module ApplicationGateway =
             | TemporaryRedirect -> "TemporaryRedirect"
             | PermanentRedirect -> "PermanentRedirect"
 
+module NatGateway =
+    [<RequireQualifiedAccess>]
+    type Sku =
+        | Standard
+        | StandardV2
+
+        member this.ArmValue =
+            match this with
+            | Standard -> "Standard"
+            | StandardV2 -> "StandardV2"
 
 module VirtualNetworkGateway =
     [<RequireQualifiedAccess>]
@@ -3068,6 +3200,8 @@ module ServiceBus =
         | Send
         | Listen
 
+    let authorizationRule name rights = name, rights
+
 module CosmosDb =
     /// The consistency policy of a CosmosDB account.
     type ConsistencyPolicy =
@@ -3100,7 +3234,18 @@ module CosmosDb =
     /// The throughput for CosmosDB account
     type Throughput =
         | Provisioned of int<RU>
+        | Autoscale of int<RU>
         | Serverless
+
+    /// Continuous backup retention tier for a CosmosDB account.
+    type BackupRetention =
+        | Continuous7Days
+        | Continuous30Days
+
+        member this.ArmValue =
+            match this with
+            | Continuous7Days -> "Continuous7Days"
+            | Continuous30Days -> "Continuous30Days"
 
 module PostgreSQL =
     open Vm
@@ -3529,13 +3674,13 @@ module PublicIpAddress =
             | Static -> "Static"
 
     type Sku =
-        | Basic
         | Standard
+        | StandardV2
 
         member this.ArmValue =
             match this with
-            | Basic -> "Basic"
             | Standard -> "Standard"
+            | StandardV2 -> "StandardV2"
 
 module Cdn =
     type Sku =
@@ -4027,6 +4172,7 @@ module ContainerApp =
 
     type ServiceBusScaleRule = {
         QueueName: string
+        Namespace: string
         MessageCount: int
         SecretRef: string
     }
@@ -4062,6 +4208,11 @@ module ContainerApp =
         | HTTP2
         | Auto
 
+    [<RequireQualifiedAccess>]
+    type ProbeProtocol =
+        | TCP
+        | HTTPS
+
     type IngressMode =
         | External of port: uint16 * Transport option
         | InternalOnly
@@ -4082,6 +4233,92 @@ module ContainerApp =
         | EmptyDirectory
         /// Mounts an Azure File Share in the same resource group, performing a key lookup.
         | AzureFileShare of ShareName: ResourceName * StorageAccountName: Storage.StorageAccountName * StorageAccessMode
+
+    /// Defines valid resource allocations for containers on consumption plans.
+    /// Consumption plans require specific combinations of CPU (vCores) and memory (Gi).
+    /// See https://learn.microsoft.com/en-us/azure/container-apps/containers#allocations
+    [<RequireQualifiedAccess>]
+    type ConsumptionPlanResources =
+        /// 0.25 vCPU, 0.5 Gi memory
+        | Cores0_25
+        /// 0.5 vCPU, 1.0 Gi memory
+        | Cores0_5
+        /// 0.75 vCPU, 1.5 Gi memory
+        | Cores0_75
+        /// 1.0 vCPU, 2.0 Gi memory
+        | Cores1_0
+        /// 1.25 vCPU, 2.5 Gi memory
+        | Cores1_25
+        /// 1.5 vCPU, 3.0 Gi memory
+        | Cores1_5
+        /// 1.75 vCPU, 3.5 Gi memory
+        | Cores1_75
+        /// 2.0 vCPU, 4.0 Gi memory
+        | Cores2_0
+        /// 2.25 vCPU, 4.5 Gi memory
+        | Cores2_25
+        /// 2.5 vCPU, 5.0 Gi memory
+        | Cores2_5
+        /// 2.75 vCPU, 5.5 Gi memory
+        | Cores2_75
+        /// 3.0 vCPU, 6.0 Gi memory
+        | Cores3_0
+        /// 3.25 vCPU, 6.5 Gi memory
+        | Cores3_25
+        /// 3.5 vCPU, 7.0 Gi memory
+        | Cores3_5
+        /// 3.75 vCPU, 7.5 Gi memory
+        | Cores3_75
+        /// 4.0 vCPU, 8.0 Gi memory
+        | Cores4_0
+
+        member this.CPU: float<VCores> =
+            match this with
+            | Cores0_25 -> 0.25<VCores>
+            | Cores0_5 -> 0.5<VCores>
+            | Cores0_75 -> 0.75<VCores>
+            | Cores1_0 -> 1.0<VCores>
+            | Cores1_25 -> 1.25<VCores>
+            | Cores1_5 -> 1.5<VCores>
+            | Cores1_75 -> 1.75<VCores>
+            | Cores2_0 -> 2.0<VCores>
+            | Cores2_25 -> 2.25<VCores>
+            | Cores2_5 -> 2.5<VCores>
+            | Cores2_75 -> 2.75<VCores>
+            | Cores3_0 -> 3.0<VCores>
+            | Cores3_25 -> 3.25<VCores>
+            | Cores3_5 -> 3.5<VCores>
+            | Cores3_75 -> 3.75<VCores>
+            | Cores4_0 -> 4.0<VCores>
+
+        member this.Memory: float<Gb> =
+            match this with
+            | Cores0_25 -> 0.5<Gb>
+            | Cores0_5 -> 1.0<Gb>
+            | Cores0_75 -> 1.5<Gb>
+            | Cores1_0 -> 2.0<Gb>
+            | Cores1_25 -> 2.5<Gb>
+            | Cores1_5 -> 3.0<Gb>
+            | Cores1_75 -> 3.5<Gb>
+            | Cores2_0 -> 4.0<Gb>
+            | Cores2_25 -> 4.5<Gb>
+            | Cores2_5 -> 5.0<Gb>
+            | Cores2_75 -> 5.5<Gb>
+            | Cores3_0 -> 6.0<Gb>
+            | Cores3_25 -> 6.5<Gb>
+            | Cores3_5 -> 7.0<Gb>
+            | Cores3_75 -> 7.5<Gb>
+            | Cores4_0 -> 8.0<Gb>
+
+    [<RequireQualifiedAccess>]
+    type DaprProtocol =
+        | Grpc
+        | Http
+
+        member this.ArmValue =
+            match this with
+            | Grpc -> "grpc"
+            | Http -> "http"
 
 namespace Farmer.DiagnosticSettings
 

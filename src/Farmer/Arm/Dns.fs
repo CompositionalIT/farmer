@@ -124,10 +124,7 @@ module DnsRecords =
                 Type = nsRecord
         }
 
-        ArmExpression
-            .reference(nsRecord, sourceZoneResId)
-            .Map(fun r -> r + ".NSRecords")
-            .WithOwner(sourceZoneResId)
+        ArmExpression.reference(nsRecord, sourceZoneResId).Map(fun r -> r + ".NSRecords").WithOwner(sourceZoneResId)
 
     let private ttlKey zoneType =
         match zoneType with

@@ -5,7 +5,7 @@ open Farmer
 open Farmer.Storage
 
 let storageAccounts =
-    ResourceType("Microsoft.Storage/storageAccounts", "2022-05-01")
+    ResourceType("Microsoft.Storage/storageAccounts", "2025-06-01")
 
 let blobServices =
     ResourceType("Microsoft.Storage/storageAccounts/blobServices", "2019-06-01")
@@ -96,6 +96,7 @@ let private subnets = ResourceType("Microsoft.Network/virtualNetworks/subnets", 
 type StorageAccount = {
     Name: StorageAccountName
     Location: Location
+    ExtendedLocation: string option
     Sku: Sku
     Dependencies: ResourceId list
     EnableHierarchicalNamespace: bool option
@@ -121,6 +122,10 @@ type StorageAccount = {
 
         member this.JsonModel = {|
             storageAccounts.Create(this.Name.ResourceName, this.Location, this.Dependencies, this.Tags) with
+                extendedLocation =
+                    match this.ExtendedLocation with
+                    | Some name -> box {| name = name; ``type`` = "EdgeZone" |}
+                    | None -> null
                 sku = {|
                     name =
                         let performanceTier =
@@ -184,9 +189,8 @@ type StorageAccount = {
                         |> Option.defaultValue Unchecked.defaultof<_>
                     minimumTlsVersion =
                         match this.MinTlsVersion with
-                        | Some Tls10 -> "TLS1_0"
-                        | Some Tls11 -> "TLS1_1"
                         | Some Tls12 -> "TLS1_2"
+                        | Some Tls13 -> "TLS1_3"
                         | None -> null
                     supportsHttpsTrafficOnly =
                         match this.SupportsHttpsTrafficOnly with

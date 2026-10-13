@@ -51,7 +51,10 @@ type ServiceBusQueueConfig = {
                     QueueAuthorizationRule.Name =
                         rule.Key.Map(fun name -> $"{this.Namespace.Name.Value}/{this.Name.Value}/%s{name}")
                     Location = location
-                    Dependencies = [ namespaces.resourceId this.Name; queues.resourceId (this.Name, this.Name) ]
+                    Dependencies = [
+                        namespaces.resourceId this.Namespace.Name
+                        queues.resourceId (this.Namespace.Name, this.Name)
+                    ]
                     Rights = rule.Value
                 }
         ]
@@ -157,6 +160,16 @@ type ServiceBusQueueBuilder() =
     member _.AddAuthorizationRule(state: ServiceBusQueueConfig, name, rights) = {
         state with
             AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights)
+    }
+
+    /// Add authorization rules on the queue.
+    [<CustomOperation "add_authorization_rules">]
+    member _.AddAuthorizationRules(state: ServiceBusQueueConfig, rules: (string * AuthorizationRuleRight list) list) = {
+        state with
+            AuthorizationRules =
+                (state.AuthorizationRules, rules)
+                ||> List.fold (fun authorizationRules (name, rights) ->
+                    authorizationRules.Add(ResourceName name, Set rights))
     }
 
     /// Instead of creating or modifying a namespace, configure this subscription to point to another unmanaged namespace instance.
@@ -325,6 +338,7 @@ type ServiceBusTopicConfig = {
     MaxMessageSizeInKilobytes: int<Kb> option
     MaxSizeInMegabytes: int<Mb> option
     Subscriptions: Map<ResourceName, ServiceBusSubscriptionConfig>
+    AuthorizationRules: Map<ResourceName, AuthorizationRuleRight Set>
 } with
 
     member this.ResourceId = topics.resourceId (this.Namespace.Name, this.Name)
@@ -352,6 +366,17 @@ type ServiceBusTopicConfig = {
                 MaxMessageSizeInKilobytes = this.MaxMessageSizeInKilobytes
                 MaxSizeInMegabytes = this.MaxSizeInMegabytes
             }
+            for rule in this.AuthorizationRules do
+                {
+                    TopicAuthorizationRule.Name =
+                        rule.Key.Map(fun name -> $"{this.Namespace.Name.Value}/{this.Name.Value}/%s{name}")
+                    Location = location
+                    Dependencies = [
+                        namespaces.resourceId this.Namespace.Name
+                        topics.resourceId (this.Namespace.Name, this.Name)
+                    ]
+                    Rights = rule.Value
+                }
             for subscription in this.Subscriptions do
                 let subscription =
                     {
@@ -373,6 +398,7 @@ type ServiceBusTopicBuilder() =
         MaxMessageSizeInKilobytes = None
         MaxSizeInMegabytes = None
         Subscriptions = Map.empty
+        AuthorizationRules = Map.empty
     }
 
     /// The name of the queue.
@@ -444,6 +470,23 @@ type ServiceBusTopicBuilder() =
                 (state.Subscriptions, subscriptions)
                 ||> List.fold (fun state (subscription: ServiceBusSubscriptionConfig) ->
                     state.Add(subscription.Name, subscription))
+    }
+
+    /// Add authorization rule on the topic.
+    [<CustomOperation "add_authorization_rule">]
+    member _.AddAuthorizationRule(state: ServiceBusTopicConfig, name, rights) = {
+        state with
+            AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights)
+    }
+
+    /// Add authorization rules on the topic.
+    [<CustomOperation "add_authorization_rules">]
+    member _.AddAuthorizationRules(state: ServiceBusTopicConfig, rules: (string * AuthorizationRuleRight list) list) = {
+        state with
+            AuthorizationRules =
+                (state.AuthorizationRules, rules)
+                ||> List.fold (fun authorizationRules (name, rights) ->
+                    authorizationRules.Add(ResourceName name, Set rights))
     }
 
     /// Instead of creating or modifying a namespace, configure this topic to point to another unmanaged namespace instance.
@@ -552,6 +595,10 @@ type ServiceBusBuilder() =
             raiseFarmer "Zone redundancy can only be enabled against premium service bus namespaces"
         | _ -> ()
 
+        // Validate topics are not used with Basic SKU
+        if not (Map.isEmpty state.Topics) && state.Sku = Basic then
+            raiseFarmer "Topics are not supported on the Basic SKU. Please use Standard or Premium SKU."
+
         for queue in state.Queues do
             let queue = queue.Value
 
@@ -565,6 +612,17 @@ type ServiceBusBuilder() =
             |> Option.iter (fun lockDuration ->
                 if lockDuration > TimeSpan(0, 5, 0) then
                     raiseFarmer "Lock duration name must not be more than 5 minutes.")
+
+        // Validate max message size for topics
+        for topic in state.Topics do
+            let topic = topic.Value
+
+            match topic.MaxMessageSizeInKilobytes, state.Sku with
+            | Some _, Basic
+            | Some _, Standard ->
+                raiseFarmer
+                    $"Max message size for topics is only supported on the Premium SKU (topic '{topic.Name.Value}' fails this check)."
+            | _ -> ()
 
         state
 
@@ -630,6 +688,16 @@ type ServiceBusBuilder() =
     member _.AddAuthorizationRule(state: ServiceBusConfig, name, rights) = {
         state with
             AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights)
+    }
+
+    /// Add authorization rules on the namespace.
+    [<CustomOperation "add_authorization_rules">]
+    member _.AddAuthorizationRules(state: ServiceBusConfig, rules: (string * AuthorizationRuleRight list) list) = {
+        state with
+            AuthorizationRules =
+                (state.AuthorizationRules, rules)
+                ||> List.fold (fun authorizationRules (name, rights) ->
+                    authorizationRules.Add(ResourceName name, Set rights))
     }
 
     interface ITaggable<ServiceBusConfig> with

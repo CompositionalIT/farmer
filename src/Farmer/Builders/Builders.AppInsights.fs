@@ -7,20 +7,14 @@ open Farmer.Arm.LogAnalytics
 
 type AppInsights =
     static member getInstrumentationKey(resourceId: ResourceId) =
-        ArmExpression
-            .reference(resourceId)
-            .Map(sprintf "%s.InstrumentationKey")
-            .WithOwner(resourceId)
+        ArmExpression.reference(resourceId).Map(sprintf "%s.InstrumentationKey").WithOwner(resourceId)
 
     static member getInstrumentationKey(name: ResourceName, ?resourceGroup, ?resourceType) =
         let resourceType = resourceType |> Option.defaultValue components
         AppInsights.getInstrumentationKey (ResourceId.create (resourceType, name, ?group = resourceGroup))
 
     static member getConnectionString(resourceId: ResourceId) =
-        ArmExpression
-            .reference(resourceId)
-            .Map(sprintf "%s.ConnectionString")
-            .WithOwner(resourceId)
+        ArmExpression.reference(resourceId).Map(sprintf "%s.ConnectionString").WithOwner(resourceId)
 
     static member getConnectionString(name: ResourceName, ?resourceGroup, ?resourceType) =
         let resourceType = resourceType |> Option.defaultValue components

@@ -59,8 +59,12 @@ let tests =
                 "Invalid value of parameter secret"
 
             let sa = storageAccount { name "storage" }
-            let expressionSecret = SecretConfig.create ("test", sa.Key)
-            Expect.equal expressionSecret.Value (ExpressionSecret sa.Key) "Invalid value of expression secret"
+            let expressionSecret = SecretConfig.create ("test", sa.ConnectionString)
+
+            Expect.equal
+                expressionSecret.Value
+                (ExpressionSecret sa.ConnectionString)
+                "Invalid value of expression secret"
 
             Expect.sequenceEqual
                 expressionSecret.Dependencies
@@ -110,9 +114,7 @@ let tests =
 
             let roleAssignment = {
                 Name =
-                    ArmExpression
-                        .create($"guid(concat(resourceGroup().id, '{Roles.KeyVaultReader.Id}'))")
-                        .Eval()
+                    ArmExpression.create($"guid(concat(resourceGroup().id, '{Roles.KeyVaultReader.Id}'))").Eval()
                     |> ResourceName
                 RoleDefinitionId = Roles.KeyVaultReader
                 PrincipalId = msi.PrincipalId
