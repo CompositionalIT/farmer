@@ -71,6 +71,7 @@ type DaprComponent = {
     Secrets: Map<string, SecretValue>
     SecretStoreComponent: ResourceName option
     Version: string
+    ResiliencyPolicy: DaprResiliencyPolicy
 }
 
 type ContainerEnvironmentConfig = {
@@ -90,7 +91,7 @@ type ContainerEnvironmentConfig = {
         member this.BuildResources location = [
             let logAnalyticsResourceId = this.LogAnalytics.resourceId this
 
-            {
+            yield {
                 Name = this.Name
                 InternalLoadBalancerState = this.InternalLoadBalancerState
                 LogAnalytics = logAnalyticsResourceId
@@ -117,7 +118,7 @@ type ContainerEnvironmentConfig = {
             | _ -> ()
 
             for containerApp in this.ContainerApps do
-                {
+                yield {
                     Name = containerApp.Name
                     Environment = managedEnvironments.resourceId this.Name
                     ActiveRevisionsMode = containerApp.ActiveRevisionsMode
@@ -163,12 +164,14 @@ type ContainerEnvironmentConfig = {
                     |> Seq.distinctBy _.Name
 
                 for volume in uniqueVolumes do
-                    volume
+                    yield volume
 
             for daprComponent in this.DaprComponents do
-                {
+                let environment = managedEnvironments.resourceId this.Name
+
+                yield {
                     Name = daprComponent.Name
-                    Environment = managedEnvironments.resourceId this.Name
+                    Environment = environment
                     ComponentType = daprComponent.ComponentType
                     IgnoreErrors = daprComponent.IgnoreErrors
                     InitTimeout = daprComponent.InitTimeout
@@ -177,7 +180,26 @@ type ContainerEnvironmentConfig = {
                     Secrets = daprComponent.Secrets
                     SecretStoreComponent = daprComponent.SecretStoreComponent
                     Version = daprComponent.Version
+                    ResiliencyPolicy = daprComponent.ResiliencyPolicy
                 }
+
+                if
+                    [
+                        daprComponent.ResiliencyPolicy.InboundTimeoutPolicy.IsSome
+                        daprComponent.ResiliencyPolicy.InboundHttpRetryPolicy.IsSome
+                        daprComponent.ResiliencyPolicy.InboundCircuitBreakerPolicy.IsSome
+                        daprComponent.ResiliencyPolicy.OutboundTimeoutPolicy.IsSome
+                        daprComponent.ResiliencyPolicy.OutboundHttpRetryPolicy.IsSome
+                        daprComponent.ResiliencyPolicy.OutboundCircuitBreakerPolicy.IsSome
+                    ]
+                    |> List.exists id
+                then
+                    yield {
+                        Name = ResourceName "resiliency-policy"
+                        Environment = environment
+                        Component = daprComponent.Name
+                        Policy = daprComponent.ResiliencyPolicy
+                    }
         ]
 
 type ContainerEnvironmentBuilder() =
@@ -731,6 +753,64 @@ type ContainerBuilder() =
                 )
     }
 
+type TimeoutPolicyBuilder() =
+    member _.Yield _ = { ResponseTimeoutInSeconds = 0 }
+
+    [<CustomOperation "response_timeout_in_seconds">]
+    member _.ResponseTimeoutInSeconds(state: TimeoutPolicy, value: int) = {
+        state with
+            ResponseTimeoutInSeconds = value
+    }
+
+type HttpRetryPolicyBuilder() =
+    member _.Yield _ = {
+        MaxRetries = 0
+        RetryBackOff = {
+            InitialDelayInMilliseconds = 0
+            MaxIntervalInMilliseconds = 0
+        }
+    }
+
+    [<CustomOperation "max_retries">]
+    member _.MaxRetries(state: HttpRetryPolicy, value: int) = { state with MaxRetries = value }
+
+    [<CustomOperation "initial_delay_in_milliseconds">]
+    member _.InitialDelayInMilliseconds(state: HttpRetryPolicy, value: int) = {
+        state with
+            RetryBackOff = {
+                state.RetryBackOff with
+                    InitialDelayInMilliseconds = value
+            }
+    }
+
+    [<CustomOperation "max_interval_in_milliseconds">]
+    member _.MaxIntervalInMilliseconds(state: HttpRetryPolicy, value: int) = {
+        state with
+            RetryBackOff = {
+                state.RetryBackOff with
+                    MaxIntervalInMilliseconds = value
+            }
+    }
+
+type CircuitBreakerPolicyBuilder() =
+    member _.Yield _ = {
+        IntervalInSeconds = None
+        ConsecutiveErrors = 0
+        TimeoutInSeconds = 0
+    }
+
+    [<CustomOperation "interval_in_seconds">]
+    member _.IntervalInSeconds(state: CircuitBreakerPolicy, value: int) = {
+        state with
+            IntervalInSeconds = Some value
+    }
+
+    [<CustomOperation "consecutive_errors">]
+    member _.ConsecutiveErrors(state: CircuitBreakerPolicy, value: int) = { state with ConsecutiveErrors = value }
+
+    [<CustomOperation "timeout_in_seconds">]
+    member _.TimeoutInSeconds(state: CircuitBreakerPolicy, value: int) = { state with TimeoutInSeconds = value }
+
 type ServiceBusScaleRuleBuilder() =
     member _.Yield _ = {
         QueueName = ""
@@ -758,6 +838,7 @@ type ServiceBusScaleRuleBuilder() =
     member _.SecretRef(state: ServiceBusScaleRule, secretRef: string) = { state with SecretRef = secretRef }
 
 type DaprComponentBuilder() =
+
     member _.Yield _ = {
         Name = ResourceName.Empty
         ComponentType = ""
@@ -768,6 +849,14 @@ type DaprComponentBuilder() =
         Secrets = Map.empty
         SecretStoreComponent = None
         Version = ""
+        ResiliencyPolicy = {
+            InboundTimeoutPolicy = None
+            InboundHttpRetryPolicy = None
+            InboundCircuitBreakerPolicy = None
+            OutboundTimeoutPolicy = None
+            OutboundHttpRetryPolicy = None
+            OutboundCircuitBreakerPolicy = None
+        }
     }
 
     [<CustomOperation "name">]
@@ -928,9 +1017,71 @@ type DaprComponentBuilder() =
                     |> Map.add "connectionString" (SecretRef connectionStringSecretKey)
         }
 
+    /// <summary>
+    /// Sets the timeout policy for inbound requests.
+    /// See https://learn.microsoft.com/en-us/azure/container-apps/dapr-component-resiliency#timeouts.
+    /// </summary>
+    [<CustomOperation "resiliency_policy_inbound_timeout">]
+    member _.ResiliencyPolicyInboundTimeout(state: DaprComponent, timeoutPolicy: TimeoutPolicy) = {
+        state with
+            ResiliencyPolicy.InboundTimeoutPolicy = Some timeoutPolicy
+    }
+
+    /// <summary>
+    /// Sets the HTTP retry policy for inbound requests.
+    /// See https://learn.microsoft.com/en-us/azure/container-apps/dapr-component-resiliency#retries.
+    /// </summary>
+    [<CustomOperation "resiliency_policy_inbound_http_retry">]
+    member _.ResiliencyPolicyInboundHttpRetry(state: DaprComponent, httpRetryPolicy: HttpRetryPolicy) = {
+        state with
+            ResiliencyPolicy.InboundHttpRetryPolicy = Some httpRetryPolicy
+    }
+
+    /// <summary>
+    /// Sets the circuit breaker policy for inbound requests.
+    /// See https://learn.microsoft.com/en-us/azure/container-apps/dapr-component-resiliency#circuit-breakers.
+    /// </summary>
+    [<CustomOperation "resiliency_policy_inbound_circuit_breaker">]
+    member _.ResiliencyPolicyInboundCircuitBreaker(state: DaprComponent, circuitBreakerPolicy: CircuitBreakerPolicy) = {
+        state with
+            ResiliencyPolicy.InboundCircuitBreakerPolicy = Some circuitBreakerPolicy
+    }
+
+    /// <summary>
+    /// Sets the timeout policy for outbound requests.
+    /// See https://learn.microsoft.com/en-us/azure/container-apps/dapr-component-resiliency#timeouts.
+    /// </summary>
+    [<CustomOperation "resiliency_policy_outbound_timeout">]
+    member _.ResiliencyPolicyOutboundTimeout(state: DaprComponent, timeoutPolicy: TimeoutPolicy) = {
+        state with
+            ResiliencyPolicy.OutboundTimeoutPolicy = Some timeoutPolicy
+    }
+
+    /// <summary>
+    /// Sets the HTTP retry policy for outbound requests.
+    /// See https://learn.microsoft.com/en-us/azure/container-apps/dapr-component-resiliency#retries.
+    /// </summary>
+    [<CustomOperation "resiliency_policy_outbound_http_retry">]
+    member _.ResiliencyPolicyOutboundHttpRetry(state: DaprComponent, httpRetryPolicy: HttpRetryPolicy) = {
+        state with
+            ResiliencyPolicy.OutboundHttpRetryPolicy = Some httpRetryPolicy
+    }
+
+    /// <summary>
+    /// Sets the circuit breaker policy for outbound requests.
+    /// See https://learn.microsoft.com/en-us/azure/container-apps/dapr-component-resiliency#circuit-breakers.
+    /// </summary>
+    [<CustomOperation "resiliency_policy_outbound_circuit_breaker">]
+    member _.ResiliencyPolicyOutboundCircuitBreaker(state: DaprComponent, circuitBreakerPolicy: CircuitBreakerPolicy) = {
+        state with
+            ResiliencyPolicy.OutboundCircuitBreakerPolicy = Some circuitBreakerPolicy
+    }
 
 let containerEnvironment = ContainerEnvironmentBuilder()
 let containerApp = ContainerAppBuilder()
 let container = ContainerBuilder()
-let serviceBusScaleRule = ServiceBusScaleRuleBuilder()
 let daprComponent = DaprComponentBuilder()
+let timeout_policy = TimeoutPolicyBuilder()
+let http_retry_policy = HttpRetryPolicyBuilder()
+let circuit_breaker_policy = CircuitBreakerPolicyBuilder()
+let serviceBusScaleRule = ServiceBusScaleRuleBuilder()

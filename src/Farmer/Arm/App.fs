@@ -16,6 +16,9 @@ let storages =
 let daprComponents =
     ResourceType("Microsoft.App/managedEnvironments/daprComponents", "2026-07-01")
 
+let daprComponentResiliencyPolicies =
+    ResourceType("Microsoft.App/managedEnvironments/daprComponents/resiliencyPolicies", "2023-11-02-preview")
+
 open Farmer.ContainerAppValidation
 open Farmer.Identity
 
@@ -97,6 +100,33 @@ type DaprMetadataValue =
     | SecretRef of string
     | Value of string
 
+type TimeoutPolicy = { ResponseTimeoutInSeconds: int }
+
+type RetryBackOff = {
+    InitialDelayInMilliseconds: int
+    MaxIntervalInMilliseconds: int
+}
+
+type HttpRetryPolicy = {
+    MaxRetries: int
+    RetryBackOff: RetryBackOff
+}
+
+type CircuitBreakerPolicy = {
+    IntervalInSeconds: int option
+    ConsecutiveErrors: int
+    TimeoutInSeconds: int
+}
+
+type DaprResiliencyPolicy = {
+    InboundTimeoutPolicy: TimeoutPolicy option
+    InboundHttpRetryPolicy: HttpRetryPolicy option
+    InboundCircuitBreakerPolicy: CircuitBreakerPolicy option
+    OutboundTimeoutPolicy: TimeoutPolicy option
+    OutboundHttpRetryPolicy: HttpRetryPolicy option
+    OutboundCircuitBreakerPolicy: CircuitBreakerPolicy option
+}
+
 type DaprComponent = {
     Name: ResourceName
     Environment: ResourceId
@@ -108,6 +138,7 @@ type DaprComponent = {
     Secrets: Map<string, SecretValue>
     SecretStoreComponent: ResourceName option
     Version: string
+    ResiliencyPolicy: DaprResiliencyPolicy
 } with
 
     interface IArmResource with
@@ -148,6 +179,79 @@ type DaprComponent = {
                     version = this.Version
                 |}
         |}
+
+type DaprComponentResiliencyPolicy = {
+    Name: ResourceName
+    Environment: ResourceId
+    Component: ResourceName
+    Policy: DaprResiliencyPolicy
+} with
+
+    interface IArmResource with
+        member this.ResourceId =
+            daprComponentResiliencyPolicies.resourceId (
+                ResourceName $"{this.Environment.Name.Value}/{this.Component.Value}/{this.Name.Value}"
+            )
+
+        member this.JsonModel =
+            let timeoutPolicy (value: TimeoutPolicy) = {|
+                responseTimeoutInSeconds = value.ResponseTimeoutInSeconds
+            |}
+
+            let retryBackOff (value: RetryBackOff) = {|
+                initialDelayInMilliseconds = value.InitialDelayInMilliseconds
+                maxIntervalInMilliseconds = value.MaxIntervalInMilliseconds
+            |}
+
+            let httpRetryPolicy (value: HttpRetryPolicy) = {|
+                maxRetries = value.MaxRetries
+                retryBackOff = retryBackOff value.RetryBackOff
+            |}
+
+            let circuitBreakerPolicy (value: CircuitBreakerPolicy) = {|
+                intervalInSeconds = value.IntervalInSeconds |> Option.toNullable
+                consecutiveErrors = value.ConsecutiveErrors
+                timeoutInSeconds = value.TimeoutInSeconds
+            |}
+
+            let policy = this.Policy
+
+            {|
+                daprComponentResiliencyPolicies.Create(
+                    ResourceName $"{this.Environment.Name.Value}/{this.Component.Value}/{this.Name.Value}",
+                    dependsOn = [
+                        daprComponents.resourceId (ResourceName $"{this.Environment.Name.Value}/{this.Component.Value}")
+                    ]
+                ) with
+                    properties = {|
+                        inboundPolicy = {|
+                            timeoutPolicy =
+                                policy.InboundTimeoutPolicy |> Option.map (timeoutPolicy >> box) |> Option.toObj
+                            httpRetryPolicy =
+                                policy.InboundHttpRetryPolicy
+                                |> Option.map (httpRetryPolicy >> box)
+                                |> Option.toObj
+                            circuitBreakerPolicy =
+                                policy.InboundCircuitBreakerPolicy
+                                |> Option.map (circuitBreakerPolicy >> box)
+                                |> Option.toObj
+                        |}
+                        outboundPolicy = {|
+                            timeoutPolicy =
+                                policy.OutboundTimeoutPolicy
+                                |> Option.map (timeoutPolicy >> box)
+                                |> Option.toObj
+                            httpRetryPolicy =
+                                policy.OutboundHttpRetryPolicy
+                                |> Option.map (httpRetryPolicy >> box)
+                                |> Option.toObj
+                            circuitBreakerPolicy =
+                                policy.OutboundCircuitBreakerPolicy
+                                |> Option.map (circuitBreakerPolicy >> box)
+                                |> Option.toObj
+                        |}
+                    |}
+            |}
 
 type ContainerApp = {
     Name: ResourceName

@@ -76,6 +76,25 @@ let fullContainerAppDeployment =
                 add_metadata "meta1" "value1"
                 add_secret_metadata "meta2" "secret1" storage.ConnectionString
                 add_scope httpContainerApp
+                resiliency_policy_inbound_timeout (timeout_policy { response_timeout_in_seconds 15 })
+
+                resiliency_policy_inbound_http_retry (
+                    http_retry_policy {
+                        max_retries 5
+                        initial_delay_in_milliseconds 1000
+                        max_interval_in_milliseconds 10000
+                    }
+                )
+
+                resiliency_policy_inbound_circuit_breaker (
+                    circuit_breaker_policy {
+                        consecutive_errors 10
+                        timeout_in_seconds 5
+                        interval_in_seconds 15
+                    }
+                )
+
+                resiliency_policy_outbound_timeout (timeout_policy { response_timeout_in_seconds 20 })
             }
         ]
 
@@ -239,6 +258,16 @@ let tests =
 
             let daprComponentProperties = daprComponent["properties"]
 
+            let daprResiliencyPolicy =
+                jobj.SelectToken("resources[?(@.name=='kubecontainerenv/daprComponent/resiliency-policy')]")
+
+            Expect.equal
+                (daprResiliencyPolicy["type"] |> string)
+                "Microsoft.App/managedEnvironments/daprComponents/resiliencyPolicies"
+                "Incorrect type for dapr resiliency policy"
+
+            let daprResiliencyPolicyProperties = daprResiliencyPolicy["properties"]
+
             Expect.equal
                 (daprComponentProperties["componentType"] |> string)
                 "some.component.type"
@@ -268,6 +297,42 @@ let tests =
 
             let scope = daprComponentProperties.SelectToken("scopes[0]")
             Expect.equal (scope |> string) "http" "Incorrect scopes[0]"
+
+            Expect.equal
+                (daprResiliencyPolicyProperties.SelectToken("inboundPolicy.timeoutPolicy.responseTimeoutInSeconds")
+                 |> int)
+                15
+                "Incorrect inbound timeout policy"
+
+            Expect.equal
+                (daprResiliencyPolicyProperties.SelectToken("inboundPolicy.httpRetryPolicy.maxRetries")
+                 |> int)
+                5
+                "Incorrect inbound HTTP retry policy"
+
+            Expect.equal
+                (daprResiliencyPolicyProperties.SelectToken(
+                    "inboundPolicy.httpRetryPolicy.retryBackOff.initialDelayInMilliseconds"
+                 )
+                 |> int)
+                1000
+                "Incorrect inbound retry backoff"
+
+            Expect.equal
+                (daprResiliencyPolicyProperties.SelectToken("inboundPolicy.circuitBreakerPolicy.intervalInSeconds")
+                 |> int)
+                15
+                "Incorrect inbound circuit breaker policy"
+
+            Expect.equal
+                (daprResiliencyPolicyProperties.SelectToken("outboundPolicy.timeoutPolicy.responseTimeoutInSeconds")
+                 |> int)
+                20
+                "Incorrect outbound timeout policy"
+
+            Expect.isNull
+                (daprResiliencyPolicyProperties.SelectToken("outboundPolicy.httpRetryPolicy"))
+                "Unexpected outbound HTTP retry policy"
         }
 
         test "Full container environment containerApp" {
