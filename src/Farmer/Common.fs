@@ -1,6 +1,27 @@
-﻿namespace Farmer
+namespace Farmer
 
 open System
+
+type ColumnType =
+    | Boolean
+    | DateTime
+    | Dynamic
+    | Int
+    | Long
+    | Real
+    | String
+
+    member this.ArmValue =
+        match this with
+        | Boolean -> "boolean"
+        | DateTime -> "datetime"
+        | Dynamic -> "dynamic"
+        | Int -> "int"
+        | Long -> "long"
+        | Real -> "real"
+        | String -> "string"
+
+type Column = { Name: string; Type: ColumnType }
 
 type NonEmptyList<'T> =
     private
