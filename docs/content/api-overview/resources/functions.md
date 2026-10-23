@@ -54,6 +54,8 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | link_to_vnet | Enable the VNET integration feature in azure where all outbound traffic from the function with be sent via the specified subnet. Use this operator when the given VNET is in the same deployment |
 | link_to_unmanaged_vnet | Enable the VNET integration feature in azure where all outbound traffic from the function with be sent via the specified subnet. Use this operator when the given VNET is *not* in the same deployment |
 | max_scale_out_limit | Maximum number of workers that a site can scale out to. This setting only applies to the Consumption and Elastic Premium Plans |
+| production_defaults | Applies production-safe defaults: enables `always_on` for Premium/Dedicated plans, enforces `https_only`, and sets `max_scale_out_limit` to 100 for Consumption plans. Note: For high-traffic production workloads, you may want to adjust or remove the scale limit. |
+
 #### Post-deployment Builder Keywords
 The Functions builder contains special commands that are executed *after* the ARM deployment is completed.
 
@@ -96,6 +98,40 @@ let myFunctions = functions {
     app_insights_off
 }
 ```
+
+#### Production-Ready Example
+The `production_defaults` keyword applies production-safe defaults with a single line:
+
+```fsharp
+open Farmer
+open Farmer.Builders
+
+let productionFunction = functions {
+    name "payment-api"
+    service_plan_sku Sku.EP1  // Premium plan
+    use_runtime FunctionsRuntime.DotNet80
+    production_defaults  // Enables AlwaysOn, HTTPS, and scale limits
+}
+
+// For Consumption plan, it adds scale limits automatically
+let consumptionFunction = functions {
+    name "batch-processor"
+    service_plan_sku Sku.Y1  // Consumption plan
+    use_runtime FunctionsRuntime.Python38
+    production_defaults  // Sets max_scale_out_limit to 100, enforces HTTPS
+}
+
+// For high-traffic production, you may want higher limits
+let highTrafficProduction = functions {
+    name "critical-api"
+    service_plan_sku Sku.Y1
+    use_runtime FunctionsRuntime.DotNet80
+    production_defaults
+    max_scale_out_limit 200  // Override for critical workloads
+}
+```
+
+> **Note**: Farmer will warn you if you create a Consumption plan function without a scale limit, helping prevent unexpected costs during development. For production, evaluate if you need higher limits based on your traffic patterns.
 
 #### Example of a Premium Functions app
 ```fsharp
