@@ -222,6 +222,17 @@ module DedicatedHosts =
 
 module Vm =
 
+    /// Controls guest OS patch orchestration. ImageDefault is Linux-only;
+    /// AutomaticByOS and Manual are Windows-only.
+    [<RequireQualifiedAccess>]
+    type PatchMode =
+        | AutomaticByPlatform
+        | ImageDefault
+        | AutomaticByOS
+        | Manual
+
+        member this.ArmValue = string this
+
     type VmProxyAgentMode =
         | Audit
         | Enforce

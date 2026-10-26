@@ -61,6 +61,191 @@ let tests =
                 "Incorrect diagnostics storage Uri"
         }
 
+        test "Linux VM supports platform patching" {
+            let machine = vm {
+                name "patchvm"
+                username "azureuser"
+                operating_system AzureLinux_3
+                patch_mode Farmer.Vm.PatchMode.AutomaticByPlatform
+            }
+
+            let template = arm { add_resource machine }
+            let json = JObject.Parse(template.Template |> Writer.toJson)
+
+            let profile =
+                json.SelectToken "resources[?(@.name=='patchvm')].properties.osProfile"
+
+            Expect.equal
+                (string profile.["linuxConfiguration"].["patchSettings"].["patchMode"])
+                "AutomaticByPlatform"
+                "Incorrect patch mode"
+
+            Expect.equal
+                (profile.["linuxConfiguration"].["provisionVMAgent"].Value<bool>())
+                true
+                "Patching requires the VM agent"
+
+            Expect.isNull profile.["windowsConfiguration"] "Linux VM must not emit Windows configuration"
+        }
+
+        test "Windows VM supports platform patching" {
+            let machine = vm {
+                name "patchvm"
+                username "azureuser"
+                operating_system WindowsServer_2022Datacenter
+                patch_mode Farmer.Vm.PatchMode.AutomaticByPlatform
+            }
+
+            let template = arm { add_resource machine }
+            let json = JObject.Parse(template.Template |> Writer.toJson)
+
+            let profile =
+                json.SelectToken "resources[?(@.name=='patchvm')].properties.osProfile"
+
+            Expect.equal
+                (string profile.["windowsConfiguration"].["patchSettings"].["patchMode"])
+                "AutomaticByPlatform"
+                "Incorrect patch mode"
+
+            Expect.equal
+                (profile.["windowsConfiguration"].["provisionVMAgent"].Value<bool>())
+                true
+                "Patching requires the VM agent"
+
+            Expect.equal
+                (profile.["windowsConfiguration"].["enableAutomaticUpdates"].Value<bool>())
+                true
+                "Windows platform patching requires automatic updates on creation"
+
+            Expect.isNull profile.["linuxConfiguration"] "Windows VM must not emit Linux configuration"
+        }
+
+        test "Patch settings are omitted by default" {
+            for image in [ AzureLinux_3; WindowsServer_2022Datacenter ] do
+                let machine = vm {
+                    name "patchvm"
+                    username "azureuser"
+                    operating_system image
+                }
+
+                let template = arm { add_resource machine }
+                let json = JObject.Parse(template.Template |> Writer.toJson)
+
+                let profile =
+                    json.SelectToken "resources[?(@.name=='patchvm')].properties.osProfile"
+
+                Expect.isNull profile.["linuxConfiguration"] "Default Linux configuration must be unchanged"
+                Expect.isNull profile.["windowsConfiguration"] "Default Windows configuration must be unchanged"
+        }
+
+        test "Linux platform patching preserves SSH configuration and disk deletion" {
+            let machine = vm {
+                name "patchvm"
+                username "azureuser"
+                operating_system AzureLinux_3
+                patch_mode Farmer.Vm.PatchMode.AutomaticByPlatform
+                disable_password_authentication true
+                add_authorized_key "/home/azureuser/.ssh/authorized_keys" "ssh-rsa test-key"
+                delete_attached
+            }
+
+            let template = arm { add_resource machine }
+            let json = JObject.Parse(template.Template |> Writer.toJson)
+
+            let config =
+                json.SelectToken "resources[?(@.name=='patchvm')].properties.osProfile.linuxConfiguration"
+
+            Expect.equal (string config.["patchSettings"].["patchMode"]) "AutomaticByPlatform" "Incorrect patch mode"
+
+            Expect.equal
+                (config.["disablePasswordAuthentication"].Value<bool>())
+                true
+                "SSH authentication must be preserved"
+
+            Expect.equal
+                (string config.["ssh"].["publicKeys"].[0].["keyData"])
+                "ssh-rsa test-key"
+                "SSH key must be preserved"
+
+            Expect.isNull (json.SelectToken "parameters.password-for-patchvm") "SSH-only VM must not require a password"
+        }
+
+        test "VM supports other OS-specific patch modes" {
+            for image, mode, configName in
+                [
+                    AzureLinux_3, Farmer.Vm.PatchMode.ImageDefault, "linuxConfiguration"
+                    WindowsServer_2022Datacenter, Farmer.Vm.PatchMode.AutomaticByOS, "windowsConfiguration"
+                    WindowsServer_2022Datacenter, Farmer.Vm.PatchMode.Manual, "windowsConfiguration"
+                ] do
+                let machine = vm {
+                    name "patchvm"
+                    username "azureuser"
+                    operating_system image
+                    patch_mode mode
+                }
+
+                let template = arm { add_resource machine }
+                let json = JObject.Parse(template.Template |> Writer.toJson)
+
+                let config =
+                    (json.SelectToken "resources[?(@.name=='patchvm')].properties.osProfile").[configName]
+
+                Expect.equal (string config.["patchSettings"].["patchMode"]) mode.ArmValue "Incorrect patch mode"
+
+                if configName = "windowsConfiguration" then
+                    Expect.equal
+                        (config.["enableAutomaticUpdates"].Value<bool>())
+                        (mode <> Farmer.Vm.PatchMode.Manual)
+                        "Incorrect Windows automatic updates setting"
+        }
+
+        test "VM rejects patch modes for the wrong OS" {
+            for image, mode in
+                [
+                    AzureLinux_3, Farmer.Vm.PatchMode.Manual
+                    AzureLinux_3, Farmer.Vm.PatchMode.AutomaticByOS
+                    WindowsServer_2022Datacenter, Farmer.Vm.PatchMode.ImageDefault
+                ] do
+                Expect.throws
+                    (fun () ->
+                        let machine = vm {
+                            name "patchvm"
+                            username "azureuser"
+                            operating_system image
+                            patch_mode mode
+                        }
+
+                        let template = arm { add_resource machine }
+                        template.Template |> Writer.toJson |> ignore)
+                    "OS-specific patch modes must be validated"
+        }
+
+        test "VM rejects patch mode with attached OS disks" {
+            for deleteDisk in [ false; true ] do
+                Expect.throws
+                    (fun () ->
+                        let machine = vm {
+                            name "patchvm"
+                            username "azureuser"
+                            attach_existing_os_disk Linux (Farmer.Arm.Disk.disks.resourceId "existing-disk")
+                            patch_mode Farmer.Vm.PatchMode.AutomaticByPlatform
+                        }
+
+                        let machine =
+                            if deleteDisk then
+                                {
+                                    machine with
+                                        DiskDeleteOption = Some DeleteOption.Delete
+                                }
+                                |> vm.Run
+                            else
+                                machine
+
+                        let template = arm { add_resource machine }
+                        template.Template |> Writer.toJson |> ignore)
+                    "Attached OS disks cannot use an OS profile"
+        }
+
         test "By default, VM does not include Priority" {
             let template =
                 let myVm = vm {

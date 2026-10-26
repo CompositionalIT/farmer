@@ -39,6 +39,7 @@ type VmConfig = {
 
     CustomData: string option
     DisablePasswordAuthentication: bool option
+    PatchMode: PatchMode option
     SshPathAndPublicKeys: (string * string) list option
     AadSshLogin: FeatureFlag
 
@@ -214,6 +215,7 @@ type VmConfig = {
                         | None -> raiseFarmer $"You must specify a username for virtual machine {this.Name.Value}"
                     CustomData = this.CustomData
                     DisablePasswordAuthentication = this.DisablePasswordAuthentication
+                    PatchMode = this.PatchMode
                     GalleryApplications = this.GalleryApplications
                     PublicKeys =
                         if
@@ -348,6 +350,7 @@ type VirtualMachineBuilder() =
         DomainNamePrefix = None
         CustomData = None
         DisablePasswordAuthentication = None
+        PatchMode = None
         SshPathAndPublicKeys = None
         AadSshLogin = FeatureFlag.Disabled
         OsDisk =
@@ -997,6 +1000,10 @@ type VirtualMachineBuilder() =
             state with
                 Dependencies = state.Dependencies + newDeps
         }
+
+    /// Sets guest OS patch orchestration for this VM.
+    [<CustomOperation "patch_mode">]
+    member _.PatchMode(state: VmConfig, mode: PatchMode) = { state with PatchMode = Some mode }
 
     [<CustomOperation "custom_data">]
     member _.CustomData(state: VmConfig, customData: string) = {
