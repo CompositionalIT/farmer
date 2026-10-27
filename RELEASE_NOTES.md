@@ -1,8 +1,8 @@
 Release Notes
 =============
 
-## Next
-* Virtual Machines: Add typed `patch_mode` support for Linux and Windows guest patch orchestration, including `AutomaticByPlatform` ([#1271](https://github.com/CompositionalIT/Farmer/issues/1271)).
+## 1.9.35
+* Virtual Machines: Add typed `patch_mode` support for Linux and Windows guest patch orchestration, including `AutomaticByPlatform`.
 
 ## 1.9.34
 * Container Apps: Add Dapr component resiliency policy support for inbound and outbound timeout, HTTP retry, and circuit breaker policies.
