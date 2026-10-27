@@ -37,6 +37,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 | password_parameter                     | Sets the name of the parameter which contains the admin password for this VM. defaults to "password-for-<VM-name>"                                                                                                                                                                                                                                                    |
 | add_availability_zone                  | Sets the availability zone for the VM.                                                                                                                                                                                                                                                                                                                                |
 | operating_system                       | Sets the operating system of the VM. A set of samples is provided in the `CommonImages` module.                                                                                                                                                                                                                                                                       |
+| patch_mode                             | Sets guest patch orchestration using `Vm.PatchMode`: `AutomaticByPlatform` (Linux or Windows), `ImageDefault` (Linux), `AutomaticByOS` or `Manual` (Windows). Omitted by default. See Guest OS patching below. |
 | os_disk                                | Sets the size and type of the OS disk for the VM. Note: The default is non-SSD.                                                                                                                                                                                                                                                                                       |
 | add_disk                               | Adds a data disk to the VM with a specific size and type.                                                                                                                                                                                                                                                                                                             |
 | add_ssd_disk                           | Adds an SSD data disk to the VM with a specific size.                                                                                                                                                                                                                                                                                                                 |
@@ -81,6 +82,30 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 | link_to_unmanaged_vnet                 | Attaches the VM NIC to a vnet that is already deployed                                                                                                                                                                                                                                                                                                                |
 | link_to_backend_address_pool           | Adds the VM network interface to a load balancer backend address pool that is deployed with this VM.                                                                                                                                                                                                                                                                  |
 | link_to_unmanaged_backend_address_pool | Adds the VM network interface to an existing load balancer backend address pool.                                                                                                                                                                                                                                                                                      |
+
+#### Guest OS patching
+
+Use `patch_mode` to select guest patch orchestration. When omitted, Farmer does not emit patch settings and Azure's existing defaults are unchanged.
+
+```fsharp
+open Farmer
+open Farmer.Builders
+open Farmer.Vm
+
+let patchedVm = vm {
+    name "patched-linux"
+    username "azureuser"
+    vm_size Standard_D2s_v3
+    operating_system AzureLinux_3
+    patch_mode PatchMode.AutomaticByPlatform
+}
+```
+
+`PatchMode.AutomaticByPlatform` supports Linux and Windows. Farmer emits `patchSettings.patchMode` under the appropriate OS configuration and enables the Azure VM agent. For Windows, it also sets `enableAutomaticUpdates = true` as required when creating the VM. The same keyword works with, for example, `operating_system WindowsServer_2022Datacenter`.
+
+Linux also supports `PatchMode.ImageDefault`. Windows also supports `PatchMode.AutomaticByOS` and `PatchMode.Manual`; the latter disables Windows automatic updates. Invalid OS/mode combinations and patch settings on attached OS disks are rejected when generating the template. This keyword configures standalone VMs, not VM Scale Sets.
+
+Platform-managed patching requires a [supported platform image](https://learn.microsoft.com/azure/virtual-machines/automatic-vm-guest-patching#supported-os-images), a working Azure VM agent and access to the OS update endpoints. The `AzureLinux_3` image uses the supported `MicrosoftCBLMariner:azure-linux-3:azure-linux-3-gen2` combination. Windows `enableAutomaticUpdates` is immutable after creation, which restricts later transitions between manual and OS-managed patching; see the [patch orchestration modes](https://learn.microsoft.com/azure/virtual-machines/automatic-vm-guest-patching#patch-orchestration-modes).
 
 ##### VM Gallery Application Builder
 

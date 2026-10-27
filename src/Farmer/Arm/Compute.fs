@@ -308,8 +308,32 @@ module VirtualMachine =
                 |},
             disablePasswordAuthentication: bool option,
             customData: string option,
-            publicKeys: (string * string) list option
+            publicKeys: (string * string) list option,
+            patchMode: PatchMode option
         ) =
+        let os =
+            match osDisk with
+            | FromImage(ImageDefinition image, _)
+            | FromImageWithDelete(ImageDefinition image, _) -> image.OS
+            | FromImage(GalleryImageRef(os, _), _)
+            | FromImageWithDelete(GalleryImageRef(os, _), _)
+            | AttachOsDisk(os, _)
+            | AttachOsDiskWithDelete(os, _) -> os
+
+        match osDisk, os, patchMode with
+        | (AttachOsDisk _ | AttachOsDiskWithDelete _), _, Some _ ->
+            raiseFarmer "patch_mode cannot be used when attaching an existing OS disk."
+        | _, Linux, Some(PatchMode.AutomaticByOS | PatchMode.Manual) ->
+            raiseFarmer "Linux patch_mode must be AutomaticByPlatform or ImageDefault."
+        | _, Windows, Some PatchMode.ImageDefault ->
+            raiseFarmer "Windows patch_mode must be AutomaticByPlatform, AutomaticByOS or Manual."
+        | _ -> ()
+
+        let patchSettings =
+            patchMode
+            |> Option.map (fun mode -> box {| patchMode = mode.ArmValue |})
+            |> Option.toObj
+
         match osDisk with
         | AttachOsDisk _ -> null
         | _ ->
@@ -327,8 +351,18 @@ module VirtualMachine =
                     |> Option.map (System.Text.Encoding.UTF8.GetBytes >> Convert.ToBase64String)
                     |> Option.toObj
                 linuxConfiguration =
-                    if disablePasswordAuthentication.IsSome || publicKeys.IsSome then
+                    if
+                        disablePasswordAuthentication.IsSome
+                        || publicKeys.IsSome
+                        || (os = Linux && patchMode.IsSome)
+                    then
                         {|
+                            patchSettings = if os = Linux then patchSettings else null
+                            provisionVMAgent =
+                                if os = Linux && patchMode = Some PatchMode.AutomaticByPlatform then
+                                    Nullable true
+                                else
+                                    Nullable()
                             disablePasswordAuthentication =
                                 disablePasswordAuthentication |> Option.map box |> Option.toObj
                             ssh =
@@ -337,6 +371,15 @@ module VirtualMachine =
                                     publicKeys = publicKeys |> List.map (fun k -> {| path = fst k; keyData = snd k |})
                                   |}
                                 | None -> Unchecked.defaultof<_>
+                        |}
+                    else
+                        Unchecked.defaultof<_>
+                windowsConfiguration =
+                    if os = Windows && patchMode.IsSome then
+                        {|
+                            patchSettings = patchSettings
+                            provisionVMAgent = true
+                            enableAutomaticUpdates = patchMode <> Some PatchMode.Manual
                         |}
                     else
                         Unchecked.defaultof<_>
@@ -633,6 +676,7 @@ type VirtualMachine = {
     |}
     CustomData: string option
     DisablePasswordAuthentication: bool option
+    PatchMode: PatchMode option
     GalleryApplications: VmGalleryApplication list
     PublicKeys: (string * string) list option
     OsDisk: OsDiskCreateOption
@@ -687,7 +731,8 @@ type VirtualMachine = {
                         this.Credentials,
                         this.DisablePasswordAuthentication,
                         this.CustomData,
-                        this.PublicKeys
+                        this.PublicKeys,
+                        this.PatchMode
                     )
                 securityProfile =
                     this.SecurityProfile
@@ -928,7 +973,8 @@ type VirtualMachineScaleSet = {
                                     this.Credentials,
                                     this.DisablePasswordAuthentication,
                                     this.CustomData,
-                                    this.PublicKeys
+                                    this.PublicKeys,
+                                    None
                                 )
                             securityProfile =
                                 this.SecurityProfile
