@@ -233,6 +233,14 @@ module Vm =
 
         member this.ArmValue = string this
 
+    /// Controls guest OS patch assessment independently of patch orchestration.
+    [<RequireQualifiedAccess>]
+    type AssessmentMode =
+        | AutomaticByPlatform
+        | ImageDefault
+
+        member this.ArmValue = string this
+
     type VmProxyAgentMode =
         | Audit
         | Enforce

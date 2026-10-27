@@ -120,6 +120,111 @@ let tests =
             Expect.isNull profile.["linuxConfiguration"] "Windows VM must not emit Linux configuration"
         }
 
+        test "VM supports patch assessment independently of patch orchestration" {
+            for image, configName in
+                [
+                    AzureLinux_3, "linuxConfiguration"
+                    WindowsServer_2022Datacenter, "windowsConfiguration"
+                ] do
+                for mode in [ AssessmentMode.AutomaticByPlatform; AssessmentMode.ImageDefault ] do
+                    let machine = vm {
+                        name "assessmentvm"
+                        username "azureuser"
+                        operating_system image
+                        assessment_mode mode
+                    }
+
+                    let template = arm { add_resource machine }
+                    let json = JObject.Parse(template.Template |> Writer.toJson)
+
+                    let profile =
+                        json.SelectToken "resources[?(@.name=='assessmentvm')].properties.osProfile"
+
+                    let config = profile.[configName]
+
+                    Expect.equal
+                        (string config.["patchSettings"].["assessmentMode"])
+                        mode.ArmValue
+                        "Incorrect assessment mode"
+
+                    Expect.isNull
+                        config.["patchSettings"].["patchMode"]
+                        "Assessment must not select patch orchestration"
+
+                    if mode = AssessmentMode.AutomaticByPlatform then
+                        Expect.equal (config.["provisionVMAgent"].Value<bool>()) true "Assessment requires the VM agent"
+
+                    if configName = "windowsConfiguration" then
+                        Expect.isNull config.["enableAutomaticUpdates"] "Assessment must not select automatic updates"
+        }
+
+        test "VM combines patch orchestration and assessment modes" {
+            for image, patchMode, configName in
+                [
+                    AzureLinux_3, Farmer.Vm.PatchMode.AutomaticByPlatform, "linuxConfiguration"
+                    AzureLinux_3, Farmer.Vm.PatchMode.ImageDefault, "linuxConfiguration"
+                    WindowsServer_2022Datacenter, Farmer.Vm.PatchMode.AutomaticByPlatform, "windowsConfiguration"
+                    WindowsServer_2022Datacenter, Farmer.Vm.PatchMode.Manual, "windowsConfiguration"
+                ] do
+                let machine = vm {
+                    name "assessmentvm"
+                    username "azureuser"
+                    operating_system image
+                    patch_mode patchMode
+                    assessment_mode AssessmentMode.AutomaticByPlatform
+                }
+
+                let template = arm { add_resource machine }
+                let json = JObject.Parse(template.Template |> Writer.toJson)
+
+                let profile =
+                    json.SelectToken "resources[?(@.name=='assessmentvm')].properties.osProfile"
+
+                let config = profile.[configName]
+
+                Expect.equal (string config.["patchSettings"].["patchMode"]) patchMode.ArmValue "Incorrect patch mode"
+
+                Expect.equal
+                    (string config.["patchSettings"].["assessmentMode"])
+                    "AutomaticByPlatform"
+                    "Incorrect assessment mode"
+
+                Expect.equal (config.["provisionVMAgent"].Value<bool>()) true "Assessment requires the VM agent"
+
+                if configName = "windowsConfiguration" then
+                    Expect.equal
+                        (config.["enableAutomaticUpdates"].Value<bool>())
+                        (patchMode <> Farmer.Vm.PatchMode.Manual)
+                        "Assessment must preserve the patch mode's automatic updates setting"
+        }
+
+        test "VM rejects assessment mode with attached OS disks" {
+            for os in [ Linux; Windows ] do
+                for deleteDisk in [ false; true ] do
+                    Expect.throws
+                        (fun () ->
+                            let machine = vm {
+                                name "assessmentvm"
+                                username "azureuser"
+                                attach_existing_os_disk os (Farmer.Arm.Disk.disks.resourceId "existing-disk")
+                                assessment_mode AssessmentMode.AutomaticByPlatform
+                            }
+
+                            let machine =
+                                if deleteDisk then
+                                    {
+                                        machine with
+                                            DiskDeleteOption = Some DeleteOption.Delete
+                                    }
+                                    |> vm.Run
+                                else
+                                    machine
+
+                            let template = arm { add_resource machine }
+                            template.Template |> Writer.toJson |> ignore)
+                        "Attached OS disks cannot use an OS profile"
+        }
+
         test "Patch settings are omitted by default" {
             for image in [ AzureLinux_3; WindowsServer_2022Datacenter ] do
                 let machine = vm {
@@ -191,6 +296,7 @@ let tests =
                     (json.SelectToken "resources[?(@.name=='patchvm')].properties.osProfile").[configName]
 
                 Expect.equal (string config.["patchSettings"].["patchMode"]) mode.ArmValue "Incorrect patch mode"
+                Expect.isNull config.["patchSettings"].["assessmentMode"] "Patch mode must not select assessment"
 
                 if configName = "windowsConfiguration" then
                     Expect.equal

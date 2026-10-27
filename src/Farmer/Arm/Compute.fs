@@ -309,7 +309,8 @@ module VirtualMachine =
             disablePasswordAuthentication: bool option,
             customData: string option,
             publicKeys: (string * string) list option,
-            patchMode: PatchMode option
+            patchMode: PatchMode option,
+            assessmentMode: AssessmentMode option
         ) =
         let os =
             match osDisk with
@@ -319,6 +320,11 @@ module VirtualMachine =
             | FromImageWithDelete(GalleryImageRef(os, _), _)
             | AttachOsDisk(os, _)
             | AttachOsDiskWithDelete(os, _) -> os
+
+        match osDisk, assessmentMode with
+        | (AttachOsDisk _ | AttachOsDiskWithDelete _), Some _ ->
+            raiseFarmer "assessment_mode cannot be used when attaching an existing OS disk."
+        | _ -> ()
 
         match osDisk, os, patchMode with
         | (AttachOsDisk _ | AttachOsDiskWithDelete _), _, Some _ ->
@@ -330,9 +336,13 @@ module VirtualMachine =
         | _ -> ()
 
         let patchSettings =
-            patchMode
-            |> Option.map (fun mode -> box {| patchMode = mode.ArmValue |})
-            |> Option.toObj
+            if patchMode.IsSome || assessmentMode.IsSome then
+                box {|
+                    patchMode = patchMode |> Option.map _.ArmValue |> Option.toObj
+                    assessmentMode = assessmentMode |> Option.map _.ArmValue |> Option.toObj
+                |}
+            else
+                null
 
         match osDisk with
         | AttachOsDisk _ -> null
@@ -354,12 +364,16 @@ module VirtualMachine =
                     if
                         disablePasswordAuthentication.IsSome
                         || publicKeys.IsSome
-                        || (os = Linux && patchMode.IsSome)
+                        || (os = Linux && (patchMode.IsSome || assessmentMode.IsSome))
                     then
                         {|
                             patchSettings = if os = Linux then patchSettings else null
                             provisionVMAgent =
-                                if os = Linux && patchMode = Some PatchMode.AutomaticByPlatform then
+                                if
+                                    os = Linux
+                                    && (patchMode = Some PatchMode.AutomaticByPlatform
+                                        || assessmentMode = Some AssessmentMode.AutomaticByPlatform)
+                                then
                                     Nullable true
                                 else
                                     Nullable()
@@ -375,11 +389,14 @@ module VirtualMachine =
                     else
                         Unchecked.defaultof<_>
                 windowsConfiguration =
-                    if os = Windows && patchMode.IsSome then
+                    if os = Windows && (patchMode.IsSome || assessmentMode.IsSome) then
                         {|
                             patchSettings = patchSettings
                             provisionVMAgent = true
-                            enableAutomaticUpdates = patchMode <> Some PatchMode.Manual
+                            enableAutomaticUpdates =
+                                patchMode
+                                |> Option.map (fun mode -> mode <> PatchMode.Manual)
+                                |> Option.toNullable
                         |}
                     else
                         Unchecked.defaultof<_>
@@ -677,6 +694,7 @@ type VirtualMachine = {
     CustomData: string option
     DisablePasswordAuthentication: bool option
     PatchMode: PatchMode option
+    AssessmentMode: AssessmentMode option
     GalleryApplications: VmGalleryApplication list
     PublicKeys: (string * string) list option
     OsDisk: OsDiskCreateOption
@@ -732,7 +750,8 @@ type VirtualMachine = {
                         this.DisablePasswordAuthentication,
                         this.CustomData,
                         this.PublicKeys,
-                        this.PatchMode
+                        this.PatchMode,
+                        this.AssessmentMode
                     )
                 securityProfile =
                     this.SecurityProfile
@@ -974,6 +993,7 @@ type VirtualMachineScaleSet = {
                                     this.DisablePasswordAuthentication,
                                     this.CustomData,
                                     this.PublicKeys,
+                                    None,
                                     None
                                 )
                             securityProfile =
