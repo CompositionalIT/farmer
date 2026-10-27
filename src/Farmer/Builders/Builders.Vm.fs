@@ -40,6 +40,7 @@ type VmConfig = {
     CustomData: string option
     DisablePasswordAuthentication: bool option
     PatchMode: PatchMode option
+    AssessmentMode: AssessmentMode option
     SshPathAndPublicKeys: (string * string) list option
     AadSshLogin: FeatureFlag
 
@@ -216,6 +217,7 @@ type VmConfig = {
                     CustomData = this.CustomData
                     DisablePasswordAuthentication = this.DisablePasswordAuthentication
                     PatchMode = this.PatchMode
+                    AssessmentMode = this.AssessmentMode
                     GalleryApplications = this.GalleryApplications
                     PublicKeys =
                         if
@@ -351,6 +353,7 @@ type VirtualMachineBuilder() =
         CustomData = None
         DisablePasswordAuthentication = None
         PatchMode = None
+        AssessmentMode = None
         SshPathAndPublicKeys = None
         AadSshLogin = FeatureFlag.Disabled
         OsDisk =
@@ -1004,6 +1007,13 @@ type VirtualMachineBuilder() =
     /// Sets guest OS patch orchestration for this VM.
     [<CustomOperation "patch_mode">]
     member _.PatchMode(state: VmConfig, mode: PatchMode) = { state with PatchMode = Some mode }
+
+    /// Sets guest OS patch assessment independently of patch orchestration.
+    [<CustomOperation "assessment_mode">]
+    member _.AssessmentMode(state: VmConfig, mode: AssessmentMode) = {
+        state with
+            AssessmentMode = Some mode
+    }
 
     [<CustomOperation "custom_data">]
     member _.CustomData(state: VmConfig, customData: string) = {

@@ -38,6 +38,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 | add_availability_zone                  | Sets the availability zone for the VM.                                                                                                                                                                                                                                                                                                                                |
 | operating_system                       | Sets the operating system of the VM. A set of samples is provided in the `CommonImages` module.                                                                                                                                                                                                                                                                       |
 | patch_mode                             | Sets guest patch orchestration using `Vm.PatchMode`: `AutomaticByPlatform` (Linux or Windows), `ImageDefault` (Linux), `AutomaticByOS` or `Manual` (Windows). Omitted by default. See Guest OS patching below. |
+| assessment_mode                        | Sets guest patch assessment using `Vm.AssessmentMode`: `AutomaticByPlatform` or `ImageDefault` (Linux or Windows), independently of `patch_mode`. Omitted by default. See Guest OS patching below. |
 | os_disk                                | Sets the size and type of the OS disk for the VM. Note: The default is non-SSD.                                                                                                                                                                                                                                                                                       |
 | add_disk                               | Adds a data disk to the VM with a specific size and type.                                                                                                                                                                                                                                                                                                             |
 | add_ssd_disk                           | Adds an SSD data disk to the VM with a specific size.                                                                                                                                                                                                                                                                                                                 |
@@ -85,7 +86,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 
 #### Guest OS patching
 
-Use `patch_mode` to select guest patch orchestration. When omitted, Farmer does not emit patch settings and Azure's existing defaults are unchanged.
+Use `patch_mode` to select guest patch orchestration and `assessment_mode` to select guest patch assessment. Both are optional and independent: Farmer only emits each setting when explicitly selected. When both are omitted, Farmer does not emit patch settings and Azure's existing defaults are unchanged.
 
 ```fsharp
 open Farmer
@@ -98,12 +99,15 @@ let patchedVm = vm {
     vm_size Standard_D2s_v3
     operating_system AzureLinux_3
     patch_mode PatchMode.AutomaticByPlatform
+    assessment_mode AssessmentMode.AutomaticByPlatform
 }
 ```
 
 `PatchMode.AutomaticByPlatform` supports Linux and Windows. Farmer emits `patchSettings.patchMode` under the appropriate OS configuration and enables the Azure VM agent. For Windows, it also sets `enableAutomaticUpdates = true` as required when creating the VM. The same keyword works with, for example, `operating_system WindowsServer_2022Datacenter`.
 
-Linux also supports `PatchMode.ImageDefault`. Windows also supports `PatchMode.AutomaticByOS` and `PatchMode.Manual`; the latter disables Windows automatic updates. Invalid OS/mode combinations and patch settings on attached OS disks are rejected when generating the template. This keyword configures standalone VMs, not VM Scale Sets.
+Linux also supports `PatchMode.ImageDefault`. Windows also supports `PatchMode.AutomaticByOS` and `PatchMode.Manual`; the latter disables Windows automatic updates. Invalid OS/mode combinations and patch settings on attached OS disks are rejected when generating the template. These keywords configure standalone VMs, not VM Scale Sets.
+
+`AssessmentMode.AutomaticByPlatform` enables periodic platform assessment for missing updates and enables the Azure VM agent, on either Linux or Windows. `AssessmentMode.ImageDefault` leaves assessment timing under your control. Farmer emits `patchSettings.assessmentMode` under the appropriate OS configuration. Assessment alone does not set `patchMode` or change Windows `enableAutomaticUpdates`; for example, use `assessment_mode AssessmentMode.AutomaticByPlatform` without `patch_mode` to enable assessment without selecting patch orchestration. Conversely, `patch_mode` alone does not set `assessmentMode`.
 
 Platform-managed patching requires a [supported platform image](https://learn.microsoft.com/azure/virtual-machines/automatic-vm-guest-patching#supported-os-images), a working Azure VM agent and access to the OS update endpoints. The `AzureLinux_3` image uses the supported `MicrosoftCBLMariner:azure-linux-3:azure-linux-3-gen2` combination. Windows `enableAutomaticUpdates` is immutable after creation, which restricts later transitions between manual and OS-managed patching; see the [patch orchestration modes](https://learn.microsoft.com/azure/virtual-machines/automatic-vm-guest-patching#patch-orchestration-modes).
 
