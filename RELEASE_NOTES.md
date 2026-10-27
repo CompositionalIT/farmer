@@ -1,8 +1,8 @@
 Release Notes
 =============
 
-## Next
-* Virtual Machines: Add independent typed `assessment_mode` support for Linux and Windows guest patch assessment ([#1273](https://github.com/CompositionalIT/farmer/issues/1273)).
+## 1,9.36
+* Virtual Machines: Add independent typed `assessment_mode` support for Linux and Windows guest patch assessment.
 
 ## 1.9.35
 * Virtual Machines: Add typed `patch_mode` support for Linux and Windows guest patch orchestration, including `AutomaticByPlatform`.
